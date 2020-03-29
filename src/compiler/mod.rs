@@ -49,7 +49,7 @@ impl ByteEncodeProperties for InputString {
 }
 
 /// Single unit of compilation, representing a single program
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompilationUnit {
     pub nodes: Nodes,
 }
