@@ -5,7 +5,8 @@ mod astnode;
 #[cfg(test)]
 mod tests;
 use crate::{
-    traits::ByteEncodeProperties, CompiledProgram, InputString, Instruction, Label, INPUT_STR_LEN,
+    traits::ByteEncodeProperties, CompiledProgram, InputString, Instruction, Label, Labels,
+    INPUT_STR_LEN,
 };
 pub use astnode::*;
 use log::debug;
@@ -48,145 +49,182 @@ impl ByteEncodeProperties for InputString {
     }
 }
 
-/// Single unit of compilation, representing a single program
+/// Single compilation_unit of compilation, representing a single program
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompilationUnit {
     pub nodes: Nodes,
 }
 
 pub struct Compiler {
-    unit: CompilationUnit,
+    compilation_unit: CompilationUnit,
     program: CompiledProgram,
 }
 
-impl Compiler {
-    pub fn compile(unit: CompilationUnit) -> Result<CompiledProgram, String> {
-        debug!("compilation start");
-        if unit.nodes.is_empty() {
-            return Err("Program is empty!".to_owned());
-        }
-        let mut compiler = Compiler {
-            unit,
-            program: CompiledProgram::default(),
-        };
-        let start = compiler
-            .unit
-            .nodes
-            .iter()
-            .find(|(_, v)| match v.node.instruction() {
-                Instruction::Start => true,
-                _ => false,
-            })
-            .ok_or_else(|| "No start node has been found")?;
+pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, String> {
+    debug!("compilation start");
+    if compilation_unit.nodes.is_empty() {
+        return Err("Program is empty!".to_owned());
+    }
+    let mut compiler = Compiler {
+        compilation_unit,
+        program: CompiledProgram::default(),
+    };
+    let start = compiler
+        .compilation_unit
+        .nodes
+        .iter()
+        .find(|(_, v)| match v.node.instruction() {
+            Instruction::Start => true,
+            _ => false,
+        })
+        .ok_or_else(|| "No start node has been found")?;
 
-        let mut nodes = compiler
-            .unit
-            .nodes
-            .iter()
-            .map(|(k, _)| *k)
-            .collect::<HashSet<_>>();
-        let mut todo = VecDeque::<i32>::with_capacity(compiler.unit.nodes.len());
-        todo.push_back(*start.0);
-        let mut seen = HashSet::with_capacity(compiler.unit.nodes.len());
+    let mut nodes = compiler
+        .compilation_unit
+        .nodes
+        .iter()
+        .map(|(k, _)| *k)
+        .collect::<HashSet<_>>();
+    let mut todo = VecDeque::<i32>::with_capacity(compiler.compilation_unit.nodes.len());
+    todo.push_back(*start.0);
+    let mut seen = HashSet::with_capacity(compiler.compilation_unit.nodes.len());
 
-        loop {
-            while !todo.is_empty() {
-                let current = todo.pop_front().unwrap();
-                debug!("procesing node {:?}", current);
-                nodes.remove(&current);
-                seen.insert(current);
-                compiler.process_node(current)?;
-                match compiler.unit.nodes[&current].child.as_ref() {
-                    None => compiler.program.bytecode.push(Instruction::Exit as u8),
-                    Some(node) => {
-                        if !seen.contains(node) {
-                            todo.push_front(*node);
-                        } else {
-                            debug!(
-                                "child node of node {:?} already visited: {:?}",
-                                current, node
-                            );
-                            compiler.program.bytecode.push(Instruction::Jump as u8);
-                            compiler.program.bytecode.append(&mut node.encode());
-                        }
+    loop {
+        while !todo.is_empty() {
+            let current = todo.pop_front().unwrap();
+            debug!("procesing node {:?}", current);
+            nodes.remove(&current);
+            seen.insert(current);
+            process_node(current, &compiler.compilation_unit, &mut compiler.program)?;
+            match compiler.compilation_unit.nodes[&current].child.as_ref() {
+                None => compiler.program.bytecode.push(Instruction::Exit as u8),
+                Some(node) => {
+                    if !seen.contains(node) {
+                        todo.push_front(*node);
+                    } else {
+                        debug!(
+                            "child node of node {:?} already visited: {:?}",
+                            current, node
+                        );
+                        compiler.program.bytecode.push(Instruction::Jump as u8);
+                        compiler.program.bytecode.append(&mut node.encode());
                     }
                 }
             }
-            match nodes.iter().next() {
-                Some(node) => todo.push_back(*node),
-                None => break,
-            }
         }
-
-        debug!("compilation end");
-        Ok(compiler.program)
-    }
-
-    fn process_node(&mut self, nodeid: NodeId) -> Result<(), String> {
-        use InstructionNode::*;
-
-        let node = self
-            .unit
-            .nodes
-            .get(&nodeid)
-            .ok_or_else(|| format!("node [{}] not found in `nodes`", nodeid))?
-            .clone();
-
-        let fromlabel = u32::try_from(self.program.bytecode.len())
-            .expect("bytecode length to fit into 32 bits");
-        self.program
-            .labels
-            .insert(nodeid, Label::new(fromlabel, fromlabel));
-
-        let instruction = node.node;
-
-        match instruction {
-            Pop | Equals | Less | LessOrEq | NotEquals | Exit | Start | Pass | CopyLast | Add
-            | Sub | Mul | Div => {
-                self.push_node(nodeid);
-            }
-            ReadVar(variable) | SetVar(variable) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut variable.name.encode());
-            }
-            JumpIfTrue(j) | Jump(j) => {
-                let label = j.nodeid;
-                if label == nodeid {
-                    return Err(format!(
-                        "Node {:?} is trying to Jump to its own location which is not supported",
-                        nodeid
-                    ));
-                }
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut label.encode());
-            }
-            StringLiteral(c) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut c.value.encode());
-            }
-            Call(c) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut c.function.encode());
-            }
-            ScalarArray(n) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut n.value.encode());
-            }
-            ScalarLabel(s) | ScalarInt(s) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut s.value.encode());
-            }
-            ScalarFloat(s) => {
-                self.push_node(nodeid);
-                self.program.bytecode.append(&mut s.value.encode());
-            }
-        }
-        Ok(())
-    }
-
-    fn push_node(&mut self, nodeid: NodeId) {
-        if let Some(node) = &self.unit.nodes.get(&nodeid) {
-            self.program.bytecode.push(node.node.instruction() as u8);
+        match nodes.iter().next() {
+            Some(node) => todo.push_back(*node),
+            None => break,
         }
     }
+
+    check_post_invariants(&compiler)?;
+    debug!("compilation end");
+    Ok(compiler.program)
+}
+
+fn check_post_invariants(compiler: &Compiler) -> Result<(), String> {
+    debug!("checking invariants post compile");
+    for (nodeid, node) in compiler.compilation_unit.nodes.iter() {
+        match node.node {
+            InstructionNode::Jump(ref jump) | InstructionNode::JumpIfTrue(ref jump) => {
+                check_jump_post_conditions(*nodeid, jump, &compiler.program.labels)?;
+            }
+            _ => {}
+        }
+    }
+    debug!("checking invariants post compile done");
+    Ok(())
+}
+
+fn check_jump_post_conditions(
+    nodeid: NodeId,
+    jump: &JumpNode,
+    labels: &Labels,
+) -> Result<(), String> {
+    if jump.nodeid == nodeid {
+        return Err(format!(
+            "Node {} is trying to jump to its own position. This is not allowed!",
+            nodeid
+        ));
+    }
+    if !labels.contains_key(&jump.nodeid) {
+        return Err(format!(
+            "Node {} is trying to jump to Non existing Node {}!",
+            nodeid, jump.nodeid
+        ));
+    }
+
+    Ok(())
+}
+
+fn push_node(nodeid: NodeId, compilation_unit: &CompilationUnit, program: &mut CompiledProgram) {
+    if let Some(node) = &compilation_unit.nodes.get(&nodeid) {
+        program.bytecode.push(node.node.instruction() as u8);
+    }
+}
+
+fn process_node(
+    nodeid: NodeId,
+    compilation_unit: &CompilationUnit,
+    program: &mut CompiledProgram,
+) -> Result<(), String> {
+    use InstructionNode::*;
+
+    let node = compilation_unit
+        .nodes
+        .get(&nodeid)
+        .ok_or_else(|| format!("node [{}] not found in `nodes`", nodeid))?
+        .clone();
+
+    let fromlabel =
+        u32::try_from(program.bytecode.len()).expect("bytecode length to fit into 32 bits");
+    program
+        .labels
+        .insert(nodeid, Label::new(fromlabel, fromlabel));
+
+    let instruction = node.node;
+
+    match instruction {
+        Pop | Equals | Less | LessOrEq | NotEquals | Exit | Start | Pass | CopyLast | Add | Sub
+        | Mul | Div => {
+            push_node(nodeid, compilation_unit, program);
+        }
+        ReadVar(variable) | SetVar(variable) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut variable.name.encode());
+        }
+        JumpIfTrue(j) | Jump(j) => {
+            let label = j.nodeid;
+            if label == nodeid {
+                return Err(format!(
+                    "Node {:?} is trying to Jump to its own location which is not supported",
+                    nodeid
+                ));
+            }
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut label.encode());
+        }
+        StringLiteral(c) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut c.value.encode());
+        }
+        Call(c) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut c.function.encode());
+        }
+        ScalarArray(n) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut n.value.encode());
+        }
+        ScalarLabel(s) | ScalarInt(s) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut s.value.encode());
+        }
+        ScalarFloat(s) => {
+            push_node(nodeid, compilation_unit, program);
+            program.bytecode.append(&mut s.value.encode());
+        }
+    }
+    Ok(())
 }

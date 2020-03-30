@@ -4,6 +4,18 @@ use crate::vm::VM;
 use arrayvec::ArrayString;
 
 #[test]
+fn post_process_raises_error_if_node_jumpts_to_itself() {
+    let node = JumpNode { nodeid: 42 };
+    check_jump_post_conditions(42, &node, &Default::default()).unwrap_err();
+}
+
+#[test]
+fn post_process_raises_error_if_node_jumpts_to_non_existent() {
+    let node = JumpNode { nodeid: 42 };
+    check_jump_post_conditions(13, &node, &Default::default()).unwrap_err();
+}
+
+#[test]
 fn compiling_simple_program() {
     simple_logger::init().unwrap_or(());
     let nodes: Nodes = [
@@ -41,7 +53,7 @@ fn compiling_simple_program() {
     .collect();
 
     let program = CompilationUnit { nodes };
-    let program = Compiler::compile(program).unwrap();
+    let program = compile(program).unwrap();
 
     log::warn!("Program: {:?}", program);
 
@@ -154,7 +166,7 @@ fn simple_looping_program() {
     .collect();
 
     let program = CompilationUnit { nodes };
-    let program = Compiler::compile(program).unwrap();
+    let program = compile(program).unwrap();
 
     // Compilation was successful
 

@@ -41,7 +41,7 @@
 //! }"#;
 //!
 //! let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
-//! cao_lang::compiler::Compiler::compile(compilation_unit).unwrap();
+//! cao_lang::compiler::compile(compilation_unit).unwrap();
 //!```
 //!
 pub mod compiler;
@@ -66,11 +66,13 @@ pub const MAX_INPUT_PER_NODE: usize = 8;
 pub const INPUT_STR_LEN: usize = 128;
 pub type InputString = ArrayString<[u8; INPUT_STR_LEN]>;
 
+pub type Labels = HashMap<NodeId, Label>;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompiledProgram {
     pub bytecode: Vec<u8>,
     /// Label: [block, self]
-    pub labels: HashMap<NodeId, Label>,
+    pub labels: Labels,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Label {
