@@ -2,6 +2,7 @@
 //! Programs must start with a `Start` instruction.
 //!
 mod astnode;
+mod compilation_error;
 #[cfg(test)]
 mod tests;
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
     INPUT_STR_LEN,
 };
 pub use astnode::*;
+pub use compilation_error::*;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet, VecDeque};
@@ -60,10 +62,10 @@ pub struct Compiler {
     program: CompiledProgram,
 }
 
-pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, String> {
+pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, CompilationError> {
     debug!("compilation start");
     if compilation_unit.nodes.is_empty() {
-        return Err("Program is empty!".to_owned());
+        return Err(CompilationError::EmptyProgram);
     }
     let mut compiler = Compiler {
         compilation_unit,
@@ -77,7 +79,7 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Str
             Instruction::Start => true,
             _ => false,
         })
-        .ok_or_else(|| "No start node has been found")?;
+        .ok_or_else(|| CompilationError::NoStart)?;
 
     let mut nodes = compiler
         .compilation_unit
@@ -123,7 +125,7 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Str
     Ok(compiler.program)
 }
 
-fn check_post_invariants(compiler: &Compiler) -> Result<(), String> {
+fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
     debug!("checking invariants post compile");
     for (nodeid, node) in compiler.compilation_unit.nodes.iter() {
         match node.node {
@@ -141,18 +143,26 @@ fn check_jump_post_conditions(
     nodeid: NodeId,
     jump: &JumpNode,
     labels: &Labels,
-) -> Result<(), String> {
+) -> Result<(), CompilationError> {
     if jump.nodeid == nodeid {
-        return Err(format!(
-            "Node {} is trying to jump to its own position. This is not allowed!",
-            nodeid
-        ));
+        return Err(CompilationError::InvalidJump {
+            src: nodeid,
+            dst: nodeid,
+            msg: Some(format!(
+                "Node {} is trying to jump to its own position. This is not allowed!",
+                nodeid
+            )),
+        });
     }
     if !labels.contains_key(&jump.nodeid) {
-        return Err(format!(
-            "Node {} is trying to jump to Non existing Node {}!",
-            nodeid, jump.nodeid
-        ));
+        return Err(CompilationError::InvalidJump {
+            src: nodeid,
+            dst: jump.nodeid,
+            msg: Some(format!(
+                "Node {} is trying to jump to Non existing Node {}!",
+                nodeid, jump.nodeid
+            )),
+        });
     }
 
     Ok(())
@@ -168,13 +178,13 @@ fn process_node(
     nodeid: NodeId,
     compilation_unit: &CompilationUnit,
     program: &mut CompiledProgram,
-) -> Result<(), String> {
+) -> Result<(), CompilationError> {
     use InstructionNode::*;
 
     let node = compilation_unit
         .nodes
         .get(&nodeid)
-        .ok_or_else(|| format!("node [{}] not found in `nodes`", nodeid))?
+        .ok_or_else(|| CompilationError::MissingNode(nodeid))?
         .clone();
 
     let fromlabel =
@@ -197,10 +207,14 @@ fn process_node(
         JumpIfTrue(j) | Jump(j) => {
             let label = j.nodeid;
             if label == nodeid {
-                return Err(format!(
-                    "Node {:?} is trying to Jump to its own location which is not supported",
-                    nodeid
-                ));
+                return Err(CompilationError::InvalidJump {
+                    src: nodeid,
+                    dst: nodeid,
+                    msg: Some(format!(
+                        "Node {:?} is trying to Jump to its own location which is not supported",
+                        nodeid
+                    )),
+                });
             }
             push_node(nodeid, compilation_unit, program);
             program.bytecode.append(&mut label.encode());

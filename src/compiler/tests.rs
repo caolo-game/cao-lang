@@ -6,13 +6,24 @@ use arrayvec::ArrayString;
 #[test]
 fn post_process_raises_error_if_node_jumpts_to_itself() {
     let node = JumpNode { nodeid: 42 };
-    check_jump_post_conditions(42, &node, &Default::default()).unwrap_err();
+    let msg = check_jump_post_conditions(42, &node, &Default::default()).unwrap_err();
+    match msg {
+        CompilationError::InvalidJump { src, dst, .. } => assert_eq!(src, dst),
+        _ => panic!("Bad error msg {:?}", msg),
+    };
 }
 
 #[test]
 fn post_process_raises_error_if_node_jumpts_to_non_existent() {
     let node = JumpNode { nodeid: 42 };
-    check_jump_post_conditions(13, &node, &Default::default()).unwrap_err();
+    let msg = check_jump_post_conditions(13, &node, &Default::default()).unwrap_err();
+    match msg {
+        CompilationError::InvalidJump { src, dst, .. } => {
+            assert_eq!(src, 13);
+            assert_eq!(dst, 42);
+        }
+        _ => panic!("Bad error msg {:?}", msg),
+    };
 }
 
 #[test]
