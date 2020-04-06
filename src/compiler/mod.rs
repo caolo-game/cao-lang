@@ -13,7 +13,7 @@ pub use astnode::*;
 pub use compilation_error::*;
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
@@ -21,7 +21,7 @@ use std::fmt::Debug;
 pub type NodeId = i32;
 /// Node by given id has inputs given by nodeids
 /// Nodes may only have a finite amount of inputs
-pub type Nodes = BTreeMap<NodeId, AstNode>;
+pub type Nodes = HashMap<NodeId, AstNode>;
 
 impl ByteEncodeProperties for InputString {
     const BYTELEN: usize = INPUT_STR_LEN;
