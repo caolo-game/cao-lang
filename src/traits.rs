@@ -1,9 +1,11 @@
-use crate::{scalar::Scalar, vm::VM, procedures::ExecutionResult};
+use crate::{procedures::ExecutionResult, scalar::Scalar, vm::VM};
+use log::error;
 use std::any::type_name;
+use std::convert::TryFrom;
 use std::fmt::Write;
 use std::mem;
 
-pub const MAX_STR_LEN: usize = 128;
+pub const MAX_STR_LEN: usize = 256;
 
 pub trait ObjectProperties: std::fmt::Debug {
     fn write_debug(&self, output: &mut String) {
@@ -13,16 +15,29 @@ pub trait ObjectProperties: std::fmt::Debug {
 
 pub trait ByteEncodeProperties: Sized + ObjectProperties {
     const BYTELEN: usize = mem::size_of::<Self>();
+    type DecodeError;
 
     fn displayname() -> &'static str {
         type_name::<Self>()
     }
     fn encode(self) -> Vec<u8>;
-    fn decode(bytes: &[u8]) -> Option<Self>;
+    fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError>;
+}
+
+#[derive(Debug)]
+pub enum StringDecodeError {
+    /// Could not decode lengt
+    LengthDecodeError,
+    /// Got an invalid length
+    LengthError(i32),
+    /// Did not fit into available space
+    CapacityError(usize),
+    Utf8DecodeError(std::str::Utf8Error),
 }
 
 impl ByteEncodeProperties for String {
     const BYTELEN: usize = MAX_STR_LEN;
+    type DecodeError = StringDecodeError;
 
     fn displayname() -> &'static str {
         "Text"
@@ -31,24 +46,32 @@ impl ByteEncodeProperties for String {
     fn encode(self) -> Vec<u8> {
         assert!(self.len() < Self::BYTELEN);
         let mut rr = (self.len() as i32).encode();
-        rr.extend(self.chars().map(|c| c as u8));
+        rr.extend(self.as_bytes());
         rr
     }
 
-    fn decode(bytes: &[u8]) -> Option<Self> {
-        let len = i32::decode(bytes)?;
-        let string = bytes
-            .iter()
-            .skip(i32::BYTELEN)
-            .take(len as usize)
-            .map(|c| *c as char)
-            .collect();
-        Some(string)
+    fn decode(bytes: &[u8]) -> Result<Self, StringDecodeError> {
+        let len = i32::decode(bytes).map_err(|_| {
+            error!("Failed to deserialize length");
+            StringDecodeError::LengthDecodeError
+        })?;
+        let len = usize::try_from(len).map_err(|e| {
+            error!("Length must be non-negative, got: {}", e);
+            StringDecodeError::LengthError(len)
+        })?;
+        std::str::from_utf8(&bytes[i32::BYTELEN..i32::BYTELEN + len])
+            .map_err(|e| {
+                error!("Failed to decode string {:?}", e);
+                StringDecodeError::Utf8DecodeError(e)
+            })
+            .map(|s| s.to_owned())
     }
 }
 
 impl ByteEncodeProperties for () {
     const BYTELEN: usize = 0;
+    type DecodeError = ();
+
     fn displayname() -> &'static str {
         "Void"
     }
@@ -57,8 +80,8 @@ impl ByteEncodeProperties for () {
         vec![]
     }
 
-    fn decode(_bytes: &[u8]) -> Option<Self> {
-        None
+    fn decode(_bytes: &[u8]) -> Result<Self, Self::DecodeError> {
+        Ok(())
     }
 }
 
@@ -147,26 +170,25 @@ impl<T: std::fmt::Debug> ObjectProperties for T {}
 impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeProperties
     for T
 {
-    fn encode(self) -> Vec<u8> {
-        let size: usize = Self::BYTELEN;
+    type DecodeError = ();
 
-        let mut result = vec![0; size];
+    fn encode(self) -> Vec<u8> {
+        let mut result = vec![0; Self::BYTELEN];
         unsafe {
             let dayum = mem::transmute::<*const Self, *const u8>(&self as *const Self);
-            for i in 0..size {
+            for i in 0..Self::BYTELEN {
                 result[i] = *(dayum.add(i));
             }
         }
         result
     }
 
-    fn decode(bytes: &[u8]) -> Option<Self> {
-        let size: usize = Self::BYTELEN;
-        if bytes.len() < size {
-            None
+    fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
+        if bytes.len() < Self::BYTELEN {
+            Err(())
         } else {
             let result = unsafe { *(bytes.as_ptr() as *const Self) };
-            Some(result)
+            Ok(result)
         }
     }
 }

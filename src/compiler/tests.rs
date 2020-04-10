@@ -1,7 +1,40 @@
 use super::*;
 use crate::scalar::Scalar;
+use crate::traits::ByteEncodeProperties;
 use crate::vm::VM;
 use arrayvec::ArrayString;
+
+#[test]
+fn input_string_decode_error_handling() {
+    const NEGATIVELEN: i32 = -123i32;
+    let negativelen = NEGATIVELEN.encode();
+
+    let err = InputString::decode(&negativelen).unwrap_err();
+    match err {
+        StringDecodeError::LengthError(e) => assert_eq!(e, NEGATIVELEN),
+        _ => panic!("Bad error {:?}", err),
+    }
+
+    let negativelen = NEGATIVELEN.encode();
+
+    let err = InputString::decode(&negativelen[..3]).unwrap_err();
+    match err {
+        StringDecodeError::LengthDecodeError => {}
+        _ => panic!("Bad error {:?}", err),
+    }
+
+    let len = InputString::BYTELEN * 2;
+    assert_eq!(len, len as i32 as usize); // sanity check
+    let len = len as i32;
+    let mut bytes = len.encode();
+    bytes.extend((0..len).map(|_| 69));
+
+    let err = InputString::decode(&bytes).unwrap_err();
+    match err {
+        StringDecodeError::CapacityError(_len) => {}
+        _ => panic!("Bad error {:?}", err),
+    }
+}
 
 #[test]
 fn post_process_raises_error_if_node_jumpts_to_itself() {

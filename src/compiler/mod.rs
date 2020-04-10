@@ -3,15 +3,17 @@
 //!
 mod astnode;
 mod compilation_error;
+
 #[cfg(test)]
 mod tests;
+
 use crate::{
-    traits::ByteEncodeProperties, CompiledProgram, InputString, Instruction, Label, Labels,
-    INPUT_STR_LEN,
+    traits::{ByteEncodeProperties, StringDecodeError},
+    CompiledProgram, InputString, Instruction, Label, Labels, INPUT_STR_LEN_IN_BYTES,
 };
 pub use astnode::*;
 pub use compilation_error::*;
-use log::debug;
+use log::{debug, error};
 use serde_derive::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::TryFrom;
@@ -24,7 +26,8 @@ pub type NodeId = i32;
 pub type Nodes = HashMap<NodeId, AstNode>;
 
 impl ByteEncodeProperties for InputString {
-    const BYTELEN: usize = INPUT_STR_LEN;
+    const BYTELEN: usize = INPUT_STR_LEN_IN_BYTES;
+    type DecodeError = StringDecodeError;
 
     fn displayname() -> &'static str {
         "Text"
@@ -32,22 +35,36 @@ impl ByteEncodeProperties for InputString {
 
     fn encode(self) -> Vec<u8> {
         let mut rr = (self.len() as i32).encode();
-        rr.extend(self.chars().map(|c| c as u8));
+        rr.extend(self.as_bytes());
         rr
     }
 
-    fn decode(bytes: &[u8]) -> Option<Self> {
-        let len = i32::decode(bytes)?;
-        let mut res = Self::new();
-        for byte in bytes
-            .iter()
-            .skip(i32::BYTELEN)
-            .take(len as usize)
-            .map(|c| *c as char)
-        {
-            res.push(byte);
+    fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
+        let len = i32::decode(bytes).map_err(|e| {
+            error!("Failed to deserialize string len {:?}", e);
+            StringDecodeError::LengthDecodeError
+        })?;
+        let len = usize::try_from(len).map_err(|e| {
+            error!("String length must be non-negative! {:?}", e);
+            StringDecodeError::LengthError(len)
+        })?;
+        const BYTELEN: usize = i32::BYTELEN;
+        if bytes.len() < BYTELEN + len {
+            error!(
+                "bytes is not long enough, expected len {} got {}",
+                BYTELEN + len,
+                bytes.len()
+            );
+            return Err(StringDecodeError::LengthError((BYTELEN + len) as i32));
         }
-        Some(res)
+        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len as usize]).map_err(|e| {
+            error!("Failed to read InputString {:?}", e);
+            StringDecodeError::Utf8DecodeError(e)
+        })?;
+        Self::from(res).map_err(|e| {
+            error!("Could not read InputString into buffer {:?}\n{}", e, res);
+            StringDecodeError::CapacityError(Self::BYTELEN)
+        })
     }
 }
 

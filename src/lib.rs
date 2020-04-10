@@ -63,8 +63,8 @@ use std::ops::Index;
 pub type TPointer = i32;
 
 pub const MAX_INPUT_PER_NODE: usize = 8;
-pub const INPUT_STR_LEN: usize = 128;
-pub type InputString = ArrayString<[u8; INPUT_STR_LEN]>;
+pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
+pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 
 pub type Labels = HashMap<NodeId, Label>;
 

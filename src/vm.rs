@@ -106,8 +106,7 @@ impl<Aux> VM<Aux> {
     }
 
     pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: &str, f: C) {
-        self.callables
-            .insert(name.to_owned(), Procedure::new(f));
+        self.callables.insert(name.to_owned(), Procedure::new(f));
     }
 
     pub fn register_function_obj(&mut self, name: &str, f: Procedure<Aux>) {
@@ -130,7 +129,7 @@ impl<Aux> VM<Aux> {
                 let data = &self.memory;
                 let head = index as usize;
                 let tail = (head + size as usize).min(data.len());
-                T::decode(&data[head..tail])
+                T::decode(&data[head..tail]).ok()
             }
             None => {
                 warn!("Dereferencing null pointer");
@@ -211,7 +210,7 @@ impl<Aux> VM<Aux> {
                 Instruction::SetVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .ok_or(ExecutionError::InvalidArgument)?;
+                        .map_err(|_| ExecutionError::InvalidArgument)?;
                     ptr += len;
                     let pointer: Scalar = self
                         .stack
@@ -222,7 +221,7 @@ impl<Aux> VM<Aux> {
                 Instruction::ReadVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .ok_or(ExecutionError::InvalidArgument)?;
+                        .map_err(|_| ExecutionError::InvalidArgument)?;
                     ptr += len;
                     let value = self.variables.get(&varname).ok_or_else(|| {
                         debug!("Variable {} does not exist", varname);
@@ -239,7 +238,7 @@ impl<Aux> VM<Aux> {
                 Instruction::Jump => {
                     let len = i32::BYTELEN;
                     let label = i32::decode(&program.bytecode[ptr..ptr + len])
-                        .ok_or_else(|| ExecutionError::InvalidLabel)?;
+                        .map_err(|_| ExecutionError::InvalidLabel)?;
                     ptr = program
                         .labels
                         .get(&label)
@@ -271,7 +270,7 @@ impl<Aux> VM<Aux> {
                     let cond = self.stack.pop().unwrap();
                     let len = i32::BYTELEN;
                     let label = i32::decode(&program.bytecode[ptr..ptr + len])
-                        .ok_or_else(|| ExecutionError::InvalidLabel)?;
+                        .map_err(|_| ExecutionError::InvalidLabel)?;
                     if cond.as_bool() {
                         ptr = program
                             .labels
@@ -292,7 +291,7 @@ impl<Aux> VM<Aux> {
                     let len = NodeId::BYTELEN;
                     self.stack.push(Scalar::Integer(
                         NodeId::decode(&program.bytecode[ptr..ptr + len])
-                            .ok_or(ExecutionError::InvalidArgument)?,
+                            .map_err(|_| ExecutionError::InvalidArgument)?,
                     ));
                     ptr += len;
                 }
@@ -300,7 +299,7 @@ impl<Aux> VM<Aux> {
                     let len = i32::BYTELEN;
                     self.stack.push(Scalar::Integer(
                         i32::decode(&program.bytecode[ptr..ptr + len])
-                            .ok_or(ExecutionError::InvalidArgument)?,
+                            .map_err(|_| ExecutionError::InvalidArgument)?,
                     ));
                     ptr += len;
                 }
@@ -308,7 +307,7 @@ impl<Aux> VM<Aux> {
                     let len = f32::BYTELEN;
                     self.stack.push(Scalar::Floating(
                         f32::decode(&program.bytecode[ptr..ptr + len])
-                            .ok_or(ExecutionError::InvalidArgument)?,
+                            .map_err(|_| ExecutionError::InvalidArgument)?,
                     ));
                     ptr += len;
                 }
@@ -422,7 +421,7 @@ impl<Aux> VM<Aux> {
     fn read_str(ptr: &mut usize, program: &[u8]) -> Option<String> {
         let p = *ptr;
         let limit = program.len().min(p + MAX_STR_LEN);
-        let s = String::decode(&program[p..limit])?;
+        let s = String::decode(&program[p..limit]).ok()?;
         *ptr += s.len() + i32::BYTELEN;
         Some(s.to_owned())
     }
