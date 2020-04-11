@@ -1,5 +1,6 @@
 use crate::scalar::Scalar;
 use crate::traits::ByteEncodeProperties;
+use crate::InputString;
 use crate::TPointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram};
@@ -157,5 +158,6 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
             [VarName],
             [TPointer]
         ),
+        subprogram_description!(Block, "Call a block by name", [InputString], []),
     ]
 }
