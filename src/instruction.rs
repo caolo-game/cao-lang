@@ -158,6 +158,6 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
             [VarName],
             [TPointer]
         ),
-        subprogram_description!(Block, "Call a block by name", [InputString], []),
+        subprogram_description!(SubProgram, "Call a SubProgram by name", [InputString], []),
     ]
 }
