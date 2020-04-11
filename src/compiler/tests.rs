@@ -99,7 +99,7 @@ fn compiling_simple_program() {
 
     let program = CompilationUnit {
         nodes,
-        blocks: None,
+        sub_programs: None,
     };
     let program = compile(program).unwrap();
 
@@ -215,7 +215,7 @@ fn simple_looping_program() {
 
     let program = CompilationUnit {
         nodes,
-        blocks: None,
+        sub_programs: None,
     };
     let program = compile(program).unwrap();
 
@@ -238,7 +238,7 @@ fn simple_looping_program() {
 }
 
 #[test]
-fn can_define_blocks() {
+fn can_define_sub_programs() {
     simple_logger::init().unwrap_or(());
     let nodes: Nodes = [
         (
@@ -265,8 +265,8 @@ fn can_define_blocks() {
         (
             2,
             AstNode {
-                node: InstructionNode::Block(BlockNode {
-                    block: InputString::from_str("add").unwrap(),
+                node: InstructionNode::SubProgram(SubProgramNode {
+                    name: InputString::from_str("add").unwrap(),
                 }),
                 child: None,
             },
@@ -283,11 +283,11 @@ fn can_define_blocks() {
     .cloned()
     .collect();
 
-    let mut blocks = HashMap::new();
-    blocks.insert("add".to_owned(), Block { start: 20 });
-    let blocks = Some(blocks);
+    let mut sub_programs = HashMap::new();
+    sub_programs.insert("add".to_owned(), SubProgram { start: 20 });
+    let sub_programs = Some(sub_programs);
 
-    let cu = CompilationUnit { nodes, blocks };
+    let cu = CompilationUnit { nodes, sub_programs };
     let program = compile(cu).unwrap();
 
     log::warn!("Program: {:?}", program);

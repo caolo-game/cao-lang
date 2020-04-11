@@ -42,7 +42,7 @@ pub enum InstructionNode {
     Jump(JumpNode),
     SetVar(VarNode),
     ReadVar(VarNode),
-    Block(BlockNode),
+    SubProgram(SubProgramNode),
 }
 
 impl InstructionNode {
@@ -73,7 +73,7 @@ impl InstructionNode {
             InstructionNode::StringLiteral(_) => Some(Instruction::StringLiteral),
             InstructionNode::SetVar(_) => Some(Instruction::SetVar),
             InstructionNode::ReadVar(_) => Some(Instruction::ReadVar),
-            InstructionNode::Block(_) => None,
+            InstructionNode::SubProgram(_) => None,
         }
     }
 
@@ -124,8 +124,8 @@ pub struct CallNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct BlockNode {
-    pub block: InputString,
+pub struct SubProgramNode {
+    pub name: InputString,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

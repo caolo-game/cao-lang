@@ -7,7 +7,7 @@ use crate::InputString;
 pub enum CompilationError {
     EmptyProgram,
     NoStart,
-    MissingBlock(InputString),
+    MissingSubProgram(InputString),
     /// Node was referenced but not found
     MissingNode(NodeId),
     /// Jumping from src to dst is illegal
@@ -35,7 +35,7 @@ impl Display for CompilationError {
                     write!(f, "Jumping from {} to {} can not be performed", src, dst)
                 }
             }
-            CompilationError::MissingBlock(b) => write!(f, "Block {} not found", b),
+            CompilationError::MissingSubProgram(b) => write!(f, "SubProgram: [{}] was not found", b),
         }
     }
 }

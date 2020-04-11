@@ -72,12 +72,12 @@ impl ByteEncodeProperties for InputString {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompilationUnit {
     pub nodes: Nodes,
-    pub blocks: Option<HashMap<String, Block>>,
+    pub sub_programs: Option<HashMap<String, SubProgram>>,
 }
 
-/// Blocks are groups of nodes
+/// Subprograms are groups of nodes
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Block {
+pub struct SubProgram {
     pub start: NodeId,
 }
 
@@ -280,15 +280,15 @@ fn process_node(
             push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut s.value.encode());
         }
-        Block(b) => {
-            let name = b.block;
-            let block = compilation_unit
-                .blocks
+        SubProgram(b) => {
+            let name = b.name;
+            let sub_program = compilation_unit
+                .sub_programs
                 .as_ref()
-                .ok_or_else(|| CompilationError::MissingBlock(name))?
+                .ok_or_else(|| CompilationError::MissingSubProgram(name))?
                 .get(name.as_str())
-                .ok_or_else(|| CompilationError::MissingBlock(name))?;
-            let nodeid = block.start;
+                .ok_or_else(|| CompilationError::MissingSubProgram(name))?;
+            let nodeid = sub_program.start;
             compilation_unit
                 .nodes
                 .get(&nodeid)
