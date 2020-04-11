@@ -3,6 +3,7 @@
 //!
 mod astnode;
 mod compilation_error;
+pub mod description;
 
 #[cfg(test)]
 mod tests;
