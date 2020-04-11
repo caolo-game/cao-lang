@@ -3,6 +3,7 @@ use crate::scalar::Scalar;
 use crate::traits::ByteEncodeProperties;
 use crate::vm::VM;
 use arrayvec::ArrayString;
+use std::str::FromStr;
 
 #[test]
 fn input_string_decode_error_handling() {
@@ -96,7 +97,10 @@ fn compiling_simple_program() {
     .cloned()
     .collect();
 
-    let program = CompilationUnit { nodes };
+    let program = CompilationUnit {
+        nodes,
+        blocks: None,
+    };
     let program = compile(program).unwrap();
 
     log::warn!("Program: {:?}", program);
@@ -209,7 +213,10 @@ fn simple_looping_program() {
     .cloned()
     .collect();
 
-    let program = CompilationUnit { nodes };
+    let program = CompilationUnit {
+        nodes,
+        blocks: None,
+    };
     let program = compile(program).unwrap();
 
     // Compilation was successful
@@ -228,4 +235,73 @@ fn simple_looping_program() {
             Scalar::Integer(42069),
         ]
     );
+}
+
+#[test]
+fn can_define_blocks() {
+    simple_logger::init().unwrap_or(());
+    let nodes: Nodes = [
+        (
+            999,
+            AstNode {
+                node: InstructionNode::Start,
+                child: Some(0),
+            },
+        ),
+        (
+            0,
+            AstNode {
+                node: InstructionNode::ScalarFloat(FloatNode { value: 42.0 }),
+                child: Some(1),
+            },
+        ),
+        (
+            1,
+            AstNode {
+                node: InstructionNode::ScalarFloat(FloatNode { value: 512.0 }),
+                child: Some(2),
+            },
+        ),
+        (
+            2,
+            AstNode {
+                node: InstructionNode::Block(BlockNode {
+                    block: InputString::from_str("add").unwrap(),
+                }),
+                child: None,
+            },
+        ),
+        (
+            20,
+            AstNode {
+                node: InstructionNode::Add,
+                child: None,
+            },
+        ),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    let mut blocks = HashMap::new();
+    blocks.insert("add".to_owned(), Block { start: 20 });
+    let blocks = Some(blocks);
+
+    let cu = CompilationUnit { nodes, blocks };
+    let program = compile(cu).unwrap();
+
+    log::warn!("Program: {:?}", program);
+
+    // Compilation was successful
+
+    let mut vm = VM::new(());
+    vm.run(&program).unwrap();
+
+    assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());
+
+    let value = vm.stack().last().unwrap();
+    match value {
+        Scalar::Floating(i) => assert_eq!(*i, 42.0 + 512.0),
+        _ => panic!("Invalid value in the stack"),
+    }
 }

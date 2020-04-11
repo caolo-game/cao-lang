@@ -42,34 +42,38 @@ pub enum InstructionNode {
     Jump(JumpNode),
     SetVar(VarNode),
     ReadVar(VarNode),
+    Block(BlockNode),
 }
 
 impl InstructionNode {
-    pub fn instruction(&self) -> Instruction {
+    /// Translate this Node into an Instruction.
+    /// Returns None for non-assemly nodes.
+    pub fn instruction(&self) -> Option<Instruction> {
         match self {
-            InstructionNode::Start => Instruction::Start,
-            InstructionNode::Pass => Instruction::Pass,
-            InstructionNode::Add => Instruction::Add,
-            InstructionNode::Sub => Instruction::Sub,
-            InstructionNode::Mul => Instruction::Mul,
-            InstructionNode::Div => Instruction::Div,
-            InstructionNode::Exit => Instruction::Exit,
-            InstructionNode::CopyLast => Instruction::CopyLast,
-            InstructionNode::Less => Instruction::Less,
-            InstructionNode::LessOrEq => Instruction::LessOrEq,
-            InstructionNode::Equals => Instruction::Equals,
-            InstructionNode::NotEquals => Instruction::NotEquals,
-            InstructionNode::Pop => Instruction::Pop,
-            InstructionNode::ScalarInt(_) => Instruction::ScalarInt,
-            InstructionNode::ScalarFloat(_) => Instruction::ScalarFloat,
-            InstructionNode::ScalarArray(_) => Instruction::ScalarArray,
-            InstructionNode::ScalarLabel(_) => Instruction::ScalarLabel,
-            InstructionNode::Call(_) => Instruction::Call,
-            InstructionNode::JumpIfTrue(_) => Instruction::JumpIfTrue,
-            InstructionNode::Jump(_) => Instruction::Jump,
-            InstructionNode::StringLiteral(_) => Instruction::StringLiteral,
-            InstructionNode::SetVar(_) => Instruction::SetVar,
-            InstructionNode::ReadVar(_) => Instruction::ReadVar,
+            InstructionNode::Start => Some(Instruction::Start),
+            InstructionNode::Pass => Some(Instruction::Pass),
+            InstructionNode::Add => Some(Instruction::Add),
+            InstructionNode::Sub => Some(Instruction::Sub),
+            InstructionNode::Mul => Some(Instruction::Mul),
+            InstructionNode::Div => Some(Instruction::Div),
+            InstructionNode::Exit => Some(Instruction::Exit),
+            InstructionNode::CopyLast => Some(Instruction::CopyLast),
+            InstructionNode::Less => Some(Instruction::Less),
+            InstructionNode::LessOrEq => Some(Instruction::LessOrEq),
+            InstructionNode::Equals => Some(Instruction::Equals),
+            InstructionNode::NotEquals => Some(Instruction::NotEquals),
+            InstructionNode::Pop => Some(Instruction::Pop),
+            InstructionNode::ScalarInt(_) => Some(Instruction::ScalarInt),
+            InstructionNode::ScalarFloat(_) => Some(Instruction::ScalarFloat),
+            InstructionNode::ScalarArray(_) => Some(Instruction::ScalarArray),
+            InstructionNode::ScalarLabel(_) => Some(Instruction::ScalarLabel),
+            InstructionNode::Call(_) => Some(Instruction::Call),
+            InstructionNode::JumpIfTrue(_) => Some(Instruction::JumpIfTrue),
+            InstructionNode::Jump(_) => Some(Instruction::Jump),
+            InstructionNode::StringLiteral(_) => Some(Instruction::StringLiteral),
+            InstructionNode::SetVar(_) => Some(Instruction::SetVar),
+            InstructionNode::ReadVar(_) => Some(Instruction::ReadVar),
+            InstructionNode::Block(_) => None,
         }
     }
 
@@ -117,6 +121,11 @@ pub struct FloatNode {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CallNode {
     pub function: InputString,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BlockNode {
+    pub block: InputString,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

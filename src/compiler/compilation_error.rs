@@ -1,11 +1,13 @@
 use super::NodeId;
 use serde_derive::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use crate::InputString;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CompilationError {
     EmptyProgram,
     NoStart,
+    MissingBlock(InputString),
     /// Node was referenced but not found
     MissingNode(NodeId),
     /// Jumping from src to dst is illegal
@@ -33,6 +35,7 @@ impl Display for CompilationError {
                     write!(f, "Jumping from {} to {} can not be performed", src, dst)
                 }
             }
+            CompilationError::MissingBlock(b) => write!(f, "Block {} not found", b),
         }
     }
 }

@@ -72,6 +72,13 @@ impl ByteEncodeProperties for InputString {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompilationUnit {
     pub nodes: Nodes,
+    pub blocks: Option<HashMap<String, Block>>,
+}
+
+/// Blocks are groups of nodes
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Block {
+    pub start: NodeId,
 }
 
 pub struct Compiler {
@@ -92,8 +99,8 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Com
         .compilation_unit
         .nodes
         .iter()
-        .find(|(_, v)| match v.node.instruction() {
-            Instruction::Start => true,
+        .find(|(_, v)| match v.node {
+            InstructionNode::Start => true,
             _ => false,
         })
         .ok_or_else(|| CompilationError::NoStart)?;
@@ -185,10 +192,27 @@ fn check_jump_post_conditions(
     Ok(())
 }
 
-fn push_node(nodeid: NodeId, compilation_unit: &CompilationUnit, program: &mut CompiledProgram) {
-    if let Some(node) = &compilation_unit.nodes.get(&nodeid) {
-        program.bytecode.push(node.node.instruction() as u8);
-    }
+#[derive(Debug, Clone, Copy)]
+enum PushError {
+    NoInstruction,
+    NodeNotFound,
+}
+
+fn push_node(
+    nodeid: NodeId,
+    compilation_unit: &CompilationUnit,
+    program: &mut CompiledProgram,
+) -> Result<(), PushError> {
+    compilation_unit
+        .nodes
+        .get(&nodeid)
+        .ok_or(PushError::NodeNotFound)
+        .and_then(|node| {
+            program
+                .bytecode
+                .push(node.node.instruction().ok_or(PushError::NoInstruction)? as u8);
+            Ok(())
+        })
 }
 
 fn process_node(
@@ -215,10 +239,10 @@ fn process_node(
     match instruction {
         Pop | Equals | Less | LessOrEq | NotEquals | Exit | Start | Pass | CopyLast | Add | Sub
         | Mul | Div => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
         }
         ReadVar(variable) | SetVar(variable) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut variable.name.encode());
         }
         JumpIfTrue(j) | Jump(j) => {
@@ -233,28 +257,47 @@ fn process_node(
                     )),
                 });
             }
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut label.encode());
         }
         StringLiteral(c) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut c.value.encode());
         }
         Call(c) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut c.function.encode());
         }
         ScalarArray(n) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut n.value.encode());
         }
         ScalarLabel(s) | ScalarInt(s) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut s.value.encode());
         }
         ScalarFloat(s) => {
-            push_node(nodeid, compilation_unit, program);
+            push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut s.value.encode());
+        }
+        Block(b) => {
+            let name = b.block;
+            let block = compilation_unit
+                .blocks
+                .as_ref()
+                .ok_or_else(|| CompilationError::MissingBlock(name))?
+                .get(name.as_str())
+                .ok_or_else(|| CompilationError::MissingBlock(name))?;
+            let nodeid = block.start;
+            compilation_unit
+                .nodes
+                .get(&nodeid)
+                .ok_or(CompilationError::MissingNode(nodeid))
+                .and_then(|_| {
+                    program.bytecode.push(Instruction::Jump as u8);
+                    program.bytecode.extend_from_slice(&nodeid.encode());
+                    Ok(())
+                })?;
         }
     }
     Ok(())
