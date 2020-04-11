@@ -1,4 +1,4 @@
-pub use crate::compiler::{compile, AstNode, CompilationUnit, CompilationError};
+pub use crate::compiler::{compile, AstNode, CompilationError, CompilationUnit};
 pub use crate::instruction::Instruction;
 pub use crate::procedures::*;
 pub use crate::scalar::*;
