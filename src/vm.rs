@@ -250,12 +250,8 @@ impl<Aux> VM<Aux> {
                     if let Some(Scalar::Integer(code)) = code {
                         let code = *code;
                         self.stack.pop();
-                        if code != 0 {
                             debug!("Exit code {:?}", code);
-                            return Err(ExecutionError::ExitCode(code));
-                        } else {
                             return Ok(code);
-                        }
                     }
                     return Ok(0);
                 }
@@ -412,8 +408,9 @@ impl<Aux> VM<Aux> {
     where
         F: Fn(Scalar, Scalar) -> Scalar,
     {
-        let b = pop_stack!(self);
-        let a = pop_stack!(self);
+        let b = pop_stack!(unwrap_var self);
+        let a = pop_stack!(unwrap_var self);
+
         self.stack.push(op(a, b));
         Ok(())
     }
@@ -431,6 +428,7 @@ impl<Aux> VM<Aux> {
 mod tests {
     use super::*;
     use crate::procedures::FunctionWrapper;
+    use std::str::FromStr;
 
     #[test]
     fn test_encode() {
@@ -522,5 +520,27 @@ mod tests {
         let res = vm.get_value::<i32>(ptr).unwrap();
 
         assert_eq!(res, ((512. as f32) * (42. as f32) % 13.) as i32);
+    }
+
+    #[test]
+    fn test_variable_scalar() {
+        let mut bytecode = Vec::with_capacity(512);
+        bytecode.push(Instruction::ScalarInt as u8);
+        bytecode.append(&mut 420i32.encode());
+        bytecode.push(Instruction::Equals as u8);
+        bytecode.push(Instruction::Exit as u8);
+
+        let mut program = CompiledProgram::default();
+        program.bytecode = bytecode;
+
+        let mut vm = VM::new(());
+        vm.variables
+            .insert(VarName::from_str("foo").unwrap(), Scalar::Integer(69));
+        vm.stack
+            .push(Scalar::Variable(VarName::from_str("foo").unwrap()));
+
+        let res = vm.run(&program).unwrap();
+
+        assert_eq!(res, 0);
     }
 }

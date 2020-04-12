@@ -1,10 +1,12 @@
-use crate::{traits::AutoByteEncodeProperties, TPointer};
+use crate::{traits::AutoByteEncodeProperties, TPointer, VarName};
 use serde_derive::{Deserialize, Serialize};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum Scalar {
+    /// Behaves as a Pointer to a variable
+    Variable(VarName),
     Pointer(TPointer),
     Integer(i32),
     Floating(f32),
@@ -25,9 +27,11 @@ impl Scalar {
             Pointer(i) => i != 0,
             Integer(i) => i != 0,
             Floating(i) => i != 0.0,
+            Variable(_) => true,
             Null => false,
         }
     }
+
     pub fn is_float(self) -> bool {
         match self {
             Scalar::Floating(_) => true,
