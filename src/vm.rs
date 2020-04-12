@@ -212,11 +212,20 @@ impl<Aux> VM<Aux> {
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
                         .map_err(|_| ExecutionError::InvalidArgument)?;
                     ptr += len;
-                    let pointer: Scalar = self
+                    let scalar = self
                         .stack
                         .pop()
                         .ok_or_else(|| ExecutionError::InvalidArgument)?;
-                    self.variables.insert(varname, pointer);
+                    self.variables.insert(varname, scalar);
+                }
+                Instruction::SaveAndSwapVar => {
+                    let len = VarName::BYTELEN;
+                    let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
+                        .map_err(|_| ExecutionError::InvalidArgument)?;
+                    ptr += len;
+                    let scalar = self.stack.pop().unwrap_or(Scalar::Null);
+                    self.variables.insert(varname, scalar);
+                    self.stack.push(Scalar::Variable(varname));
                 }
                 Instruction::ReadVar => {
                     let len = VarName::BYTELEN;
@@ -250,8 +259,8 @@ impl<Aux> VM<Aux> {
                     if let Some(Scalar::Integer(code)) = code {
                         let code = *code;
                         self.stack.pop();
-                            debug!("Exit code {:?}", code);
-                            return Ok(code);
+                        debug!("Exit code {:?}", code);
+                        return Ok(code);
                     }
                     return Ok(0);
                 }

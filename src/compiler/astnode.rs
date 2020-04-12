@@ -133,6 +133,7 @@ impl InstructionNode {
             | Instruction::ScalarFloat
             | Instruction::ScalarInt
             | Instruction::Add
+            | Instruction::SaveAndSwapVar
             | Instruction::Pass => {}
         };
     }

@@ -57,6 +57,9 @@ pub enum Instruction {
     SetVar = 28,
     /// Reads the variable and pushes its value onto the stack
     ReadVar = 29,
+    /// Save the top of the stack into a variable and pushes a Scalar::Variable onto the stack.
+    /// Variable will equal Null if the stack is empty.
+    SaveAndSwapVar = 30,
 }
 
 impl TryFrom<u8> for Instruction {
@@ -88,6 +91,7 @@ impl TryFrom<u8> for Instruction {
             27 => Ok(Pop),
             28 => Ok(SetVar),
             29 => Ok(ReadVar),
+            30 => Ok(SaveAndSwapVar),
             _ => Err(format!("Unrecognized instruction [{}]", c)),
         }
     }
