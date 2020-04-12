@@ -239,7 +239,7 @@ fn process_node(
 
     match instruction {
         Pop | Equals | Less | LessOrEq | NotEquals | Exit | Start | Pass | CopyLast | Add | Sub
-        | Mul | Div => {
+        | Mul | Div | ClearStack => {
             push_node(nodeid, compilation_unit, program).unwrap();
         }
         ReadVar(variable) | SetVar(variable) => {

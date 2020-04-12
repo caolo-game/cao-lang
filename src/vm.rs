@@ -207,6 +207,9 @@ impl<Aux> VM<Aux> {
             ptr += 1;
             match instr {
                 Instruction::Start => {}
+                Instruction::ClearStack => {
+                    self.stack.clear();
+                }
                 Instruction::SetVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
@@ -218,7 +221,7 @@ impl<Aux> VM<Aux> {
                         .ok_or_else(|| ExecutionError::InvalidArgument)?;
                     self.variables.insert(varname, scalar);
                 }
-                Instruction::SaveAndSwapVar => {
+                Instruction::SetAndSwapVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
                         .map_err(|_| ExecutionError::InvalidArgument)?;

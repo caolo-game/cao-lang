@@ -32,6 +32,7 @@ pub enum InstructionNode {
     Equals,
     NotEquals,
     Pop,
+    ClearStack,
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
     ScalarLabel(IntegerNode),
@@ -72,6 +73,7 @@ impl InstructionNode {
             InstructionNode::SetVar(_) => "SetVar",
             InstructionNode::ReadVar(_) => "ReadVar",
             InstructionNode::SubProgram(_) => "SubProgram",
+            InstructionNode::ClearStack => "ClearStack",
         }
     }
 
@@ -102,6 +104,7 @@ impl InstructionNode {
             InstructionNode::StringLiteral(_) => Some(Instruction::StringLiteral),
             InstructionNode::SetVar(_) => Some(Instruction::SetVar),
             InstructionNode::ReadVar(_) => Some(Instruction::ReadVar),
+            InstructionNode::ClearStack => Some(Instruction::ClearStack),
             InstructionNode::SubProgram(_) => None,
         }
     }
@@ -130,10 +133,11 @@ impl InstructionNode {
             | Instruction::Div
             | Instruction::ScalarArray
             | Instruction::ScalarLabel
+            | Instruction::ClearStack
             | Instruction::ScalarFloat
             | Instruction::ScalarInt
             | Instruction::Add
-            | Instruction::SaveAndSwapVar
+            | Instruction::SetAndSwapVar
             | Instruction::Pass => {}
         };
     }
