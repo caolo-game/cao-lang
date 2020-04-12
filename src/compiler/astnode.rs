@@ -46,6 +46,35 @@ pub enum InstructionNode {
 }
 
 impl InstructionNode {
+    pub fn name(&self) -> &'static str {
+        match self {
+            InstructionNode::Start => "Start",
+            InstructionNode::Pass => "Pass",
+            InstructionNode::Add => "Add",
+            InstructionNode::Sub => "Sub",
+            InstructionNode::Mul => "Mul",
+            InstructionNode::Div => "Div",
+            InstructionNode::Exit => "Exit",
+            InstructionNode::CopyLast => "CopyLast",
+            InstructionNode::Less => "Less",
+            InstructionNode::LessOrEq => "LessOrEq",
+            InstructionNode::Equals => "Equals",
+            InstructionNode::NotEquals => "NotEquals",
+            InstructionNode::Pop => "Pop",
+            InstructionNode::ScalarInt(_) => "ScalarInt",
+            InstructionNode::ScalarFloat(_) => "ScalarFloat",
+            InstructionNode::ScalarLabel(_) => "ScalarLabel",
+            InstructionNode::ScalarArray(_) => "ScalarArray",
+            InstructionNode::StringLiteral(_) => "StringLiteral",
+            InstructionNode::Call(_) => "Call",
+            InstructionNode::JumpIfTrue(_) => "JumpIfTrue",
+            InstructionNode::Jump(_) => "Jump",
+            InstructionNode::SetVar(_) => "SetVar",
+            InstructionNode::ReadVar(_) => "ReadVar",
+            InstructionNode::SubProgram(_) => "SubProgram",
+        }
+    }
+
     /// Translate this Node into an Instruction.
     /// Returns None for non-assemly nodes.
     pub fn instruction(&self) -> Option<Instruction> {
@@ -110,35 +139,22 @@ impl InstructionNode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
-pub struct IntegerNode {
-    pub value: i32,
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
-pub struct FloatNode {
-    pub value: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct CallNode {
-    pub function: InputString,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SubProgramNode {
-    pub name: InputString,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct StringNode {
-    pub value: String,
-}
+pub struct IntegerNode(pub i32);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
-pub struct JumpNode {
-    pub nodeid: NodeId,
-}
+pub struct FloatNode(pub f32);
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CallNode(pub InputString);
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SubProgramNode(pub InputString);
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StringNode(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
-pub struct VarNode {
-    pub name: VarName,
-}
+pub struct JumpNode(pub NodeId);
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Copy)]
+pub struct VarNode(pub VarName);

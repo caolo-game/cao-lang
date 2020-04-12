@@ -22,9 +22,7 @@
 //!         },
 //!         "1": {
 //!             "node": {
-//!                 "ScalarInt": {
-//!                     "value": 42
-//!                 }
+//!                 "ScalarInt": 42
 //!             },
 //!             "children": [
 //!                 2
@@ -32,9 +30,7 @@
 //!         },
 //!         "2": {
 //!             "node": {
-//!                 "Call": {
-//!                     "function": "log_scalar"
-//!                 }
+//!                 "Call": "log_scalar"
 //!             }
 //!         }
 //!     }

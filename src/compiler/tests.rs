@@ -39,7 +39,7 @@ fn input_string_decode_error_handling() {
 
 #[test]
 fn post_process_raises_error_if_node_jumpts_to_itself() {
-    let node = JumpNode { nodeid: 42 };
+    let node = JumpNode(42);
     let msg = check_jump_post_conditions(42, &node, &Default::default()).unwrap_err();
     match msg {
         CompilationError::InvalidJump { src, dst, .. } => assert_eq!(src, dst),
@@ -49,7 +49,7 @@ fn post_process_raises_error_if_node_jumpts_to_itself() {
 
 #[test]
 fn post_process_raises_error_if_node_jumpts_to_non_existent() {
-    let node = JumpNode { nodeid: 42 };
+    let node = JumpNode(42);
     let msg = check_jump_post_conditions(13, &node, &Default::default()).unwrap_err();
     match msg {
         CompilationError::InvalidJump { src, dst, .. } => {
@@ -74,14 +74,14 @@ fn compiling_simple_program() {
         (
             0,
             AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode { value: 42.0 }),
+                node: InstructionNode::ScalarFloat(FloatNode(42.0)),
                 child: Some(1),
             },
         ),
         (
             1,
             AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode { value: 512.0 }),
+                node: InstructionNode::ScalarFloat(FloatNode(512.0)),
                 child: Some(2),
             },
         ),
@@ -133,16 +133,14 @@ fn simple_looping_program() {
         (
             0,
             AstNode {
-                node: InstructionNode::ScalarInt(IntegerNode { value: 4 }),
+                node: InstructionNode::ScalarInt(IntegerNode(4)),
                 child: Some(1),
             },
         ),
         (
             1,
             AstNode {
-                node: InstructionNode::SetVar(VarNode {
-                    name: ArrayString::from("i").unwrap(),
-                }),
+                node: InstructionNode::SetVar(VarNode(ArrayString::from("i").unwrap())),
                 child: Some(2),
             },
         ),
@@ -150,23 +148,21 @@ fn simple_looping_program() {
             7,
             AstNode {
                 // push this value in each iteration
-                node: InstructionNode::ScalarInt(IntegerNode { value: 42069 }),
+                node: InstructionNode::ScalarInt(IntegerNode(42069)),
                 child: Some(2),
             },
         ),
         (
             2,
             AstNode {
-                node: InstructionNode::ReadVar(VarNode {
-                    name: ArrayString::from("i").unwrap(),
-                }),
+                node: InstructionNode::ReadVar(VarNode(ArrayString::from("i").unwrap())),
                 child: Some(3),
             },
         ),
         (
             3,
             AstNode {
-                node: InstructionNode::ScalarInt(IntegerNode { value: 1 }),
+                node: InstructionNode::ScalarInt(IntegerNode(1)),
                 child: Some(4),
             },
         ),
@@ -187,16 +183,14 @@ fn simple_looping_program() {
         (
             6,
             AstNode {
-                node: InstructionNode::SetVar(VarNode {
-                    name: ArrayString::from("i").unwrap(),
-                }),
+                node: InstructionNode::SetVar(VarNode(ArrayString::from("i").unwrap())),
                 child: Some(8),
             },
         ),
         (
             8,
             AstNode {
-                node: InstructionNode::JumpIfTrue(JumpNode { nodeid: 7 }),
+                node: InstructionNode::JumpIfTrue(JumpNode(7)),
                 child: Some(9),
             },
         ),
@@ -204,7 +198,7 @@ fn simple_looping_program() {
             9,
             AstNode {
                 // return value
-                node: InstructionNode::ScalarInt(IntegerNode { value: 0 }),
+                node: InstructionNode::ScalarInt(IntegerNode(0)),
                 child: None,
             },
         ),
@@ -251,23 +245,23 @@ fn can_define_sub_programs() {
         (
             0,
             AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode { value: 42.0 }),
+                node: InstructionNode::ScalarFloat(FloatNode(42.0)),
                 child: Some(1),
             },
         ),
         (
             1,
             AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode { value: 512.0 }),
+                node: InstructionNode::ScalarFloat(FloatNode(512.0)),
                 child: Some(2),
             },
         ),
         (
             2,
             AstNode {
-                node: InstructionNode::SubProgram(SubProgramNode {
-                    name: InputString::from_str("add").unwrap(),
-                }),
+                node: InstructionNode::SubProgram(SubProgramNode(
+                    InputString::from_str("add").unwrap(),
+                )),
                 child: None,
             },
         ),
@@ -287,7 +281,10 @@ fn can_define_sub_programs() {
     sub_programs.insert("add".to_owned(), SubProgram { start: 20 });
     let sub_programs = Some(sub_programs);
 
-    let cu = CompilationUnit { nodes, sub_programs };
+    let cu = CompilationUnit {
+        nodes,
+        sub_programs,
+    };
     let program = compile(cu).unwrap();
 
     log::warn!("Program: {:?}", program);

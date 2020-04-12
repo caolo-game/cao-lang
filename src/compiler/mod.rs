@@ -169,7 +169,7 @@ fn check_jump_post_conditions(
     jump: &JumpNode,
     labels: &Labels,
 ) -> Result<(), CompilationError> {
-    if jump.nodeid == nodeid {
+    if jump.0 == nodeid {
         return Err(CompilationError::InvalidJump {
             src: nodeid,
             dst: nodeid,
@@ -179,13 +179,13 @@ fn check_jump_post_conditions(
             )),
         });
     }
-    if !labels.contains_key(&jump.nodeid) {
+    if !labels.contains_key(&jump.0) {
         return Err(CompilationError::InvalidJump {
             src: nodeid,
-            dst: jump.nodeid,
+            dst: jump.0,
             msg: Some(format!(
                 "Node {} is trying to jump to Non existing Node {}!",
-                nodeid, jump.nodeid
+                nodeid, jump.0
             )),
         });
     }
@@ -244,10 +244,10 @@ fn process_node(
         }
         ReadVar(variable) | SetVar(variable) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut variable.name.encode());
+            program.bytecode.append(&mut variable.0.encode());
         }
         JumpIfTrue(j) | Jump(j) => {
-            let label = j.nodeid;
+            let label = j.0;
             if label == nodeid {
                 return Err(CompilationError::InvalidJump {
                     src: nodeid,
@@ -263,26 +263,26 @@ fn process_node(
         }
         StringLiteral(c) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut c.value.encode());
+            program.bytecode.append(&mut c.0.encode());
         }
         Call(c) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut c.function.encode());
+            program.bytecode.append(&mut c.0.encode());
         }
         ScalarArray(n) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut n.value.encode());
+            program.bytecode.append(&mut n.0.encode());
         }
         ScalarLabel(s) | ScalarInt(s) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut s.value.encode());
+            program.bytecode.append(&mut s.0.encode());
         }
         ScalarFloat(s) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut s.value.encode());
+            program.bytecode.append(&mut s.0.encode());
         }
         SubProgram(b) => {
-            let name = b.name;
+            let name = b.0;
             let sub_program = compilation_unit
                 .sub_programs
                 .as_ref()
