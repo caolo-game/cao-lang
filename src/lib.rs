@@ -103,9 +103,9 @@ pub struct SubProgram<'a> {
     pub name: &'a str,
     pub description: &'a str,
     /// Human readable descriptions of the output
-    pub output: Vec<&'a str>,
+    pub output: Box<[&'a str]>,
     /// Human readable descriptions of inputs
-    pub input: Vec<&'a str>,
+    pub input: Box<[&'a str]>,
 }
 
 impl<'a> std::fmt::Debug for SubProgram<'a> {
@@ -137,9 +137,10 @@ macro_rules! subprogram_description {
                 <$lst as ByteEncodeProperties>::displayname()
             ),*
         ]
+        .into_boxed_slice()
     };
 
     (input) => {
-        vec![]
+        Box::new()
     };
 }
