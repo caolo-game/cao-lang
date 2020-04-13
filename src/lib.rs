@@ -40,6 +40,7 @@
 //! cao_lang::compiler::compile(compilation_unit).unwrap();
 //!```
 //!
+
 pub mod compiler;
 pub mod instruction;
 mod macros;
@@ -106,6 +107,8 @@ pub struct SubProgram<'a> {
     pub output: Box<[&'a str]>,
     /// Human readable descriptions of inputs
     pub input: Box<[&'a str]>,
+    /// Human readable descriptions of parameters
+    pub params: Box<[&'a str]>,
 }
 
 impl<'a> std::fmt::Debug for SubProgram<'a> {
@@ -122,12 +125,13 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
 
 #[macro_export]
 macro_rules! subprogram_description {
-    ($name: ident, $description: expr, [$($inputs: ty),*], [$($outputs: ty),*]) => {
+    ($name: ident, $description: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($params: ty),*]) => {
         SubProgram {
             name: stringify!($name),
             description: $description,
             input: subprogram_description!(input $($inputs),*) ,
             output: subprogram_description!(input $($outputs),*),
+            params: subprogram_description!(input $($params),*),
         }
     };
 
