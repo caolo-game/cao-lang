@@ -60,8 +60,8 @@ pub enum Instruction {
     /// Save the top of the stack into a variable and pushes a Scalar::Variable onto the stack.
     /// Variable will equal Null if the stack is empty.
     SetAndSwapVar = 30,
-    /// 
-    ClearStack = 31
+    ///
+    ClearStack = 31,
 }
 
 impl TryFrom<u8> for Instruction {

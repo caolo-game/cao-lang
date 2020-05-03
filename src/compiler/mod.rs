@@ -76,6 +76,13 @@ pub struct CompilationUnit {
     pub sub_programs: Option<HashMap<String, SubProgram>>,
 }
 
+impl CompilationUnit {
+    pub fn with_node(mut self, id: i32, node: AstNode) -> Self {
+        self.nodes.insert(id, node);
+        self
+    }
+}
+
 /// Subprograms are groups of nodes
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SubProgram {

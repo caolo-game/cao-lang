@@ -11,6 +11,7 @@ log = "*"
 serde = "1"
 serde_derive = "1"
 arrayvec = { version="0.5", features=["serde", "array-sizes-33-128"] }
+thiserror = "1"
 
 [dev-dependencies]
 simple_logger = "1.0"
