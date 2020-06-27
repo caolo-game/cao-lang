@@ -68,10 +68,10 @@ pub struct VM<Aux = ()> {
 impl<Aux> VM<Aux> {
     pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            converters: HashMap::with_capacity(128),
+            converters: HashMap::new(),
             auxiliary_data,
             memory: Vec::with_capacity(512),
-            callables: HashMap::with_capacity(128),
+            callables: HashMap::new(),
             memory_limit: 40000,
             stack: Vec::with_capacity(128),
             objects: HashMap::with_capacity(128),
