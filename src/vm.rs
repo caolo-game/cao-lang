@@ -175,8 +175,11 @@ impl<Aux> VM<Aux> {
         Ok(object)
     }
 
-    pub fn stack_push(&mut self, value: Scalar) -> Result<(), ExecutionError> {
-        self.stack.push(value);
+    pub fn stack_push<S>(&mut self, value: S) -> Result<(), ExecutionError>
+    where
+        S: Into<Scalar>,
+    {
+        self.stack.push(value.into());
         Ok(())
     }
 
