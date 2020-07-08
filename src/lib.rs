@@ -41,6 +41,8 @@
 //!```
 //!
 
+#![recursion_limit="256"]
+
 pub mod compiler;
 pub mod instruction;
 mod macros;
