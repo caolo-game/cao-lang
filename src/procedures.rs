@@ -151,8 +151,9 @@ macro_rules! callable_array_arg {
             fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
                 use arrayvec::ArrayVec;
 
-                let args = (0..$num).try_fold(ArrayVec::default(), |mut arr, i| {
-                    let val = T::try_from(params[i as usize]).map_err(convert_error(i))?;
+                let args = params.iter().enumerate().try_fold(ArrayVec::default(), |mut arr, (i, val)| {
+                    let i = i as i32;
+                    let val = T::try_from(*val).map_err(convert_error(i))?;
                     arr.push(val);
                     Ok(arr)
                 })?;
