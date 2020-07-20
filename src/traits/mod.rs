@@ -2,7 +2,6 @@ mod impls;
 
 pub use self::impls::*;
 use crate::{procedures::ExecutionResult, scalar::Scalar, vm::VM};
-use log::error;
 use std::any::type_name;
 use std::convert::TryFrom;
 use std::fmt::Write;

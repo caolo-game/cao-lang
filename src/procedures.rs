@@ -3,24 +3,35 @@
 use crate::prelude::Scalar;
 pub use crate::traits::Callable;
 use crate::vm::VM;
-use serde_derive::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::marker::PhantomData;
+use thiserror::Error;
 
 pub type ExecutionResult = Result<(), ExecutionError>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error)]
 pub enum ExecutionError {
+    #[error("Input ended unexpectedly")]
     UnexpectedEndOfInput,
+    #[error("Program exited with status code: {0}")]
     ExitCode(i32),
+    #[error("Got an invalid label")]
     InvalidLabel,
+    #[error("Got an invalid instruction code")]
     InvalidInstruction,
+    #[error("Got an invalid argument to function call")]
     InvalidArgument,
+    #[error("Procedure by the name {0:?} could not be found")]
     ProcedureNotFound(String),
+    #[error("Unimplemented")]
     Unimplemented,
+    #[error("The program ran out of memory")]
     OutOfMemory,
+    #[error("Missing argument to function call")]
     MissingArgument,
+    #[error("Program timed out")]
     Timeout,
+    #[error("Subtask failed {0:?}")]
     TaskFailure(String),
 }
 
@@ -134,11 +145,8 @@ where
     }
 }
 
-fn convert_error<'a, T: 'a>(i: i32) -> impl Fn(T) -> ExecutionError + 'a {
-    return move |_| {
-        log::debug!("Failed to convert arugment #{}", i);
-        ExecutionError::InvalidArgument
-    };
+fn convert_error<'a, T: 'a>(_: i32) -> impl Fn(T) -> ExecutionError + 'a {
+    return move |_| ExecutionError::InvalidArgument;
 }
 
 macro_rules! callable_array_arg {
@@ -158,8 +166,7 @@ macro_rules! callable_array_arg {
                     Ok(arr)
                 })?;
 
-                let args = args.into_inner().map_err(|a| {
-                    log::debug!("Too few arguments given: {}", a.len());
+                let args = args.into_inner().map_err(|_| {
                     ExecutionError::InvalidArgument
                 })?;
 

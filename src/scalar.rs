@@ -1,9 +1,8 @@
 use crate::{traits::AutoByteEncodeProperties, TPointer, VarName};
-use serde_derive::{Deserialize, Serialize};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Scalar {
     /// Behaves as a Pointer to a variable
     Variable(VarName),

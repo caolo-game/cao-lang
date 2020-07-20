@@ -101,13 +101,11 @@ fn compiling_simple_program() {
         nodes,
         sub_programs: None,
     };
-    let program = compile(program).unwrap();
-
-    log::warn!("Program: {:?}", program);
+    let program = compile(None, program).unwrap();
 
     // Compilation was successful
 
-    let mut vm = VM::new(());
+    let mut vm = VM::new(None, ());
     vm.run(&program).unwrap();
 
     assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());
@@ -211,11 +209,11 @@ fn simple_looping_program() {
         nodes,
         sub_programs: None,
     };
-    let program = compile(program).unwrap();
+    let program = compile(None, program).unwrap();
 
     // Compilation was successful
 
-    let mut vm = VM::new(()).with_max_iter(50);
+    let mut vm = VM::new(None, ()).with_max_iter(50);
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
@@ -285,13 +283,11 @@ fn can_define_sub_programs() {
         nodes,
         sub_programs,
     };
-    let program = compile(cu).unwrap();
-
-    log::warn!("Program: {:?}", program);
+    let program = compile(None, cu).unwrap();
 
     // Compilation was successful
 
-    let mut vm = VM::new(());
+    let mut vm = VM::new(None, ());
     vm.run(&program).unwrap();
 
     assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());

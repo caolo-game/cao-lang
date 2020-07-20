@@ -37,11 +37,11 @@
 //! }"#;
 //!
 //! let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
-//! cao_lang::compiler::compile(compilation_unit).unwrap();
+//! cao_lang::compiler::compile(None, compilation_unit).unwrap();
 //!```
 //!
 
-#![recursion_limit="256"]
+#![recursion_limit = "256"]
 
 pub mod compiler;
 pub mod instruction;
@@ -55,7 +55,7 @@ pub mod vm;
 use crate::compiler::NodeId;
 use crate::instruction::Instruction;
 use arrayvec::ArrayString;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Index;
 

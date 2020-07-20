@@ -16,19 +16,10 @@ impl ByteEncodeProperties for String {
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, StringDecodeError> {
-        let len = i32::decode(bytes).map_err(|_| {
-            error!("Failed to deserialize length");
-            StringDecodeError::LengthDecodeError
-        })?;
-        let len = usize::try_from(len).map_err(|e| {
-            error!("Length must be non-negative, got: {}", e);
-            StringDecodeError::LengthError(len)
-        })?;
+        let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
         std::str::from_utf8(&bytes[i32::BYTELEN..i32::BYTELEN + len])
-            .map_err(|e| {
-                error!("Failed to decode string {:?}", e);
-                StringDecodeError::Utf8DecodeError(e)
-            })
+            .map_err(|e| StringDecodeError::Utf8DecodeError(e))
             .map(|s| s.to_owned())
     }
 }

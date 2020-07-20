@@ -14,8 +14,9 @@ use crate::{
 };
 pub use astnode::*;
 pub use compilation_error::*;
-use log::{debug, error};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
+use slog::debug;
+use slog::{o, Drain, Logger};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -41,31 +42,15 @@ impl ByteEncodeProperties for InputString {
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
-        let len = i32::decode(bytes).map_err(|e| {
-            error!("Failed to deserialize string len {:?}", e);
-            StringDecodeError::LengthDecodeError
-        })?;
-        let len = usize::try_from(len).map_err(|e| {
-            error!("String length must be non-negative! {:?}", e);
-            StringDecodeError::LengthError(len)
-        })?;
+        let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
         const BYTELEN: usize = i32::BYTELEN;
         if bytes.len() < BYTELEN + len {
-            error!(
-                "bytes is not long enough, expected len {} got {}",
-                BYTELEN + len,
-                bytes.len()
-            );
             return Err(StringDecodeError::LengthError((BYTELEN + len) as i32));
         }
-        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len as usize]).map_err(|e| {
-            error!("Failed to read InputString {:?}", e);
-            StringDecodeError::Utf8DecodeError(e)
-        })?;
-        Self::from(res).map_err(|e| {
-            error!("Could not read InputString into buffer {:?}\n{}", e, res);
-            StringDecodeError::CapacityError(Self::BYTELEN)
-        })
+        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len as usize])
+            .map_err(|e| StringDecodeError::Utf8DecodeError(e))?;
+        Self::from(res).map_err(|_| StringDecodeError::CapacityError(Self::BYTELEN))
     }
 }
 
@@ -90,16 +75,25 @@ pub struct SubProgram {
 }
 
 pub struct Compiler {
+    logger: Logger,
     compilation_unit: CompilationUnit,
     program: CompiledProgram,
 }
 
-pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, CompilationError> {
-    debug!("compilation start");
+pub fn compile(
+    logger: impl Into<Option<Logger>>,
+    compilation_unit: CompilationUnit,
+) -> Result<CompiledProgram, CompilationError> {
+    let logger = logger
+        .into()
+        .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
+
+    debug!(logger, "compilation start");
     if compilation_unit.nodes.is_empty() {
         return Err(CompilationError::EmptyProgram);
     }
     let mut compiler = Compiler {
+        logger,
         compilation_unit,
         program: CompiledProgram::default(),
     };
@@ -126,7 +120,7 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Com
     loop {
         while !todo.is_empty() {
             let current = todo.pop_front().unwrap();
-            debug!("procesing node {:?}", current);
+            debug!(compiler.logger, "procesing node {:?}", current);
             nodes.remove(&current);
             seen.insert(current);
             process_node(current, &compiler.compilation_unit, &mut compiler.program)?;
@@ -137,8 +131,8 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Com
                         todo.push_front(*node);
                     } else {
                         debug!(
-                            "child node of node {:?} already visited: {:?}",
-                            current, node
+                            compiler.logger,
+                            "child node of node {:?} already visited: {:?}", current, node
                         );
                         compiler.program.bytecode.push(Instruction::Jump as u8);
                         compiler.program.bytecode.append(&mut node.encode());
@@ -153,12 +147,12 @@ pub fn compile(compilation_unit: CompilationUnit) -> Result<CompiledProgram, Com
     }
 
     check_post_invariants(&compiler)?;
-    debug!("compilation end");
+    debug!(compiler.logger, "compilation end");
     Ok(compiler.program)
 }
 
 fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
-    debug!("checking invariants post compile");
+    debug!(compiler.logger, "checking invariants post compile");
     for (nodeid, node) in compiler.compilation_unit.nodes.iter() {
         match node.node {
             InstructionNode::Jump(ref jump) | InstructionNode::JumpIfTrue(ref jump) => {
@@ -167,7 +161,7 @@ fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
             _ => {}
         }
     }
-    debug!("checking invariants post compile done");
+    debug!(compiler.logger, "checking invariants post compile done");
     Ok(())
 }
 

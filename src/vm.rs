@@ -4,8 +4,8 @@ use crate::prelude::*;
 use crate::scalar::Scalar;
 use crate::VarName;
 use crate::{binary_compare, pop_stack};
-use log::Level::Debug;
-use log::{debug, error, log_enabled, warn};
+use slog::{debug, error, warn};
+use slog::{o, Drain, Logger};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
@@ -53,6 +53,8 @@ impl Object {
 /// Cao-Lang bytecode interpreter.
 /// Aux is an auxiliary data structure passed to custom functions.
 pub struct VM<Aux = ()> {
+    pub logger: Logger,
+
     memory: Vec<u8>,
     stack: Vec<Scalar>,
     callables: HashMap<String, Procedure<Aux>>,
@@ -66,8 +68,12 @@ pub struct VM<Aux = ()> {
 }
 
 impl<Aux> VM<Aux> {
-    pub fn new(auxiliary_data: Aux) -> Self {
+    pub fn new(logger: impl Into<Option<Logger>>, auxiliary_data: Aux) -> Self {
+        let logger = logger
+            .into()
+            .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
         Self {
+            logger,
             converters: HashMap::new(),
             auxiliary_data,
             memory: Vec::with_capacity(512),
@@ -118,6 +124,7 @@ impl<Aux> VM<Aux> {
         let object = self.objects.get(&ptr)?;
         if object.size as usize != size {
             debug!(
+                self.logger,
                 "Attempting to reference an object with the wrong type ({}) at address {}",
                 T::displayname(),
                 ptr
@@ -132,7 +139,7 @@ impl<Aux> VM<Aux> {
                 T::decode(&data[head..tail]).ok()
             }
             None => {
-                warn!("Dereferencing null pointer");
+                warn!(self.logger, "Dereferencing null pointer");
                 None
             }
         }
@@ -166,6 +173,7 @@ impl<Aux> VM<Aux> {
         self.stack_push(Scalar::Pointer(result as TPointer))?;
 
         debug!(
+            self.logger,
             "Set value {:?} {:?} {}",
             object,
             T::BYTELEN,
@@ -188,7 +196,7 @@ impl<Aux> VM<Aux> {
     }
 
     pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
-        debug!("Running program");
+        debug!(self.logger, "Running program");
         let mut ptr = 0;
         let mut max_iter = self.max_iter;
         while ptr < program.bytecode.len() {
@@ -198,14 +206,14 @@ impl<Aux> VM<Aux> {
             }
             let instr = Instruction::try_from(program.bytecode[ptr]).map_err(|_| {
                 error!(
-                    "Byte at {}: {:?} was not a valid instruction",
-                    ptr, program.bytecode[ptr]
+                    self.logger,
+                    "Byte at {}: {:?} was not a valid instruction", ptr, program.bytecode[ptr]
                 );
                 ExecutionError::InvalidInstruction
             })?;
             debug!(
-                "Instruction: {:?}({:?}) Pointer: {:?}",
-                instr, program.bytecode[ptr], ptr
+                self.logger,
+                "Instruction: {:?}({:?}) Pointer: {:?}", instr, program.bytecode[ptr], ptr
             );
             ptr += 1;
             match instr {
@@ -239,33 +247,33 @@ impl<Aux> VM<Aux> {
                         .map_err(|_| ExecutionError::InvalidArgument)?;
                     ptr += len;
                     let value = self.variables.get(&varname).ok_or_else(|| {
-                        debug!("Variable {} does not exist", varname);
+                        debug!(self.logger, "Variable {} does not exist", varname);
                         ExecutionError::InvalidArgument
                     })?;
                     self.stack.push(*value);
                 }
                 Instruction::Pop => {
                     self.stack.pop().ok_or_else(|| {
-                        debug!("Value not found");
+                        debug!(self.logger, "Value not found");
                         ExecutionError::InvalidArgument
                     })?;
                 }
                 Instruction::Jump => {
                     let len = i32::BYTELEN;
-                    let label = i32::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidLabel)?;
+                    let bytes = &program.bytecode[ptr..ptr + len];
+                    let label = i32::decode(bytes).map_err(|_| ExecutionError::InvalidLabel)?;
                     ptr = program
                         .labels
                         .get(&label)
                         .ok_or(ExecutionError::InvalidLabel)?[0] as usize;
                 }
                 Instruction::Exit => {
-                    debug!("Exit called");
+                    debug!(self.logger, "Exit called");
                     let code = self.stack.last();
                     if let Some(Scalar::Integer(code)) = code {
                         let code = *code;
                         self.stack.pop();
-                        debug!("Exit code {:?}", code);
+                        debug!(self.logger, "Exit code {:?}", code);
                         return Ok(code);
                     }
                     return Ok(0);
@@ -273,8 +281,8 @@ impl<Aux> VM<Aux> {
                 Instruction::JumpIfTrue => {
                     if self.stack.len() < 1 {
                         error!(
-                            "JumpIfTrue called with missing arguments, stack: {:?}",
-                            self.stack
+                            self.logger,
+                            "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
                         );
                         return Err(ExecutionError::InvalidArgument);
                     }
@@ -356,23 +364,12 @@ impl<Aux> VM<Aux> {
             if self.memory.len() > self.memory_limit {
                 return Err(ExecutionError::OutOfMemory);
             }
-            if log_enabled!(Debug) {
-                debug!("Stack len: {}", self.stack.len());
-                let mut s = String::with_capacity(512);
-                for (i, item) in self.stack.iter().enumerate() {
-                    match item {
-                        Scalar::Pointer(p) => {
-                            let obj = &self.objects[p];
-                            let val = unsafe { self.converters[p](obj, self) };
-                            s.clear();
-                            val.write_debug(&mut s);
-                            debug!("Stack #{} : {}", i, s);
-                        }
-                        _ => debug!("Stack #{} : {:?}", i, item),
-                    }
-                }
-                debug!("End stack");
-            }
+            debug!(
+                self.logger,
+                "Stack len: {}, last items: {:?}",
+                self.stack.len(),
+                &self.stack[self.stack.len().max(10) - 10..]
+            );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
@@ -380,7 +377,7 @@ impl<Aux> VM<Aux> {
 
     fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {
         let fun_name = Self::read_str(ptr, bytecode).ok_or_else(|| {
-            error!("Could not read function name");
+            error!(self.logger, "Could not read function name");
             ExecutionError::InvalidArgument
         })?;
         let mut fun = self
@@ -392,17 +389,26 @@ impl<Aux> VM<Aux> {
             let mut inputs = Vec::with_capacity(n_inputs as usize);
             for _ in 0..n_inputs {
                 let arg = self.stack.pop().ok_or_else(|| {
-                    error!("Missing argument to function call {:?}", fun_name);
+                    error!(
+                        self.logger,
+                        "Missing argument to function call {:?}", fun_name
+                    );
                     ExecutionError::MissingArgument
                 })?;
                 inputs.push(arg)
             }
-            debug!("Calling function {} with inputs: {:?}", fun_name, inputs);
+            debug!(
+                self.logger,
+                "Calling function {} with inputs: {:?}", fun_name, inputs
+            );
             fun.call(self, &inputs).map_err(|e| {
-                error!("Calling function {:?} failed with {:?}", fun_name, e);
+                error!(
+                    self.logger,
+                    "Calling function {:?} failed with {:?}", fun_name, e
+                );
                 e
             })?;
-            debug!("Function call returned");
+            debug!(self.logger, "Function call returned");
 
             Ok(())
         })();
@@ -456,7 +462,7 @@ mod tests {
 
     #[test]
     fn test_binary_operatons() {
-        let mut vm = VM::new(());
+        let mut vm = VM::new(None, ());
 
         vm.stack.push(Scalar::Integer(512));
         vm.stack.push(Scalar::Integer(42));
@@ -487,7 +493,7 @@ mod tests {
         let mut program = CompiledProgram::default();
         program.bytecode = bytecode;
 
-        let mut vm = VM::new(());
+        let mut vm = VM::new(None, ());
         vm.run(&program).unwrap();
         assert_eq!(vm.stack.len(), 1);
         let value = vm.stack.last().unwrap();
@@ -511,7 +517,7 @@ mod tests {
         let mut program = CompiledProgram::default();
         program.bytecode = bytecode;
 
-        let mut vm = VM::new(());
+        let mut vm = VM::new(None, ());
 
         fn foo(vm: &mut VM<()>, (a, b): (i32, f32)) -> ExecutionResult {
             let res = a as f32 * b % 13.;
@@ -548,7 +554,7 @@ mod tests {
         let mut program = CompiledProgram::default();
         program.bytecode = bytecode;
 
-        let mut vm = VM::new(());
+        let mut vm = VM::new(None, ());
         vm.variables
             .insert(VarName::from_str("foo").unwrap(), Scalar::Integer(69));
         vm.stack

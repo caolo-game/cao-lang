@@ -1,9 +1,8 @@
 use super::NodeId;
 use crate::InputString;
-use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum CompilationError {
     #[error("Program was empty")]
     EmptyProgram,
