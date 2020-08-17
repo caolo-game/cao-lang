@@ -15,12 +15,13 @@ pub enum ExecutionError {
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]
     ExitCode(i32),
-    #[error("Got an invalid label")]
-    InvalidLabel,
-    #[error("Got an invalid instruction code")]
-    InvalidInstruction,
-    #[error("Got an invalid argument to function call")]
-    InvalidArgument,
+    #[error("Got an invalid label: {0}")]
+    InvalidLabel(i32),
+    #[error("Got an invalid instruction code {0}")]
+    InvalidInstruction(u8),
+    #[error("Got an invalid argument to function call; {}",
+        .0.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
+    InvalidArgument(Option<String>),
     #[error("Procedure by the name {0:?} could not be found")]
     ProcedureNotFound(String),
     #[error("Unimplemented")]
@@ -145,8 +146,10 @@ where
     }
 }
 
-fn convert_error<'a, T: 'a>(_: i32) -> impl Fn(T) -> ExecutionError + 'a {
-    return move |_| ExecutionError::InvalidArgument;
+fn convert_error<'a, T: 'a>(n: i32) -> impl Fn(T) -> ExecutionError + 'a {
+    return move |_| {
+        ExecutionError::InvalidArgument(Some(format!("Failed to convert argument {}", n)))
+    };
 }
 
 macro_rules! callable_array_arg {
@@ -167,7 +170,9 @@ macro_rules! callable_array_arg {
                 })?;
 
                 let args = args.into_inner().map_err(|_| {
-                    ExecutionError::InvalidArgument
+                    ExecutionError::InvalidArgument(
+                        None
+                    )
                 })?;
 
                 (self.f)(vm, args)
