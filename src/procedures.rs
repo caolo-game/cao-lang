@@ -20,8 +20,8 @@ pub enum ExecutionError {
     #[error("Got an invalid instruction code {0}")]
     InvalidInstruction(u8),
     #[error("Got an invalid argument to function call; {}",
-        .0.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
-    InvalidArgument(Option<String>),
+        .context.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
+    InvalidArgument { context: Option<String> },
     #[error("Procedure by the name {0:?} could not be found")]
     ProcedureNotFound(String),
     #[error("Unimplemented")]
@@ -34,6 +34,14 @@ pub enum ExecutionError {
     Timeout,
     #[error("Subtask failed {0:?}")]
     TaskFailure(String),
+}
+
+impl ExecutionError {
+    pub fn invalid_argument<S: Into<String>>(reason: S) -> Self {
+        Self::InvalidArgument {
+            context: Some(reason.into()),
+        }
+    }
 }
 
 pub struct Procedure<Aux> {
@@ -147,9 +155,7 @@ where
 }
 
 fn convert_error<'a, T: 'a>(n: i32) -> impl Fn(T) -> ExecutionError + 'a {
-    return move |_| {
-        ExecutionError::InvalidArgument(Some(format!("Failed to convert argument {}", n)))
-    };
+    return move |_| ExecutionError::invalid_argument(format!("Failed to convert argument {}", n));
 }
 
 macro_rules! callable_array_arg {
@@ -170,9 +176,9 @@ macro_rules! callable_array_arg {
                 })?;
 
                 let args = args.into_inner().map_err(|_| {
-                    ExecutionError::InvalidArgument(
-                        None
-                    )
+                    ExecutionError::InvalidArgument{
+                        context: None
+                    }
                 })?;
 
                 (self.f)(vm, args)

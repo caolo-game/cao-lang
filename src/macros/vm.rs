@@ -4,7 +4,7 @@ macro_rules! load_ptr {
         $from
             .objects
             .get($val)
-            .ok_or(ExecutionError::InvalidArgument(None))?;
+            .ok_or(ExecutionError::InvalidArgument { context: None })?;
     };
 }
 
@@ -15,7 +15,7 @@ macro_rules! load_var {
             .variables
             .get($val)
             .cloned()
-            .ok_or(ExecutionError::InvalidArgument(None))?;
+            .ok_or(ExecutionError::InvalidArgument { context: None })?;
     };
 }
 
@@ -39,7 +39,10 @@ macro_rules! pop_stack {
     }};
 
     ($from : ident) => {{
-        $from.stack.pop().ok_or(ExecutionError::InvalidArgument(None))?
+        $from
+            .stack
+            .pop()
+            .ok_or(ExecutionError::InvalidArgument { context: None })?
     }};
 }
 

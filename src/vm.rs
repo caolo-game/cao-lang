@@ -185,7 +185,7 @@ impl<Aux> VM<Aux> {
         let result = self.memory.len();
         let bytes = val.encode().map_err(|err| {
             warn!(self.logger, "Failed to encode argument {:?}", err);
-            ExecutionError::InvalidArgument(None)
+            ExecutionError::InvalidArgument { context: None }
         })?;
 
         if bytes.len() + result >= self.memory_limit {
@@ -260,18 +260,18 @@ impl<Aux> VM<Aux> {
                 Instruction::SetVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument(None))?;
+                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
                     ptr += len;
                     let scalar = self
                         .stack
                         .pop()
-                        .ok_or_else(|| ExecutionError::InvalidArgument(None))?;
+                        .ok_or_else(|| ExecutionError::InvalidArgument { context: None })?;
                     self.variables.insert(varname, scalar);
                 }
                 Instruction::SetAndSwapVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument(None))?;
+                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
                     ptr += len;
                     let scalar = self.stack.pop().unwrap_or(Scalar::Null);
                     self.variables.insert(varname, scalar);
@@ -280,25 +280,25 @@ impl<Aux> VM<Aux> {
                 Instruction::ReadVar => {
                     let len = VarName::BYTELEN;
                     let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument(None))?;
+                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
                     ptr += len;
                     let value = self.variables.get(&varname).ok_or_else(|| {
                         debug!(self.logger, "Variable {} does not exist", varname);
-                        ExecutionError::InvalidArgument(None)
+                        ExecutionError::InvalidArgument { context: None }
                     })?;
                     self.stack.push(*value);
                 }
                 Instruction::Pop => {
                     self.stack.pop().ok_or_else(|| {
                         debug!(self.logger, "Value not found");
-                        ExecutionError::InvalidArgument(None)
+                        ExecutionError::InvalidArgument { context: None }
                     })?;
                 }
                 Instruction::Jump => {
                     let len = i32::BYTELEN;
                     let bytes = &program.bytecode[ptr..ptr + len];
                     let label = i32::decode(bytes).map_err(|_| {
-                        ExecutionError::InvalidArgument(Some("Failed to decode label".to_owned()))
+                        ExecutionError::invalid_argument("Failed to decode label".to_owned())
                     })?;
                     ptr = program
                         .labels
@@ -323,15 +323,15 @@ impl<Aux> VM<Aux> {
                             self.logger,
                             "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
                         );
-                        return Err(ExecutionError::InvalidArgument(None));
+                        return Err(ExecutionError::InvalidArgument { context: None });
                     }
                     let cond = self.stack.pop().unwrap();
                     let len = i32::BYTELEN;
                     let label = i32::decode(&program.bytecode[ptr..ptr + len]).map_err(|err| {
-                        ExecutionError::InvalidArgument(Some(format!(
+                        ExecutionError::invalid_argument(format!(
                             "Failed to decode label {:?}",
                             err
-                        )))
+                        ))
                     })?;
                     if cond.as_bool() {
                         ptr = program
@@ -353,7 +353,7 @@ impl<Aux> VM<Aux> {
                     let len = NodeId::BYTELEN;
                     self.stack.push(Scalar::Integer(
                         NodeId::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument(None))?,
+                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
                     ));
                     ptr += len;
                 }
@@ -361,7 +361,7 @@ impl<Aux> VM<Aux> {
                     let len = i32::BYTELEN;
                     self.stack.push(Scalar::Integer(
                         i32::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument(None))?,
+                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
                     ));
                     ptr += len;
                 }
@@ -369,16 +369,16 @@ impl<Aux> VM<Aux> {
                     let len = f32::BYTELEN;
                     self.stack.push(Scalar::Floating(
                         f32::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument(None))?,
+                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
                     ));
                     ptr += len;
                 }
                 Instruction::ScalarArray => {
                     let len = self
                         .load_ptr_from_stack()
-                        .ok_or(ExecutionError::InvalidArgument(None))?;
+                        .ok_or(ExecutionError::InvalidArgument { context: None })?;
                     if len > 128 || len > self.stack.len() as i32 {
-                        return Err(ExecutionError::InvalidArgument(None))?;
+                        return Err(ExecutionError::InvalidArgument { context: None })?;
                     }
                     let ptr = self.memory.len();
                     self.stack.pop();
@@ -386,7 +386,7 @@ impl<Aux> VM<Aux> {
                         let val = self.stack.pop().unwrap();
                         self.memory.append(&mut val.encode().map_err(|err| {
                             error!(self.logger, "Failed to encode array {:?}", err);
-                            ExecutionError::InvalidArgument(None)
+                            ExecutionError::InvalidArgument { context: None }
                         })?);
                     }
                     self.stack.push(Scalar::Pointer(ptr as i32));
@@ -401,7 +401,7 @@ impl<Aux> VM<Aux> {
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
                     let literal = Self::read_str(&mut ptr, &program.bytecode)
-                        .ok_or(ExecutionError::InvalidArgument(None))?;
+                        .ok_or(ExecutionError::InvalidArgument { context: None })?;
                     let obj = self.set_value(literal)?;
                     self.stack.push(Scalar::Pointer(obj.index.unwrap() as i32));
                 }
@@ -424,7 +424,7 @@ impl<Aux> VM<Aux> {
     fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {
         let fun_name = Self::read_str(ptr, bytecode).ok_or_else(|| {
             error!(self.logger, "Could not read function name");
-            ExecutionError::InvalidArgument(None)
+            ExecutionError::InvalidArgument { context: None }
         })?;
         let mut fun = self
             .callables
