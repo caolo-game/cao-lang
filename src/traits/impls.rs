@@ -1,6 +1,19 @@
 use super::*;
 use std::convert::Infallible;
 
+impl<'a> DecodeInPlace<'a> for &'a str {
+    const BYTELEN: usize = MAX_STR_LEN;
+    type Ref = Self;
+    type DecodeError = StringDecodeError;
+
+    fn decode_in_place(bytes: &'a [u8]) -> Result<Self::Ref, StringDecodeError> {
+        let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
+        std::str::from_utf8(&bytes[i32::BYTELEN..i32::BYTELEN + len])
+            .map_err(|e| StringDecodeError::Utf8DecodeError(e))
+    }
+}
+
 impl ByteEncodeProperties for String {
     const BYTELEN: usize = MAX_STR_LEN;
 

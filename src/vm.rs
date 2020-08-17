@@ -119,6 +119,38 @@ impl<Aux> VM<Aux> {
         self.callables.insert(name.to_owned(), f);
     }
 
+    pub fn get_value_in_place<'a, T: DecodeInPlace<'a>>(
+        &'a self,
+        ptr: TPointer,
+    ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
+        use std::any::type_name;
+
+        let size = T::BYTELEN;
+        let object = self.objects.get(&ptr)?;
+        if object.size as usize != size {
+            debug!(
+                self.logger,
+                "Attempting to reference an object with the wrong type ({}) at address {}",
+                type_name::<T>(),
+                ptr
+            );
+            return None;
+        }
+        match object.index {
+            Some(index) => {
+                let data = &self.memory;
+                let head = index as usize;
+                let tail = (head.checked_add(size as usize))
+                    .unwrap_or(data.len())
+                    .min(data.len());
+                T::decode_in_place(&data[head..tail]).ok()
+            }
+            None => {
+                warn!(self.logger, "Dereferencing null pointer");
+                None
+            }
+        }
+    }
     pub fn get_value<T: ByteEncodeProperties>(&self, ptr: TPointer) -> Option<T> {
         let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
@@ -151,11 +183,10 @@ impl<Aux> VM<Aux> {
         val: T,
     ) -> Result<Object, ExecutionError> {
         let result = self.memory.len();
-        let bytes = val.encode().map_err(|err|
-            {
-                warn!(self.logger, "Failed to encode argument {:?}", err);
-                ExecutionError::InvalidArgument
-            })?;
+        let bytes = val.encode().map_err(|err| {
+            warn!(self.logger, "Failed to encode argument {:?}", err);
+            ExecutionError::InvalidArgument
+        })?;
 
         if bytes.len() + result >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
@@ -570,5 +601,19 @@ mod tests {
         let res = vm.run(&program).unwrap();
 
         assert_eq!(res, 0);
+    }
+
+    #[test]
+    fn test_str_get() {
+        let mut vm = VM::new(None, ());
+
+        let obj = vm.set_value("winnie".to_owned()).unwrap();
+        let ind = obj.index.unwrap();
+
+        let val1 = vm.get_value_in_place::<&str>(ind).unwrap();
+        let val2 = vm.get_value_in_place::<&str>(ind).unwrap();
+
+        assert_eq!(val1, val2);
+        assert_eq!(val1, "winnie");
     }
 }

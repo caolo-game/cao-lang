@@ -17,6 +17,7 @@ pub trait ObjectProperties: std::fmt::Debug {
 
 pub trait ByteEncodeProperties: Sized + ObjectProperties {
     const BYTELEN: usize = mem::size_of::<Self>();
+
     type EncodeError: std::fmt::Debug;
     type DecodeError: std::fmt::Debug;
 
@@ -25,6 +26,15 @@ pub trait ByteEncodeProperties: Sized + ObjectProperties {
     }
     fn encode(self) -> Result<Vec<u8>, Self::EncodeError>;
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError>;
+}
+
+pub trait DecodeInPlace<'a>: Sized + ObjectProperties {
+    const BYTELEN: usize;
+
+    type Ref;
+    type DecodeError: std::fmt::Debug;
+
+    fn decode_in_place(bytes: &'a [u8]) -> Result<Self::Ref, Self::DecodeError>;
 }
 
 #[derive(Debug)]
