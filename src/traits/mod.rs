@@ -17,12 +17,13 @@ pub trait ObjectProperties: std::fmt::Debug {
 
 pub trait ByteEncodeProperties: Sized + ObjectProperties {
     const BYTELEN: usize = mem::size_of::<Self>();
-    type DecodeError;
+    type EncodeError: std::fmt::Debug;
+    type DecodeError: std::fmt::Debug;
 
     fn displayname() -> &'static str {
         type_name::<Self>()
     }
-    fn encode(self) -> Vec<u8>;
+    fn encode(self) -> Result<Vec<u8>, Self::EncodeError>;
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError>;
 }
 

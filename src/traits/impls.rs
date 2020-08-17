@@ -1,18 +1,23 @@
 use super::*;
+use std::convert::Infallible;
 
 impl ByteEncodeProperties for String {
     const BYTELEN: usize = MAX_STR_LEN;
+
+    type EncodeError = StringDecodeError;
     type DecodeError = StringDecodeError;
 
     fn displayname() -> &'static str {
         "Text"
     }
 
-    fn encode(self) -> Vec<u8> {
-        assert!(self.len() < Self::BYTELEN);
-        let mut rr = (self.len() as i32).encode();
+    fn encode(self) -> Result<Vec<u8>, Self::EncodeError> {
+        if self.len() >= Self::BYTELEN {
+            return Err(StringDecodeError::LengthError(self.len() as i32));
+        }
+        let mut rr = (self.len() as i32).encode().expect("failed to encode i32");
         rr.extend(self.as_bytes());
-        rr
+        Ok(rr)
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, StringDecodeError> {
@@ -26,14 +31,15 @@ impl ByteEncodeProperties for String {
 
 impl ByteEncodeProperties for () {
     const BYTELEN: usize = 0;
-    type DecodeError = ();
+    type EncodeError = Infallible;
+    type DecodeError = Infallible;
 
     fn displayname() -> &'static str {
         "Void"
     }
 
-    fn encode(self) -> Vec<u8> {
-        vec![]
+    fn encode(self) -> Result<Vec<u8>, Infallible> {
+        Ok(vec![])
     }
 
     fn decode(_bytes: &[u8]) -> Result<Self, Self::DecodeError> {
@@ -118,9 +124,10 @@ impl<T: std::fmt::Debug> ObjectProperties for T {}
 impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeProperties
     for T
 {
+    type EncodeError = Infallible;
     type DecodeError = ();
 
-    fn encode(self) -> Vec<u8> {
+    fn encode(self) -> Result<Vec<u8>, Infallible> {
         let mut result = vec![0; Self::BYTELEN];
         unsafe {
             let dayum = mem::transmute::<*const Self, *const u8>(&self as *const Self);
@@ -128,7 +135,7 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteE
                 result[i] = *(dayum.add(i));
             }
         }
-        result
+        Ok(result)
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {

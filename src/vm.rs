@@ -151,7 +151,11 @@ impl<Aux> VM<Aux> {
         val: T,
     ) -> Result<Object, ExecutionError> {
         let result = self.memory.len();
-        let bytes = val.encode();
+        let bytes = val.encode().map_err(|err|
+            {
+                warn!(self.logger, "Failed to encode argument {:?}", err);
+                ExecutionError::InvalidArgument
+            })?;
 
         if bytes.len() + result >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
@@ -341,7 +345,10 @@ impl<Aux> VM<Aux> {
                     self.stack.pop();
                     for _ in 0..len {
                         let val = self.stack.pop().unwrap();
-                        self.memory.append(&mut val.encode());
+                        self.memory.append(&mut val.encode().map_err(|err| {
+                            error!(self.logger, "Failed to encode array {:?}", err);
+                            ExecutionError::InvalidArgument
+                        })?);
                     }
                     self.stack.push(Scalar::Pointer(ptr as i32));
                 }
@@ -454,7 +461,7 @@ mod tests {
     #[test]
     fn test_encode() {
         let value: TPointer = 12342;
-        let encoded = value.encode();
+        let encoded = value.encode().unwrap();
         let decoded = TPointer::decode(&encoded).unwrap();
 
         assert_eq!(value, decoded);
@@ -480,15 +487,15 @@ mod tests {
     fn test_simple_program() {
         let mut bytecode = Vec::with_capacity(512);
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 512i32.encode());
+        bytecode.append(&mut 512i32.encode().unwrap());
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 42i32.encode());
+        bytecode.append(&mut 42i32.encode().unwrap());
         bytecode.push(Instruction::Sub as u8);
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 68i32.encode());
+        bytecode.append(&mut 68i32.encode().unwrap());
         bytecode.push(Instruction::Add as u8);
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 0i32.encode());
+        bytecode.append(&mut 0i32.encode().unwrap());
         bytecode.push(Instruction::Exit as u8);
         let mut program = CompiledProgram::default();
         program.bytecode = bytecode;
@@ -507,11 +514,11 @@ mod tests {
     fn test_function_call() {
         let mut bytecode = Vec::with_capacity(512);
         bytecode.push(Instruction::ScalarFloat as u8);
-        bytecode.append(&mut 42.0f32.encode());
+        bytecode.append(&mut 42.0f32.encode().unwrap());
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 512i32.encode());
+        bytecode.append(&mut 512i32.encode().unwrap());
         bytecode.push(Instruction::Call as u8);
-        bytecode.append(&mut "foo".to_owned().encode());
+        bytecode.append(&mut "foo".to_owned().encode().unwrap());
         bytecode.push(Instruction::Exit as u8);
 
         let mut program = CompiledProgram::default();
@@ -547,7 +554,7 @@ mod tests {
     fn test_variable_scalar() {
         let mut bytecode = Vec::with_capacity(512);
         bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 420i32.encode());
+        bytecode.append(&mut 420i32.encode().unwrap());
         bytecode.push(Instruction::Equals as u8);
         bytecode.push(Instruction::Exit as u8);
 

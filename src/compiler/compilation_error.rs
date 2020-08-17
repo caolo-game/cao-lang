@@ -21,4 +21,7 @@ pub enum CompilationError {
         dst: NodeId,
         msg: Option<String>,
     },
+
+    #[error("Internal failure during compilation")]
+    InternalError
 }

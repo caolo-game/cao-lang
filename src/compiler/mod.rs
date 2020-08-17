@@ -15,9 +15,10 @@ use crate::{
 pub use astnode::*;
 pub use compilation_error::*;
 use serde::{Deserialize, Serialize};
-use slog::debug;
+use slog::{debug, error};
 use slog::{o, Drain, Logger};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::convert::Infallible;
 use std::convert::TryFrom;
 use std::fmt::Debug;
 
@@ -29,16 +30,17 @@ pub type Nodes = HashMap<NodeId, AstNode>;
 
 impl ByteEncodeProperties for InputString {
     const BYTELEN: usize = INPUT_STR_LEN_IN_BYTES;
+    type EncodeError = Infallible;
     type DecodeError = StringDecodeError;
 
     fn displayname() -> &'static str {
         "Text"
     }
 
-    fn encode(self) -> Vec<u8> {
-        let mut rr = (self.len() as i32).encode();
+    fn encode(self) -> Result<Vec<u8>, Self::EncodeError> {
+        let mut rr = (self.len() as i32).encode()?;
         rr.extend(self.as_bytes());
-        rr
+        Ok(rr)
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
@@ -135,7 +137,13 @@ pub fn compile(
                             "child node of node {:?} already visited: {:?}", current, node
                         );
                         compiler.program.bytecode.push(Instruction::Jump as u8);
-                        compiler.program.bytecode.append(&mut node.encode());
+                        compiler
+                            .program
+                            .bytecode
+                            .append(&mut node.encode().map_err(|err| {
+                                error!(compiler.logger, "failed to encode node {:?}", err);
+                                CompilationError::InternalError
+                            })?);
                     }
                 }
             }
@@ -245,7 +253,7 @@ fn process_node(
         }
         ReadVar(variable) | SetVar(variable) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut variable.0.encode());
+            program.bytecode.append(&mut variable.0.encode().unwrap());
         }
         JumpIfTrue(j) | Jump(j) => {
             let label = j.0;
@@ -260,27 +268,27 @@ fn process_node(
                 });
             }
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut label.encode());
+            program.bytecode.append(&mut label.encode().unwrap());
         }
         StringLiteral(c) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut c.0.encode());
+            program.bytecode.append(&mut c.0.encode().unwrap());
         }
         Call(c) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut c.0.encode());
+            program.bytecode.append(&mut c.0.encode().unwrap());
         }
         ScalarArray(n) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut n.0.encode());
+            program.bytecode.append(&mut n.0.encode().unwrap());
         }
         ScalarLabel(s) | ScalarInt(s) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut s.0.encode());
+            program.bytecode.append(&mut s.0.encode().unwrap());
         }
         ScalarFloat(s) => {
             push_node(nodeid, compilation_unit, program).unwrap();
-            program.bytecode.append(&mut s.0.encode());
+            program.bytecode.append(&mut s.0.encode().unwrap());
         }
         SubProgram(b) => {
             let name = b.0;
@@ -297,7 +305,7 @@ fn process_node(
                 .ok_or(CompilationError::MissingNode(nodeid))
                 .and_then(|_| {
                     program.bytecode.push(Instruction::Jump as u8);
-                    program.bytecode.extend_from_slice(&nodeid.encode());
+                    program.bytecode.extend_from_slice(&nodeid.encode().unwrap());
                     Ok(())
                 })?;
         }
