@@ -68,6 +68,7 @@ pub type Labels = HashMap<NodeId, Label>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompiledProgram {
+    /// Bytecode layout: (instr node_id [data])+
     pub bytecode: Vec<u8>,
     /// Label: [block, self]
     pub labels: Labels,
