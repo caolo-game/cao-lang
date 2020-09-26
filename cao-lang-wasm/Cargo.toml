@@ -7,6 +7,9 @@ description="Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
 license="Apache-2.0"
 repository="https://github.com/caolo-game/cao-lang-wasm"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
