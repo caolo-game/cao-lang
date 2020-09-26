@@ -57,7 +57,6 @@ use crate::instruction::Instruction;
 use arrayvec::ArrayString;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Index;
 
 pub type TPointer = i32;
 
@@ -75,27 +74,15 @@ pub struct CompiledProgram {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Label {
+    /// Index of the beginning in the bytecode of the program
     pub block: u32,
-    pub myself: u32,
 }
 
 impl Label {
-    pub fn new(block: u32, myself: u32) -> Self {
-        Self { block, myself }
+    pub fn new(block: u32) -> Self {
+        Self { block }
     }
 }
-
-impl Index<i32> for Label {
-    type Output = u32;
-    fn index(&self, ind: i32) -> &Self::Output {
-        match ind {
-            0 => &self.block,
-            1 => &self.myself,
-            _ => unreachable!("Label index must be 0 or 1"),
-        }
-    }
-}
-
 pub type VarName = ArrayString<[u8; 64]>;
 impl crate::traits::AutoByteEncodeProperties for VarName {}
 

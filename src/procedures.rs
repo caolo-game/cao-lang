@@ -189,9 +189,8 @@ macro_rules! callable_array_arg {
             }
         }
     };
-    ($num: expr, $($tail: expr),*) => {
-        callable_array_arg!($num);
-        callable_array_arg!($($tail),*);
+    ($($nums: expr),*) => {
+        $(callable_array_arg!($nums);)*
     };
 }
 

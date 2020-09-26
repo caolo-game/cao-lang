@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::scalar::Scalar;
 use crate::VarName;
 use crate::{binary_compare, pop_stack};
-use slog::{debug, error, warn};
+use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -50,10 +50,17 @@ impl Object {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct HistoryEntry {
+    pub id: NodeId,
+    pub instr: Instruction,
+}
+
 /// Cao-Lang bytecode interpreter.
 /// Aux is an auxiliary data structure passed to custom functions.
 pub struct VM<Aux = ()> {
     pub logger: Logger,
+    pub history: Vec<HistoryEntry>,
 
     memory: Vec<u8>,
     stack: Vec<Scalar>,
@@ -74,6 +81,7 @@ impl<Aux> VM<Aux> {
             .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
         Self {
             logger,
+            history: Vec::new(),
             converters: HashMap::new(),
             auxiliary_data,
             memory: Vec::with_capacity(512),
@@ -230,8 +238,31 @@ impl<Aux> VM<Aux> {
         self.stack.pop()
     }
 
+    #[inline]
+    fn decode_value<T: ByteEncodeProperties>(
+        logger: &Logger,
+        bytes: &[u8],
+        ptr: &mut usize,
+    ) -> Result<T, ExecutionError> {
+        trace!(
+            logger,
+            "Decoding value at ptr {}, len: {}",
+            ptr,
+            bytes.len()
+        );
+        let len = T::BYTELEN;
+        if *ptr + len > bytes.len() {
+            return Err(ExecutionError::UnexpectedEndOfInput);
+        }
+        let val = T::decode(&bytes[*ptr..*ptr + len])
+            .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
+        *ptr += len;
+        Ok(val)
+    }
+
     pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Running program");
+        self.history.clear();
         let mut ptr = 0;
         let mut max_iter = self.max_iter;
         while ptr < program.bytecode.len() {
@@ -241,7 +272,7 @@ impl<Aux> VM<Aux> {
             }
             let instr = program.bytecode[ptr];
             let instr = Instruction::try_from(instr).map_err(|_| {
-                error!(
+                warn!(
                     self.logger,
                     "Byte at {}: {:?} was not a valid instruction", ptr, instr
                 );
@@ -252,16 +283,19 @@ impl<Aux> VM<Aux> {
                 "Instruction: {:?}({:?}) Pointer: {:?}", instr, program.bytecode[ptr], ptr
             );
             ptr += 1;
+            {
+                let nodeid = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
+                trace!(self.logger, "Logging visited node {}", nodeid);
+                self.history.push(HistoryEntry { id: nodeid, instr });
+            }
             match instr {
                 Instruction::Start => {}
                 Instruction::ClearStack => {
                     self.stack.clear();
                 }
                 Instruction::SetVar => {
-                    let len = VarName::BYTELEN;
-                    let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
-                    ptr += len;
+                    let varname: VarName =
+                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     let scalar = self
                         .stack
                         .pop()
@@ -269,19 +303,15 @@ impl<Aux> VM<Aux> {
                     self.variables.insert(varname, scalar);
                 }
                 Instruction::SetAndSwapVar => {
-                    let len = VarName::BYTELEN;
-                    let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
-                    ptr += len;
+                    let varname: VarName =
+                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     let scalar = self.stack.pop().unwrap_or(Scalar::Null);
                     self.variables.insert(varname, scalar);
                     self.stack.push(Scalar::Variable(varname));
                 }
                 Instruction::ReadVar => {
-                    let len = VarName::BYTELEN;
-                    let varname = VarName::decode(&program.bytecode[ptr..ptr + len])
-                        .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
-                    ptr += len;
+                    let varname: VarName =
+                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     let value = self.variables.get(&varname).ok_or_else(|| {
                         debug!(self.logger, "Variable {} does not exist", varname);
                         ExecutionError::InvalidArgument { context: None }
@@ -295,16 +325,12 @@ impl<Aux> VM<Aux> {
                     })?;
                 }
                 Instruction::Jump => {
-                    let len = i32::BYTELEN;
-                    let bytes = &program.bytecode[ptr..ptr + len];
-                    let label = i32::decode(bytes).map_err(|_| {
-                        ExecutionError::invalid_argument("Failed to decode label".to_owned())
-                    })?;
+                    let label: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     ptr = program
                         .labels
                         .get(&label)
-                        .ok_or(ExecutionError::InvalidLabel(label))?[0]
-                        as usize;
+                        .ok_or(ExecutionError::InvalidLabel(label))?
+                        .block as usize;
                 }
                 Instruction::Exit => {
                     debug!(self.logger, "Exit called");
@@ -319,28 +345,20 @@ impl<Aux> VM<Aux> {
                 }
                 Instruction::JumpIfTrue => {
                     if self.stack.len() < 1 {
-                        error!(
+                        warn!(
                             self.logger,
                             "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
                         );
                         return Err(ExecutionError::InvalidArgument { context: None });
                     }
                     let cond = self.stack.pop().unwrap();
-                    let len = i32::BYTELEN;
-                    let label = i32::decode(&program.bytecode[ptr..ptr + len]).map_err(|err| {
-                        ExecutionError::invalid_argument(format!(
-                            "Failed to decode label {:?}",
-                            err
-                        ))
-                    })?;
+                    let label: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     if cond.as_bool() {
                         ptr = program
                             .labels
                             .get(&label)
-                            .ok_or(ExecutionError::InvalidLabel(label))?[0]
-                            as usize;
-                    } else {
-                        ptr += len;
+                            .ok_or(ExecutionError::InvalidLabel(label))?
+                            .block as usize;
                     }
                 }
                 Instruction::CopyLast => {
@@ -350,28 +368,25 @@ impl<Aux> VM<Aux> {
                 }
                 Instruction::Pass => {}
                 Instruction::ScalarLabel => {
-                    let len = NodeId::BYTELEN;
-                    self.stack.push(Scalar::Integer(
-                        NodeId::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
-                    ));
-                    ptr += len;
+                    self.stack.push(Scalar::Integer(Self::decode_value(
+                        &self.logger,
+                        &program.bytecode,
+                        &mut ptr,
+                    )?));
                 }
                 Instruction::ScalarInt => {
-                    let len = i32::BYTELEN;
-                    self.stack.push(Scalar::Integer(
-                        i32::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
-                    ));
-                    ptr += len;
+                    self.stack.push(Scalar::Integer(Self::decode_value(
+                        &self.logger,
+                        &program.bytecode,
+                        &mut ptr,
+                    )?));
                 }
                 Instruction::ScalarFloat => {
-                    let len = f32::BYTELEN;
-                    self.stack.push(Scalar::Floating(
-                        f32::decode(&program.bytecode[ptr..ptr + len])
-                            .map_err(|_| ExecutionError::InvalidArgument { context: None })?,
-                    ));
-                    ptr += len;
+                    self.stack.push(Scalar::Floating(Self::decode_value(
+                        &self.logger,
+                        &program.bytecode,
+                        &mut ptr,
+                    )?));
                 }
                 Instruction::ScalarArray => {
                     let len = self
@@ -385,7 +400,7 @@ impl<Aux> VM<Aux> {
                     for _ in 0..len {
                         let val = self.stack.pop().unwrap();
                         self.memory.append(&mut val.encode().map_err(|err| {
-                            error!(self.logger, "Failed to encode array {:?}", err);
+                            warn!(self.logger, "Failed to encode array {:?}", err);
                             ExecutionError::InvalidArgument { context: None }
                         })?);
                     }
@@ -423,7 +438,7 @@ impl<Aux> VM<Aux> {
 
     fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {
         let fun_name = Self::read_str(ptr, bytecode).ok_or_else(|| {
-            error!(self.logger, "Could not read function name");
+            warn!(self.logger, "Could not read function name");
             ExecutionError::InvalidArgument { context: None }
         })?;
         let mut fun = self
@@ -435,7 +450,7 @@ impl<Aux> VM<Aux> {
             let mut inputs = Vec::with_capacity(n_inputs as usize);
             for _ in 0..n_inputs {
                 let arg = self.stack.pop().ok_or_else(|| {
-                    error!(
+                    warn!(
                         self.logger,
                         "Missing argument to function call {:?}", fun_name
                     );
@@ -448,7 +463,7 @@ impl<Aux> VM<Aux> {
                 "Calling function {} with inputs: {:?}", fun_name, inputs
             );
             fun.call(self, &inputs).map_err(|e| {
-                error!(
+                warn!(
                     self.logger,
                     "Calling function {:?} failed with {:?}", fun_name, e
                 );
@@ -494,8 +509,6 @@ impl<Aux> VM<Aux> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::procedures::FunctionWrapper;
-    use std::str::FromStr;
 
     #[test]
     fn test_encode() {
@@ -520,95 +533,6 @@ mod tests {
             Scalar::Integer(result) => assert_eq!(*result, (512 + 512 / 42) * 42),
             _ => panic!("Invalid result type"),
         }
-    }
-
-    #[test]
-    fn test_simple_program() {
-        let mut bytecode = Vec::with_capacity(512);
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 512i32.encode().unwrap());
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 42i32.encode().unwrap());
-        bytecode.push(Instruction::Sub as u8);
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 68i32.encode().unwrap());
-        bytecode.push(Instruction::Add as u8);
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 0i32.encode().unwrap());
-        bytecode.push(Instruction::Exit as u8);
-        let mut program = CompiledProgram::default();
-        program.bytecode = bytecode;
-
-        let mut vm = VM::new(None, ());
-        vm.run(&program).unwrap();
-        assert_eq!(vm.stack.len(), 1);
-        let value = vm.stack.last().unwrap();
-        match value {
-            Scalar::Integer(i) => assert_eq!(*i, 512 - 42 + 68),
-            _ => panic!("Invalid value in the stack"),
-        }
-    }
-
-    #[test]
-    fn test_function_call() {
-        let mut bytecode = Vec::with_capacity(512);
-        bytecode.push(Instruction::ScalarFloat as u8);
-        bytecode.append(&mut 42.0f32.encode().unwrap());
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 512i32.encode().unwrap());
-        bytecode.push(Instruction::Call as u8);
-        bytecode.append(&mut "foo".to_owned().encode().unwrap());
-        bytecode.push(Instruction::Exit as u8);
-
-        let mut program = CompiledProgram::default();
-        program.bytecode = bytecode;
-
-        let mut vm = VM::new(None, ());
-
-        fn foo(vm: &mut VM<()>, (a, b): (i32, f32)) -> ExecutionResult {
-            let res = a as f32 * b % 13.;
-            let res = res as i32;
-
-            vm.set_value(res)?;
-            Ok(())
-        };
-
-        vm.register_function("foo", FunctionWrapper::new(foo));
-        vm.register_function(
-            "bar",
-            FunctionWrapper::new(|_vm: &mut VM, _a: i32| {
-                Err::<(), _>(ExecutionError::Unimplemented)
-            }),
-        );
-
-        vm.run(&program).unwrap();
-
-        let ptr = 0;
-        let res = vm.get_value::<i32>(ptr).unwrap();
-
-        assert_eq!(res, ((512. as f32) * (42. as f32) % 13.) as i32);
-    }
-
-    #[test]
-    fn test_variable_scalar() {
-        let mut bytecode = Vec::with_capacity(512);
-        bytecode.push(Instruction::ScalarInt as u8);
-        bytecode.append(&mut 420i32.encode().unwrap());
-        bytecode.push(Instruction::Equals as u8);
-        bytecode.push(Instruction::Exit as u8);
-
-        let mut program = CompiledProgram::default();
-        program.bytecode = bytecode;
-
-        let mut vm = VM::new(None, ());
-        vm.variables
-            .insert(VarName::from_str("foo").unwrap(), Scalar::Integer(69));
-        vm.stack
-            .push(Scalar::Variable(VarName::from_str("foo").unwrap()));
-
-        let res = vm.run(&program).unwrap();
-
-        assert_eq!(res, 0);
     }
 
     #[test]

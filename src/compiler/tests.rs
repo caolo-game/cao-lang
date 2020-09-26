@@ -285,6 +285,7 @@ fn can_define_sub_programs() {
     };
     let program = compile(None, cu).unwrap();
 
+
     // Compilation was successful
 
     let mut vm = VM::new(None, ());

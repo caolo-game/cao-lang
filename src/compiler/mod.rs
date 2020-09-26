@@ -127,7 +127,13 @@ pub fn compile(
             seen.insert(current);
             process_node(current, &compiler.compilation_unit, &mut compiler.program)?;
             match compiler.compilation_unit.nodes[&current].child.as_ref() {
-                None => compiler.program.bytecode.push(Instruction::Exit as u8),
+                None => {
+                    compiler.program.bytecode.push(Instruction::Exit as u8);
+                    compiler
+                        .program
+                        .bytecode
+                        .extend_from_slice(&current.encode().unwrap());
+                }
                 Some(node) => {
                     if !seen.contains(node) {
                         todo.push_front(*node);
@@ -137,6 +143,10 @@ pub fn compile(
                             "child node of node {:?} already visited: {:?}", current, node
                         );
                         compiler.program.bytecode.push(Instruction::Jump as u8);
+                        compiler
+                            .program
+                            .bytecode
+                            .extend_from_slice(&node.encode().unwrap());
                         compiler
                             .program
                             .bytecode
@@ -221,6 +231,7 @@ fn push_node(
             program
                 .bytecode
                 .push(node.node.instruction().ok_or(PushError::NoInstruction)? as u8);
+            program.bytecode.append(&mut nodeid.encode().unwrap());
             Ok(())
         })
 }
@@ -240,9 +251,7 @@ fn process_node(
 
     let fromlabel =
         u32::try_from(program.bytecode.len()).expect("bytecode length to fit into 32 bits");
-    program
-        .labels
-        .insert(nodeid, Label::new(fromlabel, fromlabel));
+    program.labels.insert(nodeid, Label::new(fromlabel));
 
     let instruction = node.node;
 
@@ -305,7 +314,10 @@ fn process_node(
                 .ok_or(CompilationError::MissingNode(nodeid))
                 .and_then(|_| {
                     program.bytecode.push(Instruction::Jump as u8);
-                    program.bytecode.extend_from_slice(&nodeid.encode().unwrap());
+                    program.bytecode.append(&mut nodeid.encode().unwrap());
+                    program
+                        .bytecode
+                        .extend_from_slice(&nodeid.encode().unwrap());
                     Ok(())
                 })?;
         }
