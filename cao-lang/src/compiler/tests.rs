@@ -62,7 +62,7 @@ fn post_process_raises_error_if_node_jumpts_to_non_existent() {
 
 #[test]
 fn compiling_simple_program() {
-    simple_logger::init().unwrap_or(());
+    simple_logger::SimpleLogger::new().init().unwrap_or_default();
     let nodes: Nodes = [
         (
             999,
@@ -119,7 +119,7 @@ fn compiling_simple_program() {
 
 #[test]
 fn simple_looping_program() {
-    simple_logger::init().unwrap_or(());
+    simple_logger::SimpleLogger::new().init().unwrap_or_default();
     let nodes: Nodes = [
         (
             999,
@@ -231,7 +231,7 @@ fn simple_looping_program() {
 
 #[test]
 fn can_define_sub_programs() {
-    simple_logger::init().unwrap_or(());
+    simple_logger::SimpleLogger::new().init().unwrap_or_default();
     let nodes: Nodes = [
         (
             999,
@@ -284,7 +284,6 @@ fn can_define_sub_programs() {
         sub_programs,
     };
     let program = compile(None, cu).unwrap();
-
 
     // Compilation was successful
 

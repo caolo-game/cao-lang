@@ -1,19 +1,6 @@
-[package]
-name = "cao-lang"
-version = "0.4.1"
-authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
-edition = "2018"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-slog = { version="2", features=["max_level_trace", "release_max_level_info"] }
-slog-stdlog = "3"
-
-serde = { version="1", features=["derive"] }
-arrayvec = { version="0.5", features=["serde", "array-sizes-33-128"] }
-thiserror = "1"
-
-[dev-dependencies]
-simple_logger = "1.0"
-serde_json = "*"
+members = [
+  "cao-lang",
+  "cao-lang-wasm"
+]

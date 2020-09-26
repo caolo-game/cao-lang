@@ -1,0 +1,16 @@
+target/
+.env
+
+*.pyd
+
+.vscode/
+
+*.sqlite3
+
+docker.env
+
+profile.csv
+
+.ipynb_checkpoints/
+
+Cargo.lock
