@@ -1,6 +1,6 @@
 on: [push, pull_request]
 
-name: Run tests
+name: Run WASM tests
 
 jobs:
   test:
@@ -11,5 +11,12 @@ jobs:
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - run: wasm-pack test --headless --chrome
-      - run: wasm-pack test --headless --firefox
+      - name: Chrome
+        run: |
+          cd cao-lang-wasm
+          wasm-pack test --headless --chrome
+
+      - name: FireFox
+        run: |
+          cd cao-lang-wasm
+          wasm-pack test --headless --firefox
