@@ -96,6 +96,7 @@ impl AstNode {
             StringLiteral(node) => *node = value.into_serde().map_err(map_err!())?,
             Call(node) => *node = value.into_serde().map_err(map_err!())?,
             JumpIfTrue(node) => *node = value.into_serde().map_err(map_err!())?,
+            JumpIfFalse(node) => *node = value.into_serde().map_err(map_err!())?,
             Jump(node) => *node = value.into_serde().map_err(map_err!())?,
             SetVar(node) => *node = value.into_serde().map_err(map_err!())?,
             ReadVar(node) => *node = value.into_serde().map_err(map_err!())?,

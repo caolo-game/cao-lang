@@ -264,7 +264,7 @@ fn process_node(
             push_node(nodeid, compilation_unit, program).unwrap();
             program.bytecode.append(&mut variable.0.encode().unwrap());
         }
-        JumpIfTrue(j) | Jump(j) => {
+        JumpIfFalse(j) | JumpIfTrue(j) | Jump(j) => {
             let label = j.0;
             if label == nodeid {
                 return Err(CompilationError::InvalidJump {

@@ -61,6 +61,9 @@ pub struct HistoryEntry {
 pub struct VM<Aux = ()> {
     pub logger: Logger,
     pub history: Vec<HistoryEntry>,
+    pub auxiliary_data: Aux,
+    pub max_iter: i32,
+    pub memory_limit: usize,
 
     memory: Vec<u8>,
     stack: Vec<Scalar>,
@@ -69,9 +72,6 @@ pub struct VM<Aux = ()> {
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<TPointer, ConvertFn<Aux>>,
     variables: HashMap<VarName, Scalar>,
-    auxiliary_data: Aux,
-    max_iter: i32,
-    memory_limit: usize,
 }
 
 impl<Aux> VM<Aux> {
@@ -92,6 +92,14 @@ impl<Aux> VM<Aux> {
             variables: HashMap::with_capacity(128),
             max_iter: 1000,
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.memory.clear();
+        self.stack.clear();
+        self.objects.clear();
+        self.converters.clear();
+        self.variables.clear();
     }
 
     pub fn read_var(&self, name: &str) -> Option<Scalar> {
@@ -175,7 +183,7 @@ impl<Aux> VM<Aux> {
             Some(index) => {
                 let data = &self.memory;
                 let head = index as usize;
-                let tail = (head + size as usize).min(data.len());
+                let tail = (head + size).min(data.len());
                 T::decode(&data[head..tail]).ok()
             }
             None => {
@@ -344,22 +352,10 @@ impl<Aux> VM<Aux> {
                     return Ok(0);
                 }
                 Instruction::JumpIfTrue => {
-                    if self.stack.len() < 1 {
-                        warn!(
-                            self.logger,
-                            "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
-                        );
-                        return Err(ExecutionError::InvalidArgument { context: None });
-                    }
-                    let cond = self.stack.pop().unwrap();
-                    let label: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                    if cond.as_bool() {
-                        ptr = program
-                            .labels
-                            .get(&label)
-                            .ok_or(ExecutionError::InvalidLabel(label))?
-                            .block as usize;
-                    }
+                    self.jump_if(&mut ptr, program, |s| s.as_bool())?;
+                }
+                Instruction::JumpIfFalse => {
+                    self.jump_if(&mut ptr, program, |s| !s.as_bool())?;
                 }
                 Instruction::CopyLast => {
                     if !self.stack.is_empty() {
@@ -434,6 +430,31 @@ impl<Aux> VM<Aux> {
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
+    }
+
+    fn jump_if<F: Fn(Scalar) -> bool>(
+        &mut self,
+        ptr: &mut usize,
+        program: &CompiledProgram,
+        fun: F,
+    ) -> Result<(), ExecutionError> {
+        if self.stack.len() < 1 {
+            warn!(
+                self.logger,
+                "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
+            );
+            return Err(ExecutionError::InvalidArgument { context: None });
+        }
+        let cond = self.stack.pop().unwrap();
+        let label: i32 = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
+        if fun(cond) {
+            *ptr = program
+                .labels
+                .get(&label)
+                .ok_or(ExecutionError::InvalidLabel(label))?
+                .block as usize;
+        }
+        Ok(())
     }
 
     fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {

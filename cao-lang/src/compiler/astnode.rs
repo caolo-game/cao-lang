@@ -40,6 +40,7 @@ pub enum InstructionNode {
     StringLiteral(StringNode),
     Call(CallNode),
     JumpIfTrue(JumpNode),
+    JumpIfFalse(JumpNode),
     Jump(JumpNode),
     SetVar(VarNode),
     ReadVar(VarNode),
@@ -69,6 +70,7 @@ impl InstructionNode {
             InstructionNode::StringLiteral(_) => "StringLiteral",
             InstructionNode::Call(_) => "Call",
             InstructionNode::JumpIfTrue(_) => "JumpIfTrue",
+            InstructionNode::JumpIfFalse(_) => "JumpIfFalse",
             InstructionNode::Jump(_) => "Jump",
             InstructionNode::SetVar(_) => "SetVar",
             InstructionNode::ReadVar(_) => "ReadVar",
@@ -100,6 +102,7 @@ impl InstructionNode {
             InstructionNode::ScalarLabel(_) => Some(Instruction::ScalarLabel),
             InstructionNode::Call(_) => Some(Instruction::Call),
             InstructionNode::JumpIfTrue(_) => Some(Instruction::JumpIfTrue),
+            InstructionNode::JumpIfFalse(_) => Some(Instruction::JumpIfFalse),
             InstructionNode::Jump(_) => Some(Instruction::Jump),
             InstructionNode::StringLiteral(_) => Some(Instruction::StringLiteral),
             InstructionNode::SetVar(_) => Some(Instruction::SetVar),
@@ -125,6 +128,7 @@ impl InstructionNode {
             | Instruction::StringLiteral
             | Instruction::Start
             | Instruction::JumpIfTrue
+            | Instruction::JumpIfFalse
             | Instruction::Jump
             | Instruction::CopyLast
             | Instruction::Call
