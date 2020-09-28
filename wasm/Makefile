@@ -14,7 +14,7 @@ pack: release
 	wasm-pack pack out/pkg
 
 publish: release
-	cd pkg && npm publish --access=public
+	cd out/pkg && npm publish --access=public
 
 docs: build
 	cd docs && npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
