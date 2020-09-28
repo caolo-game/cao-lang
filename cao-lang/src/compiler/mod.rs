@@ -126,7 +126,7 @@ pub fn compile(
             nodes.remove(&current);
             seen.insert(current);
             process_node(current, &compiler.compilation_unit, &mut compiler.program)?;
-            match compiler.compilation_unit.nodes[&current].child.as_ref() {
+            match compiler.compilation_unit.nodes[&current].child {
                 None => {
                     compiler.program.bytecode.push(Instruction::Exit as u8);
                     compiler
@@ -135,8 +135,8 @@ pub fn compile(
                         .extend_from_slice(&current.encode().unwrap());
                 }
                 Some(node) => {
-                    if !seen.contains(node) {
-                        todo.push_front(*node);
+                    if !seen.contains(&node) {
+                        todo.push_front(node);
                     } else {
                         debug!(
                             compiler.logger,

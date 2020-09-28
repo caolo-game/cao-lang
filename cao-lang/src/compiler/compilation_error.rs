@@ -14,6 +14,7 @@ pub enum CompilationError {
 
     #[error("Program references node [{0}] but it was not found")]
     MissingNode(NodeId),
+
     /// Jumping from src to dst is illegal
     #[error("Jumping from {src} to {dst} can not be performed\n{msg:?}")]
     InvalidJump {
