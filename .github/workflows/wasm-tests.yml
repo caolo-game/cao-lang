@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: pkg
-          path: out/pkg
+          path: wasm/out/pkg
 
   build-docs:
     needs: [package, test]
@@ -50,7 +50,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: pkg
-          path: out/pkg
+          path: wasm/out/pkg
       - name: Build docs
         run: |
           cd wasm/docs
