@@ -1,5 +1,7 @@
 # Cao-Lang
 
+[Repository](https://github.com/caolo-game/cao-lang)
+
 ## Install 
 
 ```
