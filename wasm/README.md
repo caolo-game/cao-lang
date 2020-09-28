@@ -1,6 +1,6 @@
 # WASM wrapper of Cao-Lang
 
-![Run tests](https://github.com/caolo-game/cao-lang-wasm/workflows/Run%20tests/badge.svg)
+![Run tests](https://github.com/caolo-game/cao-lang/workflows/Run%20tests/badge.svg)
 
 Wrapper on [CaoLang](https://github.com/caolo-game/cao-lang.git) 
 

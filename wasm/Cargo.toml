@@ -5,7 +5,7 @@ authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 description="Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
 license="MIT"
-repository="https://github.com/caolo-game/cao-lang-wasm"
+repository="https://github.com/caolo-game/cao-lang"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz", "--enable-mutable-globals"]

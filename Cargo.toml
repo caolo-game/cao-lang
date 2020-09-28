@@ -2,5 +2,5 @@
 
 members = [
   "cao-lang",
-  "cao-lang-wasm"
+  "wasm"
 ]
