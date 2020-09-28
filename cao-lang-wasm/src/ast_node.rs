@@ -40,8 +40,9 @@ impl AstNode {
         }
     }
 
-    #[wasm_bindgen(js_name=loadInstruction)]
-    pub fn load_instructon(&self) -> JsValue {
+    /// Returns the instruction
+    #[wasm_bindgen(js_name=getInstruction)]
+    pub fn get_instructon(&self) -> JsValue {
         JsValue::from_serde(&self.instruction).unwrap()
     }
 

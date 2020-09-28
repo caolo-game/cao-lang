@@ -4,19 +4,62 @@ name: Run WASM tests
 
 jobs:
   test:
+    strategy:
+      matrix:
+        browser:
+          - "--chrome --headless"
+          - "--firefox --headless"
+          - "--node"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Chrome
-        run: |
+      - run: |
           cd cao-lang-wasm
-          wasm-pack test --headless --chrome
+          wasm-pack test ${{ matrix.browser }}
 
-      - name: FireFox
-        run: |
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: |
           cd cao-lang-wasm
-          wasm-pack test --headless --firefox
+          wasm-pack build --scope caolo-game -d out/pkg --dev
+      - name: Upload pkg
+        uses: actions/upload-artifact@v2
+        with:
+          name: pkg
+          path: out/pkg
+
+  build-docs:
+    needs: [package, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+      - name: Install
+        run: |
+          cd cao-lang-wasm/docs
+          npm install
+      - name: Download pkg
+        uses: actions/download-artifact@v2
+        with:
+          name: pkg
+          path: out/pkg
+      - name: Build docs
+        run: |
+          cd cao-lang-wasm/docs
+          npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
+
+      - name: Deploy 🚀
+        if: github.ref == 'refs/heads/master'
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+            ACCESS_TOKEN: ${{ secrets.ACCESS_KEY }}
+            BRANCH: gh-pages # The branch the action should deploy to.
+            FOLDER: cao-lang-wasm/out/docs # The folder the action should deploy.

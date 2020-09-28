@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext", "dom"]
+  },
+  "include": ["../out/pkg"],
+  "exclude": ["node_modules"],
+  "typedocOptions": {
+    "mode": "file",
+    "excludeNotExported": true,
+    "includeDeclarations": true,
+    "exclude": "**/node_modules/**/*",
+    "out": "../out/docs",
+    "theme": "minimal",
+    "readme": "./README.md"
+  }
+}

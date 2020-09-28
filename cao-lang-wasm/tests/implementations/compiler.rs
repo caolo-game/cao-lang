@@ -2,17 +2,13 @@
 
 #![cfg(target_arch = "wasm32")]
 
-extern crate wasm_bindgen_test;
 use wasm_bindgen_test::*;
 
 use cao_lang_wasm::{ast_node::AstNode, compilation_unit::CompilationUnit, compile};
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
-
-wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
-async fn can_compile_simple_program() {
+fn can_compile_simple_program() {
     let start_node = serde_json::json! {{
         "instruction": { "Start": null },
         "child": 1
@@ -30,10 +26,9 @@ async fn can_compile_simple_program() {
         .with_node(0, start_node)
         .with_node(1, scalar_node);
 
-    let promise = compile(&cu);
-    let future = JsFuture::from(promise);
+    let result = compile(&cu);
 
-    future.await.expect("Failed to compile");
+    assert!(result.is_undefined(), "Failed to compile {:?}", result);
 }
 
 #[wasm_bindgen_test]
