@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::scalar::Scalar;
 use crate::VarName;
 use crate::{binary_compare, pop_stack};
+use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
 use std::collections::HashMap;
@@ -50,7 +51,7 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HistoryEntry {
     pub id: NodeId,
     pub instr: Instruction,
