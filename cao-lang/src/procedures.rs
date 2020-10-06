@@ -37,9 +37,9 @@ pub enum ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn invalid_argument<S: Into<String>>(reason: S) -> Self {
+    pub fn invalid_argument<S: Into<Option<String>>>(reason: S) -> Self {
         Self::InvalidArgument {
-            context: Some(reason.into()),
+            context: reason.into(),
         }
     }
 }
@@ -176,9 +176,7 @@ macro_rules! callable_array_arg {
                 })?;
 
                 let args = args.into_inner().map_err(|_| {
-                    ExecutionError::InvalidArgument{
-                        context: None
-                    }
+                    ExecutionError::invalid_argument(None)
                 })?;
 
                 (self.f)(vm, args)

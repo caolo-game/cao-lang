@@ -201,7 +201,7 @@ impl<Aux> VM<Aux> {
         let result = self.memory.len();
         let bytes = val.encode().map_err(|err| {
             warn!(self.logger, "Failed to encode argument {:?}", err);
-            ExecutionError::InvalidArgument { context: None }
+            ExecutionError::invalid_argument(None)
         })?;
 
         // second part defends against integer overflow attacks
@@ -272,7 +272,7 @@ impl<Aux> VM<Aux> {
             return Err(ExecutionError::UnexpectedEndOfInput);
         }
         let val = T::decode(&bytes[*ptr..*ptr + len])
-            .map_err(|_| ExecutionError::InvalidArgument { context: None })?;
+            .map_err(|_| ExecutionError::invalid_argument(None))?;
         *ptr += len;
         Ok(val)
     }
@@ -316,7 +316,7 @@ impl<Aux> VM<Aux> {
                     let scalar = self
                         .stack
                         .pop()
-                        .ok_or_else(|| ExecutionError::InvalidArgument { context: None })?;
+                        .ok_or_else(|| ExecutionError::invalid_argument(None))?;
                     self.variables.insert(varname, scalar);
                 }
                 Instruction::SetAndSwapVar => {
@@ -331,14 +331,14 @@ impl<Aux> VM<Aux> {
                         Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     let value = self.variables.get(&varname).ok_or_else(|| {
                         debug!(self.logger, "Variable {} does not exist", varname);
-                        ExecutionError::InvalidArgument { context: None }
+                        ExecutionError::invalid_argument(None)
                     })?;
                     self.stack.push(*value);
                 }
                 Instruction::Pop => {
                     self.stack.pop().ok_or_else(|| {
                         debug!(self.logger, "Value not found");
-                        ExecutionError::InvalidArgument { context: None }
+                        ExecutionError::invalid_argument(None)
                     })?;
                 }
                 Instruction::Jump => {
@@ -394,25 +394,20 @@ impl<Aux> VM<Aux> {
                     )?));
                 }
                 Instruction::ScalarArray => {
-                    let len: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)
-                        .and_then(|len| {
-                            if len > 0 {
-                                Ok(len)
-                            } else {
-                                Err(ExecutionError::InvalidArgument { context: None })
-                            }
-                        })
-                        .map_err(|_| ExecutionError::InvalidArgument {
-                            context: Some("ScalarArray length must be positive integer".to_owned()),
+                    let len: u32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)
+                        .and_then(|len: i32| {
+                            TryFrom::try_from(len).map_err(|_| {
+                                ExecutionError::invalid_argument(
+                                    "ScalarArray length must be positive integer".to_owned(),
+                                )
+                            })
                         })?;
-                    if len > 128 || len > self.stack.len() as i32 {
-                        return Err(ExecutionError::InvalidArgument {
-                            context: Some(format!(
-                                "The stack holds {} items, but ScalarArray requested {}",
-                                self.stack.len(),
-                                len,
-                            )),
-                        })?;
+                    if len > 128 || len as usize > self.stack.len() {
+                        return Err(ExecutionError::invalid_argument(format!(
+                            "The stack holds {} items, but ScalarArray requested {}",
+                            self.stack.len(),
+                            len,
+                        )))?;
                     }
                     let ptr = self.memory.len();
                     for _ in 0..len {
@@ -431,7 +426,7 @@ impl<Aux> VM<Aux> {
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
                     let literal = Self::read_str(&mut ptr, &program.bytecode)
-                        .ok_or(ExecutionError::InvalidArgument { context: None })?;
+                        .ok_or(ExecutionError::invalid_argument(None))?;
                     let obj = self.set_value(literal)?;
                     self.stack.push(Scalar::Pointer(obj.index.unwrap() as i32));
                 }
@@ -459,7 +454,7 @@ impl<Aux> VM<Aux> {
                 self.logger,
                 "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
             );
-            return Err(ExecutionError::InvalidArgument { context: None });
+            return Err(ExecutionError::invalid_argument(None));
         }
         let cond = self.stack.pop().unwrap();
         let label: i32 = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
@@ -476,7 +471,7 @@ impl<Aux> VM<Aux> {
     fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {
         let fun_name = Self::read_str(ptr, bytecode).ok_or_else(|| {
             warn!(self.logger, "Could not read function name");
-            ExecutionError::InvalidArgument { context: None }
+            ExecutionError::invalid_argument(None)
         })?;
         let mut fun = self
             .callables
