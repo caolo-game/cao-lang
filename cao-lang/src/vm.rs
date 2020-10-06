@@ -394,14 +394,27 @@ impl<Aux> VM<Aux> {
                     )?));
                 }
                 Instruction::ScalarArray => {
-                    let len = self
-                        .load_ptr_from_stack()
-                        .ok_or(ExecutionError::InvalidArgument { context: None })?;
+                    let len: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)
+                        .and_then(|len| {
+                            if len > 0 {
+                                Ok(len)
+                            } else {
+                                Err(ExecutionError::InvalidArgument { context: None })
+                            }
+                        })
+                        .map_err(|_| ExecutionError::InvalidArgument {
+                            context: Some("ScalarArray length must be positive integer".to_owned()),
+                        })?;
                     if len > 128 || len > self.stack.len() as i32 {
-                        return Err(ExecutionError::InvalidArgument { context: None })?;
+                        return Err(ExecutionError::InvalidArgument {
+                            context: Some(format!(
+                                "The stack holds {} items, but ScalarArray requested {}",
+                                self.stack.len(),
+                                len,
+                            )),
+                        })?;
                     }
                     let ptr = self.memory.len();
-                    self.stack.pop();
                     for _ in 0..len {
                         let val = self.stack.pop().unwrap();
                         self.write_to_memory(val)?;
@@ -423,9 +436,6 @@ impl<Aux> VM<Aux> {
                     self.stack.push(Scalar::Pointer(obj.index.unwrap() as i32));
                 }
                 Instruction::Call => self.execute_call(&mut ptr, &program.bytecode)?,
-            }
-            if self.memory.len() >= self.memory_limit {
-                return Err(ExecutionError::OutOfMemory);
             }
             debug!(
                 self.logger,
@@ -505,14 +515,6 @@ impl<Aux> VM<Aux> {
         res
     }
 
-    fn load_ptr_from_stack(&self) -> Option<i32> {
-        let val = self.stack.last()?;
-        match val {
-            Scalar::Pointer(i) => Some(*i),
-            _ => None,
-        }
-    }
-
     fn binary_op<F>(&mut self, op: F) -> Result<(), ExecutionError>
     where
         F: Fn(Scalar, Scalar) -> Scalar,
@@ -544,6 +546,65 @@ mod tests {
         let decoded = TPointer::decode(&encoded).unwrap();
 
         assert_eq!(value, decoded);
+    }
+
+    #[test]
+    fn test_set_value_memory_limit_error_raised() {
+        let mut vm = VM::new(None, ());
+        vm.memory_limit = 10;
+        vm.set_value("1234567890987654321".to_owned())
+            .expect_err("Should return error");
+    }
+
+    #[test]
+    fn test_array_literal_memory_limit_error_raised() {
+        let program = r#"{
+  "nodes": {
+    "0": {
+      "node": {
+        "Start": null
+      },
+      "child": 1
+    },
+    "1": {
+      "node": {
+        "ScalarInt": 42
+      },
+      "child": 2
+    },
+    "2": {
+      "node": {
+        "ScalarInt": 42
+      },
+      "child": 3
+    },
+    "3": {
+      "node": {
+        "ScalarInt": 42
+      },
+      "child": 30
+    },
+    "30": {
+      "node": {
+        "ScalarArray": 3
+      }
+    }
+  }
+}
+            "#;
+
+        let compilation_unit = serde_json::from_str(program).unwrap();
+        let program = crate::compiler::compile(None, compilation_unit).unwrap();
+
+        let mut vm = VM::new(None, ());
+        vm.memory_limit = 8;
+
+        let err = vm.run(&program).expect_err("Should have failed");
+
+        match err {
+            ExecutionError::OutOfMemory => {}
+            _ => panic!("Expected out of memory {:?}", err),
+        }
     }
 
     #[test]
