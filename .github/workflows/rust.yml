@@ -39,4 +39,4 @@ jobs:
             override: true
       - uses: actions-rs/clippy-check@v1
         with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
+          token: ${{ secrets.ACCESS_KEY }}
