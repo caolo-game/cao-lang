@@ -107,11 +107,8 @@ pub fn compile(
         .compilation_unit
         .nodes
         .iter()
-        .find(|(_, v)| match v.node {
-            InstructionNode::Start => true,
-            _ => false,
-        })
-        .ok_or_else(|| CompilationError::NoStart)?;
+        .find(|(_, v)| matches!(v.node, InstructionNode::Start))
+        .ok_or(CompilationError::NoStart)?;
 
     let mut nodes = compiler
         .compilation_unit

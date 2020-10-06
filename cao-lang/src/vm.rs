@@ -46,7 +46,7 @@ impl Object {
         vm: &'a VM<Aux>,
     ) -> Result<Box<dyn ObjectProperties>, ConvertError> {
         self.index
-            .ok_or_else(|| ConvertError::NullPtr)
+            .ok_or(ConvertError::NullPtr)
             .map(|index| unsafe { vm.converters[&index](self, vm) })
     }
 }
