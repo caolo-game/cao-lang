@@ -98,7 +98,7 @@ pub struct SubProgram<'a> {
     /// Human readable descriptions of inputs
     pub input: Box<[&'a str]>,
     /// Human readable descriptions of parameters
-    pub params: Box<[&'a str]>,
+    pub constants: Box<[&'a str]>,
 }
 
 impl<'a> std::fmt::Debug for SubProgram<'a> {
@@ -115,13 +115,13 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
 
 #[macro_export]
 macro_rules! subprogram_description {
-    ($name: ident, $description: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($params: ty),*]) => {
+    ($name: ident, $description: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($constants: ty),*]) => {
         SubProgram {
             name: stringify!($name),
             description: $description,
             input: subprogram_description!(input $($inputs),*) ,
             output: subprogram_description!(input $($outputs),*),
-            params: subprogram_description!(input $($params),*),
+            constants: subprogram_description!(input $($constants),*),
         }
     };
 

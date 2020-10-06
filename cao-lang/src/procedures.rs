@@ -49,8 +49,8 @@ pub struct Procedure<Aux> {
 }
 
 impl<Aux> Callable<Aux> for Procedure<Aux> {
-    fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
-        self.fun.call(vm, params)
+    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+        self.fun.call(vm, constants)
     }
 
     fn num_params(&self) -> u8 {
@@ -94,7 +94,7 @@ impl<Aux, F> Callable<Aux> for FunctionWrapper<Aux, F, ()>
 where
     F: Fn(&mut VM<Aux>, ()) -> ExecutionResult,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, _params: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut VM<Aux>, _constants: &[Scalar]) -> ExecutionResult {
         (self.f)(vm, ())
     }
 
@@ -108,8 +108,8 @@ where
     F: Fn(&mut VM<Aux>, T) -> ExecutionResult,
     T: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
-        let val = T::try_from(params[0]).map_err(convert_error(0))?;
+    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+        let val = T::try_from(constants[0]).map_err(convert_error(0))?;
         (self.f)(vm, val)
     }
 
@@ -124,9 +124,9 @@ where
     T1: TryFrom<Scalar>,
     T2: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
-        let a = T1::try_from(params[0]).map_err(convert_error(0))?;
-        let b = T2::try_from(params[1]).map_err(convert_error(1))?;
+    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+        let a = T1::try_from(constants[0]).map_err(convert_error(0))?;
+        let b = T2::try_from(constants[1]).map_err(convert_error(1))?;
         (self.f)(vm, (a, b))
     }
 
@@ -142,10 +142,10 @@ where
     T2: TryFrom<Scalar>,
     T3: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
-        let a = T1::try_from(params[0]).map_err(convert_error(0))?;
-        let b = T2::try_from(params[1]).map_err(convert_error(1))?;
-        let c = T3::try_from(params[1]).map_err(convert_error(2))?;
+    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+        let a = T1::try_from(constants[0]).map_err(convert_error(0))?;
+        let b = T2::try_from(constants[1]).map_err(convert_error(1))?;
+        let c = T3::try_from(constants[1]).map_err(convert_error(2))?;
         (self.f)(vm, (a, b, c))
     }
 
@@ -165,10 +165,10 @@ macro_rules! callable_array_arg {
             F: Fn(&mut VM<Aux>, [T; $num]) -> ExecutionResult,
             T: TryFrom<Scalar>,
         {
-            fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult {
+            fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
                 use arrayvec::ArrayVec;
 
-                let args = params.iter().enumerate().try_fold(ArrayVec::default(), |mut arr, (i, val)| {
+                let args = constants.iter().enumerate().try_fold(ArrayVec::default(), |mut arr, (i, val)| {
                     let i = i as i32;
                     let val = T::try_from(*val).map_err(convert_error(i))?;
                     arr.push(val);
