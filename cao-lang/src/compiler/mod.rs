@@ -55,7 +55,7 @@ impl ByteDecodeProperties for InputString {
             return Err(StringDecodeError::LengthError((BYTELEN + len) as i32));
         }
         let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len as usize])
-            .map_err(|e| StringDecodeError::Utf8DecodeError(e))?;
+            .map_err(StringDecodeError::Utf8DecodeError)?;
         Self::from(res).map_err(|_| StringDecodeError::CapacityError(Self::BYTELEN))
     }
 }
@@ -308,11 +308,10 @@ fn process_node(
                 .nodes
                 .get(&nodeid)
                 .ok_or(CompilationError::MissingNode(nodeid))
-                .and_then(|_| {
+                .map(|_| {
                     program.bytecode.push(Instruction::Jump as u8);
                     nodeid.encode(&mut program.bytecode).unwrap();
                     nodeid.encode(&mut program.bytecode).unwrap();
-                    Ok(())
                 })?;
         }
     }

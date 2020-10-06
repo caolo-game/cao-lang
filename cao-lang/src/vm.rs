@@ -439,7 +439,7 @@ impl<Aux> VM<Aux> {
                             "The stack holds {} items, but ScalarArray requested {}",
                             self.stack.len(),
                             len,
-                        )))?;
+                        )));
                     }
                     let ptr = self.memory.len();
                     for _ in 0..len {
@@ -458,7 +458,7 @@ impl<Aux> VM<Aux> {
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
                     let literal = Self::read_str(&mut ptr, &program.bytecode)
-                        .ok_or(ExecutionError::invalid_argument(None))?;
+                        .ok_or_else(|| ExecutionError::invalid_argument(None))?;
                     let obj = self.set_value_with_decoder(literal, |o, vm| {
                         // SAFETY
                         // As long as the same VM instance's accessors are used this should be fine
@@ -488,7 +488,7 @@ impl<Aux> VM<Aux> {
         program: &CompiledProgram,
         fun: F,
     ) -> Result<(), ExecutionError> {
-        if self.stack.len() < 1 {
+        if self.stack.is_empty() {
             warn!(
                 self.logger,
                 "JumpIfTrue called with missing arguments, stack: {:?}", self.stack

@@ -125,6 +125,7 @@ macro_rules! binary_op {
         let (a, b) = $a.cast_match($b);
         match (a, b) {
             (Scalar::Integer(a), Scalar::Integer(b)) => {
+                #[allow(clippy::suspicious_arithmetic_impl)]
                 if $a.is_ptr() || $b.is_ptr() {
                     Scalar::Pointer(a $op b)
                 } else {
