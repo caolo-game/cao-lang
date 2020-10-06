@@ -24,5 +24,5 @@ pub enum CompilationError {
     },
 
     #[error("Internal failure during compilation")]
-    InternalError
+    InternalError,
 }

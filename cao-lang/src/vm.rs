@@ -58,7 +58,7 @@ pub struct HistoryEntry {
 }
 
 /// Cao-Lang bytecode interpreter.
-/// Aux is an auxiliary data structure passed to custom functions.
+/// `Aux` is an auxiliary data structure passed to custom functions.
 pub struct VM<Aux = ()> {
     pub logger: Logger,
     pub history: Vec<HistoryEntry>,
@@ -194,28 +194,36 @@ impl<Aux> VM<Aux> {
         }
     }
 
-    /// Save `val` in memory and push a pointer to the object onto the stack
-    pub fn set_value<T: ByteEncodeProperties + 'static>(
+    fn write_to_memory<T: ByteEncodeProperties + 'static>(
         &mut self,
         val: T,
-    ) -> Result<Object, ExecutionError> {
+    ) -> Result<TPointer, ExecutionError> {
         let result = self.memory.len();
         let bytes = val.encode().map_err(|err| {
             warn!(self.logger, "Failed to encode argument {:?}", err);
             ExecutionError::InvalidArgument { context: None }
         })?;
 
-        if bytes.len() + result >= self.memory_limit {
+        // second part defends against integer overflow attacks
+        if bytes.len() + result >= self.memory_limit || bytes.len() >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
         }
 
+        self.memory.extend(bytes.iter());
+        Ok(result as TPointer)
+    }
+
+    /// Save `val` in memory and push a pointer to the object onto the stack
+    pub fn set_value<T: ByteEncodeProperties + 'static>(
+        &mut self,
+        val: T,
+    ) -> Result<Object, ExecutionError> {
+        let result = self.write_to_memory(val)?;
         let object = Object {
             index: Some(result as i32),
             size: T::BYTELEN as u32,
         };
-        self.memory.extend(bytes.iter());
-
-        self.objects.insert(result as TPointer, object);
+        self.objects.insert(result, object);
         self.converters
             .insert(result as TPointer, |o: &Object, vm: &VM<Aux>| {
                 let res: T = vm.get_value(o.index.unwrap()).unwrap();
@@ -396,10 +404,7 @@ impl<Aux> VM<Aux> {
                     self.stack.pop();
                     for _ in 0..len {
                         let val = self.stack.pop().unwrap();
-                        self.memory.append(&mut val.encode().map_err(|err| {
-                            warn!(self.logger, "Failed to encode array {:?}", err);
-                            ExecutionError::InvalidArgument { context: None }
-                        })?);
+                        self.write_to_memory(val)?;
                     }
                     self.stack.push(Scalar::Pointer(ptr as i32));
                 }
@@ -419,7 +424,7 @@ impl<Aux> VM<Aux> {
                 }
                 Instruction::Call => self.execute_call(&mut ptr, &program.bytecode)?,
             }
-            if self.memory.len() > self.memory_limit {
+            if self.memory.len() >= self.memory_limit {
                 return Err(ExecutionError::OutOfMemory);
             }
             debug!(
