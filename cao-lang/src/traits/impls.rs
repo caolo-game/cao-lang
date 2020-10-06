@@ -1,8 +1,15 @@
 use super::*;
 use std::convert::Infallible;
 
-impl<'a> DecodeInPlace<'a> for &'a str {
+impl<'a> ByteEncodeble for &'a str {
     const BYTELEN: usize = MAX_STR_LEN;
+
+    fn displayname() -> &'static str {
+        "Text"
+    }
+}
+
+impl<'a> DecodeInPlace<'a> for &'a str {
     type Ref = Self;
     type DecodeError = StringDecodeError;
 
@@ -14,24 +21,46 @@ impl<'a> DecodeInPlace<'a> for &'a str {
     }
 }
 
-impl ByteEncodeProperties for String {
-    const BYTELEN: usize = MAX_STR_LEN;
-
+impl<'a> ByteEncodeProperties for &'a str {
     type EncodeError = StringDecodeError;
-    type DecodeError = StringDecodeError;
+
+    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
+        if self.len() >= Self::BYTELEN {
+            return Err(StringDecodeError::LengthError(self.len() as i32));
+        }
+        (self.len() as i32)
+            .encode(out)
+            .expect("failed to encode i32");
+        out.extend(self.as_bytes());
+        Ok(())
+    }
+}
+
+impl ByteEncodeble for String {
+    const BYTELEN: usize = MAX_STR_LEN;
 
     fn displayname() -> &'static str {
         "Text"
     }
+}
 
-    fn encode(self) -> Result<Vec<u8>, Self::EncodeError> {
+impl ByteEncodeProperties for String {
+    type EncodeError = StringDecodeError;
+
+    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
         if self.len() >= Self::BYTELEN {
             return Err(StringDecodeError::LengthError(self.len() as i32));
         }
-        let mut rr = (self.len() as i32).encode().expect("failed to encode i32");
-        rr.extend(self.as_bytes());
-        Ok(rr)
+        (self.len() as i32)
+            .encode(out)
+            .expect("failed to encode i32");
+        out.extend(self.as_bytes());
+        Ok(())
     }
+}
+
+impl ByteDecodeProperties for String {
+    type DecodeError = StringDecodeError;
 
     fn decode(bytes: &[u8]) -> Result<Self, StringDecodeError> {
         let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
@@ -42,18 +71,23 @@ impl ByteEncodeProperties for String {
     }
 }
 
-impl ByteEncodeProperties for () {
+impl ByteEncodeble for () {
     const BYTELEN: usize = 0;
-    type EncodeError = Infallible;
-    type DecodeError = Infallible;
-
     fn displayname() -> &'static str {
         "Void"
     }
+}
 
-    fn encode(self) -> Result<Vec<u8>, Infallible> {
-        Ok(vec![])
+impl ByteEncodeProperties for () {
+    type EncodeError = Infallible;
+
+    fn encode(self, _out: &mut Vec<u8>) -> Result<(), Infallible> {
+        Ok(())
     }
+}
+
+impl ByteDecodeProperties for () {
+    type DecodeError = Infallible;
 
     fn decode(_bytes: &[u8]) -> Result<Self, Self::DecodeError> {
         Ok(())
@@ -134,22 +168,35 @@ impl<
 
 impl<T: std::fmt::Debug> ObjectProperties for T {}
 
+impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeble for T {
+    const BYTELEN: usize = mem::size_of::<Self>();
+
+    fn displayname() -> &'static str {
+        <Self as AutoByteEncodeProperties>::displayname()
+    }
+}
+
 impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeProperties
     for T
 {
     type EncodeError = Infallible;
-    type DecodeError = ();
 
-    fn encode(self) -> Result<Vec<u8>, Infallible> {
-        let mut result = vec![0; Self::BYTELEN];
+    fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
+        out.reserve(Self::BYTELEN);
         unsafe {
             let dayum = mem::transmute::<*const Self, *const u8>(&self as *const Self);
             for i in 0..Self::BYTELEN {
-                result[i] = *(dayum.add(i));
+                out.push(*(dayum.add(i)));
             }
         }
-        Ok(result)
+        Ok(())
     }
+}
+
+impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteDecodeProperties
+    for T
+{
+    type DecodeError = ();
 
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
         if bytes.len() < Self::BYTELEN {
