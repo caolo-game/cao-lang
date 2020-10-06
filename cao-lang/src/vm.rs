@@ -460,6 +460,9 @@ impl<Aux> VM<Aux> {
                     let literal = Self::read_str(&mut ptr, &program.bytecode)
                         .ok_or(ExecutionError::invalid_argument(None))?;
                     let obj = self.set_value_with_decoder(literal, |o, vm| {
+                        // SAFETY
+                        // As long as the same VM instance's accessors are used this should be fine
+                        // (tm)
                         let vm: &'static Self = unsafe { std::mem::transmute(vm) };
                         let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
                         Box::new(res)
@@ -667,5 +670,21 @@ mod tests {
 
         assert_eq!(val1, val2);
         assert_eq!(val1, "winnie");
+    }
+
+    #[test]
+    fn test_str_get_drop() {
+        let mut vm = VM::new(None, ());
+
+        let obj = vm.set_value("winnie".to_owned()).unwrap();
+        let ind = obj.index.unwrap();
+
+        {
+            let _val1 = vm.get_value_in_place::<&str>(ind).unwrap();
+        }
+
+        let val2 = vm.get_value_in_place::<&str>(ind).unwrap();
+
+        assert_eq!(val2, "winnie");
     }
 }
