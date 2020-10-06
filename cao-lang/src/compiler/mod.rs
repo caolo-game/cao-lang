@@ -144,7 +144,9 @@ pub fn compile(
                             "child nodeid of nodeid {:?} already visited: {:?}", current, nodeid
                         );
                         compiler.program.bytecode.push(Instruction::Jump as u8);
+                        // breadcrum
                         current.encode(&mut compiler.program.bytecode).unwrap();
+                        // jump input
                         nodeid.encode(&mut compiler.program.bytecode).unwrap();
                     }
                 }
@@ -220,9 +222,11 @@ fn push_node(
         .get(&nodeid)
         .ok_or(PushError::NodeNotFound)
         .and_then(|node| {
+            // push the instruction
             program
                 .bytecode
                 .push(node.node.instruction().ok_or(PushError::NoInstruction)? as u8);
+            // push breadcrum
             nodeid.encode(&mut program.bytecode).unwrap();
             Ok(())
         })
