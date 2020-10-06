@@ -103,13 +103,12 @@ pub struct SubProgram<'a> {
 
 impl<'a> std::fmt::Debug for SubProgram<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Function name: {} inputs: {} outputs: {}",
-            self.name,
-            self.input[..].join(", "),
-            self.output[..].join(", ")
-        )
+        f.debug_struct("SubProgram")
+            .field("name", &self.name)
+            .field("input", &self.input)
+            .field("output", &self.output)
+            .field("constants", &self.constants)
+            .finish()
     }
 }
 
