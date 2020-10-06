@@ -1,5 +1,5 @@
 use crate::scalar::Scalar;
-use crate::traits::ByteEncodeProperties;
+use crate::traits::ByteEncodeble;
 use crate::InputString;
 use crate::NodeId;
 use crate::TPointer;

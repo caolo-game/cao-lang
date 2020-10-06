@@ -15,22 +15,27 @@ pub trait ObjectProperties: std::fmt::Debug {
     }
 }
 
-pub trait ByteEncodeProperties: Sized + ObjectProperties {
+pub trait ByteEncodeble: Sized + ObjectProperties {
     const BYTELEN: usize = mem::size_of::<Self>();
-
-    type EncodeError: std::fmt::Debug;
-    type DecodeError: std::fmt::Debug;
 
     fn displayname() -> &'static str {
         type_name::<Self>()
     }
-    fn encode(self) -> Result<Vec<u8>, Self::EncodeError>;
+}
+
+pub trait ByteEncodeProperties: Sized + ObjectProperties + ByteEncodeble {
+    type EncodeError: std::fmt::Debug;
+
+    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError>;
+}
+
+pub trait ByteDecodeProperties: Sized + ObjectProperties + ByteEncodeble {
+    type DecodeError: std::fmt::Debug;
+
     fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError>;
 }
 
-pub trait DecodeInPlace<'a>: Sized + ObjectProperties {
-    const BYTELEN: usize;
-
+pub trait DecodeInPlace<'a>: Sized + ObjectProperties + ByteEncodeble {
     type Ref;
     type DecodeError: std::fmt::Debug;
 

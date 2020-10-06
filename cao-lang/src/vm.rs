@@ -59,7 +59,10 @@ pub struct HistoryEntry {
 
 /// Cao-Lang bytecode interpreter.
 /// `Aux` is an auxiliary data structure passed to custom functions.
-pub struct VM<Aux = ()> {
+pub struct VM<Aux = ()>
+where
+    Aux: 'static,
+{
     pub logger: Logger,
     pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
@@ -168,7 +171,8 @@ impl<Aux> VM<Aux> {
             }
         }
     }
-    pub fn get_value<T: ByteEncodeProperties>(&self, ptr: TPointer) -> Option<T> {
+
+    pub fn get_value<T: ByteDecodeProperties>(&self, ptr: TPointer) -> Option<T> {
         let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
         if object.size as usize != size {
@@ -194,27 +198,52 @@ impl<Aux> VM<Aux> {
         }
     }
 
-    fn write_to_memory<T: ByteEncodeProperties + 'static>(
+    fn write_to_memory<T: ByteEncodeProperties>(
         &mut self,
         val: T,
     ) -> Result<TPointer, ExecutionError> {
         let result = self.memory.len();
-        let bytes = val.encode().map_err(|err| {
+
+        val.encode(&mut self.memory).map_err(|err| {
             warn!(self.logger, "Failed to encode argument {:?}", err);
             ExecutionError::invalid_argument(None)
         })?;
 
-        // second part defends against integer overflow attacks
-        if bytes.len() + result >= self.memory_limit || bytes.len() >= self.memory_limit {
+        if self.memory.len() >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
         }
-
-        self.memory.extend(bytes.iter());
         Ok(result as TPointer)
     }
 
     /// Save `val` in memory and push a pointer to the object onto the stack
-    pub fn set_value<T: ByteEncodeProperties + 'static>(
+    pub fn set_value_with_decoder<T: ByteEncodeProperties>(
+        &mut self,
+        val: T,
+        converter: ConvertFn<Aux>,
+    ) -> Result<Object, ExecutionError> {
+        let result = self.write_to_memory(val)?;
+        let object = Object {
+            index: Some(result as i32),
+            size: T::BYTELEN as u32,
+        };
+        self.objects.insert(result, object);
+        self.converters.insert(result as TPointer, converter);
+
+        self.stack_push(Scalar::Pointer(result as TPointer))?;
+
+        debug!(
+            self.logger,
+            "Set value {:?} {:?} {}",
+            object,
+            T::BYTELEN,
+            T::displayname()
+        );
+
+        Ok(object)
+    }
+
+    /// Save `val` in memory and push a pointer to the object onto the stack
+    pub fn set_value<T: ByteEncodeProperties + ByteDecodeProperties + 'static>(
         &mut self,
         val: T,
     ) -> Result<Object, ExecutionError> {
@@ -256,7 +285,7 @@ impl<Aux> VM<Aux> {
     }
 
     #[inline]
-    fn decode_value<T: ByteEncodeProperties>(
+    fn decode_value<T: ByteDecodeProperties>(
         logger: &Logger,
         bytes: &[u8],
         ptr: &mut usize,
@@ -430,7 +459,14 @@ impl<Aux> VM<Aux> {
                 Instruction::StringLiteral => {
                     let literal = Self::read_str(&mut ptr, &program.bytecode)
                         .ok_or(ExecutionError::invalid_argument(None))?;
-                    let obj = self.set_value(literal)?;
+                    let obj = self.set_value_with_decoder(literal, |o, vm| {
+                        // SAFETY
+                        // As long as the same VM instance's accessors are used this should be fine
+                        // (tm)
+                        let vm: &'static Self = unsafe { std::mem::transmute(vm) };
+                        let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
+                        Box::new(res)
+                    })?;
                     self.stack.push(Scalar::Pointer(obj.index.unwrap() as i32));
                 }
                 Instruction::Call => self.execute_call(&mut ptr, &program.bytecode)?,
@@ -478,8 +514,8 @@ impl<Aux> VM<Aux> {
         })?;
         let mut fun = self
             .callables
-            .remove(fun_name.as_str())
-            .ok_or_else(|| ExecutionError::ProcedureNotFound(fun_name.as_str().to_owned()))?;
+            .remove(fun_name)
+            .ok_or_else(|| ExecutionError::ProcedureNotFound(fun_name.to_owned()))?;
         let res = (|| {
             let n_inputs = fun.num_params();
             let mut inputs = Vec::with_capacity(n_inputs as usize);
@@ -509,7 +545,7 @@ impl<Aux> VM<Aux> {
             Ok(())
         })();
         // clean up
-        self.callables.insert(fun_name, fun);
+        self.callables.insert(fun_name.to_owned(), fun);
         res
     }
 
@@ -524,12 +560,12 @@ impl<Aux> VM<Aux> {
         Ok(())
     }
 
-    fn read_str(ptr: &mut usize, program: &[u8]) -> Option<String> {
+    fn read_str<'a>(ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
         let p = *ptr;
         let limit = program.len().min(p + MAX_STR_LEN);
-        let s = String::decode(&program[p..limit]).ok()?;
+        let s: &'a str = <&'a str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
         *ptr += s.len() + i32::BYTELEN;
-        Some(s.to_owned())
+        Some(s)
     }
 }
 
@@ -540,7 +576,8 @@ mod tests {
     #[test]
     fn test_encode() {
         let value: TPointer = 12342;
-        let encoded = value.encode().unwrap();
+        let mut encoded = Vec::new();
+        value.encode(&mut encoded).unwrap();
         let decoded = TPointer::decode(&encoded).unwrap();
 
         assert_eq!(value, decoded);
@@ -633,5 +670,21 @@ mod tests {
 
         assert_eq!(val1, val2);
         assert_eq!(val1, "winnie");
+    }
+
+    #[test]
+    fn test_str_get_drop() {
+        let mut vm = VM::new(None, ());
+
+        let obj = vm.set_value("winnie".to_owned()).unwrap();
+        let ind = obj.index.unwrap();
+
+        {
+            let _val1 = vm.get_value_in_place::<&str>(ind).unwrap();
+        }
+
+        let val2 = vm.get_value_in_place::<&str>(ind).unwrap();
+
+        assert_eq!(val2, "winnie");
     }
 }

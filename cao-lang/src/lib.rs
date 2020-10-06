@@ -123,7 +123,7 @@ macro_rules! subprogram_description {
     (input $($lst:ty),*) => {
         vec![
             $(
-                <$lst as ByteEncodeProperties>::displayname()
+                <$lst as ByteEncodeble>::displayname()
             ),*
         ]
         .into_boxed_slice()

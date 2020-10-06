@@ -8,15 +8,15 @@ use std::str::FromStr;
 #[test]
 fn input_string_decode_error_handling() {
     const NEGATIVELEN: i32 = -123i32;
-    let negativelen = NEGATIVELEN.encode().unwrap();
+
+    let mut negativelen = vec![];
+    NEGATIVELEN.encode(&mut negativelen).unwrap();
 
     let err = InputString::decode(&negativelen).unwrap_err();
     match err {
         StringDecodeError::LengthError(e) => assert_eq!(e, NEGATIVELEN),
         _ => panic!("Bad error {:?}", err),
     }
-
-    let negativelen = NEGATIVELEN.encode().unwrap();
 
     let err = InputString::decode(&negativelen[..3]).unwrap_err();
     match err {
@@ -27,7 +27,8 @@ fn input_string_decode_error_handling() {
     let len = InputString::BYTELEN * 2;
     assert_eq!(len, len as i32 as usize); // sanity check
     let len = len as i32;
-    let mut bytes = len.encode().unwrap();
+    let mut bytes = vec![];
+    len.encode(&mut bytes).unwrap();
     bytes.extend((0..len).map(|_| 69));
 
     let err = InputString::decode(&bytes).unwrap_err();
