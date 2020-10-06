@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
+/// Single instruction of the interpreter
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(u8)]
-/// Single instruction of the interpreter
 pub enum Instruction {
     /// The first node executed
     Start = 0,
@@ -68,7 +68,7 @@ pub enum Instruction {
 }
 
 impl TryFrom<u8> for Instruction {
-    type Error = String;
+    type Error = u8;
 
     fn try_from(c: u8) -> Result<Instruction, Self::Error> {
         use Instruction::*;
@@ -99,7 +99,7 @@ impl TryFrom<u8> for Instruction {
             30 => Ok(SetAndSwapVar),
             31 => Ok(ClearStack),
             32 => Ok(JumpIfFalse),
-            _ => Err(format!("Unrecognized instruction [{}]", c)),
+            _ => Err(c),
         }
     }
 }

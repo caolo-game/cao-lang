@@ -288,16 +288,19 @@ impl<Aux> VM<Aux> {
                 return Err(ExecutionError::Timeout);
             }
             let instr = program.bytecode[ptr];
-            let instr = Instruction::try_from(instr).map_err(|_| {
+            let instr = Instruction::try_from(instr).map_err(|b| {
                 warn!(
                     self.logger,
-                    "Byte at {}: {:?} was not a valid instruction", ptr, instr
+                    "Byte ({}) at {} was not a valid instruction", b, ptr
                 );
                 ExecutionError::InvalidInstruction(instr)
             })?;
-            debug!(
+            trace!(
                 self.logger,
-                "Instruction: {:?}({:?}) Pointer: {:?}", instr, program.bytecode[ptr], ptr
+                "Instruction: {:?}({:?}) Pointer: {:?}",
+                instr,
+                program.bytecode[ptr],
+                ptr
             );
             ptr += 1;
             {
