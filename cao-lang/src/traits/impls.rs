@@ -17,7 +17,7 @@ impl<'a> DecodeInPlace<'a> for &'a str {
         let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
         let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
         std::str::from_utf8(&bytes[i32::BYTELEN..i32::BYTELEN + len])
-            .map_err(|e| StringDecodeError::Utf8DecodeError(e))
+            .map_err(StringDecodeError::Utf8DecodeError)
     }
 }
 
@@ -66,7 +66,7 @@ impl ByteDecodeProperties for String {
         let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
         let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
         std::str::from_utf8(&bytes[i32::BYTELEN..i32::BYTELEN + len])
-            .map_err(|e| StringDecodeError::Utf8DecodeError(e))
+            .map_err(StringDecodeError::Utf8DecodeError)
             .map(|s| s.to_owned())
     }
 }
@@ -184,7 +184,7 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteE
     fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
         out.reserve(Self::BYTELEN);
         unsafe {
-            let dayum = mem::transmute::<*const Self, *const u8>(&self as *const Self);
+            let dayum = &self as *const Self as *const u8;
             for i in 0..Self::BYTELEN {
                 out.push(*(dayum.add(i)));
             }

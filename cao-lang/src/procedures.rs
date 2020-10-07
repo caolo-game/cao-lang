@@ -155,7 +155,7 @@ where
 }
 
 fn convert_error<'a, T: 'a>(n: i32) -> impl Fn(T) -> ExecutionError + 'a {
-    return move |_| ExecutionError::invalid_argument(format!("Failed to convert argument {}", n));
+    move |_| ExecutionError::invalid_argument(format!("Failed to convert argument {}", n))
 }
 
 macro_rules! callable_array_arg {

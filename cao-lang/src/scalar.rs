@@ -32,24 +32,15 @@ impl Scalar {
     }
 
     pub fn is_float(self) -> bool {
-        match self {
-            Scalar::Floating(_) => true,
-            _ => false,
-        }
+        matches!(self, Scalar::Floating(_))
     }
 
     pub fn is_ptr(self) -> bool {
-        match self {
-            Scalar::Pointer(_) => true,
-            _ => false,
-        }
+        matches!(self, Scalar::Pointer(_))
     }
 
     pub fn is_integer(self) -> bool {
-        match self {
-            Scalar::Integer(_) => true,
-            _ => false,
-        }
+        matches!(self, Scalar::Integer(_))
     }
 
     /// If either is a float cast both to a floating point number, else cast both to Integer
@@ -125,6 +116,7 @@ macro_rules! binary_op {
         let (a, b) = $a.cast_match($b);
         match (a, b) {
             (Scalar::Integer(a), Scalar::Integer(b)) => {
+                #[allow(clippy::suspicious_arithmetic_impl)]
                 if $a.is_ptr() || $b.is_ptr() {
                     Scalar::Pointer(a $op b)
                 } else {
