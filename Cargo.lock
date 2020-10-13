@@ -53,7 +53,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-wasm"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "cao-lang",
  "console_error_panic_hook",
