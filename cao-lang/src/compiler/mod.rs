@@ -254,7 +254,7 @@ fn process_node(
     let node = compilation_unit
         .nodes
         .get(&nodeid)
-        .ok_or_else(|| CompilationError::MissingNode(nodeid))?
+        .ok_or(CompilationError::MissingNode(nodeid))?
         .clone();
 
     let fromlabel =
@@ -312,9 +312,9 @@ fn process_node(
             let sub_program = compilation_unit
                 .sub_programs
                 .as_ref()
-                .ok_or_else(|| CompilationError::MissingSubProgram(name))?
+                .ok_or(CompilationError::MissingSubProgram(name))?
                 .get(name.as_str())
-                .ok_or_else(|| CompilationError::MissingSubProgram(name))?;
+                .ok_or(CompilationError::MissingSubProgram(name))?;
             let nodeid = sub_program.start;
             compilation_unit
                 .nodes
