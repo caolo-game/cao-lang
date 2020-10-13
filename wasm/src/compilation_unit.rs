@@ -1,7 +1,7 @@
 use crate::ast_node::AstNode;
 use cao_lang::compiler as cc;
 use cao_lang::compiler::NodeId;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name=CompilationUnit, inspectable)]
@@ -9,6 +9,12 @@ use wasm_bindgen::prelude::*;
 pub struct CompilationUnit {
     #[wasm_bindgen(skip)]
     pub inner: cc::CompilationUnit,
+}
+
+impl Default for CompilationUnit {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[wasm_bindgen(js_class=CompilationUnit)]
@@ -25,7 +31,7 @@ impl CompilationUnit {
     pub fn del_node(&mut self, id: i32) -> Option<AstNode> {
         self.inner.nodes.remove(&id).map(|node| AstNode {
             child: node.child,
-            instruction: node.node.clone(),
+            instruction: node.node,
         })
     }
 
@@ -53,10 +59,7 @@ impl CompilationUnit {
     /// Initialize a SubProgram that start at the given node
     #[wasm_bindgen(js_name=setSubProgram)]
     pub fn set_sub_program(&mut self, name: &str, start: NodeId) {
-        let sub_programs = self
-            .inner
-            .sub_programs
-            .get_or_insert_with(|| Default::default());
+        let sub_programs = self.inner.sub_programs.get_or_insert_with(Default::default);
         sub_programs.insert(name.to_owned(), cc::SubProgram { start });
     }
 
