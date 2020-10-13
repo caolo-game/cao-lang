@@ -1,6 +1,6 @@
 [package]
 name = "cao-lang-wasm"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 description="Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"

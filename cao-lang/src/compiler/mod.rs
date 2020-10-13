@@ -1,5 +1,20 @@
-//! Compiles Graphs with vertices of `AstNode` into _caol-lang_ bytecode.
+//! Compiles Graphs with vertices of `AstNode` into _cao-lang_ bytecode.
+//!
+//! ## Graph rules
+//!
 //! Programs must start with a `Start` instruction.
+//!
+//! The graphs are directed, and each vertex may only have 1 edge starting from it
+//!
+//! [Cycles](https://en.wikipedia.org/wiki/Cycle_graph) are allowed.
+//!
+//! ## Unreachable nodes
+//!
+//! Nodes are reachable if either:
+//! - They are a child of the Start node
+//! - Their parent node is reachable
+//!
+//! Unreachable nodes are compiled, but will not be executed.
 //!
 mod astnode;
 mod compilation_error;
@@ -54,7 +69,7 @@ impl ByteDecodeProperties for InputString {
         if bytes.len() < BYTELEN + len {
             return Err(StringDecodeError::LengthError((BYTELEN + len) as i32));
         }
-        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len as usize])
+        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len])
             .map_err(StringDecodeError::Utf8DecodeError)?;
         Self::from(res).map_err(|_| StringDecodeError::CapacityError(Self::BYTELEN))
     }
@@ -239,7 +254,7 @@ fn process_node(
     let node = compilation_unit
         .nodes
         .get(&nodeid)
-        .ok_or_else(|| CompilationError::MissingNode(nodeid))?
+        .ok_or(CompilationError::MissingNode(nodeid))?
         .clone();
 
     let fromlabel =
@@ -297,9 +312,9 @@ fn process_node(
             let sub_program = compilation_unit
                 .sub_programs
                 .as_ref()
-                .ok_or_else(|| CompilationError::MissingSubProgram(name))?
+                .ok_or(CompilationError::MissingSubProgram(name))?
                 .get(name.as_str())
-                .ok_or_else(|| CompilationError::MissingSubProgram(name))?;
+                .ok_or(CompilationError::MissingSubProgram(name))?;
             let nodeid = sub_program.start;
             compilation_unit
                 .nodes
