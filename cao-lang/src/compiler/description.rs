@@ -35,6 +35,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
     ]
 }
 
+#[inline(always)]
 fn get_desc(node: InstructionNode) -> SubProgram<'static> {
     match node {
         InstructionNode::Call(_) | InstructionNode::ScalarLabel(_) | InstructionNode::Exit => {
