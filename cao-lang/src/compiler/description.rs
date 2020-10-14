@@ -7,8 +7,8 @@ use crate::TPointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
-pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
-    vec![
+pub fn get_instruction_descriptions() -> [SubProgram<'static>; 23] {
+    [
         get_desc(InstructionNode::Start),
         get_desc(InstructionNode::Pass),
         get_desc(InstructionNode::Add),
