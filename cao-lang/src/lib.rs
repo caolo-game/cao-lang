@@ -48,8 +48,8 @@ pub mod scalar;
 pub mod traits;
 pub mod vm;
 
-use crate::compiler::NodeId;
 use crate::instruction::Instruction;
+use crate::{compiler::NodeId, traits::AutoByteEncodeProperties};
 use arrayvec::ArrayString;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -81,7 +81,7 @@ impl Label {
     }
 }
 pub type VarName = ArrayString<[u8; 64]>;
-impl crate::traits::AutoByteEncodeProperties for VarName {}
+impl AutoByteEncodeProperties for VarName {}
 
 /// Metadata about a subprogram in the program.
 /// Subprograms consume their inputs and produce outputs.
@@ -89,6 +89,8 @@ impl crate::traits::AutoByteEncodeProperties for VarName {}
 pub struct SubProgram<'a> {
     pub name: &'a str,
     pub description: &'a str,
+    pub ty: SubProgramType,
+
     /// Human readable descriptions of the output
     pub output: Box<[&'a str]>,
     /// Human readable descriptions of inputs
@@ -108,19 +110,40 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub enum SubProgramType {
+    /// Any ol' sub-program
+    Undefined,
+    /// Most basic nodes, translated to (virtual) machine instructions
+    Instruction,
+    /// Some black box
+    Function,
+    /// Branching nodes may redirect the flow of the program
+    Branch,
+    /// Programs start with a start node
+    Start,
+}
+
+impl Default for SubProgramType {
+    fn default() -> Self {
+        SubProgramType::Undefined
+    }
+}
+
 #[macro_export]
 macro_rules! subprogram_description {
-    ($name: ident, $description: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($constants: ty),*]) => {
+    ($name: expr, $description: expr, $ty: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($constants: ty),*]) => {
         SubProgram {
-            name: stringify!($name),
+            name: $name,
             description: $description,
-            input: subprogram_description!(input $($inputs),*) ,
-            output: subprogram_description!(input $($outputs),*),
-            constants: subprogram_description!(input $($constants),*),
+            ty: $ty,
+            input: subprogram_description!(@input $($inputs),*) ,
+            output: subprogram_description!(@input $($outputs),*),
+            constants: subprogram_description!(@input $($constants),*),
         }
     };
 
-    (input $($lst:ty),*) => {
+    (@input $($lst:ty),*) => {
         vec![
             $(
                 <$lst as ByteEncodeble>::displayname()
@@ -129,7 +152,7 @@ macro_rules! subprogram_description {
         .into_boxed_slice()
     };
 
-    (input) => {
+    (@input) => {
         Box::new()
     };
 }
