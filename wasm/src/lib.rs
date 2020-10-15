@@ -66,7 +66,7 @@ impl CompileResult {
 /// Runs the given compiled Cao-Lang program (output of `compile`).
 ///
 /// Will run in a 'plain' VM, no custom methods will be available!
-#[wasm_bindgen]
+#[wasm_bindgen(js_name="runProgram")]
 pub fn run_program(program: JsValue) -> Result<CompileResult, JsValue> {
     let mut vm = cao_lang::vm::VM::new(None, ());
     let program: cao_lang::CompiledProgram = program.into_serde().map_err(err_to_js)?;
