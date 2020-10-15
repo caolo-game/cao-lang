@@ -45,11 +45,17 @@
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
+		<li class=" tsd-kind-class">
+			<a href="classes/compileresult.html" class="tsd-kind-icon">Compile<wbr>Result</a>
+		</li>
 		<li class=" tsd-kind-function">
 			<a href="globals.html#_start" class="tsd-kind-icon">_start</a>
 		</li>
 		<li class=" tsd-kind-function">
 			<a href="globals.html#compile" class="tsd-kind-icon">compile</a>
+		</li>
+		<li class=" tsd-kind-function">
+			<a href="globals.html#run_program" class="tsd-kind-icon">run_<wbr>program</a>
 		</li>
 	</ul>
 </nav>
@@ -71,10 +77,17 @@
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
 					<section class="tsd-index-section ">
+						<h3>Classes</h3>
+						<ul class="tsd-index-list">
+							<li class="tsd-kind-class"><a href="classes/compileresult.html" class="tsd-kind-icon">Compile<wbr>Result</a></li>
+						</ul>
+					</section>
+					<section class="tsd-index-section ">
 						<h3>Functions</h3>
 						<ul class="tsd-index-list">
 							<li class="tsd-kind-function"><a href="globals.html#_start" class="tsd-kind-icon">_start</a></li>
 							<li class="tsd-kind-function"><a href="globals.html#compile" class="tsd-kind-icon">compile</a></li>
+							<li class="tsd-kind-function"><a href="globals.html#run_program" class="tsd-kind-icon">run_<wbr>program</a></li>
 						</ul>
 					</section>
 				</div>
@@ -148,11 +161,44 @@
 					</li>
 				</ul>
 			</section>
+			<section class="tsd-panel tsd-member tsd-kind-function">
+				<a name="run_program" class="tsd-anchor"></a>
+				<h3>run_<wbr>program</h3>
+				<ul class="tsd-signatures tsd-kind-function">
+					<li class="tsd-signature tsd-kind-icon">run_<wbr>program<span class="tsd-signature-symbol">(</span>program<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="classes/compileresult.html" class="tsd-signature-type">CompileResult</a></li>
+				</ul>
+				<ul class="tsd-descriptions">
+					<li class="tsd-description">
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in cao_lang_wasm.d.ts:40</li>
+							</ul>
+						</aside>
+						<div class="tsd-comment tsd-typography">
+							<div class="lead">
+								<p>Runs the given compiled Cao-Lang program (output of <code>compile</code>).</p>
+							</div>
+							<p>Will run in a &#39;plain&#39; VM, no custom methods will be available!</p>
+						</div>
+						<h4 class="tsd-parameters-title">Parameters</h4>
+						<ul class="tsd-parameters">
+							<li>
+								<h5>program: <span class="tsd-signature-type">any</span></h5>
+							</li>
+						</ul>
+						<h4 class="tsd-returns-title">Returns <a href="classes/compileresult.html" class="tsd-signature-type">CompileResult</a></h4>
+					</li>
+				</ul>
+			</section>
 		</section>
 		<footer class="with-border-bottom">
 			<div class="container">
 				<h2>Legend</h2>
 				<div class="tsd-legend-group">
+					<ul class="tsd-legend">
+						<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+						<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+					</ul>
 				</div>
 			</div>
 		</footer>
