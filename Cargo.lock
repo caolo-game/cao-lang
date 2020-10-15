@@ -53,7 +53,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-wasm"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "cao-lang",
  "console_error_panic_hook",
@@ -64,6 +64,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "wasm-logger",
 ]
 
 [[package]]
@@ -432,6 +433,17 @@ checksum = "e8fb9c67be7439ee8ab1b7db502a49c05e51e2835b66796c705134d9b8e1a585"
 dependencies = [
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "wasm-logger"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074649a66bb306c8f2068c9016395fa65d8e08d2affcbf95acf3c24c3ab19718"
+dependencies = [
+ "log 0.4.11",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

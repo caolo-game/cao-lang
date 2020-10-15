@@ -30,7 +30,7 @@ use crate::{
 pub use astnode::*;
 pub use compilation_error::*;
 use serde::{Deserialize, Serialize};
-use slog::debug;
+use slog::{debug, info};
 use slog::{o, Drain, Logger};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::convert::Infallible;
@@ -109,7 +109,7 @@ pub fn compile(
         .into()
         .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
 
-    debug!(logger, "compilation start");
+    info!(logger, "compilation start");
     if compilation_unit.nodes.is_empty() {
         return Err(CompilationError::EmptyProgram);
     }
@@ -171,12 +171,12 @@ pub fn compile(
     }
 
     check_post_invariants(&compiler)?;
-    debug!(compiler.logger, "compilation end");
+    info!(compiler.logger, "compilation end");
     Ok(compiler.program)
 }
 
 fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
-    debug!(compiler.logger, "checking invariants post compile");
+    info!(compiler.logger, "checking invariants post compile");
     for (nodeid, node) in compiler.compilation_unit.nodes.iter() {
         match node.node {
             InstructionNode::Jump(ref jump) | InstructionNode::JumpIfTrue(ref jump) => {
@@ -185,7 +185,7 @@ fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
             _ => {}
         }
     }
-    debug!(compiler.logger, "checking invariants post compile done");
+    info!(compiler.logger, "checking invariants post compile done");
     Ok(())
 }
 

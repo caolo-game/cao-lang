@@ -1,6 +1,6 @@
 [package]
 name = "cao-lang-wasm"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 description="Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
@@ -23,6 +23,7 @@ wasm-bindgen-futures = "0.4"
 serde = "1"
 serde_derive = "1"
 js-sys = "*"
+wasm-logger = "0.2"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
