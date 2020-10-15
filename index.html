@@ -45,12 +45,6 @@
 </header>
 <nav class="tsd-navigation secondary">
 	<ul>
-		<li class=" tsd-kind-class">
-			<a href="classes/astnode.html" class="tsd-kind-icon">Ast<wbr>Node</a>
-		</li>
-		<li class=" tsd-kind-class">
-			<a href="classes/compilationunit.html" class="tsd-kind-icon">Compilation<wbr>Unit</a>
-		</li>
 		<li class=" tsd-kind-function">
 			<a href="globals.html#_start" class="tsd-kind-icon">_start</a>
 		</li>
@@ -76,13 +70,6 @@
 			<h2>Index</h2>
 			<section class="tsd-panel tsd-index-panel">
 				<div class="tsd-index-content">
-					<section class="tsd-index-section ">
-						<h3>Classes</h3>
-						<ul class="tsd-index-list">
-							<li class="tsd-kind-class"><a href="classes/astnode.html" class="tsd-kind-icon">Ast<wbr>Node</a></li>
-							<li class="tsd-kind-class"><a href="classes/compilationunit.html" class="tsd-kind-icon">Compilation<wbr>Unit</a></li>
-						</ul>
-					</section>
 					<section class="tsd-index-section ">
 						<h3>Functions</h3>
 						<ul class="tsd-index-list">
@@ -121,24 +108,40 @@
 				<a name="compile" class="tsd-anchor"></a>
 				<h3>compile</h3>
 				<ul class="tsd-signatures tsd-kind-function">
-					<li class="tsd-signature tsd-kind-icon">compile<span class="tsd-signature-symbol">(</span>compilation_unit<span class="tsd-signature-symbol">: </span><a href="classes/compilationunit.html" class="tsd-signature-type">CompilationUnit</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					<li class="tsd-signature tsd-kind-icon">compile<span class="tsd-signature-symbol">(</span>compilation_unit<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in cao_lang_wasm.d.ts:12</li>
+								<li>Defined in cao_lang_wasm.d.ts:32</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
 							<div class="lead">
-								<p>Returns <code>null</code> on successful compilation or an error otherwise</p>
+								<p>Returns the compiled program on success or throws an error if compilation fails.</p>
 							</div>
+							<p><strong>Compilation unit schema:</strong></p>
+							<pre><code class="language-json">{
+    <span class="hljs-attr">&quot;nodes&quot;</span>: {
+        <span class="hljs-attr">&quot;0&quot;</span>: {
+            <span class="hljs-attr">&quot;node&quot;</span>: {
+                <span class="hljs-attr">&quot;Start&quot;</span>: <span class="hljs-literal">null</span>
+            },
+            <span class="hljs-attr">&quot;child&quot;</span>: <span class="hljs-number">1</span>
+        },
+        <span class="hljs-attr">&quot;1&quot;</span>: {
+            <span class="hljs-attr">&quot;node&quot;</span>: {
+                <span class="hljs-attr">&quot;ScalarInt&quot;</span>: <span class="hljs-number">1</span>
+            }
+        }
+    }
+}</code></pre>
 						</div>
 						<h4 class="tsd-parameters-title">Parameters</h4>
 						<ul class="tsd-parameters">
 							<li>
-								<h5>compilation_unit: <a href="classes/compilationunit.html" class="tsd-signature-type">CompilationUnit</a></h5>
+								<h5>compilation_unit: <span class="tsd-signature-type">any</span></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
@@ -150,14 +153,6 @@
 			<div class="container">
 				<h2>Legend</h2>
 				<div class="tsd-legend-group">
-					<ul class="tsd-legend">
-						<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
-						<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
-						<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
-					</ul>
-					<ul class="tsd-legend">
-						<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
-					</ul>
 				</div>
 			</div>
 		</footer>
