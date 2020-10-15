@@ -1,9 +1,4 @@
-pub mod ast_node;
-pub mod compilation_unit;
-
-use compilation_unit::CompilationUnit;
-
-use cao_lang::compiler as cc;
+use cao_lang::compiler as caoc;
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -13,20 +8,36 @@ pub fn _start() {
     console_error_panic_hook::set_once();
 }
 
-/// Returns `null` on successful compilation or an error otherwise
+/// Returns the compiled program on success or throws an error if compilation fails.
+///
+/// __Compilation unit schema:__
+///
+/// ```json
+/// {
+///     "nodes": {
+///         "0": {
+///             "node": {
+///                 "Start": null
+///             },
+///             "child": 1
+///         },
+///         "1": {
+///             "node": {
+///                 "ScalarInt": 1
+///             }
+///         }
+///     }
+/// }
+/// ```
+///
 #[wasm_bindgen]
-pub fn compile(compilation_unit: &CompilationUnit) -> JsValue {
-    let cu = compilation_unit.inner.clone();
-
-    let err = if let Err(err) = cc::compile(None, cu)
-        .map_err(|e| format!("{}", e))
-        .map_err(|e| JsValue::from_serde(&e).unwrap())
-    {
-        Some(err)
-    } else {
-        None
-    };
-    err.into()
+pub fn compile(compilation_unit: JsValue) -> Result<JsValue, JsValue> {
+    let cu = compilation_unit
+        .into_serde::<caoc::CompilationUnit>()
+        .map_err(err_to_js)?;
+    caoc::compile(None, cu)
+        .map_err(err_to_js)
+        .map(|res| JsValue::from_serde(&res).unwrap())
 }
 
 fn err_to_js(e: impl std::error::Error) -> JsValue {
