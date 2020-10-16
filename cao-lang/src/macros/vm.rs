@@ -61,9 +61,9 @@ macro_rules! binary_compare {
                             $return_on_diff_type
                         } else {
                             let size = a.size as usize;
-                            let ind = a.index.unwrap() as usize;
+                            let ind = a.index.unwrap().0 as usize;
                             let a = &$from.memory[ind..ind + size];
-                            let ind = b.index.unwrap() as usize;
+                            let ind = b.index.unwrap().0 as usize;
                             let b = &$from.memory[ind..ind + size];
 
                             a.iter().zip(b.iter()).all(|(a, b)| a $cmp b)

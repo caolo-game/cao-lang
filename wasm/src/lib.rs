@@ -1,4 +1,6 @@
-use cao_lang::compiler as caoc;
+use std::mem::take;
+
+use cao_lang::{compiler as caoc, vm::VM};
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -68,10 +70,10 @@ impl CompileResult {
 /// Will run in a 'plain' VM, no custom methods will be available!
 #[wasm_bindgen(js_name="runProgram")]
 pub fn run_program(program: JsValue) -> Result<CompileResult, JsValue> {
-    let mut vm = cao_lang::vm::VM::new(None, ());
+    let mut vm = VM::new(None, ());
     let program: cao_lang::CompiledProgram = program.into_serde().map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|res| {
-        let history = std::mem::take(&mut vm.history);
+        let history = take(&mut vm.history);
         CompileResult {
             return_code: res,
             history,

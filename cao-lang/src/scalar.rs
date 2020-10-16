@@ -1,4 +1,4 @@
-use crate::{traits::AutoByteEncodeProperties, TPointer, VarName};
+use crate::{traits::AutoByteEncodeProperties, Pointer, VarName};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -6,7 +6,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub enum Scalar {
     /// Behaves as a Pointer to a variable
     Variable(VarName),
-    Pointer(TPointer),
+    Pointer(Pointer),
     Integer(i32),
     Floating(f32),
     /// Used for default initialization
@@ -21,13 +21,12 @@ impl Default for Scalar {
 
 impl Scalar {
     pub fn as_bool(self) -> bool {
-        use Scalar::*;
         match self {
-            Pointer(i) => i != 0,
-            Integer(i) => i != 0,
-            Floating(i) => i != 0.0,
-            Variable(_) => true,
-            Null => false,
+            Scalar::Pointer(Pointer(i)) => i != 0,
+            Scalar::Integer(i) => i != 0,
+            Scalar::Floating(i) => i != 0.0,
+            Scalar::Variable(_) => true,
+            Scalar::Null => false,
         }
     }
 
@@ -81,7 +80,7 @@ impl TryFrom<Scalar> for i32 {
 
     fn try_from(v: Scalar) -> Result<Self, Scalar> {
         match v {
-            Scalar::Pointer(i) | Scalar::Integer(i) => Ok(i),
+            Scalar::Pointer(Pointer(i)) | Scalar::Integer(i) => Ok(i),
             _ => Err(v),
         }
     }
@@ -118,7 +117,7 @@ macro_rules! binary_op {
             (Scalar::Integer(a), Scalar::Integer(b)) => {
                 #[allow(clippy::suspicious_arithmetic_impl)]
                 if $a.is_ptr() || $b.is_ptr() {
-                    Scalar::Pointer(a $op b)
+                    Scalar::Pointer(Pointer(a $op b))
                 } else {
                     Scalar::Integer(a $op b)
                 }

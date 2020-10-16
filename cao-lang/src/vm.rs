@@ -5,7 +5,7 @@ use crate::scalar::Scalar;
 use crate::VarName;
 use crate::{binary_compare, pop_stack};
 use serde::{Deserialize, Serialize};
-use slog::{debug, trace, warn};
+use slog::{debug, info, trace, warn};
 use slog::{o, Drain, Logger};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -22,7 +22,7 @@ pub enum ConvertError {
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
     /// nullable index of the Object's data in the VM memory
-    pub index: Option<TPointer>,
+    pub index: Option<Pointer>,
     /// size of the data in the VM memory
     pub size: u32,
 }
@@ -41,9 +41,9 @@ impl Object {
         }
     }
 
-    pub fn as_inner<'a, Aux>(
+    pub fn as_inner<Aux>(
         &self,
-        vm: &'a VM<Aux>,
+        vm: &VM<Aux>,
     ) -> Result<Box<dyn ObjectProperties>, ConvertError> {
         self.index
             .ok_or(ConvertError::NullPtr)
@@ -72,9 +72,9 @@ where
     memory: Vec<u8>,
     stack: Vec<Scalar>,
     callables: HashMap<String, Procedure<Aux>>,
-    objects: HashMap<TPointer, Object>,
+    objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
-    converters: HashMap<TPointer, ConvertFn<Aux>>,
+    converters: HashMap<Pointer, ConvertFn<Aux>>,
     variables: HashMap<VarName, Scalar>,
 }
 
@@ -141,16 +141,16 @@ impl<Aux> VM<Aux> {
 
     pub fn get_value_in_place<'a, T: DecodeInPlace<'a>>(
         &'a self,
-        ptr: TPointer,
+        ptr: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
         use std::any::type_name;
 
         let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
         if object.size as usize != size {
-            debug!(
+            info!(
                 self.logger,
-                "Attempting to reference an object with the wrong type ({}) at address {}",
+                "Attempting to reference an object with the wrong type ({}) at address {:?}",
                 type_name::<T>(),
                 ptr
             );
@@ -159,7 +159,7 @@ impl<Aux> VM<Aux> {
         match object.index {
             Some(index) => {
                 let data = &self.memory;
-                let head = index as usize;
+                let head = index.0 as usize;
                 let tail = (head.checked_add(size as usize))
                     .unwrap_or(data.len())
                     .min(data.len());
@@ -172,13 +172,13 @@ impl<Aux> VM<Aux> {
         }
     }
 
-    pub fn get_value<T: ByteDecodeProperties>(&self, ptr: TPointer) -> Option<T> {
+    pub fn get_value<T: ByteDecodeProperties>(&self, ptr: Pointer) -> Option<T> {
         let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
         if object.size as usize != size {
-            debug!(
+            info!(
                 self.logger,
-                "Attempting to reference an object with the wrong type ({}) at address {}",
+                "Attempting to reference an object with the wrong type ({}) at address {:?}",
                 T::displayname(),
                 ptr
             );
@@ -187,7 +187,7 @@ impl<Aux> VM<Aux> {
         match object.index {
             Some(index) => {
                 let data = &self.memory;
-                let head = index as usize;
+                let head = index.0 as usize;
                 let tail = (head + size).min(data.len());
                 T::decode(&data[head..tail]).ok()
             }
@@ -201,7 +201,7 @@ impl<Aux> VM<Aux> {
     fn write_to_memory<T: ByteEncodeProperties>(
         &mut self,
         val: T,
-    ) -> Result<TPointer, ExecutionError> {
+    ) -> Result<Pointer, ExecutionError> {
         let result = self.memory.len();
 
         val.encode(&mut self.memory).map_err(|err| {
@@ -212,7 +212,7 @@ impl<Aux> VM<Aux> {
         if self.memory.len() >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
         }
-        Ok(result as TPointer)
+        Ok(Pointer(result as i32))
     }
 
     /// Save `val` in memory and push a pointer to the object onto the stack
@@ -223,13 +223,13 @@ impl<Aux> VM<Aux> {
     ) -> Result<Object, ExecutionError> {
         let result = self.write_to_memory(val)?;
         let object = Object {
-            index: Some(result as i32),
+            index: Some(result),
             size: T::BYTELEN as u32,
         };
         self.objects.insert(result, object);
-        self.converters.insert(result as TPointer, converter);
+        self.converters.insert(result as Pointer, converter);
 
-        self.stack_push(Scalar::Pointer(result as TPointer))?;
+        self.stack_push(Scalar::Pointer(result as Pointer))?;
 
         debug!(
             self.logger,
@@ -249,17 +249,17 @@ impl<Aux> VM<Aux> {
     ) -> Result<Object, ExecutionError> {
         let result = self.write_to_memory(val)?;
         let object = Object {
-            index: Some(result as i32),
+            index: Some(result),
             size: T::BYTELEN as u32,
         };
         self.objects.insert(result, object);
         self.converters
-            .insert(result as TPointer, |o: &Object, vm: &VM<Aux>| {
+            .insert(result as Pointer, |o: &Object, vm: &VM<Aux>| {
                 let res: T = vm.get_value(o.index.unwrap()).unwrap();
                 Box::new(res)
             });
 
-        self.stack_push(Scalar::Pointer(result as TPointer))?;
+        self.stack_push(Scalar::Pointer(result as Pointer))?;
 
         debug!(
             self.logger,
@@ -446,7 +446,7 @@ impl<Aux> VM<Aux> {
                         let val = self.stack.pop().unwrap();
                         self.write_to_memory(val)?;
                     }
-                    self.stack.push(Scalar::Pointer(ptr as i32));
+                    self.stack.push(Scalar::Pointer(Pointer(ptr as i32)));
                 }
                 Instruction::Add => self.binary_op(|a, b| a + b)?,
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,
@@ -467,7 +467,7 @@ impl<Aux> VM<Aux> {
                         let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
                         Box::new(res)
                     })?;
-                    self.stack.push(Scalar::Pointer(obj.index.unwrap() as i32));
+                    self.stack.push(Scalar::Pointer(obj.index.unwrap()));
                 }
                 Instruction::Call => self.execute_call(&mut ptr, &program.bytecode)?,
             }
@@ -575,10 +575,10 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        let value: TPointer = 12342;
+        let value = Pointer(12342);
         let mut encoded = Vec::new();
         value.encode(&mut encoded).unwrap();
-        let decoded = TPointer::decode(&encoded).unwrap();
+        let decoded = Pointer::decode(&encoded).unwrap();
 
         assert_eq!(value, decoded);
     }

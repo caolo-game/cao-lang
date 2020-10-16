@@ -6,5 +6,5 @@ pub use crate::traits::*;
 pub use crate::{
     subprogram_description,
     vm::{Object, VM},
-    CompiledProgram, InputString, SubProgram, SubProgramType, TPointer,
+    CompiledProgram, InputString, SubProgram, SubProgramType, Pointer,
 };

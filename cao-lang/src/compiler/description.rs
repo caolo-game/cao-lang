@@ -3,7 +3,7 @@ use crate::scalar::Scalar;
 use crate::traits::ByteEncodeble;
 use crate::InputString;
 use crate::NodeId;
-use crate::TPointer;
+use crate::Pointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
@@ -222,7 +222,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             "SetVar",
             "Sets the value of a variable",
             SubProgramType::Instruction,
-            [TPointer],
+            [Pointer],
             [],
             [VarName]
         ),
@@ -232,7 +232,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             "Read the value of a variable",
             SubProgramType::Instruction,
             [],
-            [TPointer],
+            [Pointer],
             [VarName]
         ),
         InstructionNode::SubProgram(_) => subprogram_description!(

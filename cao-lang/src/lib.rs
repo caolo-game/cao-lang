@@ -54,7 +54,34 @@ use arrayvec::ArrayString;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-pub type TPointer = i32;
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
+)]
+pub struct Pointer(pub i32);
+
+impl Into<i32> for Pointer {
+    fn into(self) -> i32 {
+        self.0
+    }
+}
+
+impl AsRef<i32> for Pointer {
+    fn as_ref(&self) -> &i32 {
+        &self.0
+    }
+}
+
+impl AsMut<i32> for Pointer {
+    fn as_mut(&mut self) -> &mut i32 {
+        &mut self.0
+    }
+}
+
+impl AutoByteEncodeProperties for Pointer {
+    fn displayname() -> &'static str {
+        "Object Reference"
+    }
+}
 
 pub const MAX_INPUT_PER_NODE: usize = 8;
 pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
