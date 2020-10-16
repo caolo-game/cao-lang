@@ -159,7 +159,9 @@ impl<Aux> VM<Aux> {
         match object.index {
             Some(index) => {
                 let data = &self.memory;
-                let head = index.0 as usize;
+                let head =
+
+                    index.0 as usize;
                 let tail = (head.checked_add(size as usize))
                     .unwrap_or(data.len())
                     .min(data.len());
@@ -212,7 +214,7 @@ impl<Aux> VM<Aux> {
         if self.memory.len() >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
         }
-        Ok(Pointer(result as i32))
+        Ok(Pointer(result as u32))
     }
 
     /// Save `val` in memory and push a pointer to the object onto the stack
@@ -446,7 +448,7 @@ impl<Aux> VM<Aux> {
                         let val = self.stack.pop().unwrap();
                         self.write_to_memory(val)?;
                     }
-                    self.stack.push(Scalar::Pointer(Pointer(ptr as i32)));
+                    self.stack.push(Scalar::Pointer(Pointer(ptr as u32)));
                 }
                 Instruction::Add => self.binary_op(|a, b| a + b)?,
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,

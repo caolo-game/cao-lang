@@ -57,22 +57,22 @@ use std::collections::HashMap;
 #[derive(
     Debug, Clone, Copy, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
 )]
-pub struct Pointer(pub i32);
+pub struct Pointer(pub u32);
 
-impl Into<i32> for Pointer {
-    fn into(self) -> i32 {
+impl Into<u32> for Pointer {
+    fn into(self) -> u32 {
         self.0
     }
 }
 
-impl AsRef<i32> for Pointer {
-    fn as_ref(&self) -> &i32 {
+impl AsRef<u32> for Pointer {
+    fn as_ref(&self) -> &u32 {
         &self.0
     }
 }
 
-impl AsMut<i32> for Pointer {
-    fn as_mut(&mut self) -> &mut i32 {
+impl AsMut<u32> for Pointer {
+    fn as_mut(&mut self) -> &mut u32 {
         &mut self.0
     }
 }

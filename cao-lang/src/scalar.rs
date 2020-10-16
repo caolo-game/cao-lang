@@ -80,7 +80,8 @@ impl TryFrom<Scalar> for i32 {
 
     fn try_from(v: Scalar) -> Result<Self, Scalar> {
         match v {
-            Scalar::Pointer(Pointer(i)) | Scalar::Integer(i) => Ok(i),
+            Scalar::Pointer(Pointer(i)) => Ok(i as i32),
+            Scalar::Integer(i) => Ok(i),
             _ => Err(v),
         }
     }
@@ -117,7 +118,7 @@ macro_rules! binary_op {
             (Scalar::Integer(a), Scalar::Integer(b)) => {
                 #[allow(clippy::suspicious_arithmetic_impl)]
                 if $a.is_ptr() || $b.is_ptr() {
-                    Scalar::Pointer(Pointer(a $op b))
+                    Scalar::Pointer(Pointer((a $op b) as u32))
                 } else {
                     Scalar::Integer(a $op b)
                 }
