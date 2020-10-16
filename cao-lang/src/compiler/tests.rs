@@ -3,7 +3,6 @@ use crate::scalar::Scalar;
 use crate::traits::ByteEncodeProperties;
 use crate::vm::VM;
 use arrayvec::ArrayString;
-use std::str::FromStr;
 
 #[test]
 fn input_string_decode_error_handling() {
@@ -234,74 +233,3 @@ fn simple_looping_program() {
     );
 }
 
-#[test]
-fn can_define_sub_programs() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-    let nodes: Nodes = [
-        (
-            999,
-            AstNode {
-                node: InstructionNode::Start,
-                child: Some(0),
-            },
-        ),
-        (
-            0,
-            AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode(42.0)),
-                child: Some(1),
-            },
-        ),
-        (
-            1,
-            AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode(512.0)),
-                child: Some(2),
-            },
-        ),
-        (
-            2,
-            AstNode {
-                node: InstructionNode::SubProgram(SubProgramNode(
-                    InputString::from_str("add").unwrap(),
-                )),
-                child: None,
-            },
-        ),
-        (
-            20,
-            AstNode {
-                node: InstructionNode::Add,
-                child: None,
-            },
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect();
-
-    let mut sub_programs = HashMap::new();
-    sub_programs.insert("add".to_owned(), SubProgram { start: 20 });
-    let sub_programs = Some(sub_programs);
-
-    let cu = CompilationUnit {
-        nodes,
-        sub_programs,
-    };
-    let program = compile(None, cu).unwrap();
-
-    // Compilation was successful
-
-    let mut vm = VM::new(None, ());
-    vm.run(&program).unwrap();
-
-    assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());
-
-    let value = vm.stack().last().unwrap();
-    match value {
-        Scalar::Floating(i) => assert_eq!(*i, 42.0 + 512.0),
-        _ => panic!("Invalid value in the stack"),
-    }
-}

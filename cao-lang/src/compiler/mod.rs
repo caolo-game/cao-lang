@@ -307,25 +307,6 @@ fn process_node(
             push_node(nodeid, compilation_unit, program).unwrap();
             s.0.encode(&mut program.bytecode).unwrap();
         }
-        SubProgram(b) => {
-            let name = b.0;
-            let sub_program = compilation_unit
-                .sub_programs
-                .as_ref()
-                .ok_or(CompilationError::MissingSubProgram(name))?
-                .get(name.as_str())
-                .ok_or(CompilationError::MissingSubProgram(name))?;
-            let nodeid = sub_program.start;
-            compilation_unit
-                .nodes
-                .get(&nodeid)
-                .ok_or(CompilationError::MissingNode(nodeid))
-                .map(|_| {
-                    program.bytecode.push(Instruction::Jump as u8);
-                    nodeid.encode(&mut program.bytecode).unwrap();
-                    nodeid.encode(&mut program.bytecode).unwrap();
-                })?;
-        }
     }
     Ok(())
 }

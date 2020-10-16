@@ -1,13 +1,12 @@
 use super::InstructionNode;
 use crate::scalar::Scalar;
 use crate::traits::ByteEncodeble;
-use crate::InputString;
 use crate::NodeId;
 use crate::Pointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
-pub fn get_instruction_descriptions() -> [SubProgram<'static>; 23] {
+pub fn get_instruction_descriptions() -> [SubProgram<'static>; 22] {
     [
         get_desc(InstructionNode::Start),
         get_desc(InstructionNode::Pass),
@@ -31,7 +30,6 @@ pub fn get_instruction_descriptions() -> [SubProgram<'static>; 23] {
         get_desc(InstructionNode::Jump(Default::default())),
         get_desc(InstructionNode::SetVar(Default::default())),
         get_desc(InstructionNode::ReadVar(Default::default())),
-        get_desc(InstructionNode::SubProgram(Default::default())),
     ]
 }
 
@@ -234,14 +232,6 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [],
             [Pointer],
             [VarName]
-        ),
-        InstructionNode::SubProgram(_) => subprogram_description!(
-            "SubProgram",
-            "Call a SubProgram by name",
-            SubProgramType::Undefined,
-            [],
-            [],
-            [InputString]
         ),
     }
 }

@@ -44,7 +44,6 @@ pub enum InstructionNode {
     Jump(JumpNode),
     SetVar(VarNode),
     ReadVar(VarNode),
-    SubProgram(SubProgramNode),
 }
 
 impl InstructionNode {
@@ -74,7 +73,6 @@ impl InstructionNode {
             InstructionNode::Jump(_) => "Jump",
             InstructionNode::SetVar(_) => "SetVar",
             InstructionNode::ReadVar(_) => "ReadVar",
-            InstructionNode::SubProgram(_) => "SubProgram",
             InstructionNode::ClearStack => "ClearStack",
         }
     }
@@ -108,7 +106,6 @@ impl InstructionNode {
             InstructionNode::SetVar(_) => Some(Instruction::SetVar),
             InstructionNode::ReadVar(_) => Some(Instruction::ReadVar),
             InstructionNode::ClearStack => Some(Instruction::ClearStack),
-            InstructionNode::SubProgram(_) => None,
         }
     }
 
