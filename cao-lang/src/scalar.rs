@@ -75,6 +75,17 @@ impl From<Scalar> for bool {
     }
 }
 
+impl TryFrom<Scalar> for Pointer {
+    type Error = Scalar;
+
+    fn try_from(v: Scalar) -> Result<Self, Scalar> {
+        match v {
+            Scalar::Pointer(p) => Ok(p),
+            _ => Err(v),
+        }
+    }
+}
+
 impl TryFrom<Scalar> for i32 {
     type Error = Scalar;
 
