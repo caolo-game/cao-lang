@@ -17,3 +17,8 @@ thiserror = "1"
 [dev-dependencies]
 simple_logger = "1.0"
 serde_json = "1"
+criterion = "0.3"
+
+[[bench]]
+name = "cao_lang_benches"
+harness = false

@@ -1,0 +1,68 @@
+{
+    "lanes": [
+        {
+            "name": "init",
+            "cards": [
+                {
+                    "SetVar": "i"
+                },
+                {
+                    "ScalarInt": 1
+                },
+                {
+                    "SetVar": "a"
+                },
+                {
+                    "ScalarInt": 1
+                },
+                {
+                    "SetVar": "b"
+                },
+                {
+                    "Jump": "loop"
+                }
+            ]
+        },
+        {
+            "name": "loop",
+            "cards": [
+                {
+                    "ReadVar": "b"
+                },
+                {
+                    "CopyLast": null
+                },
+                {
+                    "ReadVar": "a"
+                },
+                {
+                    "Add": null
+                },
+                {
+                    "SetVar": "b"
+                },
+                {
+                    "SetVar": "a"
+                },
+                {
+                    "ReadVar": "i"
+                },
+                {
+                    "ScalarInt": 1
+                },
+                {
+                    "Sub": null
+                },
+                {
+                    "CopyLast": null
+                },
+                {
+                    "SetVar": "i"
+                },
+                {
+                    "JumpIfTrue": "loop"
+                }
+            ]
+        }
+    ]
+}
