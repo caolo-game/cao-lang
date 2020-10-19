@@ -46,6 +46,9 @@
 <nav class="tsd-navigation secondary">
 	<ul>
 		<li class=" tsd-kind-class">
+			<a href="classes/compileoptions.html" class="tsd-kind-icon">Compile<wbr>Options</a>
+		</li>
+		<li class=" tsd-kind-class">
 			<a href="classes/runresult.html" class="tsd-kind-icon">Run<wbr>Result</a>
 		</li>
 		<li class=" tsd-kind-function">
@@ -78,6 +81,7 @@
 					<section class="tsd-index-section ">
 						<h3>Classes</h3>
 						<ul class="tsd-index-list">
+							<li class="tsd-kind-class"><a href="classes/compileoptions.html" class="tsd-kind-icon">Compile<wbr>Options</a></li>
 							<li class="tsd-kind-class"><a href="classes/runresult.html" class="tsd-kind-icon">Run<wbr>Result</a></li>
 						</ul>
 					</section>
@@ -120,13 +124,13 @@
 				<a name="compile" class="tsd-anchor"></a>
 				<h3>compile</h3>
 				<ul class="tsd-signatures tsd-kind-function">
-					<li class="tsd-signature tsd-kind-icon">compile<span class="tsd-signature-symbol">(</span>compilation_unit<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+					<li class="tsd-signature tsd-kind-icon">compile<span class="tsd-signature-symbol">(</span>compilation_unit<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, compile_options<span class="tsd-signature-symbol">?: </span><a href="classes/compileoptions.html" class="tsd-signature-type">CompileOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in cao_lang_wasm.d.ts:27</li>
+								<li>Defined in cao_lang_wasm.d.ts:31</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
@@ -140,6 +144,9 @@
         <span class="hljs-attr">&quot;cards&quot;</span>: [
             {
                 <span class="hljs-attr">&quot;ScalarInt&quot;</span>: <span class="hljs-number">1</span>
+            },
+            {
+                <span class="hljs-attr">&quot;Pass&quot;</span>: <span class="hljs-literal">null</span>
             }
         ]
     }]
@@ -149,6 +156,9 @@
 						<ul class="tsd-parameters">
 							<li>
 								<h5>compilation_unit: <span class="tsd-signature-type">any</span></h5>
+							</li>
+							<li>
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> compile_options: <a href="classes/compileoptions.html" class="tsd-signature-type">CompileOptions</a></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
@@ -165,7 +175,7 @@
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in cao_lang_wasm.d.ts:35</li>
+								<li>Defined in cao_lang_wasm.d.ts:39</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
