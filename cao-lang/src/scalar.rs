@@ -1,11 +1,9 @@
-use crate::{traits::AutoByteEncodeProperties, Pointer, VarName};
+use crate::{traits::AutoByteEncodeProperties, Pointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Scalar {
-    /// Behaves as a Pointer to a variable
-    Variable(VarName),
     Pointer(Pointer),
     Integer(i32),
     Floating(f32),
@@ -25,7 +23,6 @@ impl Scalar {
             Scalar::Pointer(Pointer(i)) => i != 0,
             Scalar::Integer(i) => i != 0,
             Scalar::Floating(i) => i != 0.0,
-            Scalar::Variable(_) => true,
             Scalar::Null => false,
         }
     }

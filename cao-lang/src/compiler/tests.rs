@@ -23,9 +23,7 @@ fn input_string_decode_error_handling() {
         _ => panic!("Bad error {:?}", err),
     }
 
-    let len = InputString::BYTELEN * 2;
-    assert_eq!(len, len as i32 as usize); // sanity check
-    let len = len as i32;
+    let len = 1_000_000i32;
     let mut bytes = vec![];
     len.encode(&mut bytes).unwrap();
     bytes.extend((0..len).map(|_| 69));
@@ -111,7 +109,7 @@ fn simple_looping_program() {
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
-    assert_eq!(vm.read_var("i").unwrap(), Scalar::Integer(0));
+    assert_eq!(*vm.read_var("i").unwrap(), Scalar::Integer(0));
 
     assert_eq!(
         vm.stack(),

@@ -1,7 +1,6 @@
 use crate::instruction::Instruction;
 use crate::prelude::*;
 use crate::scalar::Scalar;
-use crate::VarName;
 use crate::{binary_compare, pop_stack};
 use serde::{Deserialize, Serialize};
 use slog::{debug, info, trace, warn};
@@ -55,9 +54,9 @@ pub struct HistoryEntry {
 
 /// Cao-Lang bytecode interpreter.
 /// `Aux` is an auxiliary data structure passed to custom functions.
-pub struct VM<Aux = ()>
+pub struct VM<'a, Aux = ()>
 where
-    Aux: 'static,
+    Aux: 'a,
 {
     pub logger: Logger,
     pub history: Vec<HistoryEntry>,
@@ -71,10 +70,10 @@ where
     objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<Pointer, ConvertFn<Aux>>,
-    variables: HashMap<VarName, Scalar>,
+    variables: HashMap<&'a str, Scalar>,
 }
 
-impl<Aux> VM<Aux> {
+impl<'a, Aux> VM<'a, Aux> {
     pub fn new(logger: impl Into<Option<Logger>>, auxiliary_data: Aux) -> Self {
         let logger = logger
             .into()
@@ -102,8 +101,8 @@ impl<Aux> VM<Aux> {
         self.variables.clear();
     }
 
-    pub fn read_var(&self, name: &str) -> Option<Scalar> {
-        self.variables.get(name).cloned()
+    pub fn read_var(&self, name: &str) -> Option<&Scalar> {
+        self.variables.get(name)
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
@@ -135,31 +134,21 @@ impl<Aux> VM<Aux> {
         self.callables.insert(name.to_owned(), f);
     }
 
-    pub fn get_value_in_place<'a, T: DecodeInPlace<'a>>(
+    pub fn get_value_in_place<T: DecodeInPlace<'a>>(
         &'a self,
         ptr: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        use std::any::type_name;
-
-        let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
-        if object.size as usize != size {
-            info!(
-                self.logger,
-                "Attempting to reference an object with the wrong type ({}) at address {:?}",
-                type_name::<T>(),
-                ptr
-            );
-            return None;
-        }
         match object.index {
             Some(index) => {
                 let data = &self.memory;
                 let head = index.0 as usize;
-                let tail = (head.checked_add(size as usize))
+                let tail = (head.checked_add(object.size as usize))
                     .unwrap_or(data.len())
                     .min(data.len());
-                T::decode_in_place(&data[head..tail]).ok()
+                T::decode_in_place(&data[head..tail])
+                    .ok()
+                    .map(|(_, val)| val)
             }
             None => {
                 warn!(self.logger, "Dereferencing null pointer");
@@ -169,23 +158,15 @@ impl<Aux> VM<Aux> {
     }
 
     pub fn get_value<T: ByteDecodeProperties>(&self, ptr: Pointer) -> Option<T> {
-        let size = T::BYTELEN;
         let object = self.objects.get(&ptr)?;
-        if object.size as usize != size {
-            info!(
-                self.logger,
-                "Attempting to reference an object with the wrong type ({}) at address {:?}",
-                T::displayname(),
-                ptr
-            );
-            return None;
-        }
         match object.index {
             Some(index) => {
                 let data = &self.memory;
                 let head = index.0 as usize;
-                let tail = (head + size).min(data.len());
-                T::decode(&data[head..tail]).ok()
+                let tail = (head.checked_add(object.size as usize))
+                    .unwrap_or(data.len())
+                    .min(data.len());
+                T::decode(&data[head..tail]).ok().map(|(_, val)| val)
             }
             None => {
                 warn!(self.logger, "Dereferencing null pointer");
@@ -197,7 +178,7 @@ impl<Aux> VM<Aux> {
     fn write_to_memory<T: ByteEncodeProperties>(
         &mut self,
         val: T,
-    ) -> Result<Pointer, ExecutionError> {
+    ) -> Result<(Pointer, usize), ExecutionError> {
         let result = self.memory.len();
 
         val.encode(&mut self.memory).map_err(|err| {
@@ -208,7 +189,7 @@ impl<Aux> VM<Aux> {
         if self.memory.len() >= self.memory_limit {
             return Err(ExecutionError::OutOfMemory);
         }
-        Ok(Pointer(result as u32))
+        Ok((Pointer(result as u32), self.memory.len() - result))
     }
 
     /// Save `val` in memory and push a pointer to the object onto the stack
@@ -217,23 +198,17 @@ impl<Aux> VM<Aux> {
         val: T,
         converter: ConvertFn<Aux>,
     ) -> Result<Object, ExecutionError> {
-        let result = self.write_to_memory(val)?;
+        let (index, size) = self.write_to_memory(val)?;
         let object = Object {
-            index: Some(result),
-            size: T::BYTELEN as u32,
+            index: Some(index),
+            size: size as u32,
         };
-        self.objects.insert(result, object);
-        self.converters.insert(result as Pointer, converter);
+        self.objects.insert(index, object);
+        self.converters.insert(index as Pointer, converter);
 
-        self.stack_push(Scalar::Pointer(result as Pointer))?;
+        self.stack_push(Scalar::Pointer(index as Pointer))?;
 
-        debug!(
-            self.logger,
-            "Set value {:?} {:?} {}",
-            object,
-            T::BYTELEN,
-            T::displayname()
-        );
+        debug!(self.logger, "Set value {:?} {}", object, T::displayname());
 
         Ok(object)
     }
@@ -243,27 +218,21 @@ impl<Aux> VM<Aux> {
         &mut self,
         val: T,
     ) -> Result<Object, ExecutionError> {
-        let result = self.write_to_memory(val)?;
+        let (index, size) = self.write_to_memory(val)?;
         let object = Object {
-            index: Some(result),
-            size: T::BYTELEN as u32,
+            index: Some(index),
+            size: size as u32,
         };
-        self.objects.insert(result, object);
+        self.objects.insert(index, object);
         self.converters
-            .insert(result as Pointer, |o: &Object, vm: &VM<Aux>| {
+            .insert(index as Pointer, |o: &Object, vm: &VM<Aux>| {
                 let res: T = vm.get_value(o.index.unwrap()).unwrap();
                 Box::new(res)
             });
 
-        self.stack_push(Scalar::Pointer(result as Pointer))?;
+        self.stack_push(Scalar::Pointer(index as Pointer))?;
 
-        debug!(
-            self.logger,
-            "Set value {:?} {:?} {}",
-            object,
-            T::BYTELEN,
-            T::displayname()
-        );
+        debug!(self.logger, "Set value {:?} {}", object, T::displayname());
 
         Ok(object)
     }
@@ -292,17 +261,35 @@ impl<Aux> VM<Aux> {
             ptr,
             bytes.len()
         );
-        let len = T::BYTELEN;
-        if *ptr + len > bytes.len() {
-            return Err(ExecutionError::UnexpectedEndOfInput);
-        }
-        let val = T::decode(&bytes[*ptr..*ptr + len])
-            .map_err(|_| ExecutionError::invalid_argument(None))?;
+        let (len, val) = T::decode(&bytes[*ptr..])
+            .map_err(|_| ExecutionError::invalid_argument("Failed to decode value".to_owned()))?;
         *ptr += len;
         Ok(val)
     }
 
-    pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
+    #[inline]
+    fn decode_in_place<T: DecodeInPlace<'a>>(
+        logger: &Logger,
+        bytes: &'a [u8],
+        ptr: &mut usize,
+    ) -> Result<T::Ref, ExecutionError> {
+        trace!(
+            logger,
+            "Decoding value of type {} at ptr {}, len: {}",
+            std::any::type_name::<T>(),
+            ptr,
+            bytes.len()
+        );
+        let (len, val) = T::decode_in_place(&bytes[*ptr..]).map_err(|err| {
+            info!(logger, "Failed to decode value {:?}", err);
+            ExecutionError::invalid_argument("Failed to decode value".to_owned())
+        })?;
+        *ptr += len;
+        trace!(logger, "Decoding successful, new ptr {}", ptr,);
+        Ok(val)
+    }
+
+    pub fn run(&mut self, program: &'a CompiledProgram) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Running program");
         self.history.clear();
         let mut ptr = 0;
@@ -341,25 +328,19 @@ impl<Aux> VM<Aux> {
                     self.stack.clear();
                 }
                 Instruction::SetVar => {
-                    let varname: VarName =
-                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                    let scalar = self
-                        .stack
-                        .pop()
-                        .ok_or_else(|| ExecutionError::invalid_argument(None))?;
-                    self.variables.insert(varname, scalar);
-                }
-                Instruction::SetAndSwapVar => {
-                    let varname: VarName =
-                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                    let scalar = self.stack.pop().unwrap_or(Scalar::Null);
-                    self.variables.insert(varname, scalar);
-                    self.stack.push(Scalar::Variable(varname));
+                    let varname: &'a str =
+                        Self::decode_in_place::<&str>(&self.logger, &program.bytecode, &mut ptr)?;
+                    let scalar = self.stack.pop().ok_or_else(|| {
+                        ExecutionError::invalid_argument(
+                            "Stack was empty when setting variable".to_owned(),
+                        )
+                    })?;
+                    *self.variables.entry(varname).or_insert(scalar) = scalar;
                 }
                 Instruction::ReadVar => {
-                    let varname: VarName =
-                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                    let value = self.variables.get(&varname).ok_or_else(|| {
+                    let varname: &str =
+                        Self::decode_in_place::<&str>(&self.logger, &program.bytecode, &mut ptr)?;
+                    let value = self.variables.get(varname).ok_or_else(|| {
                         debug!(self.logger, "Variable {} does not exist", varname);
                         ExecutionError::invalid_argument(None)
                     })?;
@@ -463,8 +444,8 @@ impl<Aux> VM<Aux> {
                         // SAFETY
                         // As long as the same VM instance's accessors are used this should be
                         // fine (tm)
-                        let vm: &'static Self = unsafe { mem::transmute(vm) };
                         let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
+                        let res: &'static str = unsafe { mem::transmute(res) };
                         Box::new(res)
                     })?;
                     self.stack.push(Scalar::Pointer(obj.index.unwrap()));
@@ -508,7 +489,7 @@ impl<Aux> VM<Aux> {
         Ok(())
     }
 
-    fn execute_call(&mut self, ptr: &mut usize, bytecode: &[u8]) -> Result<(), ExecutionError> {
+    fn execute_call(&mut self, ptr: &mut usize, bytecode: &'a [u8]) -> Result<(), ExecutionError> {
         let fun_name = Self::read_str(ptr, bytecode).ok_or_else(|| {
             warn!(self.logger, "Could not read function name");
             ExecutionError::invalid_argument(None)
@@ -554,18 +535,19 @@ impl<Aux> VM<Aux> {
     where
         F: Fn(Scalar, Scalar) -> Scalar,
     {
-        let b = pop_stack!(unwrap_var self);
-        let a = pop_stack!(unwrap_var self);
+        let b = pop_stack!(self);
+        let a = pop_stack!(self);
 
         self.stack.push(op(a, b));
         Ok(())
     }
 
-    fn read_str<'a>(ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
+    fn read_str(ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
         let p = *ptr;
         let limit = program.len().min(p + MAX_STR_LEN);
-        let s: &'a str = <&'a str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
-        *ptr += s.len() + i32::BYTELEN;
+        let (len, s): (_, &'a str) =
+            <&'a str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
+        *ptr += s.len() + len;
         Some(s)
     }
 }
@@ -579,7 +561,7 @@ mod tests {
         let value = Pointer(12342);
         let mut encoded = Vec::new();
         value.encode(&mut encoded).unwrap();
-        let decoded = Pointer::decode(&encoded).unwrap();
+        let (_, decoded) = Pointer::decode(&encoded).unwrap();
 
         assert_eq!(value, decoded);
     }

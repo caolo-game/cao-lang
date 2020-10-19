@@ -19,25 +19,8 @@ macro_rules! load_var {
     };
 }
 
-/// Load the Scalar value of a variable if the given scalar is a variable or return itself
-/// otherwise.
-#[macro_export(local_inner_macros)]
-macro_rules! unwrap_var {
-    ($val: expr, $from: ident) => {
-        match $val {
-            Scalar::Variable(ref v) => load_var!(v, $from),
-            _ => $val,
-        }
-    };
-}
-
 #[macro_export(local_inner_macros)]
 macro_rules! pop_stack {
-    (unwrap_var $from : ident) => {{
-        let scalar = pop_stack!($from);
-        unwrap_var!(scalar, $from)
-    }};
-
     ($from : ident) => {{
         $from
             .stack
@@ -50,8 +33,8 @@ macro_rules! pop_stack {
 macro_rules! binary_compare {
         ($from:ident, $cmp: tt, $return_on_diff_type: expr) => {
             {
-                let b = pop_stack!(unwrap_var $from);
-                let a = pop_stack!(unwrap_var $from);
+                let b = pop_stack!($from);
+                let a = pop_stack!($from);
 
                 let res = match (a, b) {
                     (Scalar::Pointer(a), Scalar::Pointer(b)) => {

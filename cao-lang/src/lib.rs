@@ -47,6 +47,7 @@ use std::cmp::Ordering;
 use crate::instruction::Instruction;
 use crate::traits::AutoByteEncodeProperties;
 use arrayvec::ArrayString;
+use prelude::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError};
 use serde::{Deserialize, Serialize};
 
 /// Unique id of each nodes in a single compilation
@@ -118,7 +119,47 @@ pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
 pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 
 pub type VarName = ArrayString<[u8; 64]>;
-impl AutoByteEncodeProperties for VarName {}
+
+impl ByteEncodeble for VarName {
+    fn displayname() -> &'static str {
+        "Text"
+    }
+}
+
+impl ByteEncodeProperties for VarName {
+    type EncodeError = StringDecodeError;
+
+    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
+        (self.len() as i32)
+            .encode(out)
+            .expect("failed to encode i32");
+        out.extend(self.as_bytes());
+        Ok(())
+    }
+}
+impl ByteDecodeProperties for VarName {
+    type DecodeError = StringDecodeError;
+
+    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
+        use std::convert::TryFrom;
+
+        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
+        if len > 64 {
+            return Err(StringDecodeError::LengthError(len as i32));
+        }
+        let val = std::str::from_utf8(&bytes[ll..ll + len])
+            .map_err(StringDecodeError::Utf8DecodeError)?;
+        let val = ArrayString::from(val).expect("failed to convert str to array");
+        Ok((len + ll, val))
+    }
+}
+
+impl<'a> ByteEncodeble for &'a str {
+    fn displayname() -> &'static str {
+        "Text"
+    }
+}
 
 /// Metadata about a subprogram in the program.
 /// Subprograms consume their inputs and produce outputs.

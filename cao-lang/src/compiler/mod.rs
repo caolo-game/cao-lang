@@ -11,7 +11,7 @@ use crate::NodeId;
 use crate::{
     program::{CompiledProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
-    InputString, Instruction, INPUT_STR_LEN_IN_BYTES,
+    InputString, Instruction,
 };
 pub use card::*;
 pub use compilation_error::*;
@@ -25,7 +25,6 @@ use std::fmt::Debug;
 use std::{collections::HashMap, mem};
 
 impl ByteEncodeble for InputString {
-    const BYTELEN: usize = INPUT_STR_LEN_IN_BYTES;
     fn displayname() -> &'static str {
         "Text"
     }
@@ -43,16 +42,17 @@ impl ByteEncodeProperties for InputString {
 impl ByteDecodeProperties for InputString {
     type DecodeError = StringDecodeError;
 
-    fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError> {
-        let len = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
+        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
         let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
-        const BYTELEN: usize = <i32 as ByteEncodeble>::BYTELEN;
-        if bytes.len() < BYTELEN + len {
-            return Err(StringDecodeError::LengthError((BYTELEN + len) as i32));
+        if bytes.len() < ll + len {
+            return Err(StringDecodeError::LengthError((ll + len) as i32));
         }
-        let res = std::str::from_utf8(&bytes[BYTELEN..BYTELEN + len])
+        let res = std::str::from_utf8(&bytes[ll..ll + len])
             .map_err(StringDecodeError::Utf8DecodeError)?;
-        Self::from(res).map_err(|_| StringDecodeError::CapacityError(Self::BYTELEN))
+        Self::from(res)
+            .map_err(|_| StringDecodeError::CapacityError(ll + len))
+            .map(|res| (ll + len, res))
     }
 }
 

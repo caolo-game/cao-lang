@@ -17,7 +17,6 @@ fn fib(n: i32) -> i32 {
 
 fn run_fib(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci numbers");
-
     for iterations in 1..6 {
         let iterations = 1 << iterations;
 
@@ -38,7 +37,7 @@ fn run_fib(c: &mut Criterion) {
                     {
                         use std::convert::TryInto;
 
-                        let val = vm.read_var("b").expect("failed to read b");
+                        let val = *vm.read_var("b").expect("failed to read b");
                         assert!(val.is_integer());
                         let val: i32 = val.try_into().unwrap();
                         assert_eq!(val, fib(iterations));

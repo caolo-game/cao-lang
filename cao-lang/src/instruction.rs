@@ -55,9 +55,6 @@ pub enum Instruction {
     SetVar = 28,
     /// Reads the variable and pushes its value onto the stack
     ReadVar = 29,
-    /// Save the top of the stack into a variable and pushes a Scalar::Variable onto the stack.
-    /// Variable will equal Null if the stack is empty.
-    SetAndSwapVar = 30,
     ///
     ClearStack = 31,
     /// If the value at the top of the stack is falsy jumps to the input node
@@ -95,7 +92,6 @@ impl TryFrom<u8> for Instruction {
             27 => Ok(Pop),
             28 => Ok(SetVar),
             29 => Ok(ReadVar),
-            30 => Ok(SetAndSwapVar),
             31 => Ok(ClearStack),
             32 => Ok(JumpIfFalse),
             33 => Ok(Breadcrumb),

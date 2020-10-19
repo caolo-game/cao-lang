@@ -22,3 +22,6 @@ criterion = "0.3"
 [[bench]]
 name = "cao_lang_benches"
 harness = false
+
+[profile.bench]
+debug = true

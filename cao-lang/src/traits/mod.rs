@@ -5,7 +5,6 @@ use crate::{procedures::ExecutionResult, scalar::Scalar, vm::VM};
 use std::any::type_name;
 use std::convert::TryFrom;
 use std::fmt::Write;
-use std::mem;
 
 pub const MAX_STR_LEN: usize = 256;
 
@@ -16,8 +15,6 @@ pub trait ObjectProperties: std::fmt::Debug {
 }
 
 pub trait ByteEncodeble: Sized + ObjectProperties {
-    const BYTELEN: usize = mem::size_of::<Self>();
-
     fn displayname() -> &'static str {
         type_name::<Self>()
     }
@@ -32,14 +29,16 @@ pub trait ByteEncodeProperties: Sized + ObjectProperties + ByteEncodeble {
 pub trait ByteDecodeProperties: Sized + ObjectProperties + ByteEncodeble {
     type DecodeError: std::fmt::Debug;
 
-    fn decode(bytes: &[u8]) -> Result<Self, Self::DecodeError>;
+    /// return the bytes read
+    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError>;
 }
 
 pub trait DecodeInPlace<'a>: Sized + ObjectProperties + ByteEncodeble {
     type Ref;
     type DecodeError: std::fmt::Debug;
 
-    fn decode_in_place(bytes: &'a [u8]) -> Result<Self::Ref, Self::DecodeError>;
+    /// return the bytes read
+    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), Self::DecodeError>;
 }
 
 #[derive(Debug)]

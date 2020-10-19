@@ -129,7 +129,6 @@ impl Card {
             | Instruction::ScalarFloat
             | Instruction::ScalarInt
             | Instruction::Add
-            | Instruction::SetAndSwapVar
             | Instruction::Pass => {}
         };
     }
