@@ -56,10 +56,11 @@ impl ByteDecodeProperties for String {
     fn decode(bytes: &[u8]) -> Result<(usize, Self), StringDecodeError> {
         let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
         let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
-        let res = std::str::from_utf8(&bytes[ll..ll + len])
+        let tail = (ll + len).min(bytes.len());
+        let res = std::str::from_utf8(&bytes[ll..tail])
             .map_err(StringDecodeError::Utf8DecodeError)
             .map(|s| s.to_owned())?;
-        Ok((len + ll, res))
+        Ok((tail , res))
     }
 }
 

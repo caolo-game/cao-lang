@@ -547,7 +547,7 @@ impl<'a, Aux> VM<'a, Aux> {
         let limit = program.len().min(p + MAX_STR_LEN);
         let (len, s): (_, &'a str) =
             <&'a str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
-        *ptr += s.len() + len;
+        *ptr += len;
         Some(s)
     }
 }
