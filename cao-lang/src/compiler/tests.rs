@@ -38,70 +38,21 @@ fn input_string_decode_error_handling() {
 }
 
 #[test]
-fn post_process_raises_error_if_node_jumpts_to_itself() {
-    let node = JumpNode(42);
-    let msg = check_jump_post_conditions(42, &node, &Default::default()).unwrap_err();
-    match msg {
-        CompilationError::InvalidJump { src, dst, .. } => assert_eq!(src, dst),
-        _ => panic!("Bad error msg {:?}", msg),
-    };
-}
-
-#[test]
-fn post_process_raises_error_if_node_jumpts_to_non_existent() {
-    let node = JumpNode(42);
-    let msg = check_jump_post_conditions(13, &node, &Default::default()).unwrap_err();
-    match msg {
-        CompilationError::InvalidJump { src, dst, .. } => {
-            assert_eq!(src, 13);
-            assert_eq!(dst, 42);
-        }
-        _ => panic!("Bad error msg {:?}", msg),
-    };
-}
-
-#[test]
 fn compiling_simple_program() {
     simple_logger::SimpleLogger::new()
         .init()
         .unwrap_or_default();
-    let nodes: Nodes = [
-        (
-            999,
-            AstNode {
-                node: InstructionNode::Start,
-                child: Some(0),
-            },
-        ),
-        (
-            0,
-            AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode(42.0)),
-                child: Some(1),
-            },
-        ),
-        (
-            1,
-            AstNode {
-                node: InstructionNode::ScalarFloat(FloatNode(512.0)),
-                child: Some(2),
-            },
-        ),
-        (
-            2,
-            AstNode {
-                node: InstructionNode::Add,
-                child: None,
-            },
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect();
+    let cards = vec![
+        Card::ScalarFloat(FloatNode(42.0)),
+        Card::ScalarFloat(FloatNode(512.0)),
+        Card::Add,
+    ];
 
     let program = CompilationUnit {
-        nodes,
-        sub_programs: None,
+        lanes: vec![Lane {
+            name: "Foo".to_owned(),
+            cards,
+        }],
     };
     let program = compile(None, program).unwrap();
 
@@ -124,94 +75,33 @@ fn simple_looping_program() {
     simple_logger::SimpleLogger::new()
         .init()
         .unwrap_or_default();
-    let nodes: Nodes = [
-        (
-            999,
-            AstNode {
-                node: InstructionNode::Start,
-                child: Some(0),
-            },
-        ),
-        (
-            0,
-            AstNode {
-                node: InstructionNode::ScalarInt(IntegerNode(4)),
-                child: Some(1),
-            },
-        ),
-        (
-            1,
-            AstNode {
-                node: InstructionNode::SetVar(VarNode(ArrayString::from("i").unwrap())),
-                child: Some(2),
-            },
-        ),
-        (
-            7,
-            AstNode {
-                // push this value in each iteration
-                node: InstructionNode::ScalarInt(IntegerNode(42069)),
-                child: Some(2),
-            },
-        ),
-        (
-            2,
-            AstNode {
-                node: InstructionNode::ReadVar(VarNode(ArrayString::from("i").unwrap())),
-                child: Some(3),
-            },
-        ),
-        (
-            3,
-            AstNode {
-                node: InstructionNode::ScalarInt(IntegerNode(1)),
-                child: Some(4),
-            },
-        ),
-        (
-            4,
-            AstNode {
-                node: InstructionNode::Sub,
-                child: Some(5),
-            },
-        ),
-        (
-            5,
-            AstNode {
-                node: InstructionNode::CopyLast,
-                child: Some(6),
-            },
-        ),
-        (
-            6,
-            AstNode {
-                node: InstructionNode::SetVar(VarNode(ArrayString::from("i").unwrap())),
-                child: Some(8),
-            },
-        ),
-        (
-            8,
-            AstNode {
-                node: InstructionNode::JumpIfTrue(JumpNode(7)),
-                child: Some(9),
-            },
-        ),
-        (
-            9,
-            AstNode {
-                // return value
-                node: InstructionNode::ScalarInt(IntegerNode(0)),
-                child: None,
-            },
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect();
+    let init_cards = vec![
+        Card::ScalarInt(IntegerNode(4)),
+        Card::SetVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::Jump(JumpToLane("Loop".to_owned())),
+    ];
+    let loop_cards = vec![
+        // push this value in each iteration
+        Card::ScalarInt(IntegerNode(42069)),
+        Card::ReadVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::ScalarInt(IntegerNode(1)),
+        Card::Sub,
+        Card::CopyLast,
+        Card::SetVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::JumpIfTrue(JumpToLane("Loop".to_owned())),
+    ];
 
     let program = CompilationUnit {
-        nodes,
-        sub_programs: None,
+        lanes: vec![
+            Lane {
+                name: "Main".to_owned(),
+                cards: init_cards,
+            },
+            Lane {
+                name: "Loop".to_owned(),
+                cards: loop_cards,
+            },
+        ],
     };
     let program = compile(None, program).unwrap();
 
@@ -229,7 +119,7 @@ fn simple_looping_program() {
             Scalar::Integer(42069),
             Scalar::Integer(42069),
             Scalar::Integer(42069),
+            Scalar::Integer(42069),
         ]
     );
 }
-

@@ -1,4 +1,3 @@
-use crate::compiler::NodeId;
 use crate::instruction::Instruction;
 use crate::prelude::*;
 use crate::scalar::Scalar;
@@ -41,17 +40,14 @@ impl Object {
         }
     }
 
-    pub fn as_inner<Aux>(
-        &self,
-        vm: &VM<Aux>,
-    ) -> Result<Box<dyn ObjectProperties>, ConvertError> {
+    pub fn as_inner<Aux>(&self, vm: &VM<Aux>) -> Result<Box<dyn ObjectProperties>, ConvertError> {
         self.index
             .ok_or(ConvertError::NullPtr)
             .map(|index| unsafe { vm.converters[&index](self, vm) })
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 pub struct HistoryEntry {
     pub id: NodeId,
     pub instr: Instruction,
@@ -159,9 +155,7 @@ impl<Aux> VM<Aux> {
         match object.index {
             Some(index) => {
                 let data = &self.memory;
-                let head =
-
-                    index.0 as usize;
+                let head = index.0 as usize;
                 let tail = (head.checked_add(size as usize))
                     .unwrap_or(data.len())
                     .min(data.len());
@@ -336,11 +330,10 @@ impl<Aux> VM<Aux> {
             ptr += 1;
             {
                 let nodeid = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                trace!(self.logger, "Logging visited node {}", nodeid);
+                trace!(self.logger, "Logging visited node {:?}", nodeid);
                 self.history.push(HistoryEntry { id: nodeid, instr });
             }
             match instr {
-                Instruction::Start => {}
                 Instruction::ClearStack => {
                     self.stack.clear();
                 }
@@ -376,12 +369,14 @@ impl<Aux> VM<Aux> {
                     })?;
                 }
                 Instruction::Jump => {
-                    let label: i32 = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
+                    let label: NodeId =
+                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     ptr = program
                         .labels
+                        .0
                         .get(&label)
                         .ok_or(ExecutionError::InvalidLabel(label))?
-                        .block as usize;
+                        .pos as usize;
                 }
                 Instruction::Exit => {
                     debug!(self.logger, "Exit called");
@@ -498,13 +493,14 @@ impl<Aux> VM<Aux> {
             return Err(ExecutionError::invalid_argument(None));
         }
         let cond = self.stack.pop().unwrap();
-        let label: i32 = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
+        let label: NodeId = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
         if fun(cond) {
             *ptr = program
                 .labels
+                .0
                 .get(&label)
                 .ok_or(ExecutionError::InvalidLabel(label))?
-                .block as usize;
+                .pos as usize;
         }
         Ok(())
     }
@@ -596,37 +592,15 @@ mod tests {
     #[test]
     fn test_array_literal_memory_limit_error_raised() {
         let program = r#"{
-  "nodes": {
-    "0": {
-      "node": {
-        "Start": null
-      },
-      "child": 1
-    },
-    "1": {
-      "node": {
-        "ScalarInt": 42
-      },
-      "child": 2
-    },
-    "2": {
-      "node": {
-        "ScalarInt": 42
-      },
-      "child": 3
-    },
-    "3": {
-      "node": {
-        "ScalarInt": 42
-      },
-      "child": 30
-    },
-    "30": {
-      "node": {
-        "ScalarArray": 3
-      }
-    }
-  }
+  "lanes": [ {
+    "name": "Foo",
+    "cards": [
+        { "ScalarInt": 42 },
+        { "ScalarInt": 42 },
+        { "ScalarInt": 42 },
+        { "ScalarArray": 3 }
+    ]
+  } ]
 }
             "#;
 

@@ -1,39 +1,32 @@
 //! ## Programs
 //!
-//! Programs are composed of subprograms. A subprogram consumes inputs and produces outputs.
-//! Subprograms will always consume from the top of the stack downwards and push their outputs to
+//! Programs are composed of Lanes and Cards. A Card consumes inputs and produces outputs.
+//! Cards will always consume from the top of the stack downwards and push their outputs to
 //! the stack. This means that subprogram composition is not a commutative operation. (Consider
-//! subprograms A, B and C. Then the composition ABC is not the same as BAC if A != B. )
+//! Cards A, B and C. Then the composition ABC is not the same as BAC if A != B. )
 //!
-//! Programs passed to the `Compiler` must contain a `Start` node. Execution will begin at the
-//! first `Start` node.
+//! Execution will begin at the first `Lane`.
 //!
-//! Example (Sub) Program serialized as JSON
+//! Example Program serialized as JSON
 //! ```
 //! const PROGRAM: &str = r#"{
-//!     "nodes": {
-//!         "0": {
-//!             "node": {
-//!                 "Start": null
-//!             },
-//!             "child": 1
-//!         },
-//!         "1": {
-//!             "node": {
-//!                 "ScalarInt": 42
-//!             },
-//!             "child": 2
-//!         },
-//!         "2": {
-//!             "node": {
-//!                 "Call": "log_scalar"
-//!             }
-//!         }
-//!     }
-//! }"#;
+//!   "lanes":[
+//!      {
+//!         "name":"Main",
+//!         "cards":[
+//!            {
+//!               "ScalarInt":42
+//!            },
+//!            {
+//!               "Call":"log_scalar"
+//!            }
+//!         ]
+//!      }
+//!   ]
+//!}"#;
 //!
-//! let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
-//! cao_lang::compiler::compile(None, compilation_unit).unwrap();
+//!let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
+//!cao_lang::compiler::compile(None, compilation_unit).unwrap();
 //!```
 //!
 
@@ -44,15 +37,52 @@ pub mod instruction;
 mod macros;
 pub mod prelude;
 pub mod procedures;
+pub mod program;
 pub mod scalar;
 pub mod traits;
 pub mod vm;
 
+use std::cmp::Ordering;
+
 use crate::instruction::Instruction;
-use crate::{compiler::NodeId, traits::AutoByteEncodeProperties};
+use crate::traits::AutoByteEncodeProperties;
 use arrayvec::ArrayString;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
+/// Unique id of each nodes in a single compilation
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
+pub struct NodeId {
+    /// Index of the lane this node is in
+    pub lane: u16,
+    /// Index of the node relative to the lane
+    pub pos: u16,
+}
+
+impl Into<u32> for NodeId {
+    fn into(self) -> u32 {
+        ((self.lane as u32) << 16) | self.pos as u32
+    }
+}
+
+impl PartialOrd for NodeId {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NodeId {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.lane
+            .cmp(&other.lane)
+            .then_with(move || self.pos.cmp(&other.pos))
+    }
+}
+
+impl AutoByteEncodeProperties for NodeId {
+    fn displayname() -> &'static str {
+        "Card ID"
+    }
+}
 
 #[derive(
     Debug, Clone, Copy, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
@@ -87,26 +117,6 @@ pub const MAX_INPUT_PER_NODE: usize = 8;
 pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
 pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 
-pub type Labels = HashMap<NodeId, Label>;
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct CompiledProgram {
-    /// Bytecode layout: (instr node_id [data])+
-    pub bytecode: Vec<u8>,
-    /// Label: [block, self]
-    pub labels: Labels,
-}
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Label {
-    /// Index of the beginning in the bytecode of the program
-    pub block: u32,
-}
-
-impl Label {
-    pub fn new(block: u32) -> Self {
-        Self { block }
-    }
-}
 pub type VarName = ArrayString<[u8; 64]>;
 impl AutoByteEncodeProperties for VarName {}
 

@@ -1,47 +1,25 @@
-//! Compiles Graphs with vertices of `AstNode` into _cao-lang_ bytecode.
-//!
-//! ## Graph rules
-//!
-//! Programs must start with a `Start` instruction.
-//!
-//! The graphs are directed, and each vertex may only have 1 edge starting from it
-//!
-//! [Cycles](https://en.wikipedia.org/wiki/Cycle_graph) are allowed.
-//!
-//! ## Unreachable nodes
-//!
-//! Nodes are reachable if either:
-//! - They are a child of the Start node
-//! - Their parent node is reachable
-//!
-//! Unreachable nodes are compiled, but will not be executed.
-//!
-mod astnode;
+mod card;
 mod compilation_error;
 pub mod description;
 
 #[cfg(test)]
 mod tests;
 
+use crate::NodeId;
 use crate::{
+    program::{CompiledProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
-    CompiledProgram, InputString, Instruction, Label, Labels, INPUT_STR_LEN_IN_BYTES,
+    InputString, Instruction, INPUT_STR_LEN_IN_BYTES,
 };
-pub use astnode::*;
+pub use card::*;
 pub use compilation_error::*;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::convert::Infallible;
+use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::convert::{Infallible, TryInto};
 use std::fmt::Debug;
-
-/// Unique id of each nodes in a single compilation
-pub type NodeId = i32;
-/// Node by given id has inputs given by nodeids
-/// Nodes may only have a finite amount of inputs
-pub type Nodes = HashMap<NodeId, AstNode>;
 
 impl ByteEncodeble for InputString {
     const BYTELEN: usize = INPUT_STR_LEN_IN_BYTES;
@@ -75,30 +53,26 @@ impl ByteDecodeProperties for InputString {
     }
 }
 
-/// Single compilation_unit of compilation, representing a single program
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Lane {
+    pub name: String,
+    pub cards: Vec<Card>,
+}
+
+/// Single compilation unit of compilation, representing a single program
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompilationUnit {
-    pub nodes: Nodes,
-    pub sub_programs: Option<HashMap<String, SubProgram>>,
+    pub lanes: Vec<Lane>,
 }
 
-impl CompilationUnit {
-    pub fn with_node(mut self, id: i32, node: AstNode) -> Self {
-        self.nodes.insert(id, node);
-        self
-    }
-}
+pub struct Compiler<'a> {
+    pub logger: Logger,
+    pub program: CompiledProgram,
 
-/// Subprograms are groups of nodes
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct SubProgram {
-    pub start: NodeId,
-}
+    /// maps lane names to their indices
+    pub jump_table: HashMap<String, NodeId>,
 
-pub struct Compiler {
-    logger: Logger,
-    compilation_unit: CompilationUnit,
-    program: CompiledProgram,
+    _m: std::marker::PhantomData<&'a ()>,
 }
 
 pub fn compile(
@@ -110,203 +84,133 @@ pub fn compile(
         .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
 
     info!(logger, "compilation start");
-    if compilation_unit.nodes.is_empty() {
+    if compilation_unit.lanes.is_empty() {
         return Err(CompilationError::EmptyProgram);
     }
+    // check if len fits in 16 bits
+    let _: u16 = match compilation_unit.lanes.len().try_into() {
+        Ok(i) => i,
+        Err(_) => return Err(CompilationError::TooManyLanes),
+    };
     let mut compiler = Compiler {
         logger,
-        compilation_unit,
         program: CompiledProgram::default(),
+        jump_table: Default::default(),
+        _m: Default::default(),
     };
-    let start = compiler
-        .compilation_unit
-        .nodes
-        .iter()
-        .find(|(_, v)| matches!(v.node, InstructionNode::Start))
-        .ok_or(CompilationError::NoStart)?;
 
-    let mut nodes = compiler
-        .compilation_unit
-        .nodes
-        .iter()
-        .map(|(k, _)| *k)
-        .collect::<HashSet<_>>();
-    let mut todo = VecDeque::<i32>::with_capacity(compiler.compilation_unit.nodes.len());
-    todo.push_back(*start.0);
-    let mut seen = HashSet::with_capacity(compiler.compilation_unit.nodes.len());
-
-    loop {
-        while !todo.is_empty() {
-            let current = todo.pop_front().unwrap();
-            debug!(compiler.logger, "procesing node {:?}", current);
-            nodes.remove(&current);
-            seen.insert(current);
-            process_node(current, &compiler.compilation_unit, &mut compiler.program)?;
-            match compiler.compilation_unit.nodes[&current].child {
-                None => {
-                    compiler.program.bytecode.push(Instruction::Exit as u8);
-                    current.encode(&mut compiler.program.bytecode).unwrap();
-                }
-                Some(nodeid) => {
-                    if !seen.contains(&nodeid) {
-                        todo.push_front(nodeid);
-                    } else {
-                        debug!(
-                            compiler.logger,
-                            "child nodeid of nodeid {:?} already visited: {:?}", current, nodeid
-                        );
-                        compiler.program.bytecode.push(Instruction::Jump as u8);
-                        // breadcrum
-                        current.encode(&mut compiler.program.bytecode).unwrap();
-                        // jump input
-                        nodeid.encode(&mut compiler.program.bytecode).unwrap();
-                    }
-                }
-            }
+    let mut lanes = Vec::with_capacity(compilation_unit.lanes.len());
+    for (i, n) in compilation_unit.lanes.into_iter().enumerate() {
+        if compiler.jump_table.contains_key(n.name.as_str()) {
+            return Err(CompilationError::DuplicateName(n.name.clone()));
         }
-        match nodes.iter().next() {
-            Some(node) => todo.push_back(*node),
-            None => break,
-        }
+        lanes.push((i, n.cards));
+        compiler.jump_table.insert(
+            n.name,
+            NodeId {
+                // we know that i fits in 16 bits from the check above
+                lane: i as u16,
+                pos: 0,
+            },
+        );
     }
 
-    check_post_invariants(&compiler)?;
+    for (il, lane) in lanes {
+        info!(compiler.logger, "procesing lane #{}", il);
+        // check if len fits in 16 bits
+        let len: u16 = match lane.len().try_into() {
+            Ok(i) => i,
+            Err(_) => return Err(CompilationError::TooManyCards(il)),
+        };
+        for (ic, card) in lane.into_iter().enumerate() {
+            let nodeid = NodeId {
+                lane: il as u16,
+                pos: ic as u16,
+            };
+            debug!(compiler.logger, "procesing card {:?}", nodeid);
+            compiler.process_node(nodeid, card)?;
+        }
+        // insert exit node, so execution stops even if the bytecode contains
+        // additional cards after this lane...
+        // also, this is why empty lanes are valid
+        compiler.process_node(
+            NodeId {
+                lane: il as u16,
+                pos: len,
+            },
+            Card::ExitWithCode(card::IntegerNode(0)),
+        )?;
+    }
+
     info!(compiler.logger, "compilation end");
     Ok(compiler.program)
 }
 
-fn check_post_invariants(compiler: &Compiler) -> Result<(), CompilationError> {
-    info!(compiler.logger, "checking invariants post compile");
-    for (nodeid, node) in compiler.compilation_unit.nodes.iter() {
-        match node.node {
-            InstructionNode::Jump(ref jump) | InstructionNode::JumpIfTrue(ref jump) => {
-                check_jump_post_conditions(*nodeid, jump, &compiler.program.labels)?;
-            }
-            _ => {}
+impl<'a> Compiler<'a> {
+    /// If no `logger` is provided, falls back to the 'standard' log crate.
+    pub fn new<L: Into<Option<Logger>>>(logger: L) -> Self {
+        Compiler {
+            logger: logger
+                .into()
+                .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!())),
+            program: CompiledProgram::default(),
+            jump_table: Default::default(),
+            _m: Default::default(),
         }
     }
-    info!(compiler.logger, "checking invariants post compile done");
-    Ok(())
-}
 
-fn check_jump_post_conditions(
-    nodeid: NodeId,
-    jump: &JumpNode,
-    labels: &Labels,
-) -> Result<(), CompilationError> {
-    if jump.0 == nodeid {
-        return Err(CompilationError::InvalidJump {
-            src: nodeid,
-            dst: nodeid,
-            msg: Some(format!(
-                "Node {} is trying to jump to its own position. This is not allowed!",
-                nodeid
-            )),
-        });
-    }
-    if !labels.contains_key(&jump.0) {
-        return Err(CompilationError::InvalidJump {
-            src: nodeid,
-            dst: jump.0,
-            msg: Some(format!(
-                "Node {} is trying to jump to Non existing Node {}!",
-                nodeid, jump.0
-            )),
-        });
-    }
+    pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
+        use Card::*;
 
-    Ok(())
-}
+        let program = &mut self.program;
 
-#[derive(Debug, Clone, Copy)]
-enum PushError {
-    NoInstruction,
-    NodeNotFound,
-}
+        let ptr =
+            u32::try_from(program.bytecode.len()).expect("bytecode length to fit into 32 bits");
+        program.labels.0.insert(nodeid, Label::new(ptr));
 
-fn push_node(
-    nodeid: NodeId,
-    compilation_unit: &CompilationUnit,
-    program: &mut CompiledProgram,
-) -> Result<(), PushError> {
-    compilation_unit
-        .nodes
-        .get(&nodeid)
-        .ok_or(PushError::NodeNotFound)
-        .and_then(|node| {
-            // push the instruction
-            program
-                .bytecode
-                .push(node.node.instruction().ok_or(PushError::NoInstruction)? as u8);
-            // push breadcrum
+        if let Some(instr) = card.instruction() {
+            program.bytecode.push(instr as u8);
             nodeid.encode(&mut program.bytecode).unwrap();
-            Ok(())
-        })
-}
-
-fn process_node(
-    nodeid: NodeId,
-    compilation_unit: &CompilationUnit,
-    program: &mut CompiledProgram,
-) -> Result<(), CompilationError> {
-    use InstructionNode::*;
-
-    let node = compilation_unit
-        .nodes
-        .get(&nodeid)
-        .ok_or(CompilationError::MissingNode(nodeid))?
-        .clone();
-
-    let fromlabel =
-        u32::try_from(program.bytecode.len()).expect("bytecode length to fit into 32 bits");
-    program.labels.insert(nodeid, Label::new(fromlabel));
-
-    let instruction = node.node;
-
-    match instruction {
-        Pop | Equals | Less | LessOrEq | NotEquals | Exit | Start | Pass | CopyLast | Add | Sub
-        | Mul | Div | ClearStack => {
-            push_node(nodeid, compilation_unit, program).unwrap();
         }
-        ReadVar(variable) | SetVar(variable) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            variable.0.encode(&mut program.bytecode).unwrap();
-        }
-        JumpIfFalse(j) | JumpIfTrue(j) | Jump(j) => {
-            let label = j.0;
-            if label == nodeid {
-                return Err(CompilationError::InvalidJump {
-                    src: nodeid,
-                    dst: nodeid,
-                    msg: Some(format!(
-                        "Node {:?} is trying to Jump to its own location which is not supported",
-                        nodeid
-                    )),
-                });
+        match card {
+            Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast | Add | Sub
+            | Mul | Div | ClearStack => {}
+            ReadVar(variable) | SetVar(variable) => {
+                variable.0.encode(&mut program.bytecode).unwrap();
             }
-            push_node(nodeid, compilation_unit, program).unwrap();
-            label.encode(&mut program.bytecode).unwrap();
+            JumpIfFalse(jmp) | JumpIfTrue(jmp) | Jump(jmp) => {
+                let to = self.jump_table.get(jmp.0.as_str()).ok_or_else(|| {
+                    CompilationError::InvalidJump {
+                        src: nodeid,
+                        dst: jmp.0,
+                        msg: None,
+                    }
+                })?;
+                to.encode(&mut program.bytecode).unwrap();
+            }
+            StringLiteral(c) => {
+                c.0.encode(&mut program.bytecode).unwrap();
+            }
+            Call(c) => {
+                c.0.encode(&mut program.bytecode).unwrap();
+            }
+            ScalarArray(n) => {
+                n.0.encode(&mut program.bytecode).unwrap();
+            }
+            ExitWithCode(s) => {
+                program.bytecode.push(Instruction::ScalarInt as u8);
+                nodeid.encode(&mut program.bytecode).unwrap();
+                s.0.encode(&mut program.bytecode).unwrap();
+                program.bytecode.push(Instruction::Exit as u8);
+                nodeid.encode(&mut program.bytecode).unwrap();
+            }
+            ScalarLabel(s) | ScalarInt(s) => {
+                s.0.encode(&mut program.bytecode).unwrap();
+            }
+            ScalarFloat(s) => {
+                s.0.encode(&mut program.bytecode).unwrap();
+            }
         }
-        StringLiteral(c) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            c.0.encode(&mut program.bytecode).unwrap();
-        }
-        Call(c) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            c.0.encode(&mut program.bytecode).unwrap();
-        }
-        ScalarArray(n) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            n.0.encode(&mut program.bytecode).unwrap();
-        }
-        ScalarLabel(s) | ScalarInt(s) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            s.0.encode(&mut program.bytecode).unwrap();
-        }
-        ScalarFloat(s) => {
-            push_node(nodeid, compilation_unit, program).unwrap();
-            s.0.encode(&mut program.bytecode).unwrap();
-        }
+        Ok(())
     }
-    Ok(())
 }

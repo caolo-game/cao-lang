@@ -1,4 +1,4 @@
-use super::InstructionNode;
+use super::Card;
 use crate::scalar::Scalar;
 use crate::traits::ByteEncodeble;
 use crate::NodeId;
@@ -6,48 +6,38 @@ use crate::Pointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
-pub fn get_instruction_descriptions() -> [SubProgram<'static>; 22] {
-    [
-        get_desc(InstructionNode::Start),
-        get_desc(InstructionNode::Pass),
-        get_desc(InstructionNode::Add),
-        get_desc(InstructionNode::Sub),
-        get_desc(InstructionNode::Mul),
-        get_desc(InstructionNode::Div),
-        get_desc(InstructionNode::CopyLast),
-        get_desc(InstructionNode::Less),
-        get_desc(InstructionNode::LessOrEq),
-        get_desc(InstructionNode::Equals),
-        get_desc(InstructionNode::NotEquals),
-        get_desc(InstructionNode::Pop),
-        get_desc(InstructionNode::ClearStack),
-        get_desc(InstructionNode::ScalarInt(Default::default())),
-        get_desc(InstructionNode::ScalarFloat(Default::default())),
-        get_desc(InstructionNode::ScalarArray(Default::default())),
-        get_desc(InstructionNode::StringLiteral(Default::default())),
-        get_desc(InstructionNode::JumpIfTrue(Default::default())),
-        get_desc(InstructionNode::JumpIfFalse(Default::default())),
-        get_desc(InstructionNode::Jump(Default::default())),
-        get_desc(InstructionNode::SetVar(Default::default())),
-        get_desc(InstructionNode::ReadVar(Default::default())),
+pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
+    vec![
+        get_desc(Card::Pass),
+        get_desc(Card::Add),
+        get_desc(Card::Sub),
+        get_desc(Card::Mul),
+        get_desc(Card::Div),
+        get_desc(Card::CopyLast),
+        get_desc(Card::Less),
+        get_desc(Card::LessOrEq),
+        get_desc(Card::Equals),
+        get_desc(Card::NotEquals),
+        get_desc(Card::Pop),
+        get_desc(Card::ClearStack),
+        get_desc(Card::ScalarInt(Default::default())),
+        get_desc(Card::ScalarFloat(Default::default())),
+        get_desc(Card::ScalarArray(Default::default())),
+        get_desc(Card::StringLiteral(Default::default())),
+        get_desc(Card::JumpIfTrue(Default::default())),
+        get_desc(Card::JumpIfFalse(Default::default())),
+        get_desc(Card::Jump(Default::default())),
+        get_desc(Card::SetVar(Default::default())),
+        get_desc(Card::ReadVar(Default::default())),
+        get_desc(Card::ExitWithCode(Default::default())),
     ]
 }
 
 #[inline(always)]
-fn get_desc(node: InstructionNode) -> SubProgram<'static> {
+fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
-        InstructionNode::Call(_) | InstructionNode::ScalarLabel(_) | InstructionNode::Exit => {
-            unreachable!()
-        }
-        InstructionNode::Start => subprogram_description!(
-            "Start",
-            "Start of the program",
-            SubProgramType::Instruction,
-            [],
-            [],
-            []
-        ),
-        InstructionNode::Pass => subprogram_description!(
+        Card::Call(_) | Card::ScalarLabel(_) | Card::Exit => unreachable!(),
+        Card::Pass => subprogram_description!(
             "Pass",
             "Do nothing",
             SubProgramType::Instruction,
@@ -55,7 +45,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [],
             []
         ),
-        InstructionNode::Add => subprogram_description!(
+        Card::Add => subprogram_description!(
             "Add",
             "Add two scalars",
             SubProgramType::Instruction,
@@ -64,7 +54,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::Sub => subprogram_description!(
+        Card::Sub => subprogram_description!(
             "Sub",
             "Subtract two scalars",
             SubProgramType::Instruction,
@@ -73,7 +63,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::Mul => subprogram_description!(
+        Card::Mul => subprogram_description!(
             "Mul",
             "Multiply two scalars",
             SubProgramType::Instruction,
@@ -82,7 +72,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::Div => subprogram_description!(
+        Card::Div => subprogram_description!(
             "Div",
             "Divide two scalars",
             SubProgramType::Instruction,
@@ -91,7 +81,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::CopyLast => subprogram_description!(
+        Card::CopyLast => subprogram_description!(
             "CopyLast",
             "Duplicate the last item on the stack",
             SubProgramType::Instruction,
@@ -99,7 +89,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [Scalar, Scalar],
             []
         ),
-        InstructionNode::Less => subprogram_description!(
+        Card::Less => subprogram_description!(
             "Less",
             "Return 1 if the first input is less than the second, 0 otherwise",
             SubProgramType::Instruction,
@@ -108,7 +98,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::LessOrEq => subprogram_description!(
+        Card::LessOrEq => subprogram_description!(
             "LessOrEq",
             "Return 1 if the first input is less than or equal to the second, 0 otherwise",
             SubProgramType::Instruction,
@@ -117,7 +107,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::Equals => subprogram_description!(
+        Card::Equals => subprogram_description!(
             "Equals",
             "Return 1 if the inputs are equal, 0 otherwise",
             SubProgramType::Instruction,
@@ -126,7 +116,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::NotEquals => subprogram_description!(
+        Card::NotEquals => subprogram_description!(
             "NotEquals",
             "Return 0 if the inputs are equal, 1 otherwise",
             SubProgramType::Instruction,
@@ -135,7 +125,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::Pop => subprogram_description!(
+        Card::Pop => subprogram_description!(
             "Pop",
             "Pops the top elements on the stack and discards it",
             SubProgramType::Instruction,
@@ -144,7 +134,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::ClearStack => subprogram_description!(
+        Card::ClearStack => subprogram_description!(
             "ClearStack",
             "Clears the stack",
             SubProgramType::Instruction,
@@ -153,7 +143,16 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::ScalarInt(_) => subprogram_description!(
+        Card::ExitWithCode(_) => subprogram_description!(
+            "ExitWithCode",
+            "Exit the program returning the provided status code",
+            SubProgramType::Instruction,
+            [],
+            [],
+            [i32]
+        ),
+
+        Card::ScalarInt(_) => subprogram_description!(
             "ScalarInt",
             "Make an integer",
             SubProgramType::Instruction,
@@ -162,7 +161,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [i32]
         ),
 
-        InstructionNode::ScalarFloat(_) => subprogram_description!(
+        Card::ScalarFloat(_) => subprogram_description!(
             "ScalarFloat",
             "Make a real number",
             SubProgramType::Instruction,
@@ -171,7 +170,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [f32]
         ),
 
-        InstructionNode::ScalarArray(_) => subprogram_description!(
+        Card::ScalarArray(_) => subprogram_description!(
             "ScalarArray",
             "Make an array by providing a number and values",
             SubProgramType::Instruction,
@@ -180,7 +179,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             []
         ),
 
-        InstructionNode::StringLiteral(_) => subprogram_description!(
+        Card::StringLiteral(_) => subprogram_description!(
             "StringLiteral",
             "Make a text",
             SubProgramType::Instruction,
@@ -189,7 +188,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [String]
         ),
 
-        InstructionNode::JumpIfTrue(_) => subprogram_description!(
+        Card::JumpIfTrue(_) => subprogram_description!(
             "JumpIfTrue",
             "Jump to the input node if the last value is true else do nothing.",
             SubProgramType::Branch,
@@ -198,7 +197,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [NodeId]
         ),
 
-        InstructionNode::JumpIfFalse(_) => subprogram_description!(
+        Card::JumpIfFalse(_) => subprogram_description!(
             "JumpIfFalse",
             "Jump to the input node if the last value is false else do nothing.",
             SubProgramType::Branch,
@@ -207,7 +206,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [NodeId]
         ),
 
-        InstructionNode::Jump(_) => subprogram_description!(
+        Card::Jump(_) => subprogram_description!(
             "Jump",
             "Jump to the input node.",
             SubProgramType::Branch,
@@ -216,7 +215,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [NodeId]
         ),
 
-        InstructionNode::SetVar(_) => subprogram_description!(
+        Card::SetVar(_) => subprogram_description!(
             "SetVar",
             "Sets the value of a variable",
             SubProgramType::Instruction,
@@ -225,7 +224,7 @@ fn get_desc(node: InstructionNode) -> SubProgram<'static> {
             [VarName]
         ),
 
-        InstructionNode::ReadVar(_) => subprogram_description!(
+        Card::ReadVar(_) => subprogram_description!(
             "ReadVar",
             "Read the value of a variable",
             SubProgramType::Instruction,

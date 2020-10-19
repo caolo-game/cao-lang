@@ -116,22 +116,22 @@ impl AutoByteEncodeProperties for i64 {
 }
 impl AutoByteEncodeProperties for u8 {
     fn displayname() -> &'static str {
-        "Integer"
+        "Unsigned Integer"
     }
 }
 impl AutoByteEncodeProperties for u16 {
     fn displayname() -> &'static str {
-        "Integer"
+        "Unsigned Integer"
     }
 }
 impl AutoByteEncodeProperties for u32 {
     fn displayname() -> &'static str {
-        "Integer"
+        "Unsigned Integer"
     }
 }
 impl AutoByteEncodeProperties for u64 {
     fn displayname() -> &'static str {
-        "Integer"
+        "Unsigned Integer"
     }
 }
 impl AutoByteEncodeProperties for f32 {

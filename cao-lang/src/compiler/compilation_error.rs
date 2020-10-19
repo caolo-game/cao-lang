@@ -9,17 +9,24 @@ pub enum CompilationError {
     #[error("No start node was found")]
     NoStart,
 
+    #[error("Number of lanes may not be larger than 2^16 - 1 = 65535")]
+    TooManyLanes,
+    #[error("Lanes {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
+    TooManyCards(usize),
+
+    #[error("Lane names must be unique. Found duplicated name: {0}")]
+    DuplicateName(String),
+
     #[error("SubProgram: [{0}] was not found")]
     MissingSubProgram(InputString),
 
-    #[error("Program references node [{0}] but it was not found")]
+    #[error("Program references node [{0:?}] but it was not found")]
     MissingNode(NodeId),
 
-    /// Jumping from src to dst is illegal
-    #[error("Jumping from {src} to {dst} can not be performed\n{msg:?}")]
+    #[error("Jumping from {src:?} to {dst} can not be performed\n{msg:?}")]
     InvalidJump {
         src: NodeId,
-        dst: NodeId,
+        dst: String,
         msg: Option<String>,
     },
 

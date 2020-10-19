@@ -17,19 +17,14 @@ pub fn _start() {
 ///
 /// ```json
 /// {
-///     "nodes": {
-///         "0": {
-///             "node": {
-///                 "Start": null
-///             },
-///             "child": 1
-///         },
-///         "1": {
-///             "node": {
+///     "lanes": [{
+///         "name": "Foo",
+///         "cards": [
+///             {
 ///                 "ScalarInt": 1
 ///             }
-///         }
-///     }
+///         ]
+///     }]
 /// }
 /// ```
 ///
@@ -40,20 +35,21 @@ pub fn compile(compilation_unit: JsValue) -> Result<JsValue, JsValue> {
         .map_err(err_to_js)?;
     caoc::compile(None, cu)
         .map_err(err_to_js)
-        .map(|res| JsValue::from_serde(&res).unwrap())
+        .map(|res| JsValue::from_serde(&res).expect("Failed to serialize program"))
 }
 
 #[wasm_bindgen]
 #[derive(Debug)]
-pub struct CompileResult {
+pub struct RunResult {
     #[wasm_bindgen(js_name = "returnCode")]
     pub return_code: i32,
 
-    history: Vec<cao_lang::vm::HistoryEntry>,
+    #[wasm_bindgen(skip)]
+    pub history: Vec<cao_lang::vm::HistoryEntry>,
 }
 
 #[wasm_bindgen]
-impl CompileResult {
+impl RunResult {
     #[wasm_bindgen(getter)]
     pub fn history(&self) -> Box<[JsValue]> {
         self.history
@@ -68,13 +64,13 @@ impl CompileResult {
 /// Runs the given compiled Cao-Lang program (output of `compile`).
 ///
 /// Will run in a 'plain' VM, no custom methods will be available!
-#[wasm_bindgen(js_name="runProgram")]
-pub fn run_program(program: JsValue) -> Result<CompileResult, JsValue> {
+#[wasm_bindgen(js_name = "runProgram")]
+pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = VM::new(None, ());
-    let program: cao_lang::CompiledProgram = program.into_serde().map_err(err_to_js)?;
+    let program: cao_lang::prelude::CompiledProgram = program.into_serde().map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|res| {
         let history = take(&mut vm.history);
-        CompileResult {
+        RunResult {
             return_code: res,
             history,
         }

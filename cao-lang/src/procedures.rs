@@ -6,6 +6,7 @@ use crate::vm::VM;
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 use thiserror::Error;
+use crate::NodeId;
 
 pub type ExecutionResult = Result<(), ExecutionError>;
 
@@ -15,8 +16,8 @@ pub enum ExecutionError {
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]
     ExitCode(i32),
-    #[error("Got an invalid label: {0}")]
-    InvalidLabel(i32),
+    #[error("Got an invalid label: {0:?}")]
+    InvalidLabel(NodeId),
     #[error("Got an invalid instruction code {0}")]
     InvalidInstruction(u8),
     #[error("Got an invalid argument to function call; {}",

@@ -2,11 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 /// Single instruction of the interpreter
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Instruction {
-    /// The first node executed
-    Start = 0,
     /// Add two numbers
     Add = 1,
     /// Subtract two numbers
@@ -73,7 +71,6 @@ impl TryFrom<u8> for Instruction {
     fn try_from(c: u8) -> Result<Instruction, Self::Error> {
         use Instruction::*;
         match c {
-            0 => Ok(Start),
             1 => Ok(Add),
             2 => Ok(Sub),
             5 => Ok(Mul),
