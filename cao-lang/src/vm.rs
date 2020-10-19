@@ -6,8 +6,8 @@ use crate::{binary_compare, pop_stack};
 use serde::{Deserialize, Serialize};
 use slog::{debug, info, trace, warn};
 use slog::{o, Drain, Logger};
-use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::{collections::HashMap, mem};
 
 type ConvertFn<Aux> = unsafe fn(&Object, &VM<Aux>) -> Box<dyn ObjectProperties>;
 
@@ -50,7 +50,7 @@ impl Object {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 pub struct HistoryEntry {
     pub id: NodeId,
-    pub instr: Instruction,
+    pub instr: Option<Instruction>,
 }
 
 /// Cao-Lang bytecode interpreter.
@@ -328,12 +328,15 @@ impl<Aux> VM<Aux> {
                 ptr
             );
             ptr += 1;
-            {
-                let nodeid = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
-                trace!(self.logger, "Logging visited node {:?}", nodeid);
-                self.history.push(HistoryEntry { id: nodeid, instr });
-            }
             match instr {
+                Instruction::Breadcrumb => {
+                    let nodeid = Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
+                    let instr = program.bytecode[ptr];
+                    let instr = Instruction::try_from(instr).ok();
+                    ptr += 1;
+                    trace!(self.logger, "Logging visited node {:?}", nodeid);
+                    self.history.push(HistoryEntry { id: nodeid, instr });
+                }
                 Instruction::ClearStack => {
                     self.stack.clear();
                 }
@@ -458,9 +461,9 @@ impl<Aux> VM<Aux> {
                         .ok_or_else(|| ExecutionError::invalid_argument(None))?;
                     let obj = self.set_value_with_decoder(literal, |o, vm| {
                         // SAFETY
-                        // As long as the same VM instance's accessors are used this should be fine
-                        // (tm)
-                        let vm: &'static Self = unsafe { std::mem::transmute(vm) };
+                        // As long as the same VM instance's accessors are used this should be
+                        // fine (tm)
+                        let vm: &'static Self = unsafe { mem::transmute(vm) };
                         let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
                         Box::new(res)
                     })?;
@@ -605,7 +608,7 @@ mod tests {
             "#;
 
         let compilation_unit = serde_json::from_str(program).unwrap();
-        let program = crate::compiler::compile(None, compilation_unit).unwrap();
+        let program = crate::compiler::compile(None, compilation_unit, None).unwrap();
 
         let mut vm = VM::new(None, ());
         vm.memory_limit = 8;

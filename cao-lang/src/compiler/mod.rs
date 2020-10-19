@@ -1,5 +1,7 @@
 mod card;
 mod compilation_error;
+mod compile_options;
+
 pub mod description;
 
 #[cfg(test)]
@@ -13,13 +15,14 @@ use crate::{
 };
 pub use card::*;
 pub use compilation_error::*;
+pub use compile_options::*;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::convert::{Infallible, TryInto};
 use std::fmt::Debug;
+use std::{collections::HashMap, mem};
 
 impl ByteEncodeble for InputString {
     const BYTELEN: usize = INPUT_STR_LEN_IN_BYTES;
@@ -67,83 +70,22 @@ pub struct CompilationUnit {
 
 pub struct Compiler<'a> {
     pub logger: Logger,
-    pub program: CompiledProgram,
 
     /// maps lane names to their indices
     pub jump_table: HashMap<String, NodeId>,
 
+    pub options: CompileOptions,
+    pub program: CompiledProgram,
     _m: std::marker::PhantomData<&'a ()>,
 }
 
 pub fn compile(
     logger: impl Into<Option<Logger>>,
     compilation_unit: CompilationUnit,
+    compile_options: impl Into<Option<CompileOptions>>,
 ) -> Result<CompiledProgram, CompilationError> {
-    let logger = logger
-        .into()
-        .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
-
-    info!(logger, "compilation start");
-    if compilation_unit.lanes.is_empty() {
-        return Err(CompilationError::EmptyProgram);
-    }
-    // check if len fits in 16 bits
-    let _: u16 = match compilation_unit.lanes.len().try_into() {
-        Ok(i) => i,
-        Err(_) => return Err(CompilationError::TooManyLanes),
-    };
-    let mut compiler = Compiler {
-        logger,
-        program: CompiledProgram::default(),
-        jump_table: Default::default(),
-        _m: Default::default(),
-    };
-
-    let mut lanes = Vec::with_capacity(compilation_unit.lanes.len());
-    for (i, n) in compilation_unit.lanes.into_iter().enumerate() {
-        if compiler.jump_table.contains_key(n.name.as_str()) {
-            return Err(CompilationError::DuplicateName(n.name));
-        }
-        lanes.push((i, n.cards));
-        compiler.jump_table.insert(
-            n.name,
-            NodeId {
-                // we know that i fits in 16 bits from the check above
-                lane: i as u16,
-                pos: 0,
-            },
-        );
-    }
-
-    for (il, lane) in lanes {
-        info!(compiler.logger, "procesing lane #{}", il);
-        // check if len fits in 16 bits
-        let len: u16 = match lane.len().try_into() {
-            Ok(i) => i,
-            Err(_) => return Err(CompilationError::TooManyCards(il)),
-        };
-        for (ic, card) in lane.into_iter().enumerate() {
-            let nodeid = NodeId {
-                lane: il as u16,
-                pos: ic as u16,
-            };
-            debug!(compiler.logger, "procesing card {:?}", nodeid);
-            compiler.process_node(nodeid, card)?;
-        }
-        // insert exit node, so execution stops even if the bytecode contains
-        // additional cards after this lane...
-        // also, this is why empty lanes are valid
-        compiler.process_node(
-            NodeId {
-                lane: il as u16,
-                pos: len,
-            },
-            Card::ExitWithCode(card::IntegerNode(0)),
-        )?;
-    }
-
-    info!(compiler.logger, "compilation end");
-    Ok(compiler.program)
+    let mut compiler = Compiler::new(logger);
+    compiler.compile(compilation_unit, compile_options)
 }
 
 impl<'a> Compiler<'a> {
@@ -155,8 +97,75 @@ impl<'a> Compiler<'a> {
                 .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!())),
             program: CompiledProgram::default(),
             jump_table: Default::default(),
+            options: Default::default(),
             _m: Default::default(),
         }
+    }
+
+    pub fn compile(
+        &mut self,
+        compilation_unit: CompilationUnit,
+        compile_options: impl Into<Option<CompileOptions>>,
+    ) -> Result<CompiledProgram, CompilationError> {
+        self.options = compile_options.into().unwrap_or_default();
+
+        info!(self.logger, "compilation start");
+        if compilation_unit.lanes.is_empty() {
+            return Err(CompilationError::EmptyProgram);
+        }
+        // check if len fits in 16 bits
+        let _: u16 = match compilation_unit.lanes.len().try_into() {
+            Ok(i) => i,
+            Err(_) => return Err(CompilationError::TooManyLanes),
+        };
+
+        self.program = CompiledProgram::default();
+
+        let mut lanes = Vec::with_capacity(compilation_unit.lanes.len());
+        for (i, n) in compilation_unit.lanes.into_iter().enumerate() {
+            if self.jump_table.contains_key(n.name.as_str()) {
+                return Err(CompilationError::DuplicateName(n.name));
+            }
+            lanes.push((i, n.cards));
+            self.jump_table.insert(
+                n.name,
+                NodeId {
+                    // we know that i fits in 16 bits from the check above
+                    lane: i as u16,
+                    pos: 0,
+                },
+            );
+        }
+
+        for (il, lane) in lanes {
+            info!(self.logger, "procesing lane #{}", il);
+            // check if len fits in 16 bits
+            let len: u16 = match lane.len().try_into() {
+                Ok(i) => i,
+                Err(_) => return Err(CompilationError::TooManyCards(il)),
+            };
+            for (ic, card) in lane.into_iter().enumerate() {
+                let nodeid = NodeId {
+                    lane: il as u16,
+                    pos: ic as u16,
+                };
+                debug!(self.logger, "procesing card {:?}", nodeid);
+                self.process_node(nodeid, card)?;
+            }
+            // insert exit node, so execution stops even if the bytecode contains
+            // additional cards after this lane...
+            // also, this is why empty lanes are valid
+            self.process_node(
+                NodeId {
+                    lane: il as u16,
+                    pos: len,
+                },
+                Card::ExitWithCode(card::IntegerNode(0)),
+            )?;
+        }
+
+        info!(self.logger, "compilation end");
+        Ok(mem::take(&mut self.program))
     }
 
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
@@ -169,8 +178,14 @@ impl<'a> Compiler<'a> {
         program.labels.0.insert(nodeid, Label::new(ptr));
 
         if let Some(instr) = card.instruction() {
+            if self.options.breadcrumbs {
+                program.bytecode.push(Instruction::Breadcrumb as u8);
+                nodeid.encode(&mut program.bytecode).unwrap();
+                // instr for the breadcrumb
+                program.bytecode.push(instr as u8);
+            }
+            // instruction itself
             program.bytecode.push(instr as u8);
-            nodeid.encode(&mut program.bytecode).unwrap();
         }
         match card {
             Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast | Add | Sub
@@ -200,10 +215,8 @@ impl<'a> Compiler<'a> {
             }
             ExitWithCode(s) => {
                 program.bytecode.push(Instruction::ScalarInt as u8);
-                nodeid.encode(&mut program.bytecode).unwrap();
                 s.0.encode(&mut program.bytecode).unwrap();
                 program.bytecode.push(Instruction::Exit as u8);
-                nodeid.encode(&mut program.bytecode).unwrap();
             }
             ScalarLabel(s) | ScalarInt(s) => {
                 s.0.encode(&mut program.bytecode).unwrap();

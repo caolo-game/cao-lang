@@ -17,7 +17,7 @@ fn can_compile_simple_program() {
         "cards": [ { "ScalarInt": 69 } ]
         }]
     });
-    let result = compile(JsValue::from_serde(&cu).unwrap());
+    let result = compile(JsValue::from_serde(&cu).unwrap(), None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
 }
@@ -30,7 +30,7 @@ fn can_run_simple_program() {
             "cards": [ { "StringLiteral": "Poggers" } ]
         }]
     });
-    let program = compile(JsValue::from_serde(&cu).unwrap()).unwrap();
+    let program = compile(JsValue::from_serde(&cu).unwrap(), None).unwrap();
 
     let result = run_program(program).expect("Failed to run");
 
@@ -38,7 +38,7 @@ fn can_run_simple_program() {
         &result.history[..1],
         &[cao_lang::vm::HistoryEntry {
             id: NodeId { lane: 0, pos: 0 },
-            instr: Instruction::StringLiteral
+            instr: Some(Instruction::StringLiteral)
         }]
     )
 }

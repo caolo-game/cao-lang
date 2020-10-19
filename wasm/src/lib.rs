@@ -22,6 +22,9 @@ pub fn _start() {
 ///         "cards": [
 ///             {
 ///                 "ScalarInt": 1
+///             },
+///             {
+///                 "Pass": null
 ///             }
 ///         ]
 ///     }]
@@ -29,13 +32,30 @@ pub fn _start() {
 /// ```
 ///
 #[wasm_bindgen]
-pub fn compile(compilation_unit: JsValue) -> Result<JsValue, JsValue> {
+pub fn compile(
+    compilation_unit: JsValue,
+    compile_options: Option<CompileOptions>,
+) -> Result<JsValue, JsValue> {
     let cu = compilation_unit
         .into_serde::<caoc::CompilationUnit>()
         .map_err(err_to_js)?;
-    caoc::compile(None, cu)
+    let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
+    caoc::compile(None, cu, ops)
         .map_err(err_to_js)
         .map(|res| JsValue::from_serde(&res).expect("Failed to serialize program"))
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Default)]
+pub struct CompileOptions {
+    /// Emit breadcrumbs / history when executing this program
+    pub breadcrumbs: bool,
+}
+
+impl Into<caoc::CompileOptions> for CompileOptions {
+    fn into(self) -> caoc::CompileOptions {
+        caoc::CompileOptions::new().with_breadcrumbs(self.breadcrumbs)
+    }
 }
 
 #[wasm_bindgen]

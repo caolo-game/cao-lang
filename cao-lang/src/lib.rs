@@ -26,7 +26,7 @@
 //!}"#;
 //!
 //!let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
-//!cao_lang::compiler::compile(None, compilation_unit).unwrap();
+//!cao_lang::compiler::compile(None, compilation_unit, None).unwrap();
 //!```
 //!
 

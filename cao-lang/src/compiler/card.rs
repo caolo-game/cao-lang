@@ -106,6 +106,7 @@ impl Card {
     fn _instruction_to_node(instr: Instruction) {
         match instr {
             Instruction::SetVar
+            | Instruction::Breadcrumb
             | Instruction::ReadVar
             | Instruction::Pop
             | Instruction::Less

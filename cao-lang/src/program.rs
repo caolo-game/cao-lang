@@ -19,7 +19,7 @@ impl Label {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CompiledProgram {
-    /// Bytecode layout: (instr breadcrum [data])+
+    /// Bytecode layout: (instr [data])*
     pub bytecode: Vec<u8>,
     pub labels: Labels,
 }

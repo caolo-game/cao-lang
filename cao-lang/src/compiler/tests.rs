@@ -54,7 +54,7 @@ fn compiling_simple_program() {
             cards,
         }],
     };
-    let program = compile(None, program).unwrap();
+    let program = compile(None, program, None).unwrap();
 
     // Compilation was successful
 
@@ -103,11 +103,11 @@ fn simple_looping_program() {
             },
         ],
     };
-    let program = compile(None, program).unwrap();
+    let program = compile(None, program, None).unwrap();
 
     // Compilation was successful
 
-    let mut vm = VM::new(None, ()).with_max_iter(50);
+    let mut vm = VM::new(None, ()).with_max_iter(150);
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
@@ -122,4 +122,64 @@ fn simple_looping_program() {
             Scalar::Integer(42069),
         ]
     );
+}
+
+#[test]
+fn breadcrumbs_work_as_expected() {
+    simple_logger::SimpleLogger::new()
+        .init()
+        .unwrap_or_default();
+
+    let cu = CompilationUnit {
+        lanes: vec![Lane {
+            name: "Main".to_owned(),
+            cards: vec![Card::Pass, Card::Pass, Card::Pass],
+        }],
+    };
+
+    let prog = compile(
+        None,
+        cu.clone(),
+        CompileOptions::new().with_breadcrumbs(true),
+    )
+    .unwrap();
+    let mut vm = VM::new(None, ());
+    vm.run(&prog).expect("run failed");
+
+    assert_eq!(
+        vm.history,
+        vec![
+            crate::vm::HistoryEntry {
+                id: NodeId { lane: 0, pos: 0 },
+                instr: Some(Instruction::Pass)
+            },
+            crate::vm::HistoryEntry {
+                id: NodeId { lane: 0, pos: 1 },
+                instr: Some(Instruction::Pass)
+            },
+            crate::vm::HistoryEntry {
+                id: NodeId { lane: 0, pos: 2 },
+                instr: Some(Instruction::Pass)
+            }
+        ]
+    );
+}
+
+#[test]
+fn no_breadcrumbs_emitted_when_compiled_with_off() {
+    simple_logger::SimpleLogger::new()
+        .init()
+        .unwrap_or_default();
+
+    let cu = CompilationUnit {
+        lanes: vec![Lane {
+            name: "Main".to_owned(),
+            cards: vec![Card::Pass, Card::Pass, Card::Pass],
+        }],
+    };
+
+    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let mut vm = VM::new(None, ());
+    vm.run(&prog).expect("run failed");
+    assert_eq!(vm.history, vec![]);
 }

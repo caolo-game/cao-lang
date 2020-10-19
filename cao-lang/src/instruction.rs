@@ -63,6 +63,8 @@ pub enum Instruction {
     /// If the value at the top of the stack is falsy jumps to the input node
     /// Else does nothing
     JumpIfFalse = 32,
+    /// Insert a history entry
+    Breadcrumb = 33,
 }
 
 impl TryFrom<u8> for Instruction {
@@ -96,6 +98,7 @@ impl TryFrom<u8> for Instruction {
             30 => Ok(SetAndSwapVar),
             31 => Ok(ClearStack),
             32 => Ok(JumpIfFalse),
+            33 => Ok(Breadcrumb),
             _ => Err(c),
         }
     }
