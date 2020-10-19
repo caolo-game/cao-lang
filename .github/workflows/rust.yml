@@ -9,6 +9,9 @@ jobs:
         toolchain:
           - stable
           - nightly
+        include:
+          - toolchain: nightly
+            flags: "-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests"
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
@@ -26,6 +29,27 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+        env:
+          RUST_BACKTRACE: 1
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: ${{ matrix.flags }}
+          RUSTDOCFLAGS: "-Cpanic=abort"
+
+      - name: Install grcov
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+
+      - name: Generate coverage report
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: |
+          mkdir ./coverage
+          ./grcov ./target/debug -s . --token ${{ secrets.COVERALLS_TOKEN }} --ignore="/*" > ./coverage/lcov.info
+
+      - name: Coveralls
+        if: ${{ matrix.toolchain == 'nightly' }}
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   clippy_check:
     needs: [test]
