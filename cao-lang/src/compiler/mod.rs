@@ -102,7 +102,7 @@ pub fn compile(
     let mut lanes = Vec::with_capacity(compilation_unit.lanes.len());
     for (i, n) in compilation_unit.lanes.into_iter().enumerate() {
         if compiler.jump_table.contains_key(n.name.as_str()) {
-            return Err(CompilationError::DuplicateName(n.name.clone()));
+            return Err(CompilationError::DuplicateName(n.name));
         }
         lanes.push((i, n.cards));
         compiler.jump_table.insert(
@@ -179,13 +179,14 @@ impl<'a> Compiler<'a> {
                 variable.0.encode(&mut program.bytecode).unwrap();
             }
             JumpIfFalse(jmp) | JumpIfTrue(jmp) | Jump(jmp) => {
-                let to = self.jump_table.get(jmp.0.as_str()).ok_or_else(|| {
-                    CompilationError::InvalidJump {
-                        src: nodeid,
-                        dst: jmp.0,
-                        msg: None,
-                    }
-                })?;
+                let to =
+                    self.jump_table
+                        .get(jmp.0.as_str())
+                        .ok_or(CompilationError::InvalidJump {
+                            src: nodeid,
+                            dst: jmp.0,
+                            msg: None,
+                        })?;
                 to.encode(&mut program.bytecode).unwrap();
             }
             StringLiteral(c) => {
