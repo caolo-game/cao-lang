@@ -1,23 +1,40 @@
-on: [push, pull_request]
-
 name: Run WASM tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: wasm
 
 jobs:
   test:
     strategy:
       matrix:
         browser:
-          - "--chrome --headless"
-          - "--firefox --headless"
-          - "--node"
+          - chrome
+          - firefox
+          - node
+
+        include:
+          - browser: chrome
+            test-flags: --chrome --headless
+          - browser: firefox
+            test-flags: --firefox --headless
+          - browser: node
+            test-flags: --node
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: |
-          cd wasm
-          wasm-pack test ${{ matrix.browser }}
+          wasm-pack test ${{ matrix.test-flags }}
 
   package:
     runs-on: ubuntu-latest
@@ -26,7 +43,6 @@ jobs:
       - name: Install
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: |
-          cd wasm
           wasm-pack build --scope caolo-game -d out/pkg --dev
       - name: Upload pkg
         uses: actions/upload-artifact@v2
@@ -44,7 +60,7 @@ jobs:
           node-version: '12'
       - name: Install
         run: |
-          cd wasm/docs
+          cd docs
           npm install
       - name: Download pkg
         uses: actions/download-artifact@v2
@@ -53,7 +69,7 @@ jobs:
           path: wasm/out/pkg
       - name: Build docs
         run: |
-          cd wasm/docs
+          cd docs
           npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
 
       - name: Deploy 🚀
@@ -62,4 +78,4 @@ jobs:
         with:
             ACCESS_TOKEN: ${{ secrets.ACCESS_KEY }}
             BRANCH: gh-pages # The branch the action should deploy to.
-            FOLDER: wasm/out/docs # The folder the action should deploy.
+            FOLDER: out/docs # The folder the action should deploy.

@@ -1,0 +1,77 @@
+name: "Run Cao-Lang tests"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: cao-lang
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - nightly
+        include:
+          - toolchain: nightly
+            flags: "-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests"
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Run cargo test
+        run: cargo test
+        env:
+          RUST_BACKTRACE: 1
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: ${{ matrix.flags }}
+          RUSTDOCFLAGS: "-Cpanic=abort"
+
+      - name: Install grcov
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+
+      - name: Generate coverage report
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: |
+          mkdir ./coverage
+          ./grcov ./target/debug -s . --token ${{ secrets.COVERALLS_TOKEN }} --ignore="/*" > ./coverage/lcov.info
+
+      - name: Coveralls
+        if: ${{ matrix.toolchain == 'nightly' }}
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          base-path: cao-lang/
+          path-to-lcov: cao-lang/coverage/lcov.info
+
+  clippy_check:
+    needs: [test]
+    runs-on: ubuntu-latest
+    name: Clippy check
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            components: clippy
+            override: true
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --manifest-path cao-lang/Cargo.toml
