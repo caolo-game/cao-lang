@@ -42,6 +42,10 @@ pub mod scalar;
 pub mod traits;
 pub mod vm;
 
+pub mod version {
+    include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
+}
+
 use std::cmp::Ordering;
 
 use crate::instruction::Instruction;

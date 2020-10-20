@@ -20,12 +20,24 @@ impl Label {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledProgram {
     /// Bytecode layout: (instr [data])*
     pub bytecode: Vec<u8>,
     pub labels: Labels,
     pub variables: Variables,
+    pub cao_lang_version: String,
+}
+
+impl Default for CompiledProgram {
+    fn default() -> Self {
+        CompiledProgram {
+            bytecode: Default::default(),
+            labels: Default::default(),
+            variables: Default::default(),
+            cao_lang_version: crate::version::VERSION_STR.to_owned(),
+        }
+    }
 }
 
 impl Serialize for Labels {

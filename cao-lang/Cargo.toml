@@ -4,6 +4,8 @@ version = "0.1.6"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 
+build = "build.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -13,6 +15,10 @@ slog-stdlog = "3"
 serde = { version="1", features=["derive"] }
 arrayvec = { version="0.5", features=["serde", "array-sizes-33-128"] }
 thiserror = "1"
+
+[build-dependencies]
+toml = "0.4"
+serde = { version="1", features=["derive"] }
 
 [dev-dependencies]
 simple_logger = "1.0"
