@@ -19,6 +19,7 @@ thiserror = "1"
 [build-dependencies]
 toml = "0.4"
 serde = { version="1", features=["derive"] }
+semver = "0.11"
 
 [dev-dependencies]
 simple_logger = "1.0"

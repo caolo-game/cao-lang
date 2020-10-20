@@ -27,14 +27,19 @@ fn main() {
         .expect("Failed to read manifest");
 
     let conf: Manifest = toml::from_str(manifest.as_str()).expect("Failed to parse manifest");
+    let version = semver::Version::parse(conf.package.version.as_str())
+        .expect("Crate version wasn't valid semver");
 
     fs::write(
         &dest_path,
         format!(
             r#"
 pub const VERSION_STR: &str = "{}";
+pub const MAJOR: i32 = {};
+pub const MINOR: i32 = {};
+pub const PATCH: i32 = {};
 "#,
-            conf.package.version
+            conf.package.version, version.major, version.minor, version.patch,
         ),
     )
     .expect("Failed to write version file");
