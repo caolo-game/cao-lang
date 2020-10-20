@@ -52,9 +52,8 @@ pub enum StringDecodeError {
     Utf8DecodeError(std::str::Utf8Error),
 }
 
-/// Opts in for the default implementation of ByteEncodeProperties
-/// Note that using this with pointers, arrays, strings etc. will not work as one might expect!
-pub trait AutoByteEncodeProperties {
+/// Opts in for the default implementation of ByteEncodeProperties which is memcopy
+pub trait AutoByteEncodeProperties: Copy + std::fmt::Debug {
     fn displayname() -> &'static str {
         type_name::<Self>()
     }

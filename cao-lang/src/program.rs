@@ -1,9 +1,12 @@
-use crate::NodeId;
+use crate::{NodeId, VarName, VariableId};
 use serde::{de::SeqAccess, de::Visitor, ser::SerializeSeq, Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]
 pub struct Labels(pub HashMap<NodeId, Label>);
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Variables(pub HashMap<VarName, VariableId>);
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Label {
@@ -22,6 +25,7 @@ pub struct CompiledProgram {
     /// Bytecode layout: (instr [data])*
     pub bytecode: Vec<u8>,
     pub labels: Labels,
+    pub variables: Variables,
 }
 
 impl Serialize for Labels {

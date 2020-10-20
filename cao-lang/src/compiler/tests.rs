@@ -109,7 +109,8 @@ fn simple_looping_program() {
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
-    assert_eq!(*vm.read_var("i").unwrap(), Scalar::Integer(0));
+    let varid = program.variables.0["i"];
+    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(0));
 
     assert_eq!(
         vm.stack(),

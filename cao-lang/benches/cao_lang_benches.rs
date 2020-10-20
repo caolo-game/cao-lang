@@ -37,7 +37,8 @@ fn run_fib(c: &mut Criterion) {
                     {
                         use std::convert::TryInto;
 
-                        let val = *vm.read_var("b").expect("failed to read b");
+                        let varid = program.variables.0["b"];
+                        let val = *vm.read_var(varid).expect("failed to read b");
                         assert!(val.is_integer());
                         let val: i32 = val.try_into().unwrap();
                         assert_eq!(val, fib(iterations));
@@ -50,6 +51,16 @@ fn run_fib(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(loop_benches, run_fib);
+fn clear_vm(c: &mut Criterion) {
+    c.bench_function("clear_vm", move |b| {
+        let mut vm = VM::new(None, ()).with_max_iter(250_000_000);
+        b.iter(|| {
+            vm.clear();
+            criterion::black_box(&mut vm);
+        });
+    });
+}
+
+criterion_group!(loop_benches, run_fib, clear_vm);
 
 criterion_main!(loop_benches);

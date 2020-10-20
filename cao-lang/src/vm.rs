@@ -1,12 +1,13 @@
 use crate::instruction::Instruction;
 use crate::prelude::*;
 use crate::scalar::Scalar;
+use crate::VariableId;
 use crate::{binary_compare, pop_stack};
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, trace, warn};
+use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
-use std::convert::TryFrom;
 use std::{collections::HashMap, mem};
+use std::{convert::TryFrom, mem::transmute};
 
 type ConvertFn<Aux> = unsafe fn(&Object, &VM<Aux>) -> Box<dyn ObjectProperties>;
 
@@ -70,7 +71,8 @@ where
     objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<Pointer, ConvertFn<Aux>>,
-    variables: HashMap<&'a str, Scalar>,
+    variables: Vec<Scalar>,
+    _m: std::marker::PhantomData<&'a ()>,
 }
 
 impl<'a, Aux> VM<'a, Aux> {
@@ -88,8 +90,9 @@ impl<'a, Aux> VM<'a, Aux> {
             memory_limit: 40000,
             stack: Vec::with_capacity(128),
             objects: HashMap::with_capacity(128),
-            variables: HashMap::with_capacity(128),
+            variables: Vec::with_capacity(128),
             max_iter: 1000,
+            _m: Default::default(),
         }
     }
 
@@ -101,8 +104,8 @@ impl<'a, Aux> VM<'a, Aux> {
         self.variables.clear();
     }
 
-    pub fn read_var(&self, name: &str) -> Option<&Scalar> {
-        self.variables.get(name)
+    pub fn read_var(&self, name: VariableId) -> Option<&Scalar> {
+        self.variables.get(name.0 as usize)
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
@@ -267,6 +270,7 @@ impl<'a, Aux> VM<'a, Aux> {
         Ok(val)
     }
 
+    #[allow(unused)]
     #[inline]
     fn decode_in_place<T: DecodeInPlace<'a>>(
         logger: &Logger,
@@ -280,15 +284,15 @@ impl<'a, Aux> VM<'a, Aux> {
             ptr,
             bytes.len()
         );
-        let (len, val) = T::decode_in_place(&bytes[*ptr..]).map_err(|err| {
-            info!(logger, "Failed to decode value {:?}", err);
-            ExecutionError::invalid_argument("Failed to decode value".to_owned())
-        })?;
+        let (len, val) = T::decode_in_place(&bytes[*ptr..])
+            .map_err(|_| ExecutionError::invalid_argument("Failed to decode value".to_owned()))?;
         *ptr += len;
         trace!(logger, "Decoding successful, new ptr {}", ptr,);
         Ok(val)
     }
 
+    /// This mostly assumes that program is valid, produced by the compiler.
+    /// As such running non-compiler emitted programs is fairly unsafe
     pub fn run(&mut self, program: &'a CompiledProgram) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Running program");
         self.history.clear();
@@ -299,14 +303,8 @@ impl<'a, Aux> VM<'a, Aux> {
             if max_iter <= 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr = program.bytecode[ptr];
-            let instr = Instruction::try_from(instr).map_err(|b| {
-                warn!(
-                    self.logger,
-                    "Byte ({}) at {} was not a valid instruction", b, ptr
-                );
-                ExecutionError::InvalidInstruction(instr)
-            })?;
+            let instr = unsafe { *program.bytecode.as_ptr().offset(ptr as isize) };
+            let instr = unsafe { transmute(instr) };
             trace!(
                 self.logger,
                 "Instruction: {:?}({:?}) Pointer: {:?}",
@@ -328,19 +326,26 @@ impl<'a, Aux> VM<'a, Aux> {
                     self.stack.clear();
                 }
                 Instruction::SetVar => {
-                    let varname: &'a str =
-                        Self::decode_in_place::<&str>(&self.logger, &program.bytecode, &mut ptr)?;
+                    let varname = Self::decode_value::<VariableId>(
+                        &self.logger,
+                        &program.bytecode,
+                        &mut ptr,
+                    )?;
                     let scalar = self.stack.pop().ok_or_else(|| {
                         ExecutionError::invalid_argument(
                             "Stack was empty when setting variable".to_owned(),
                         )
                     })?;
-                    *self.variables.entry(varname).or_insert(scalar) = scalar;
+                    let varname = varname.0 as usize;
+                    if self.variables.len() <= varname {
+                        self.variables.resize(varname + 1, Scalar::Null);
+                    }
+                    self.variables[varname] = scalar;
                 }
                 Instruction::ReadVar => {
-                    let varname: &str =
-                        Self::decode_in_place::<&str>(&self.logger, &program.bytecode, &mut ptr)?;
-                    let value = self.variables.get(varname).ok_or_else(|| {
+                    let VariableId(varname) =
+                        Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
+                    let value = self.variables.get(varname as usize).ok_or_else(|| {
                         debug!(self.logger, "Variable {} does not exist", varname);
                         ExecutionError::invalid_argument(None)
                     })?;
@@ -348,8 +353,8 @@ impl<'a, Aux> VM<'a, Aux> {
                 }
                 Instruction::Pop => {
                     self.stack.pop().ok_or_else(|| {
-                        debug!(self.logger, "Value not found");
-                        ExecutionError::invalid_argument(None)
+                        debug!(self.logger, "Popping empty stack");
+                        ExecutionError::invalid_argument(Some("Popping empty stack".to_owned()))
                     })?;
                 }
                 Instruction::Jump => {
@@ -380,8 +385,8 @@ impl<'a, Aux> VM<'a, Aux> {
                     self.jump_if(&mut ptr, program, |s| !s.as_bool())?;
                 }
                 Instruction::CopyLast => {
-                    if !self.stack.is_empty() {
-                        self.stack.push(self.stack.last().cloned().unwrap());
+                    if let Some(val) = self.stack.last().cloned() {
+                        self.stack.push(val);
                     }
                 }
                 Instruction::Pass => {}
@@ -424,8 +429,9 @@ impl<'a, Aux> VM<'a, Aux> {
                     }
                     let ptr = self.memory.len();
                     for _ in 0..len {
-                        let val = self.stack.pop().unwrap();
-                        self.write_to_memory(val)?;
+                        if let Some(val) = self.stack.pop() {
+                            self.write_to_memory(val)?;
+                        }
                     }
                     self.stack.push(Scalar::Pointer(Pointer(ptr as u32)));
                 }
@@ -467,7 +473,7 @@ impl<'a, Aux> VM<'a, Aux> {
         &mut self,
         ptr: &mut usize,
         program: &CompiledProgram,
-        fun: F,
+        predicate: F,
     ) -> Result<(), ExecutionError> {
         if self.stack.is_empty() {
             warn!(
@@ -478,7 +484,7 @@ impl<'a, Aux> VM<'a, Aux> {
         }
         let cond = self.stack.pop().unwrap();
         let label: NodeId = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
-        if fun(cond) {
+        if predicate(cond) {
             *ptr = program
                 .labels
                 .0

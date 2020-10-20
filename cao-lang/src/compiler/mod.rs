@@ -7,21 +7,21 @@ pub mod description;
 #[cfg(test)]
 mod tests;
 
-use crate::NodeId;
 use crate::{
     program::{CompiledProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction,
 };
+use crate::{NodeId, VariableId};
 pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
-use std::convert::TryFrom;
 use std::convert::{Infallible, TryInto};
 use std::fmt::Debug;
+use std::{cell::RefCell, convert::TryFrom};
 use std::{collections::HashMap, mem};
 
 impl ByteEncodeble for InputString {
@@ -76,6 +76,7 @@ pub struct Compiler<'a> {
 
     pub options: CompileOptions,
     pub program: CompiledProgram,
+    pub next_var: RefCell<VariableId>,
     _m: std::marker::PhantomData<&'a ()>,
 }
 
@@ -98,6 +99,7 @@ impl<'a> Compiler<'a> {
             program: CompiledProgram::default(),
             jump_table: Default::default(),
             options: Default::default(),
+            next_var: RefCell::new(VariableId(0)),
             _m: Default::default(),
         }
     }
@@ -171,27 +173,36 @@ impl<'a> Compiler<'a> {
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
         use Card::*;
 
-        let program = &mut self.program;
-
-        let ptr =
-            u32::try_from(program.bytecode.len()).expect("bytecode length to fit into 32 bits");
-        program.labels.0.insert(nodeid, Label::new(ptr));
+        let ptr = u32::try_from(self.program.bytecode.len())
+            .expect("bytecode length to fit into 32 bits");
+        self.program.labels.0.insert(nodeid, Label::new(ptr));
 
         if let Some(instr) = card.instruction() {
             if self.options.breadcrumbs {
-                program.bytecode.push(Instruction::Breadcrumb as u8);
-                nodeid.encode(&mut program.bytecode).unwrap();
+                self.program.bytecode.push(Instruction::Breadcrumb as u8);
+                nodeid.encode(&mut self.program.bytecode).unwrap();
                 // instr for the breadcrumb
-                program.bytecode.push(instr as u8);
+                self.program.bytecode.push(instr as u8);
             }
             // instruction itself
-            program.bytecode.push(instr as u8);
+            self.program.bytecode.push(instr as u8);
         }
         match card {
             Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast | Add | Sub
             | Mul | Div | ClearStack => {}
             ReadVar(variable) | SetVar(variable) => {
-                variable.0.encode(&mut program.bytecode).unwrap();
+                let mut next_var = self.next_var.borrow_mut();
+                let id = self
+                    .program
+                    .variables
+                    .0
+                    .entry(variable.0)
+                    .or_insert_with(move || {
+                        let id = next_var.clone();
+                        *next_var = VariableId(id.0 + 1);
+                        id
+                    });
+                id.encode(&mut self.program.bytecode).unwrap();
             }
             JumpIfFalse(jmp) | JumpIfTrue(jmp) | Jump(jmp) => {
                 let to =
@@ -202,27 +213,27 @@ impl<'a> Compiler<'a> {
                             dst: jmp.0,
                             msg: None,
                         })?;
-                to.encode(&mut program.bytecode).unwrap();
+                to.encode(&mut self.program.bytecode).unwrap();
             }
             StringLiteral(c) => {
-                c.0.encode(&mut program.bytecode).unwrap();
+                c.0.encode(&mut self.program.bytecode).unwrap();
             }
             Call(c) => {
-                c.0.encode(&mut program.bytecode).unwrap();
+                c.0.encode(&mut self.program.bytecode).unwrap();
             }
             ScalarArray(n) => {
-                n.0.encode(&mut program.bytecode).unwrap();
+                n.0.encode(&mut self.program.bytecode).unwrap();
             }
             ExitWithCode(s) => {
-                program.bytecode.push(Instruction::ScalarInt as u8);
-                s.0.encode(&mut program.bytecode).unwrap();
-                program.bytecode.push(Instruction::Exit as u8);
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                s.0.encode(&mut self.program.bytecode).unwrap();
+                self.program.bytecode.push(Instruction::Exit as u8);
             }
             ScalarLabel(s) | ScalarInt(s) => {
-                s.0.encode(&mut program.bytecode).unwrap();
+                s.0.encode(&mut self.program.bytecode).unwrap();
             }
             ScalarFloat(s) => {
-                s.0.encode(&mut program.bytecode).unwrap();
+                s.0.encode(&mut self.program.bytecode).unwrap();
             }
         }
         Ok(())

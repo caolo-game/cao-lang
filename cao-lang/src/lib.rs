@@ -50,6 +50,10 @@ use arrayvec::ArrayString;
 use prelude::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct VariableId(u32);
+impl AutoByteEncodeProperties for VariableId {}
+
 /// Unique id of each nodes in a single compilation
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct NodeId {

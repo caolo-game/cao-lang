@@ -60,7 +60,7 @@ impl ByteDecodeProperties for String {
         let res = std::str::from_utf8(&bytes[ll..tail])
             .map_err(StringDecodeError::Utf8DecodeError)
             .map(|s| s.to_owned())?;
-        Ok((tail , res))
+        Ok((tail, res))
     }
 }
 
@@ -166,27 +166,26 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteE
     }
 }
 
-impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeProperties
-    for T
-{
+// Types can't impl both Copy and Drop so we'll just encode using memcopy
+impl<T: Sized + AutoByteEncodeProperties> ByteEncodeProperties for T {
     type EncodeError = Infallible;
 
     fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
         let ss = std::mem::size_of::<Self>();
-        out.reserve(ss);
+        let ptr = out.len();
+        out.resize(ptr + ss, 0);
+
         unsafe {
-            let dayum = &self as *const Self as *const u8;
-            for i in 0..ss {
-                out.push(*(dayum.add(i)));
-            }
+            let bytes = out.as_mut_ptr().offset(ptr as isize);
+            let ptr = std::mem::transmute::<_, &mut std::mem::MaybeUninit<Self>>(bytes);
+            *ptr.as_mut_ptr() = self;
         }
         Ok(())
     }
 }
 
-impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteDecodeProperties
-    for T
-{
+// Types can't impl both Copy and Drop so we'll just decode using memcopy
+impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
     type DecodeError = ();
 
     fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
@@ -195,6 +194,22 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteD
             Err(())
         } else {
             let result = unsafe { *(bytes.as_ptr() as *const Self) };
+            Ok((ss, result))
+        }
+    }
+}
+
+impl<'a, T: Sized + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
+    type Ref = &'a Self;
+
+    type DecodeError = ();
+
+    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), Self::DecodeError> {
+        let ss = std::mem::size_of::<Self>();
+        if bytes.len() < ss {
+            Err(())
+        } else {
+            let result = unsafe { &*(bytes.as_ptr() as *const Self) };
             Ok((ss, result))
         }
     }

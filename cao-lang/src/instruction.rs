@@ -1,101 +1,83 @@
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::{convert::TryFrom, mem::transmute};
 
 /// Single instruction of the interpreter
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Instruction {
     /// Add two numbers
-    Add = 1,
+    Add = 0,
     /// Subtract two numbers
-    Sub = 2,
+    Sub = 1,
     /// Multiply two numbers
-    Mul = 5,
+    Mul = 2,
     /// Divide the first number by the second
-    Div = 7,
+    Div = 3,
     /// Call a function provided by the runtime
     /// Requires function name as a string as input
-    Call = 9,
+    Call = 4,
     /// Push an int onto the stack
-    ScalarInt = 10,
+    ScalarInt = 5,
     /// Push a float onto the stack
-    ScalarFloat = 11,
+    ScalarFloat = 6,
     /// Push a label onto the stack
-    ScalarLabel = 17,
+    ScalarLabel = 7,
     /// Pop the next N (positive integer) number of items from the stack and write them to memory
     /// Push the pointer to the beginning of the array onto the stack
-    ScalarArray = 13,
+    ScalarArray = 8,
     /// Writes the strings followed by the instruction to memory and pushes the pointer pointing to
     /// it onto the stack
-    StringLiteral = 19,
+    StringLiteral = 9,
     /// Empty instruction that has no effects
-    Pass = 14,
+    Pass = 10,
     /// Clones the last element on the stack
     /// Does nothing if no elements are on the stack
-    CopyLast = 15,
+    CopyLast = 11,
     /// If the value at the top of the stack is truthy jumps to the input node
     /// Else does nothing
-    JumpIfTrue = 16,
+    JumpIfTrue = 12,
     /// Quit the program
     /// Implicitly inserted by the compiler after every leaf node
-    Exit = 18,
+    Exit = 13,
     /// Jump to the label on top of the stack
-    Jump = 20,
+    Jump = 14,
     /// Compares two scalars
-    Equals = 23,
+    Equals = 15,
     /// Compares two scalars
-    NotEquals = 24,
+    NotEquals = 16,
     /// Is the first param less than the second?
-    Less = 25,
+    Less = 17,
     /// Is the first param less than or equal to the second?
-    LessOrEq = 26,
+    LessOrEq = 18,
     /// Pops the top of the stack and discards it
-    Pop = 27,
+    Pop = 19,
     /// Sets the variable at the top of the stack to the value of the second item on the stack
-    SetVar = 28,
+    SetVar = 20,
     /// Reads the variable and pushes its value onto the stack
-    ReadVar = 29,
+    ReadVar = 21,
     ///
-    ClearStack = 31,
+    ClearStack = 22,
     /// If the value at the top of the stack is falsy jumps to the input node
     /// Else does nothing
-    JumpIfFalse = 32,
+    JumpIfFalse = 23,
     /// Insert a history entry
-    Breadcrumb = 33,
+    Breadcrumb = 24,
+}
+
+impl Instruction {
+    pub fn is_valid_instr(n: u8) -> bool {
+        n <= 24
+    }
 }
 
 impl TryFrom<u8> for Instruction {
     type Error = u8;
 
-    fn try_from(c: u8) -> Result<Instruction, Self::Error> {
-        use Instruction::*;
-        match c {
-            1 => Ok(Add),
-            2 => Ok(Sub),
-            5 => Ok(Mul),
-            7 => Ok(Div),
-            9 => Ok(Call),
-            10 => Ok(ScalarInt),
-            11 => Ok(ScalarFloat),
-            13 => Ok(ScalarArray),
-            14 => Ok(Pass),
-            15 => Ok(CopyLast),
-            16 => Ok(JumpIfTrue),
-            17 => Ok(ScalarLabel),
-            18 => Ok(Exit),
-            19 => Ok(StringLiteral),
-            20 => Ok(Jump),
-            23 => Ok(Equals),
-            24 => Ok(NotEquals),
-            25 => Ok(Less),
-            26 => Ok(LessOrEq),
-            27 => Ok(Pop),
-            28 => Ok(SetVar),
-            29 => Ok(ReadVar),
-            31 => Ok(ClearStack),
-            32 => Ok(JumpIfFalse),
-            33 => Ok(Breadcrumb),
-            _ => Err(c),
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if Self::is_valid_instr(value) {
+            unsafe { Ok(transmute(value)) }
+        } else {
+            Err(value)
         }
     }
 }
