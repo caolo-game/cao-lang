@@ -460,13 +460,21 @@ impl<'a, Aux> VM<'a, Aux> {
             }
             debug!(
                 self.logger,
-                "Stack len: {}, last items: {:?}",
+                "Stack len: {} {:?}",
                 self.stack.len(),
-                &self.stack[self.stack.len().max(10) - 10..]
+                self.log_stack()
             );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
+    }
+
+    pub fn log_stack(&self) {
+        trace!(self.logger, "------------------");
+        for s in &self.stack[..] {
+            trace!(self.logger, "{:?}", s);
+        }
+        trace!(self.logger, "------------------");
     }
 
     fn jump_if<F: Fn(Scalar) -> bool>(
