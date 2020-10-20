@@ -35,9 +35,9 @@ fn main() {
         format!(
             r#"
 pub const VERSION_STR: &str = "{}";
-pub const MAJOR: i32 = {};
-pub const MINOR: i32 = {};
-pub const PATCH: i32 = {};
+pub const MAJOR: u8 = {};
+pub const MINOR: u8 = {};
+pub const PATCH: u16 = {};
 "#,
             conf.package.version, version.major, version.minor, version.patch,
         ),

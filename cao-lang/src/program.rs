@@ -1,4 +1,4 @@
-use crate::{NodeId, VarName, VariableId};
+use crate::{version, NodeId, VarName, VariableId};
 use serde::{de::SeqAccess, de::Visitor, ser::SerializeSeq, Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -26,7 +26,7 @@ pub struct CompiledProgram {
     pub bytecode: Vec<u8>,
     pub labels: Labels,
     pub variables: Variables,
-    pub cao_lang_version: String,
+    pub cao_lang_version: (u8, u8, u16),
 }
 
 impl Default for CompiledProgram {
@@ -35,7 +35,7 @@ impl Default for CompiledProgram {
             bytecode: Default::default(),
             labels: Default::default(),
             variables: Default::default(),
-            cao_lang_version: crate::version::VERSION_STR.to_owned(),
+            cao_lang_version: (version::MAJOR, version::MINOR, version::PATCH),
         }
     }
 }
