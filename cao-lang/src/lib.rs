@@ -41,6 +41,7 @@ pub mod program;
 pub mod scalar;
 pub mod traits;
 pub mod vm;
+pub mod collections;
 
 pub mod version {
     include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));

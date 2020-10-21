@@ -66,11 +66,11 @@ impl<'de> Visitor<'de> for LabelsVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let mut res = HashMap::new();
+        let mut res = Labels::default();
         while let Some((k, v)) = seq.next_element()? {
-            res.insert(k, v);
+            res.0.insert(k, v);
         }
-        Ok(Labels(res))
+        Ok(res)
     }
 }
 

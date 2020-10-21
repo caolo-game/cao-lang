@@ -51,6 +51,21 @@ fn run_fib(c: &mut Criterion) {
     group.finish();
 }
 
+fn compile_fib(c: &mut Criterion) {
+    c.bench_function("compile_fib", move |b| {
+        let cu: CompilationUnit = serde_json::from_str(FIB_PROG).unwrap();
+        b.iter(|| {
+            let program = compile(
+                None,
+                cu.clone(),
+                CompileOptions::new().with_breadcrumbs(false),
+            )
+            .unwrap();
+            program
+        });
+    });
+}
+
 fn clear_vm(c: &mut Criterion) {
     c.bench_function("clear_vm", move |b| {
         let mut vm = VM::new(None, ()).with_max_iter(250_000_000);
@@ -61,6 +76,6 @@ fn clear_vm(c: &mut Criterion) {
     });
 }
 
-criterion_group!(loop_benches, run_fib, clear_vm);
+criterion_group!(loop_benches, run_fib, clear_vm, compile_fib);
 
 criterion_main!(loop_benches);
