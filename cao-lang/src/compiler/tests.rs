@@ -1,7 +1,7 @@
 use super::*;
-use crate::scalar::Scalar;
 use crate::traits::ByteEncodeProperties;
 use crate::vm::VM;
+use crate::{procedures::FunctionWrapper, scalar::Scalar};
 use arrayvec::ArrayString;
 
 #[test]
@@ -109,7 +109,7 @@ fn simple_looping_program() {
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
-    let varid = program.variables.0["i"];
+    let varid = *program.variables.0.get(Key::from_str("i")).unwrap();
     assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(0));
 
     assert_eq!(
@@ -181,4 +181,36 @@ fn no_breadcrumbs_emitted_when_compiled_with_off() {
     let mut vm = VM::new(None, ());
     vm.run(&prog).expect("run failed");
     assert_eq!(vm.history, vec![]);
+}
+
+#[test]
+fn call_test() {
+    simple_logger::SimpleLogger::new()
+        .init()
+        .unwrap_or_default();
+
+    let name = ArrayString::from("foo").unwrap();
+    let cu = CompilationUnit {
+        lanes: vec![Lane {
+            name: "Main".to_owned(),
+            cards: vec![Card::Call(CallNode(name))],
+        }],
+    };
+
+    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+
+    struct State {
+        called: bool,
+    }
+
+    let fun = move |vm: &mut VM<State>, ()| {
+        vm.auxiliary_data.called = true;
+        Ok(())
+    };
+    let fun = FunctionWrapper::new(fun);
+
+    let mut vm = VM::new(None, State { called: false });
+    vm.register_function(name, fun);
+    vm.run(&prog).expect("run failed");
+    assert!(vm.unwrap_aux().called);
 }

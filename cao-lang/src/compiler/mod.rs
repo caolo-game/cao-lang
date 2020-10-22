@@ -8,6 +8,7 @@ pub mod description;
 mod tests;
 
 use crate::{
+    collections::pre_hash_map::Key,
     program::{CompiledProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction,
@@ -54,6 +55,14 @@ impl ByteDecodeProperties for InputString {
             .map_err(|_| StringDecodeError::CapacityError(ll + len))
             .map(|res| (ll + len, res))
     }
+
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
+        let (ll, len) = i32::decode_unsafe(bytes);
+        let len = len as usize;
+        let res =
+            std::str::from_utf8(&bytes[ll..ll + len]).expect("Failed to deserialize utf8 string");
+        Self::from(res).map(|res| (ll + len, res)).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,7 +81,7 @@ pub struct Compiler<'a> {
     pub logger: Logger,
 
     /// maps lane names to their indices
-    pub jump_table: HashMap<String, NodeId>,
+    pub jump_table: HashMap<String, Key>,
 
     pub options: CompileOptions,
     pub program: CompiledProgram,
@@ -131,11 +140,14 @@ impl<'a> Compiler<'a> {
             lanes.push((i, n.cards));
             self.jump_table.insert(
                 n.name,
-                NodeId {
-                    // we know that i fits in 16 bits from the check above
-                    lane: i as u16,
-                    pos: 0,
-                },
+                Key::from_un32(
+                    NodeId {
+                        // we know that i fits in 16 bits from the check above
+                        lane: i as u16,
+                        pos: 0,
+                    }
+                    .into(),
+                ),
             );
         }
 
@@ -175,7 +187,8 @@ impl<'a> Compiler<'a> {
 
         let ptr = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
-        self.program.labels.0.insert(nodeid, Label::new(ptr));
+        let nodeid_hash = Key::from_un32(nodeid.into());
+        self.program.labels.0.insert(nodeid_hash, Label::new(ptr));
 
         if let Some(instr) = card.instruction() {
             if self.options.breadcrumbs {
@@ -192,11 +205,13 @@ impl<'a> Compiler<'a> {
             | Mul | Div | ClearStack => {}
             ReadVar(variable) | SetVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
+                let varhash = Key::from_bytes(variable.0.as_bytes());
+
                 let id = self
                     .program
                     .variables
                     .0
-                    .entry(variable.0)
+                    .entry(varhash)
                     .or_insert_with(move || {
                         let id = next_var.clone();
                         *next_var = VariableId(id.0 + 1);
@@ -219,7 +234,9 @@ impl<'a> Compiler<'a> {
                 c.0.encode(&mut self.program.bytecode).unwrap();
             }
             Call(c) => {
-                c.0.encode(&mut self.program.bytecode).unwrap();
+                let name = &c.0;
+                let key = Key::from_str(name.as_str());
+                key.encode(&mut self.program.bytecode).unwrap();
             }
             ScalarArray(n) => {
                 n.0.encode(&mut self.program.bytecode).unwrap();

@@ -35,10 +35,11 @@ fn run_fib(c: &mut Criterion) {
                     let res = vm.run(&program).expect("run failed");
                     #[cfg(debug_assertions)]
                     {
+                        use cao_lang::collections::pre_hash_map::Key;
                         use std::convert::TryInto;
 
-                        let varid = program.variables.0["b"];
-                        let val = *vm.read_var(varid).expect("failed to read b");
+                        let varid = program.variables.0.get(Key::from_str("b")).unwrap();
+                        let val = *vm.read_var(*varid).expect("failed to read b");
                         assert!(val.is_integer());
                         let val: i32 = val.try_into().unwrap();
                         assert_eq!(val, fib(iterations));
@@ -51,6 +52,21 @@ fn run_fib(c: &mut Criterion) {
     group.finish();
 }
 
+fn compile_fib(c: &mut Criterion) {
+    c.bench_function("compile_fib", move |b| {
+        let cu: CompilationUnit = serde_json::from_str(FIB_PROG).unwrap();
+        b.iter(|| {
+            let program = compile(
+                None,
+                cu.clone(),
+                CompileOptions::new().with_breadcrumbs(false),
+            )
+            .unwrap();
+            program
+        });
+    });
+}
+
 fn clear_vm(c: &mut Criterion) {
     c.bench_function("clear_vm", move |b| {
         let mut vm = VM::new(None, ()).with_max_iter(250_000_000);
@@ -61,6 +77,6 @@ fn clear_vm(c: &mut Criterion) {
     });
 }
 
-criterion_group!(loop_benches, run_fib, clear_vm);
+criterion_group!(loop_benches, run_fib, clear_vm, compile_fib);
 
 criterion_main!(loop_benches);

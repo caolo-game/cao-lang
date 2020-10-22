@@ -32,6 +32,7 @@
 
 #![recursion_limit = "256"]
 
+pub mod collections;
 pub mod compiler;
 pub mod instruction;
 mod macros;
@@ -160,6 +161,14 @@ impl ByteDecodeProperties for VarName {
             .map_err(StringDecodeError::Utf8DecodeError)?;
         let val = ArrayString::from(val).expect("failed to convert str to array");
         Ok((len + ll, val))
+    }
+
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
+        let (ll, len) = i32::decode_unsafe(bytes);
+        let len = len as usize;
+        let val = std::str::from_utf8(&bytes[ll..ll + len]).unwrap();
+        let val = ArrayString::from(val).expect("failed to convert str to array");
+        (len + ll, val)
     }
 }
 

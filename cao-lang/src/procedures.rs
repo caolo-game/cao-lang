@@ -1,12 +1,11 @@
 //! Helper module for dealing with function extensions.
 //!
-use crate::prelude::Scalar;
 pub use crate::traits::Callable;
-use crate::vm::VM;
+use crate::{InputString, vm::VM};
+use crate::{collections::pre_hash_map::Key, prelude::Scalar};
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 use thiserror::Error;
-use crate::NodeId;
 
 pub type ExecutionResult = Result<(), ExecutionError>;
 
@@ -16,15 +15,15 @@ pub enum ExecutionError {
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]
     ExitCode(i32),
-    #[error("Got an invalid label: {0:?}")]
-    InvalidLabel(NodeId),
+    #[error("Got an invalid label hash: {0:?}")]
+    InvalidLabel(Key),
     #[error("Got an invalid instruction code {0}")]
     InvalidInstruction(u8),
     #[error("Got an invalid argument to function call; {}",
         .context.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
     InvalidArgument { context: Option<String> },
-    #[error("Procedure by the name {0:?} could not be found")]
-    ProcedureNotFound(String),
+    #[error("Procedure by the hash {0:?} could not be found")]
+    ProcedureNotFound(Key),
     #[error("Unimplemented")]
     Unimplemented,
     #[error("The program ran out of memory")]
@@ -46,7 +45,8 @@ impl ExecutionError {
 }
 
 pub struct Procedure<Aux> {
-    fun: Box<dyn Callable<Aux>>,
+    pub name: InputString,
+    pub fun: Box<dyn Callable<Aux>>,
 }
 
 impl<Aux> Callable<Aux> for Procedure<Aux> {
@@ -60,8 +60,11 @@ impl<Aux> Callable<Aux> for Procedure<Aux> {
 }
 
 impl<Aux> Procedure<Aux> {
-    pub fn new<C: Callable<Aux> + 'static>(f: C) -> Self {
-        Self { fun: Box::new(f) }
+    pub fn new<C: Callable<Aux> + 'static>(name: InputString, f: C) -> Self {
+        Self {
+            fun: Box::new(f),
+            name,
+        }
     }
 }
 

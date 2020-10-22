@@ -62,6 +62,14 @@ impl ByteDecodeProperties for String {
             .map(|s| s.to_owned())?;
         Ok((tail, res))
     }
+
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
+        let (ll, len) = i32::decode_unsafe(bytes);
+        let len = len as usize;
+        let tail = (ll + len).min(bytes.len());
+        let res = std::str::from_utf8(&bytes[ll..tail]).expect("Failed to decode utf8 string");
+        (tail, res.to_owned())
+    }
 }
 
 impl ByteEncodeble for () {
@@ -83,6 +91,10 @@ impl ByteDecodeProperties for () {
 
     fn decode(_bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
         Ok((0, ()))
+    }
+
+    unsafe fn decode_unsafe(_bytes: &[u8]) -> (usize, Self) {
+        (0, ())
     }
 }
 
@@ -196,6 +208,12 @@ impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
             let result = unsafe { *(bytes.as_ptr() as *const Self) };
             Ok((ss, result))
         }
+    }
+
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
+        let ss = std::mem::size_of::<Self>();
+        let result = *(bytes.as_ptr() as *const Self);
+        (ss, result)
     }
 }
 
