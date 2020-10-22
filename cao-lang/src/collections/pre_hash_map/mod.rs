@@ -16,7 +16,10 @@ mod tests;
 
 pub use self::serde::*;
 use ::serde::{Deserialize, Serialize};
-use std::mem::{replace, swap, MaybeUninit};
+use std::{
+    mem::{replace, swap, MaybeUninit},
+    str::FromStr,
+};
 
 pub const MAX_LOAD: f32 = 0.75;
 
@@ -59,18 +62,22 @@ impl<'a, T: 'a> Entry<'a, T> {
     }
 }
 
-impl Key {
-    pub fn from_str(key: &str) -> Self {
-        Self::from_bytes(key.as_bytes())
-    }
+impl FromStr for Key {
+    type Err = std::convert::Infallible;
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from_bytes(s.as_bytes()))
+    }
+}
+
+impl Key {
     pub fn from_bytes(key: &[u8]) -> Self {
         const MASK: u64 = u32::MAX as u64;
         // FNV-1a
         let mut hash = 2166136261u64;
         for byte in key {
             hash ^= *byte as u64;
-            hash = hash & MASK;
+            hash &= MASK;
             hash *= 16777619;
         }
         let hash = hash & MASK;
@@ -98,7 +105,7 @@ impl From<u32> for Key {
 
 impl<'a> From<&'a str> for Key {
     fn from(key: &'a str) -> Self {
-        Self::from_str(key)
+        <Self as FromStr>::from_str(key).unwrap()
     }
 }
 
@@ -147,7 +154,7 @@ impl<T> PreHashMap<T> {
         res
     }
 
-    pub fn entry<'a>(&'a mut self, key: Key) -> Entry<'a, T> {
+    pub fn entry(&mut self, key: Key) -> Entry<T> {
         let ind = self.find_ind(key);
 
         let pl = if self.keys[ind] != key {
@@ -167,6 +174,10 @@ impl<T> PreHashMap<T> {
 
     pub fn len(&self) -> usize {
         self.count
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
     }
 
     pub fn get(&self, key: Key) -> Option<&T> {
@@ -217,7 +228,7 @@ impl<T> PreHashMap<T> {
         let mut values = Vec::with_capacity(capacity);
 
         keys.resize_with(capacity, || Key(0));
-        values.resize_with(capacity, || MaybeUninit::uninit());
+        values.resize_with(capacity, MaybeUninit::uninit);
 
         let mut keys = keys.into_boxed_slice();
         let mut values = values.into_boxed_slice();

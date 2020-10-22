@@ -20,7 +20,7 @@ pub use compile_options::*;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
-use std::convert::{Infallible, TryInto};
+use std::{convert::{Infallible, TryInto}, str::FromStr};
 use std::fmt::Debug;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{collections::HashMap, mem};
@@ -213,7 +213,7 @@ impl<'a> Compiler<'a> {
                     .0
                     .entry(varhash)
                     .or_insert_with(move || {
-                        let id = next_var.clone();
+                        let id = *next_var;
                         *next_var = VariableId(id.0 + 1);
                         id
                     });
@@ -235,7 +235,7 @@ impl<'a> Compiler<'a> {
             }
             Call(c) => {
                 let name = &c.0;
-                let key = Key::from_str(name.as_str());
+                let key = Key::from_str(name.as_str()).unwrap();
                 key.encode(&mut self.program.bytecode).unwrap();
             }
             ScalarArray(n) => {

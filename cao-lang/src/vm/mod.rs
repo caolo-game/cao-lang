@@ -13,7 +13,7 @@ use data::RuntimeData;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 use std::mem::transmute;
 
 type ConvertFn<Aux> = unsafe fn(&Object, &VM<Aux>) -> Box<dyn ObjectProperties>;
@@ -136,12 +136,12 @@ impl<'a, Aux> VM<'a, Aux> {
     }
 
     pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: InputString, f: C) {
-        let hash = Key::from_str(name.as_str());
+        let hash = Key::from_str(name.as_str()).unwrap();
         self.callables.insert(hash, Procedure::new(name, f));
     }
 
     pub fn register_function_obj(&mut self, name: &str, f: Procedure<Aux>) {
-        let hash = Key::from_str(name);
+        let hash = Key::from_str(name).unwrap();
         self.callables.insert(hash, f);
     }
 
@@ -251,7 +251,7 @@ impl<'a, Aux> VM<'a, Aux> {
             if max_iter <= 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr = unsafe { *program.bytecode.as_ptr().offset(bytecode_pos as isize) };
+            let instr = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
             let instr = unsafe { transmute(instr) };
             trace!(
                 self.logger,
@@ -288,7 +288,7 @@ impl<'a, Aux> VM<'a, Aux> {
                     )?;
                 }
                 Instruction::Pop => {
-                    if self.runtime_data.stack.len() > 0 {
+                    if !self.runtime_data.stack.is_empty() {
                         self.runtime_data.stack.pop();
                     }
                 }

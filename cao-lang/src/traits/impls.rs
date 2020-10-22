@@ -1,5 +1,5 @@
 use super::*;
-use std::convert::Infallible;
+use std::{convert::Infallible, mem};
 
 impl<'a> DecodeInPlace<'a> for &'a str {
     type Ref = Self;
@@ -183,13 +183,13 @@ impl<T: Sized + AutoByteEncodeProperties> ByteEncodeProperties for T {
     type EncodeError = Infallible;
 
     fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
-        let ss = std::mem::size_of::<Self>();
+        let ss = mem::size_of::<Self>();
         let ptr = out.len();
         out.resize(ptr + ss, 0);
 
         unsafe {
-            let bytes = out.as_mut_ptr().offset(ptr as isize);
-            let ptr = std::mem::transmute::<_, &mut std::mem::MaybeUninit<Self>>(bytes);
+            let bytes = out.as_mut_ptr().add(ptr);
+            let ptr = &mut *(bytes as *mut mem::MaybeUninit<Self>);
             *ptr.as_mut_ptr() = self;
         }
         Ok(())
@@ -201,7 +201,7 @@ impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
     type DecodeError = ();
 
     fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
-        let ss = std::mem::size_of::<Self>();
+        let ss = mem::size_of::<Self>();
         if bytes.len() < ss {
             Err(())
         } else {
@@ -211,7 +211,7 @@ impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
     }
 
     unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
-        let ss = std::mem::size_of::<Self>();
+        let ss = mem::size_of::<Self>();
         let result = *(bytes.as_ptr() as *const Self);
         (ss, result)
     }
@@ -223,7 +223,7 @@ impl<'a, T: Sized + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
     type DecodeError = ();
 
     fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), Self::DecodeError> {
-        let ss = std::mem::size_of::<Self>();
+        let ss = mem::size_of::<Self>();
         if bytes.len() < ss {
             Err(())
         } else {

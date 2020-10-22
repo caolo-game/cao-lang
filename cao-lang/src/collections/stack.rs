@@ -43,7 +43,7 @@ impl ScalarStack {
 
     #[inline]
     pub fn pop(&mut self) -> Scalar {
-        self.count = self.count.checked_sub(1).unwrap_or(0);
+        self.count = self.count.saturating_sub(1);
         std::mem::replace(&mut self.buffer[self.count], Scalar::Null)
     }
 

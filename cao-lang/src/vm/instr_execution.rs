@@ -21,6 +21,10 @@ pub fn read_str<'a>(bytecode_pos: &mut usize, program: &'a [u8]) -> Option<&'a s
     Some(s)
 }
 
+/// # Safety
+///
+/// Assumes that the underlying data is safely decodable to the given type
+///
 #[inline]
 pub unsafe fn decode_value<T: ByteDecodeProperties>(
     logger: &Logger,

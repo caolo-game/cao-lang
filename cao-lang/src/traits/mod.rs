@@ -31,7 +31,12 @@ pub trait ByteDecodeProperties: Sized + ObjectProperties + ByteEncodeble {
 
     /// return the bytes read
     fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError>;
+
     /// return the bytes read
+    ///
+    /// # Safety
+    ///
+    /// Can assume that the underlying data represents this type
     unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self);
 }
 

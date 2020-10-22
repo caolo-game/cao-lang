@@ -36,9 +36,10 @@ fn run_fib(c: &mut Criterion) {
                     #[cfg(debug_assertions)]
                     {
                         use cao_lang::collections::pre_hash_map::Key;
+                        use std::str::FromStr;
                         use std::convert::TryInto;
 
-                        let varid = program.variables.0.get(Key::from_str("b")).unwrap();
+                        let varid = program.variables.0.get(Key::from_str("b").unwrap()).unwrap();
                         let val = *vm.read_var(*varid).expect("failed to read b");
                         assert!(val.is_integer());
                         let val: i32 = val.try_into().unwrap();
