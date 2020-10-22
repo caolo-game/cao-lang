@@ -1,4 +1,4 @@
-use crate::instruction::Instruction;
+use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::prelude::*;
 use crate::scalar::Scalar;
 use crate::VariableId;
@@ -358,12 +358,12 @@ impl<'a, Aux> VM<'a, Aux> {
                     })?;
                 }
                 Instruction::Jump => {
-                    let label: NodeId =
+                    let label: Key =
                         Self::decode_value(&self.logger, &program.bytecode, &mut ptr)?;
                     ptr = program
                         .labels
                         .0
-                        .get(&label)
+                        .get(label)
                         .ok_or(ExecutionError::InvalidLabel(label))?
                         .pos as usize;
                 }
@@ -491,12 +491,12 @@ impl<'a, Aux> VM<'a, Aux> {
             return Err(ExecutionError::invalid_argument(None));
         }
         let cond = self.stack.pop().unwrap();
-        let label: NodeId = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
+        let label: Key = Self::decode_value(&self.logger, &program.bytecode, ptr)?;
         if predicate(cond) {
             *ptr = program
                 .labels
                 .0
-                .get(&label)
+                .get(label)
                 .ok_or(ExecutionError::InvalidLabel(label))?
                 .pos as usize;
         }
