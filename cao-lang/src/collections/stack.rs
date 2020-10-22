@@ -39,14 +39,9 @@ impl ScalarStack {
         self.count
     }
 
-    pub fn pop(&mut self) -> Option<Scalar> {
-        if self.count > 0 {
-            self.count -= 1;
-            let res = std::mem::replace(&mut self.buffer[self.count], Scalar::Null);
-            Some(res)
-        } else {
-            None
-        }
+    pub fn pop(&mut self) -> Scalar {
+        self.count -= 1;
+        std::mem::replace(&mut self.buffer[self.count], Scalar::Null)
     }
 
     pub fn as_slice(&self) -> &[Scalar] {

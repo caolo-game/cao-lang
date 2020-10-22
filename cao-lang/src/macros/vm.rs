@@ -22,11 +22,7 @@ macro_rules! load_var {
 #[macro_export(local_inner_macros)]
 macro_rules! pop_stack {
     ($from : ident) => {{
-        $from
-            .runtime_data
-            .stack
-            .pop()
-            .ok_or(ExecutionError::InvalidArgument { context: None })?
+        $from.runtime_data.stack.pop()
     }};
 }
 
