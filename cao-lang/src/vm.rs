@@ -1,8 +1,8 @@
-use crate::prelude::*;
-use crate::scalar::Scalar;
 use crate::VariableId;
 use crate::{binary_compare, pop_stack};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
+use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
+use crate::{scalar::Scalar, InputString};
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
@@ -67,7 +67,7 @@ where
 
     memory: Vec<u8>,
     stack: Vec<Scalar>,
-    callables: HashMap<String, Procedure<Aux>>,
+    callables: PreHashMap<Procedure<Aux>>,
     objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<Pointer, ConvertFn<Aux>>,
@@ -86,7 +86,7 @@ impl<'a, Aux> VM<'a, Aux> {
             converters: HashMap::new(),
             auxiliary_data,
             memory: Vec::with_capacity(512),
-            callables: HashMap::new(),
+            callables: PreHashMap::default(),
             memory_limit: 40000,
             stack: Vec::with_capacity(128),
             objects: HashMap::with_capacity(128),
@@ -129,12 +129,14 @@ impl<'a, Aux> VM<'a, Aux> {
         self.auxiliary_data
     }
 
-    pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: &str, f: C) {
-        self.callables.insert(name.to_owned(), Procedure::new(f));
+    pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: InputString, f: C) {
+        let hash = Key::from_str(name.as_str());
+        self.callables.insert(hash, Procedure::new(name, f));
     }
 
     pub fn register_function_obj(&mut self, name: &str, f: Procedure<Aux>) {
-        self.callables.insert(name.to_owned(), f);
+        let hash = Key::from_str(name);
+        self.callables.insert(hash, f);
     }
 
     pub fn get_value_in_place<T: DecodeInPlace<'a>>(
@@ -527,44 +529,33 @@ impl<'a, Aux> VM<'a, Aux> {
         byte_code_pos: &mut usize,
         bytecode: &'a [u8],
     ) -> Result<(), ExecutionError> {
-        let fun_name = Self::read_str(byte_code_pos, bytecode).ok_or_else(|| {
-            warn!(self.logger, "Could not read function name");
-            ExecutionError::invalid_argument(None)
-        })?;
+        let fun_hash = unsafe { Self::decode_value(&self.logger, bytecode, byte_code_pos) };
         let mut fun = self
             .callables
-            .remove(fun_name)
-            .ok_or_else(|| ExecutionError::ProcedureNotFound(fun_name.to_owned()))?;
+            .remove(fun_hash)
+            .ok_or_else(|| ExecutionError::ProcedureNotFound(fun_hash))?;
+        let logger = self.logger.new(o!("function"=> fun.name.to_string()));
         let res = (|| {
             let n_inputs = fun.num_params();
             let mut inputs = Vec::with_capacity(n_inputs as usize);
-            for _ in 0..n_inputs {
+            for i in 0..n_inputs {
                 let arg = self.stack.pop().ok_or_else(|| {
-                    warn!(
-                        self.logger,
-                        "Missing argument to function call {:?}", fun_name
-                    );
+                    warn!(logger, "Missing argument ({}) to function call", i);
                     ExecutionError::MissingArgument
                 })?;
                 inputs.push(arg)
             }
-            debug!(
-                self.logger,
-                "Calling function {} with inputs: {:?}", fun_name, inputs
-            );
+            debug!(logger, "Calling function with inputs: {:?}", inputs);
             fun.call(self, &inputs).map_err(|e| {
-                warn!(
-                    self.logger,
-                    "Calling function {:?} failed with {:?}", fun_name, e
-                );
+                warn!(logger, "Calling function failed with {:?}", e);
                 e
             })?;
-            debug!(self.logger, "Function call returned");
+            debug!(logger, "Function call returned");
 
             Ok(())
         })();
-        // clean up
-        self.callables.insert(fun_name.to_owned(), fun);
+        // cleanup
+        self.callables.insert(fun_hash, fun);
         res
     }
 

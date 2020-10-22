@@ -234,7 +234,9 @@ impl<'a> Compiler<'a> {
                 c.0.encode(&mut self.program.bytecode).unwrap();
             }
             Call(c) => {
-                c.0.encode(&mut self.program.bytecode).unwrap();
+                let name = &c.0;
+                let key = Key::from_str(name.as_str());
+                key.encode(&mut self.program.bytecode).unwrap();
             }
             ScalarArray(n) => {
                 n.0.encode(&mut self.program.bytecode).unwrap();

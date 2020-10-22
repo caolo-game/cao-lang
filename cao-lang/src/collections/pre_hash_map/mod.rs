@@ -57,13 +57,15 @@ impl Key {
     }
 
     pub fn from_bytes(key: &[u8]) -> Self {
+        const MASK: u64 = u32::MAX as u64;
         // FNV-1a
         let mut hash = 2166136261u64;
         for byte in key {
             hash ^= *byte as u64;
+            hash = hash & MASK;
             hash *= 16777619;
         }
-        let hash = hash & u32::MAX as u64;
+        let hash = hash & MASK;
         debug_assert!(hash != 0);
         Self(hash as u32)
     }
