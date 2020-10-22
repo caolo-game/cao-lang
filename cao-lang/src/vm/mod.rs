@@ -13,8 +13,8 @@ use data::RuntimeData;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
-use std::{collections::HashMap, str::FromStr};
 use std::mem::transmute;
+use std::{collections::HashMap, str::FromStr};
 
 type ConvertFn<Aux> = unsafe fn(&Object, &VM<Aux>) -> Box<dyn ObjectProperties>;
 
@@ -77,6 +77,7 @@ where
     objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<Pointer, ConvertFn<Aux>>,
+
     _m: std::marker::PhantomData<&'a ()>,
 }
 

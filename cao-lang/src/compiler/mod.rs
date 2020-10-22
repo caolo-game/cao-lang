@@ -20,10 +20,13 @@ pub use compile_options::*;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
-use std::{convert::{Infallible, TryInto}, str::FromStr};
 use std::fmt::Debug;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{collections::HashMap, mem};
+use std::{
+    convert::{Infallible, TryInto},
+    str::FromStr,
+};
 
 impl ByteEncodeble for InputString {
     fn displayname() -> &'static str {
