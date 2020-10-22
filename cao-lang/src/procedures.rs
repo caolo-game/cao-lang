@@ -1,8 +1,8 @@
 //! Helper module for dealing with function extensions.
 //!
 pub use crate::traits::Callable;
-use crate::{InputString, vm::VM};
 use crate::{collections::pre_hash_map::Key, prelude::Scalar};
+use crate::{vm::VM, InputString};
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 use thiserror::Error;
@@ -34,6 +34,8 @@ pub enum ExecutionError {
     Timeout,
     #[error("Subtask failed {0:?}")]
     TaskFailure(String),
+    #[error("The program has overflowns its stack")]
+    Stackoverflow,
 }
 
 impl ExecutionError {

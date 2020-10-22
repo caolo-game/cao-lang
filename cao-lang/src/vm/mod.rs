@@ -1,8 +1,11 @@
-use crate::VariableId;
+pub mod data;
+
 use crate::{binary_compare, pop_stack};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
+use crate::{collections::stack::ScalarStack, VariableId};
 use crate::{scalar::Scalar, InputString};
+use data::RuntimeData;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
@@ -73,38 +76,6 @@ where
     _m: std::marker::PhantomData<&'a ()>,
 }
 
-pub struct RuntimeData {
-    pub memory_limit: usize,
-
-    pub memory: Vec<u8>,
-    pub stack: Vec<Scalar>,
-    pub registers: Vec<Scalar>,
-}
-
-impl RuntimeData {
-    pub fn clear(&mut self) {
-        self.memory.clear();
-        self.stack.clear();
-        self.registers.clear();
-    }
-
-    pub fn write_to_memory<T: ByteEncodeProperties>(
-        &mut self,
-        val: T,
-    ) -> Result<(Pointer, usize), ExecutionError> {
-        let result = self.memory.len();
-
-        val.encode(&mut self.memory).map_err(|err| {
-            ExecutionError::invalid_argument(format!("Failed to encode argument {:?}", err))
-        })?;
-
-        if self.memory.len() >= self.memory_limit {
-            return Err(ExecutionError::OutOfMemory);
-        }
-        Ok((Pointer(result as u32), self.memory.len() - result))
-    }
-}
-
 impl<'a, Aux> VM<'a, Aux> {
     pub fn new(logger: impl Into<Option<Logger>>, auxiliary_data: Aux) -> Self {
         let logger = logger
@@ -120,7 +91,7 @@ impl<'a, Aux> VM<'a, Aux> {
             runtime_data: RuntimeData {
                 memory_limit: 40000,
                 memory: Vec::with_capacity(512),
-                stack: Vec::with_capacity(128),
+                stack: ScalarStack::new(256),
                 registers: Vec::with_capacity(128),
             },
             max_iter: 1000,
@@ -145,7 +116,7 @@ impl<'a, Aux> VM<'a, Aux> {
     }
 
     pub fn stack(&self) -> &[Scalar] {
-        &self.runtime_data.stack
+        self.runtime_data.stack.as_slice()
     }
 
     pub fn get_aux(&self) -> &Aux {
@@ -175,17 +146,9 @@ impl<'a, Aux> VM<'a, Aux> {
         bytecode_pos: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
         let object = self.objects.get(&bytecode_pos)?;
-        match object.index {
-            Some(index) => {
-                let data = &self.runtime_data.memory;
-                let head = index.0 as usize;
-                let tail = (head.checked_add(object.size as usize))
-                    .unwrap_or(data.len())
-                    .min(data.len());
-                T::decode_in_place(&data[head..tail])
-                    .ok()
-                    .map(|(_, val)| val)
-            }
+
+        match self.runtime_data.get_value_in_place::<T>(object) {
+            Some(val) => Some(val),
             None => {
                 warn!(self.logger, "Dereferencing null pointer");
                 None
@@ -260,7 +223,10 @@ impl<'a, Aux> VM<'a, Aux> {
     where
         S: Into<Scalar>,
     {
-        self.runtime_data.stack.push(value.into());
+        self.runtime_data
+            .stack
+            .push(value.into())
+            .map_err(|_| ExecutionError::Stackoverflow)?;
         Ok(())
     }
 
@@ -365,24 +331,36 @@ impl<'a, Aux> VM<'a, Aux> {
                 }
                 Instruction::CopyLast => {
                     if let Some(val) = self.runtime_data.stack.last().cloned() {
-                        self.runtime_data.stack.push(val);
+                        self.runtime_data
+                            .stack
+                            .push(val)
+                            .map_err(|_| ExecutionError::Stackoverflow)?;
                     }
                 }
                 Instruction::Pass => {}
                 Instruction::ScalarLabel => {
-                    self.runtime_data.stack.push(Scalar::Integer(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
-                    }));
+                    self.runtime_data
+                        .stack
+                        .push(Scalar::Integer(unsafe {
+                            Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
+                        }))
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarInt => {
-                    self.runtime_data.stack.push(Scalar::Integer(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
-                    }));
+                    self.runtime_data
+                        .stack
+                        .push(Scalar::Integer(unsafe {
+                            Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
+                        }))
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarFloat => {
-                    self.runtime_data.stack.push(Scalar::Floating(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
-                    }));
+                    self.runtime_data
+                        .stack
+                        .push(Scalar::Floating(unsafe {
+                            Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
+                        }))
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarArray => {
                     self.instr_scalar_array(&program.bytecode, &mut bytecode_pos)?
@@ -423,7 +401,10 @@ impl<'a, Aux> VM<'a, Aux> {
                 debug!(self.logger, "Variable {} does not exist", varname);
                 ExecutionError::invalid_argument(None)
             })?;
-        self.runtime_data.stack.push(*value);
+        self.runtime_data
+            .stack
+            .push(*value)
+            .map_err(|_| ExecutionError::Stackoverflow)?;
         Ok(())
     }
 
@@ -445,10 +426,8 @@ impl<'a, Aux> VM<'a, Aux> {
 
     fn instr_exit(&mut self) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Exit called");
-        let code = self.runtime_data.stack.last();
+        let code = self.runtime_data.stack.pop();
         if let Some(Scalar::Integer(code)) = code {
-            let code = *code;
-            self.runtime_data.stack.pop();
             debug!(self.logger, "Exit code {:?}", code);
             return Ok(code);
         }
@@ -476,7 +455,7 @@ impl<'a, Aux> VM<'a, Aux> {
                 "ScalarArray length must be positive integer".to_owned(),
             ));
         }
-        if len > 128 || len as usize > self.runtime_data.stack.len() {
+        if len as usize > self.runtime_data.stack.len() {
             return Err(ExecutionError::invalid_argument(format!(
                 "The stack holds {} items, but ScalarArray requested {}",
                 self.runtime_data.stack.len(),
@@ -491,7 +470,9 @@ impl<'a, Aux> VM<'a, Aux> {
         }
         self.runtime_data
             .stack
-            .push(Scalar::Pointer(Pointer(bytecode_pos as u32)));
+            .push(Scalar::Pointer(Pointer(bytecode_pos as u32)))
+            .map_err(|_| ExecutionError::Stackoverflow)?;
+
         Ok(())
     }
 
@@ -512,7 +493,8 @@ impl<'a, Aux> VM<'a, Aux> {
         })?;
         self.runtime_data
             .stack
-            .push(Scalar::Pointer(obj.index.unwrap()));
+            .push(Scalar::Pointer(obj.index.unwrap()))
+            .map_err(|_| ExecutionError::Stackoverflow)?;
         Ok(())
     }
 
@@ -534,7 +516,7 @@ impl<'a, Aux> VM<'a, Aux> {
 
     pub fn log_stack(&self) {
         trace!(self.logger, "--------Stack--------");
-        for s in &self.runtime_data.stack[..] {
+        for s in self.runtime_data.stack.as_slice().iter().rev() {
             trace!(self.logger, "{:?}", s);
         }
         trace!(self.logger, "------End Stack------");
@@ -609,7 +591,10 @@ impl<'a, Aux> VM<'a, Aux> {
         let b = pop_stack!(self);
         let a = pop_stack!(self);
 
-        self.runtime_data.stack.push(op(a, b));
+        self.runtime_data
+            .stack
+            .push(op(a, b))
+            .map_err(|_| ExecutionError::Stackoverflow)?;
         Ok(())
     }
 
@@ -678,18 +663,18 @@ mod tests {
     fn test_binary_operatons() {
         let mut vm = VM::new(None, ());
 
-        vm.runtime_data.stack.push(Scalar::Integer(512));
-        vm.runtime_data.stack.push(Scalar::Integer(42));
+        vm.runtime_data.stack.push(Scalar::Integer(512)).unwrap();
+        vm.runtime_data.stack.push(Scalar::Integer(42)).unwrap();
 
         vm.binary_op(|a, b| (a + a / b) * b).unwrap();
 
         let result = vm
             .runtime_data
             .stack
-            .last()
+            .pop()
             .expect("Expected to read the result");
         match result {
-            Scalar::Integer(result) => assert_eq!(*result, (512 + 512 / 42) * 42),
+            Scalar::Integer(result) => assert_eq!(result, (512 + 512 / 42) * 42),
             _ => panic!("Invalid result type"),
         }
     }

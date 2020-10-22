@@ -55,7 +55,8 @@ macro_rules! binary_compare {
                     }
                     _ => a $cmp b,
                 };
-                $from.runtime_data.stack.push(Scalar::Integer(res as i32));
+                $from.runtime_data.stack.push(Scalar::Integer(res as i32))
+                    .map_err(|_|ExecutionError::Stackoverflow)?;
             }
         };
     }
