@@ -470,11 +470,11 @@ impl<'a, Aux> VM<'a, Aux> {
     }
 
     pub fn log_stack(&self) {
-        trace!(self.logger, "------------------");
+        trace!(self.logger, "--------Stack--------");
         for s in &self.stack[..] {
             trace!(self.logger, "{:?}", s);
         }
-        trace!(self.logger, "------------------");
+        trace!(self.logger, "------End Stack------");
     }
 
     fn jump_if<F: Fn(Scalar) -> bool>(
