@@ -4,11 +4,10 @@ use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Scalar {
+    Null,
     Pointer(Pointer),
     Integer(i32),
     Floating(f32),
-    /// Used for default initialization
-    Null,
 }
 
 impl Default for Scalar {
