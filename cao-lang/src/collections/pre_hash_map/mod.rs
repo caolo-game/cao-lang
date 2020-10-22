@@ -1,5 +1,13 @@
 //! Hash table with pre-calculated hashes.
 //!
+//! This hashmap does not care about the actual value of the key and assumes that the hash was
+//! calculated ahead of time.
+//!
+//! ## Safety
+//!
+//! Since only the hashes are compared hash collisions will introduce bugs which are not addressed
+//! at this moment. Use wisely
+//!
 
 mod serde;
 

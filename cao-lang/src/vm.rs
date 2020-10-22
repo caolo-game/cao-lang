@@ -63,16 +63,46 @@ where
     pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
     pub max_iter: i32,
-    pub memory_limit: usize,
 
-    memory: Vec<u8>,
-    stack: Vec<Scalar>,
+    pub runtime_data: RuntimeData,
+
     callables: PreHashMap<Procedure<Aux>>,
     objects: HashMap<Pointer, Object>,
     /// Functions to convert Objects to dyn ObjectProperties
     converters: HashMap<Pointer, ConvertFn<Aux>>,
-    registers: Vec<Scalar>,
     _m: std::marker::PhantomData<&'a ()>,
+}
+
+pub struct RuntimeData {
+    pub memory_limit: usize,
+
+    pub memory: Vec<u8>,
+    pub stack: Vec<Scalar>,
+    pub registers: Vec<Scalar>,
+}
+
+impl RuntimeData {
+    pub fn clear(&mut self) {
+        self.memory.clear();
+        self.stack.clear();
+        self.registers.clear();
+    }
+
+    pub fn write_to_memory<T: ByteEncodeProperties>(
+        &mut self,
+        val: T,
+    ) -> Result<(Pointer, usize), ExecutionError> {
+        let result = self.memory.len();
+
+        val.encode(&mut self.memory).map_err(|err| {
+            ExecutionError::invalid_argument(format!("Failed to encode argument {:?}", err))
+        })?;
+
+        if self.memory.len() >= self.memory_limit {
+            return Err(ExecutionError::OutOfMemory);
+        }
+        Ok((Pointer(result as u32), self.memory.len() - result))
+    }
 }
 
 impl<'a, Aux> VM<'a, Aux> {
@@ -85,27 +115,28 @@ impl<'a, Aux> VM<'a, Aux> {
             history: Vec::new(),
             converters: HashMap::new(),
             auxiliary_data,
-            memory: Vec::with_capacity(512),
             callables: PreHashMap::default(),
-            memory_limit: 40000,
-            stack: Vec::with_capacity(128),
             objects: HashMap::with_capacity(128),
-            registers: Vec::with_capacity(128),
+            runtime_data: RuntimeData {
+                memory_limit: 40000,
+                memory: Vec::with_capacity(512),
+                stack: Vec::with_capacity(128),
+                registers: Vec::with_capacity(128),
+            },
             max_iter: 1000,
             _m: Default::default(),
         }
     }
 
     pub fn clear(&mut self) {
-        self.memory.clear();
-        self.stack.clear();
         self.objects.clear();
         self.converters.clear();
-        self.registers.clear();
+
+        self.runtime_data.clear();
     }
 
     pub fn read_var(&self, name: VariableId) -> Option<&Scalar> {
-        self.registers.get(name.0 as usize)
+        self.runtime_data.registers.get(name.0 as usize)
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
@@ -114,7 +145,7 @@ impl<'a, Aux> VM<'a, Aux> {
     }
 
     pub fn stack(&self) -> &[Scalar] {
-        &self.stack
+        &self.runtime_data.stack
     }
 
     pub fn get_aux(&self) -> &Aux {
@@ -146,7 +177,7 @@ impl<'a, Aux> VM<'a, Aux> {
         let object = self.objects.get(&bytecode_pos)?;
         match object.index {
             Some(index) => {
-                let data = &self.memory;
+                let data = &self.runtime_data.memory;
                 let head = index.0 as usize;
                 let tail = (head.checked_add(object.size as usize))
                     .unwrap_or(data.len())
@@ -166,7 +197,7 @@ impl<'a, Aux> VM<'a, Aux> {
         let object = self.objects.get(&bytecode_pos)?;
         match object.index {
             Some(index) => {
-                let data = &self.memory;
+                let data = &self.runtime_data.memory;
                 let head = index.0 as usize;
                 let tail = (head.checked_add(object.size as usize))
                     .unwrap_or(data.len())
@@ -180,30 +211,13 @@ impl<'a, Aux> VM<'a, Aux> {
         }
     }
 
-    fn write_to_memory<T: ByteEncodeProperties>(
-        &mut self,
-        val: T,
-    ) -> Result<(Pointer, usize), ExecutionError> {
-        let result = self.memory.len();
-
-        val.encode(&mut self.memory).map_err(|err| {
-            warn!(self.logger, "Failed to encode argument {:?}", err);
-            ExecutionError::invalid_argument(None)
-        })?;
-
-        if self.memory.len() >= self.memory_limit {
-            return Err(ExecutionError::OutOfMemory);
-        }
-        Ok((Pointer(result as u32), self.memory.len() - result))
-    }
-
     /// Save `val` in memory and push a pointer to the object onto the stack
     pub fn set_value_with_decoder<T: ByteEncodeProperties>(
         &mut self,
         val: T,
         converter: ConvertFn<Aux>,
     ) -> Result<Object, ExecutionError> {
-        let (index, size) = self.write_to_memory(val)?;
+        let (index, size) = self.runtime_data.write_to_memory(val)?;
         let object = Object {
             index: Some(index),
             size: size as u32,
@@ -223,7 +237,7 @@ impl<'a, Aux> VM<'a, Aux> {
         &mut self,
         val: T,
     ) -> Result<Object, ExecutionError> {
-        let (index, size) = self.write_to_memory(val)?;
+        let (index, size) = self.runtime_data.write_to_memory(val)?;
         let object = Object {
             index: Some(index),
             size: size as u32,
@@ -246,12 +260,12 @@ impl<'a, Aux> VM<'a, Aux> {
     where
         S: Into<Scalar>,
     {
-        self.stack.push(value.into());
+        self.runtime_data.stack.push(value.into());
         Ok(())
     }
 
     pub fn stack_pop(&mut self) -> Option<Scalar> {
-        self.stack.pop()
+        self.runtime_data.stack.pop()
     }
 
     #[inline]
@@ -325,7 +339,7 @@ impl<'a, Aux> VM<'a, Aux> {
                     self.instr_breadcrumb(&program.bytecode, &mut bytecode_pos)
                 }
                 Instruction::ClearStack => {
-                    self.stack.clear();
+                    self.runtime_data.stack.clear();
                 }
                 Instruction::SetVar => {
                     self.instr_set_var(&program.bytecode, &mut bytecode_pos)?;
@@ -334,7 +348,7 @@ impl<'a, Aux> VM<'a, Aux> {
                     self.instr_read_var(&program.bytecode, &mut bytecode_pos)?;
                 }
                 Instruction::Pop => {
-                    self.stack.pop().ok_or_else(|| {
+                    self.runtime_data.stack.pop().ok_or_else(|| {
                         debug!(self.logger, "Popping empty stack");
                         ExecutionError::invalid_argument(Some("Popping empty stack".to_owned()))
                     })?;
@@ -350,23 +364,23 @@ impl<'a, Aux> VM<'a, Aux> {
                     self.jump_if(&mut bytecode_pos, program, |s| !s.as_bool())?;
                 }
                 Instruction::CopyLast => {
-                    if let Some(val) = self.stack.last().cloned() {
-                        self.stack.push(val);
+                    if let Some(val) = self.runtime_data.stack.last().cloned() {
+                        self.runtime_data.stack.push(val);
                     }
                 }
                 Instruction::Pass => {}
                 Instruction::ScalarLabel => {
-                    self.stack.push(Scalar::Integer(unsafe {
+                    self.runtime_data.stack.push(Scalar::Integer(unsafe {
                         Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
                 Instruction::ScalarInt => {
-                    self.stack.push(Scalar::Integer(unsafe {
+                    self.runtime_data.stack.push(Scalar::Integer(unsafe {
                         Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
                 Instruction::ScalarFloat => {
-                    self.stack.push(Scalar::Floating(unsafe {
+                    self.runtime_data.stack.push(Scalar::Floating(unsafe {
                         Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
@@ -389,7 +403,7 @@ impl<'a, Aux> VM<'a, Aux> {
             debug!(
                 self.logger,
                 "Stack len: {} {:?} ptr: {}",
-                self.stack.len(),
+                self.runtime_data.stack.len(),
                 self.log_stack(),
                 bytecode_pos
             );
@@ -401,34 +415,40 @@ impl<'a, Aux> VM<'a, Aux> {
     fn instr_read_var(&mut self, bytecode: &'a [u8], bytecode_pos: &mut usize) -> ExecutionResult {
         let VariableId(varname) =
             unsafe { Self::decode_value(&self.logger, bytecode, bytecode_pos) };
-        let value = self.registers.get(varname as usize).ok_or_else(|| {
-            debug!(self.logger, "Variable {} does not exist", varname);
-            ExecutionError::invalid_argument(None)
-        })?;
-        self.stack.push(*value);
+        let value = self
+            .runtime_data
+            .registers
+            .get(varname as usize)
+            .ok_or_else(|| {
+                debug!(self.logger, "Variable {} does not exist", varname);
+                ExecutionError::invalid_argument(None)
+            })?;
+        self.runtime_data.stack.push(*value);
         Ok(())
     }
 
     fn instr_set_var(&mut self, bytecode: &'a [u8], bytecode_pos: &mut usize) -> ExecutionResult {
         let varname =
             unsafe { Self::decode_value::<VariableId>(&self.logger, bytecode, bytecode_pos) };
-        let scalar = self.stack.pop().ok_or_else(|| {
+        let scalar = self.runtime_data.stack.pop().ok_or_else(|| {
             ExecutionError::invalid_argument("Stack was empty when setting variable".to_owned())
         })?;
         let varname = varname.0 as usize;
-        if self.registers.len() <= varname {
-            self.registers.resize(varname + 1, Scalar::Null);
+        if self.runtime_data.registers.len() <= varname {
+            self.runtime_data
+                .registers
+                .resize(varname + 1, Scalar::Null);
         }
-        self.registers[varname] = scalar;
+        self.runtime_data.registers[varname] = scalar;
         Ok(())
     }
 
     fn instr_exit(&mut self) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Exit called");
-        let code = self.stack.last();
+        let code = self.runtime_data.stack.last();
         if let Some(Scalar::Integer(code)) = code {
             let code = *code;
-            self.stack.pop();
+            self.runtime_data.stack.pop();
             debug!(self.logger, "Exit code {:?}", code);
             return Ok(code);
         }
@@ -456,20 +476,21 @@ impl<'a, Aux> VM<'a, Aux> {
                 "ScalarArray length must be positive integer".to_owned(),
             ));
         }
-        if len > 128 || len as usize > self.stack.len() {
+        if len > 128 || len as usize > self.runtime_data.stack.len() {
             return Err(ExecutionError::invalid_argument(format!(
                 "The stack holds {} items, but ScalarArray requested {}",
-                self.stack.len(),
+                self.runtime_data.stack.len(),
                 len,
             )));
         }
-        let bytecode_pos = self.memory.len();
+        let bytecode_pos = self.runtime_data.memory.len();
         for _ in 0..len {
-            if let Some(val) = self.stack.pop() {
-                self.write_to_memory(val)?;
+            if let Some(val) = self.runtime_data.stack.pop() {
+                self.runtime_data.write_to_memory(val)?;
             }
         }
-        self.stack
+        self.runtime_data
+            .stack
             .push(Scalar::Pointer(Pointer(bytecode_pos as u32)));
         Ok(())
     }
@@ -489,7 +510,9 @@ impl<'a, Aux> VM<'a, Aux> {
             let res: &'static str = unsafe { mem::transmute(res) };
             Box::new(res)
         })?;
-        self.stack.push(Scalar::Pointer(obj.index.unwrap()));
+        self.runtime_data
+            .stack
+            .push(Scalar::Pointer(obj.index.unwrap()));
         Ok(())
     }
 
@@ -511,7 +534,7 @@ impl<'a, Aux> VM<'a, Aux> {
 
     pub fn log_stack(&self) {
         trace!(self.logger, "--------Stack--------");
-        for s in &self.stack[..] {
+        for s in &self.runtime_data.stack[..] {
             trace!(self.logger, "{:?}", s);
         }
         trace!(self.logger, "------End Stack------");
@@ -523,14 +546,14 @@ impl<'a, Aux> VM<'a, Aux> {
         program: &CompiledProgram,
         predicate: F,
     ) -> Result<(), ExecutionError> {
-        if self.stack.is_empty() {
+        if self.runtime_data.stack.is_empty() {
             warn!(
                 self.logger,
-                "JumpIfTrue called with missing arguments, stack: {:?}", self.stack
+                "JumpIfTrue called with missing arguments, stack: {:?}", self.runtime_data.stack
             );
             return Err(ExecutionError::invalid_argument(None));
         }
-        let cond = self.stack.pop().unwrap();
+        let cond = self.runtime_data.stack.pop().unwrap();
         let label: Key =
             unsafe { Self::decode_value(&self.logger, &program.bytecode, bytecode_pos) };
         if predicate(cond) {
@@ -559,7 +582,7 @@ impl<'a, Aux> VM<'a, Aux> {
             let n_inputs = fun.num_params();
             let mut inputs = Vec::with_capacity(n_inputs as usize);
             for i in 0..n_inputs {
-                let arg = self.stack.pop().ok_or_else(|| {
+                let arg = self.runtime_data.stack.pop().ok_or_else(|| {
                     warn!(logger, "Missing argument ({}) to function call", i);
                     ExecutionError::MissingArgument
                 })?;
@@ -586,7 +609,7 @@ impl<'a, Aux> VM<'a, Aux> {
         let b = pop_stack!(self);
         let a = pop_stack!(self);
 
-        self.stack.push(op(a, b));
+        self.runtime_data.stack.push(op(a, b));
         Ok(())
     }
 
@@ -617,7 +640,7 @@ mod tests {
     #[test]
     fn test_set_value_memory_limit_error_raised() {
         let mut vm = VM::new(None, ());
-        vm.memory_limit = 10;
+        vm.runtime_data.memory_limit = 10;
         vm.set_value("1234567890987654321".to_owned())
             .expect_err("Should return error");
     }
@@ -641,7 +664,7 @@ mod tests {
         let program = crate::compiler::compile(None, compilation_unit, None).unwrap();
 
         let mut vm = VM::new(None, ());
-        vm.memory_limit = 8;
+        vm.runtime_data.memory_limit = 8;
 
         let err = vm.run(&program).expect_err("Should have failed");
 
@@ -655,12 +678,16 @@ mod tests {
     fn test_binary_operatons() {
         let mut vm = VM::new(None, ());
 
-        vm.stack.push(Scalar::Integer(512));
-        vm.stack.push(Scalar::Integer(42));
+        vm.runtime_data.stack.push(Scalar::Integer(512));
+        vm.runtime_data.stack.push(Scalar::Integer(42));
 
         vm.binary_op(|a, b| (a + a / b) * b).unwrap();
 
-        let result = vm.stack.last().expect("Expected to read the result");
+        let result = vm
+            .runtime_data
+            .stack
+            .last()
+            .expect("Expected to read the result");
         match result {
             Scalar::Integer(result) => assert_eq!(*result, (512 + 512 / 42) * 42),
             _ => panic!("Invalid result type"),

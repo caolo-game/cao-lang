@@ -23,6 +23,7 @@ macro_rules! load_var {
 macro_rules! pop_stack {
     ($from : ident) => {{
         $from
+            .runtime_data
             .stack
             .pop()
             .ok_or(ExecutionError::InvalidArgument { context: None })?
@@ -45,16 +46,16 @@ macro_rules! binary_compare {
                         } else {
                             let size = a.size as usize;
                             let ind = a.index.unwrap().0 as usize;
-                            let a = &$from.memory[ind..ind + size];
+                            let a = &$from.runtime_data.memory[ind..ind + size];
                             let ind = b.index.unwrap().0 as usize;
-                            let b = &$from.memory[ind..ind + size];
+                            let b = &$from.runtime_data.memory[ind..ind + size];
 
                             a.iter().zip(b.iter()).all(|(a, b)| a $cmp b)
                         }
                     }
                     _ => a $cmp b,
                 };
-                $from.stack.push(Scalar::Integer(res as i32));
+                $from.runtime_data.stack.push(Scalar::Integer(res as i32));
             }
         };
     }
