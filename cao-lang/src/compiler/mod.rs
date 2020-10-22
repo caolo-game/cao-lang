@@ -55,6 +55,14 @@ impl ByteDecodeProperties for InputString {
             .map_err(|_| StringDecodeError::CapacityError(ll + len))
             .map(|res| (ll + len, res))
     }
+
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
+        let (ll, len) = i32::decode_unsafe(bytes);
+        let len = len as usize;
+        let res =
+            std::str::from_utf8(&bytes[ll..ll + len]).expect("Failed to deserialize utf8 string");
+        Self::from(res).map(|res| (ll + len, res)).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

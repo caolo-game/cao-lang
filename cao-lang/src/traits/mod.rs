@@ -31,6 +31,8 @@ pub trait ByteDecodeProperties: Sized + ObjectProperties + ByteEncodeble {
 
     /// return the bytes read
     fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError>;
+    /// return the bytes read
+    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self);
 }
 
 pub trait DecodeInPlace<'a>: Sized + ObjectProperties + ByteEncodeble {
