@@ -317,12 +317,11 @@ impl<'a, Aux> VM<'a, Aux> {
                     )?;
                 }
                 Instruction::CopyLast => {
-                    if let Some(val) = self.runtime_data.stack.last().cloned() {
-                        self.runtime_data
-                            .stack
-                            .push(val)
-                            .map_err(|_| ExecutionError::Stackoverflow)?;
-                    }
+                    let val = self.runtime_data.stack.last();
+                    self.runtime_data
+                        .stack
+                        .push(val)
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::Pass => {}
                 Instruction::ScalarLabel => {

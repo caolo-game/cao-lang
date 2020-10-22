@@ -21,6 +21,7 @@ impl ScalarStack {
         }
     }
 
+    #[inline]
     pub fn push(&mut self, value: Scalar) -> Result<(), StackError> {
         if self.count + 1 < self.buffer.len() {
             self.buffer[self.count] = value;
@@ -33,14 +34,16 @@ impl ScalarStack {
 
     pub fn clear(&mut self) {
         self.count = 0;
+        self.buffer[0] = Scalar::Null; // in case the stack is pop'ed when empty
     }
 
     pub fn len(&self) -> usize {
         self.count
     }
 
+    #[inline]
     pub fn pop(&mut self) -> Scalar {
-        self.count -= 1;
+        self.count = self.count.checked_sub(1).unwrap_or(0);
         std::mem::replace(&mut self.buffer[self.count], Scalar::Null)
     }
 
@@ -52,11 +55,13 @@ impl ScalarStack {
         self.count == 0
     }
 
-    pub fn last(&self) -> Option<&Scalar> {
+    /// Returns Null if the stack is empty
+    #[inline]
+    pub fn last(&self) -> Scalar {
         if self.count > 0 {
-            Some(&self.buffer[self.count - 1])
+            self.buffer[self.count - 1]
         } else {
-            None
+            Scalar::Null
         }
     }
 }
