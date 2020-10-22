@@ -141,9 +141,9 @@ impl<'a, Aux> VM<'a, Aux> {
 
     pub fn get_value_in_place<T: DecodeInPlace<'a>>(
         &'a self,
-        byte_code_pos: Pointer,
+        bytecode_pos: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        let object = self.objects.get(&byte_code_pos)?;
+        let object = self.objects.get(&bytecode_pos)?;
         match object.index {
             Some(index) => {
                 let data = &self.memory;
@@ -162,8 +162,8 @@ impl<'a, Aux> VM<'a, Aux> {
         }
     }
 
-    pub fn get_value<T: ByteDecodeProperties>(&self, byte_code_pos: Pointer) -> Option<T> {
-        let object = self.objects.get(&byte_code_pos)?;
+    pub fn get_value<T: ByteDecodeProperties>(&self, bytecode_pos: Pointer) -> Option<T> {
+        let object = self.objects.get(&bytecode_pos)?;
         match object.index {
             Some(index) => {
                 let data = &self.memory;
@@ -258,17 +258,17 @@ impl<'a, Aux> VM<'a, Aux> {
     unsafe fn decode_value<T: ByteDecodeProperties>(
         logger: &Logger,
         bytes: &[u8],
-        byte_code_pos: &mut usize,
+        bytecode_pos: &mut usize,
     ) -> T {
         trace!(
             logger,
-            "Decoding value of type {} at byte_code_pos {}, len: {}",
+            "Decoding value of type {} at bytecode_pos {}, len: {}",
             std::any::type_name::<T>(),
-            byte_code_pos,
+            bytecode_pos,
             bytes.len()
         );
-        let (len, val) = T::decode_unsafe(&bytes[*byte_code_pos..]);
-        *byte_code_pos += len;
+        let (len, val) = T::decode_unsafe(&bytes[*bytecode_pos..]);
+        *bytecode_pos += len;
         val
     }
 
@@ -277,22 +277,22 @@ impl<'a, Aux> VM<'a, Aux> {
     fn decode_in_place<T: DecodeInPlace<'a>>(
         logger: &Logger,
         bytes: &'a [u8],
-        byte_code_pos: &mut usize,
+        bytecode_pos: &mut usize,
     ) -> Result<T::Ref, ExecutionError> {
         trace!(
             logger,
-            "Decoding value of type {} at byte_code_pos {}, len: {}",
+            "Decoding value of type {} at bytecode_pos {}, len: {}",
             std::any::type_name::<T>(),
-            byte_code_pos,
+            bytecode_pos,
             bytes.len()
         );
-        let (len, val) = T::decode_in_place(&bytes[*byte_code_pos..])
+        let (len, val) = T::decode_in_place(&bytes[*bytecode_pos..])
             .map_err(|_| ExecutionError::invalid_argument("Failed to decode value".to_owned()))?;
-        *byte_code_pos += len;
+        *bytecode_pos += len;
         trace!(
             logger,
-            "Decoding successful, new byte_code_pos {}",
-            byte_code_pos,
+            "Decoding successful, new bytecode_pos {}",
+            bytecode_pos,
         );
         Ok(val)
     }
@@ -302,67 +302,36 @@ impl<'a, Aux> VM<'a, Aux> {
     pub fn run(&mut self, program: &'a CompiledProgram) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Running program");
         self.history.clear();
-        let mut byte_code_pos = 0;
+        let mut bytecode_pos = 0;
         let len = program.bytecode.len();
         let mut max_iter = self.max_iter;
-        while byte_code_pos < len {
+        while bytecode_pos < len {
             max_iter -= 1;
             if max_iter <= 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr = unsafe { *program.bytecode.as_ptr().offset(byte_code_pos as isize) };
+            let instr = unsafe { *program.bytecode.as_ptr().offset(bytecode_pos as isize) };
             let instr = unsafe { transmute(instr) };
             trace!(
                 self.logger,
                 "Instruction: {:?}({:?}) Pointer: {:?}",
                 instr,
-                program.bytecode[byte_code_pos],
-                byte_code_pos
+                program.bytecode[bytecode_pos],
+                bytecode_pos
             );
-            byte_code_pos += 1;
+            bytecode_pos += 1;
             match instr {
                 Instruction::Breadcrumb => {
-                    let nodeid = unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
-                    };
-
-                    let instr = program.bytecode[byte_code_pos];
-                    let instr = Instruction::try_from(instr).ok();
-                    byte_code_pos += 1;
-                    trace!(self.logger, "Logging visited node {:?}", nodeid);
-                    self.history.push(HistoryEntry { id: nodeid, instr });
+                    self.instr_breadcrumb(&program.bytecode, &mut bytecode_pos)
                 }
                 Instruction::ClearStack => {
                     self.stack.clear();
                 }
                 Instruction::SetVar => {
-                    let varname = unsafe {
-                        Self::decode_value::<VariableId>(
-                            &self.logger,
-                            &program.bytecode,
-                            &mut byte_code_pos,
-                        )
-                    };
-                    let scalar = self.stack.pop().ok_or_else(|| {
-                        ExecutionError::invalid_argument(
-                            "Stack was empty when setting variable".to_owned(),
-                        )
-                    })?;
-                    let varname = varname.0 as usize;
-                    if self.registers.len() <= varname {
-                        self.registers.resize(varname + 1, Scalar::Null);
-                    }
-                    self.registers[varname] = scalar;
+                    self.instr_set_var(&program.bytecode, &mut bytecode_pos)?;
                 }
                 Instruction::ReadVar => {
-                    let VariableId(varname) = unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
-                    };
-                    let value = self.registers.get(varname as usize).ok_or_else(|| {
-                        debug!(self.logger, "Variable {} does not exist", varname);
-                        ExecutionError::invalid_argument(None)
-                    })?;
-                    self.stack.push(*value);
+                    self.instr_read_var(&program.bytecode, &mut bytecode_pos)?;
                 }
                 Instruction::Pop => {
                     self.stack.pop().ok_or_else(|| {
@@ -371,22 +340,14 @@ impl<'a, Aux> VM<'a, Aux> {
                     })?;
                 }
                 Instruction::Jump => {
-                    let label: Key = unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
-                    };
-                    byte_code_pos = program
-                        .labels
-                        .0
-                        .get(label)
-                        .ok_or(ExecutionError::InvalidLabel(label))?
-                        .pos as usize;
+                    self.instr_jump(&mut bytecode_pos, program)?;
                 }
-                Instruction::Exit => return self.exit(),
+                Instruction::Exit => return self.instr_exit(),
                 Instruction::JumpIfTrue => {
-                    self.jump_if(&mut byte_code_pos, program, |s| s.as_bool())?;
+                    self.jump_if(&mut bytecode_pos, program, |s| s.as_bool())?;
                 }
                 Instruction::JumpIfFalse => {
-                    self.jump_if(&mut byte_code_pos, program, |s| !s.as_bool())?;
+                    self.jump_if(&mut bytecode_pos, program, |s| !s.as_bool())?;
                 }
                 Instruction::CopyLast => {
                     if let Some(val) = self.stack.last().cloned() {
@@ -396,21 +357,21 @@ impl<'a, Aux> VM<'a, Aux> {
                 Instruction::Pass => {}
                 Instruction::ScalarLabel => {
                     self.stack.push(Scalar::Integer(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
+                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
                 Instruction::ScalarInt => {
                     self.stack.push(Scalar::Integer(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
+                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
                 Instruction::ScalarFloat => {
                     self.stack.push(Scalar::Floating(unsafe {
-                        Self::decode_value(&self.logger, &program.bytecode, &mut byte_code_pos)
+                        Self::decode_value(&self.logger, &program.bytecode, &mut bytecode_pos)
                     }));
                 }
                 Instruction::ScalarArray => {
-                    self.scalar_array(&mut byte_code_pos, &program.bytecode)?
+                    self.instr_scalar_array(&program.bytecode, &mut bytecode_pos)?
                 }
                 Instruction::Add => self.binary_op(|a, b| a + b)?,
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,
@@ -421,23 +382,48 @@ impl<'a, Aux> VM<'a, Aux> {
                 Instruction::Less => binary_compare!(self, <, false),
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
-                    self.string_literal(&mut byte_code_pos, &program.bytecode)?
+                    self.instr_string_literal(&mut bytecode_pos, &program.bytecode)?
                 }
-                Instruction::Call => self.execute_call(&mut byte_code_pos, &program.bytecode)?,
+                Instruction::Call => self.execute_call(&mut bytecode_pos, &program.bytecode)?,
             }
             debug!(
                 self.logger,
                 "Stack len: {} {:?} ptr: {}",
                 self.stack.len(),
                 self.log_stack(),
-                byte_code_pos
+                bytecode_pos
             );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
     }
 
-    fn exit(&mut self) -> Result<i32, ExecutionError> {
+    fn instr_read_var(&mut self, bytecode: &'a [u8], bytecode_pos: &mut usize) -> ExecutionResult {
+        let VariableId(varname) =
+            unsafe { Self::decode_value(&self.logger, bytecode, bytecode_pos) };
+        let value = self.registers.get(varname as usize).ok_or_else(|| {
+            debug!(self.logger, "Variable {} does not exist", varname);
+            ExecutionError::invalid_argument(None)
+        })?;
+        self.stack.push(*value);
+        Ok(())
+    }
+
+    fn instr_set_var(&mut self, bytecode: &'a [u8], bytecode_pos: &mut usize) -> ExecutionResult {
+        let varname =
+            unsafe { Self::decode_value::<VariableId>(&self.logger, bytecode, bytecode_pos) };
+        let scalar = self.stack.pop().ok_or_else(|| {
+            ExecutionError::invalid_argument("Stack was empty when setting variable".to_owned())
+        })?;
+        let varname = varname.0 as usize;
+        if self.registers.len() <= varname {
+            self.registers.resize(varname + 1, Scalar::Null);
+        }
+        self.registers[varname] = scalar;
+        Ok(())
+    }
+
+    fn instr_exit(&mut self) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Exit called");
         let code = self.stack.last();
         if let Some(Scalar::Integer(code)) = code {
@@ -449,8 +435,22 @@ impl<'a, Aux> VM<'a, Aux> {
         Ok(0)
     }
 
-    fn scalar_array(&mut self, byte_code_pos: &mut usize, bytecode: &'a [u8]) -> ExecutionResult {
-        let len: i32 = unsafe { Self::decode_value(&self.logger, bytecode, byte_code_pos) };
+    fn instr_breadcrumb(&mut self, bytecode: &'a [u8], bytecode_pos: &mut usize) {
+        let nodeid = unsafe { Self::decode_value(&self.logger, &bytecode, bytecode_pos) };
+
+        let instr = bytecode[*bytecode_pos];
+        let instr = Instruction::try_from(instr).ok();
+        *bytecode_pos += 1;
+        trace!(self.logger, "Logging visited node {:?}", nodeid);
+        self.history.push(HistoryEntry { id: nodeid, instr });
+    }
+
+    fn instr_scalar_array(
+        &mut self,
+        bytecode: &'a [u8],
+        bytecode_pos: &mut usize,
+    ) -> ExecutionResult {
+        let len: i32 = unsafe { Self::decode_value(&self.logger, bytecode, bytecode_pos) };
         if len < 0 {
             return Err(ExecutionError::invalid_argument(
                 "ScalarArray length must be positive integer".to_owned(),
@@ -463,19 +463,23 @@ impl<'a, Aux> VM<'a, Aux> {
                 len,
             )));
         }
-        let byte_code_pos = self.memory.len();
+        let bytecode_pos = self.memory.len();
         for _ in 0..len {
             if let Some(val) = self.stack.pop() {
                 self.write_to_memory(val)?;
             }
         }
         self.stack
-            .push(Scalar::Pointer(Pointer(byte_code_pos as u32)));
+            .push(Scalar::Pointer(Pointer(bytecode_pos as u32)));
         Ok(())
     }
 
-    fn string_literal(&mut self, byte_code_pos: &mut usize, bytecode: &'a [u8]) -> ExecutionResult {
-        let literal = Self::read_str(byte_code_pos, bytecode)
+    fn instr_string_literal(
+        &mut self,
+        bytecode_pos: &mut usize,
+        bytecode: &'a [u8],
+    ) -> ExecutionResult {
+        let literal = Self::read_str(bytecode_pos, bytecode)
             .ok_or_else(|| ExecutionError::invalid_argument(None))?;
         let obj = self.set_value_with_decoder(literal, |o, vm| {
             // SAFETY
@@ -489,6 +493,22 @@ impl<'a, Aux> VM<'a, Aux> {
         Ok(())
     }
 
+    fn instr_jump(
+        &mut self,
+        bytecode_pos: &mut usize,
+        program: &CompiledProgram,
+    ) -> ExecutionResult {
+        let label: Key =
+            unsafe { Self::decode_value(&self.logger, &program.bytecode, bytecode_pos) };
+        *bytecode_pos = program
+            .labels
+            .0
+            .get(label)
+            .ok_or(ExecutionError::InvalidLabel(label))?
+            .pos as usize;
+        Ok(())
+    }
+
     pub fn log_stack(&self) {
         trace!(self.logger, "--------Stack--------");
         for s in &self.stack[..] {
@@ -499,7 +519,7 @@ impl<'a, Aux> VM<'a, Aux> {
 
     fn jump_if<F: Fn(Scalar) -> bool>(
         &mut self,
-        byte_code_pos: &mut usize,
+        bytecode_pos: &mut usize,
         program: &CompiledProgram,
         predicate: F,
     ) -> Result<(), ExecutionError> {
@@ -512,9 +532,9 @@ impl<'a, Aux> VM<'a, Aux> {
         }
         let cond = self.stack.pop().unwrap();
         let label: Key =
-            unsafe { Self::decode_value(&self.logger, &program.bytecode, byte_code_pos) };
+            unsafe { Self::decode_value(&self.logger, &program.bytecode, bytecode_pos) };
         if predicate(cond) {
-            *byte_code_pos = program
+            *bytecode_pos = program
                 .labels
                 .0
                 .get(label)
@@ -526,10 +546,10 @@ impl<'a, Aux> VM<'a, Aux> {
 
     fn execute_call(
         &mut self,
-        byte_code_pos: &mut usize,
+        bytecode_pos: &mut usize,
         bytecode: &'a [u8],
     ) -> Result<(), ExecutionError> {
-        let fun_hash = unsafe { Self::decode_value(&self.logger, bytecode, byte_code_pos) };
+        let fun_hash = unsafe { Self::decode_value(&self.logger, bytecode, bytecode_pos) };
         let mut fun = self
             .callables
             .remove(fun_hash)
@@ -570,12 +590,12 @@ impl<'a, Aux> VM<'a, Aux> {
         Ok(())
     }
 
-    fn read_str(byte_code_pos: &mut usize, program: &'a [u8]) -> Option<&'a str> {
-        let p = *byte_code_pos;
+    fn read_str(bytecode_pos: &mut usize, program: &'a [u8]) -> Option<&'a str> {
+        let p = *bytecode_pos;
         let limit = program.len().min(p + MAX_STR_LEN);
         let (len, s): (_, &'a str) =
             <&'a str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
-        *byte_code_pos += len;
+        *bytecode_pos += len;
         Some(s)
     }
 }
