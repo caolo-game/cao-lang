@@ -104,16 +104,22 @@ pub fn compile(
 impl<'a> Compiler<'a> {
     /// If no `logger` is provided, falls back to the 'standard' log crate.
     pub fn new<L: Into<Option<Logger>>>(logger: L) -> Self {
-        Compiler {
-            logger: logger
-                .into()
-                .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!())),
-            program: CompiledProgram::default(),
-            jump_table: Default::default(),
-            options: Default::default(),
-            next_var: RefCell::new(VariableId(0)),
-            _m: Default::default(),
+        fn _new<'a>(logger: Logger) -> Compiler<'a> {
+            Compiler {
+                logger,
+                program: CompiledProgram::default(),
+                jump_table: Default::default(),
+                options: Default::default(),
+                next_var: RefCell::new(VariableId(0)),
+                _m: Default::default(),
+            }
         }
+
+        let logger = logger
+            .into()
+            .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
+
+        _new(logger)
     }
 
     pub fn compile(
@@ -122,7 +128,13 @@ impl<'a> Compiler<'a> {
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> Result<CompiledProgram, CompilationError> {
         self.options = compile_options.into().unwrap_or_default();
+        self._compile(compilation_unit)
+    }
 
+    fn _compile(
+        &mut self,
+        compilation_unit: CompilationUnit,
+    ) -> Result<CompiledProgram, CompilationError> {
         info!(self.logger, "compilation start");
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
