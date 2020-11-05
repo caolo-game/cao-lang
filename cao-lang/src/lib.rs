@@ -205,7 +205,7 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum SubProgramType {
     /// Any ol' sub-program
     Undefined,
@@ -222,6 +222,18 @@ pub enum SubProgramType {
 impl Default for SubProgramType {
     fn default() -> Self {
         SubProgramType::Undefined
+    }
+}
+
+impl SubProgramType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SubProgramType::Undefined => "Undefined",
+            SubProgramType::Instruction => "Instruction",
+            SubProgramType::Function => "Function",
+            SubProgramType::Branch => "Branch",
+            SubProgramType::Start => "Start",
+        }
     }
 }
 
