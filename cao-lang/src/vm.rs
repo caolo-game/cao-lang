@@ -70,6 +70,7 @@ where
     /// Breadcrumb instructions will populat this history log.
     pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
+    /// Number of instructions `run` will execute before returning Timeout
     pub max_iter: i32,
 
     pub runtime_data: RuntimeData,
@@ -133,6 +134,7 @@ impl<'a, Aux> VM<'a, Aux> {
         &mut self.auxiliary_data
     }
 
+    #[inline]
     pub fn unwrap_aux(self) -> Aux {
         self.auxiliary_data
     }
@@ -236,8 +238,8 @@ impl<'a, Aux> VM<'a, Aux> {
         Ok(())
     }
 
-    pub fn stack_pop(&mut self) -> Option<Scalar> {
-        Some(self.runtime_data.stack.pop())
+    pub fn stack_pop(&mut self) -> Scalar {
+        self.runtime_data.stack.pop()
     }
 
     /// This mostly assumes that program is valid, produced by the compiler.
@@ -405,6 +407,7 @@ impl<'a, Aux> VM<'a, Aux> {
         trace!(self.logger, "------End Stack------");
     }
 
+    #[inline]
     fn binary_op<F>(&mut self, op: F) -> Result<(), ExecutionError>
     where
         F: Fn(Scalar, Scalar) -> Scalar,

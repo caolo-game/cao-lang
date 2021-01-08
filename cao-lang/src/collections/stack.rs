@@ -9,12 +9,13 @@ pub struct ScalarStack {
 
 #[derive(Debug, Error)]
 pub enum StackError {
-    #[error("Stack was full")]
+    #[error("Stack is full")]
     Full,
 }
 
 impl ScalarStack {
     pub fn new(size: usize) -> Self {
+        assert!(size > 0);
         Self {
             count: 0,
             buffer: vec![Scalar::Null; size].into_boxed_slice(),
@@ -41,6 +42,7 @@ impl ScalarStack {
         self.count
     }
 
+    /// Returns Scalar::Null if the stack is empty
     #[inline]
     pub fn pop(&mut self) -> Scalar {
         self.count = self.count.saturating_sub(1);

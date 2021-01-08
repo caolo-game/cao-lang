@@ -171,7 +171,7 @@ pub fn instr_scalar_array(
 pub fn instr_string_literal<T>(
     vm: &mut VM<T>,
     bytecode_pos: &mut usize,
-    bytecode: & [u8],
+    bytecode: &[u8],
 ) -> ExecutionResult {
     let literal =
         read_str(bytecode_pos, bytecode).ok_or_else(|| ExecutionError::invalid_argument(None))?;
