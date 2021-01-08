@@ -91,10 +91,10 @@ pub fn instr_read_var<'a>(
 }
 
 #[inline]
-pub fn instr_set_var<'a>(
+pub fn instr_set_var(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
-    bytecode: &'a [u8],
+    bytecode: &[u8],
     bytecode_pos: &mut usize,
 ) -> ExecutionResult {
     let varname = unsafe { decode_value::<VariableId>(logger, bytecode, bytecode_pos) };
@@ -119,10 +119,10 @@ pub fn instr_exit(logger: &Logger, runtime_data: &mut RuntimeData) -> Result<i32
 }
 
 #[inline]
-pub fn instr_breadcrumb<'a>(
+pub fn instr_breadcrumb(
     logger: &Logger,
     history: &mut Vec<HistoryEntry>,
-    bytecode: &'a [u8],
+    bytecode: &[u8],
     bytecode_pos: &mut usize,
 ) {
     let nodeid = unsafe { decode_value(logger, &bytecode, bytecode_pos) };
@@ -135,10 +135,10 @@ pub fn instr_breadcrumb<'a>(
 }
 
 #[inline]
-pub fn instr_scalar_array<'a>(
+pub fn instr_scalar_array(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
-    bytecode: &'a [u8],
+    bytecode: &[u8],
     bytecode_pos: &mut usize,
 ) -> ExecutionResult {
     let len: i32 = unsafe { decode_value(logger, bytecode, bytecode_pos) };
@@ -168,10 +168,10 @@ pub fn instr_scalar_array<'a>(
 }
 
 #[inline]
-pub fn instr_string_literal<'a, T>(
-    vm: &mut VM<'a, T>,
+pub fn instr_string_literal<T>(
+    vm: &mut VM<T>,
     bytecode_pos: &mut usize,
-    bytecode: &'a [u8],
+    bytecode: & [u8],
 ) -> ExecutionResult {
     let literal =
         read_str(bytecode_pos, bytecode).ok_or_else(|| ExecutionError::invalid_argument(None))?;
@@ -235,10 +235,10 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
 }
 
 #[inline]
-pub fn execute_call<'a, T>(
-    vm: &mut VM<'a, T>,
+pub fn execute_call<T>(
+    vm: &mut VM<T>,
     bytecode_pos: &mut usize,
-    bytecode: &'a [u8],
+    bytecode: &[u8],
 ) -> Result<(), ExecutionError> {
     let fun_hash = unsafe { decode_value(&vm.logger, bytecode, bytecode_pos) };
     let mut fun = vm

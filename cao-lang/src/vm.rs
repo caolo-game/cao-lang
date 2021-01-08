@@ -67,6 +67,7 @@ where
     Aux: 'a,
 {
     pub logger: Logger,
+    /// Breadcrumb instructions will populat this history log.
     pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
     pub max_iter: i32,
@@ -241,7 +242,7 @@ impl<'a, Aux> VM<'a, Aux> {
 
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is fairly unsafe
-    pub fn run(&mut self, program: &'a CompiledProgram) -> Result<i32, ExecutionError> {
+    pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
         debug!(self.logger, "Running program");
         self.history.clear();
         let mut bytecode_pos = 0;
