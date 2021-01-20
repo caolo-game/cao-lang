@@ -260,6 +260,7 @@ impl<T> PreHashMap<T> {
         self._insert(key, value)
     }
 
+    #[inline(always)]
     fn _insert(&mut self, key: Key, value: T) -> &mut T {
         let ind = self.find_ind(key);
         let is_new_key = self.keys[ind].0 == 0;

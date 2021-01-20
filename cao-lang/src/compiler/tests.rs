@@ -218,3 +218,26 @@ fn call_test() {
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
 }
+
+#[test]
+fn lane_names_must_be_unique() {
+    simple_logger::SimpleLogger::new()
+        .init()
+        .unwrap_or_default();
+
+    let cu = CompilationUnit {
+        lanes: vec![
+            Lane {
+                name: "Foo".to_owned(),
+                cards: vec![],
+            },
+            Lane {
+                name: "Foo".to_owned(),
+                cards: vec![],
+            },
+        ],
+    };
+
+    let err = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap_err();
+    assert!(matches!(err, CompilationError::DuplicateName(_)));
+}
