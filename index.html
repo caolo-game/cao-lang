@@ -131,14 +131,19 @@
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in cao_lang_wasm.d.ts:31</li>
+								<li>Defined in cao_lang_wasm.d.ts:38</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
 							<div class="lead">
-								<p>Returns the compiled program on success or throws an error if compilation fails.</p>
+								<p>Returns an object.</p>
+								<pre><code class="language-json">{
+    <span class="hljs-attr">&quot;program&quot;</span>: <span class="hljs-literal">null</span>,
+    <span class="hljs-attr">&quot;compileError&quot;</span>: <span class="hljs-string">&quot;someerror&quot;</span>
+}</code></pre>
+								<p>Only 1 of the fields will be non-null, depending on the outcome.</p>
 							</div>
-							<p><strong>Compilation unit schema:</strong></p>
+							<p><strong>Compilation unit example:</strong></p>
 							<pre><code class="language-json">{
     <span class="hljs-attr">&quot;lanes&quot;</span>: [{
         <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;Foo&quot;</span>,
@@ -176,7 +181,7 @@
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in cao_lang_wasm.d.ts:39</li>
+								<li>Defined in cao_lang_wasm.d.ts:46</li>
 							</ul>
 						</aside>
 						<div class="tsd-comment tsd-typography">
