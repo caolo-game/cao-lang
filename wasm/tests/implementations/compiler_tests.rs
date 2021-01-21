@@ -6,7 +6,7 @@ use serde_json::json;
 use wasm_bindgen_test::*;
 
 use cao_lang::prelude::*;
-use cao_lang_wasm::{compile, run_program};
+use cao_lang_wasm::{compile, run_program, CompileResult};
 use wasm_bindgen::JsValue;
 
 #[wasm_bindgen_test]
@@ -30,9 +30,15 @@ fn can_run_simple_program() {
             "cards": [ { "StringLiteral": "Poggers" } ]
         }]
     });
-    let program = compile(JsValue::from_serde(&cu).unwrap(), None).unwrap();
+    let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
 
-    let result = run_program(program).expect("Failed to run");
+    let output: CompileResult = output.into_serde().unwrap();
+
+    assert!(output.compile_error.is_none());
+    assert!(output.program.is_some());
+
+    let result = run_program(JsValue::from_serde(&output.program).expect("serialize"))
+        .expect("Failed to run");
 
     assert_eq!(
         &result.history[..1],

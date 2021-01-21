@@ -11,9 +11,16 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
-/// Returns the compiled program on success or throws an error if compilation fails.
+/// Returns an object.
+/// ```json
+/// {
+///     "program": null,
+///     "compileError": "someerror"
+/// }
+/// ```
+/// Only 1 of the fields will be non-null, depending on the outcome.
 ///
-/// __Compilation unit schema:__
+/// __Compilation unit example:__
 ///
 /// ```json
 /// {
@@ -40,9 +47,26 @@ pub fn compile(
         .into_serde::<caoc::CompilationUnit>()
         .map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
-    caoc::compile(None, cu, ops)
-        .map_err(err_to_js)
-        .map(|res| JsValue::from_serde(&res).expect("Failed to serialize program"))
+
+    let res = match caoc::compile(None, cu, ops) {
+        Ok(res) => CompileResult {
+            program: Some(res),
+            compile_error: None,
+        },
+        Err(err) => CompileResult {
+            program: None,
+            compile_error: Some(err.to_string()),
+        },
+    };
+
+    JsValue::from_serde(&res).map_err(err_to_js)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CompileResult {
+    pub program: Option<cao_lang::program::CompiledProgram>,
+    #[serde(rename = "compileError")]
+    pub compile_error: Option<String>,
 }
 
 #[wasm_bindgen]
