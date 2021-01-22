@@ -60,6 +60,8 @@ pub fn compile(
     };
 
     JsValue::from_serde(&res).map_err(err_to_js)
+    let res = JsValue::from_serde(&res).expect("failed to serialize result");
+    Ok(res)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

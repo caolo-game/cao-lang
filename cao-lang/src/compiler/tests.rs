@@ -241,3 +241,27 @@ fn lane_names_must_be_unique() {
     let err = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap_err();
     assert!(matches!(err, CompilationError::DuplicateName(_)));
 }
+
+#[test]
+fn can_json_de_serialize_output() {
+    simple_logger::SimpleLogger::new()
+        .init()
+        .unwrap_or_default();
+
+    let cu = CompilationUnit {
+        lanes: vec![Lane {
+            name: "Foo".to_owned(),
+            cards: vec![
+                Card::SetVar(VarNode(ArrayString::from("asdsdad").unwrap())),
+                Card::Pass,
+                Card::Pass,
+            ],
+        }],
+    };
+
+    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+
+    let ser = serde_json::to_string(&prog).unwrap();
+
+    let _prog: CompiledProgram = serde_json::from_str(&ser).unwrap();
+}

@@ -6,10 +6,14 @@ impl<T: Serialize> Serialize for PreHashMap<T> {
     where
         S: ::serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.len()))?;
-        for kv in self.iter() {
-            seq.serialize_element(&kv)?;
+        let len = self.len();
+        let mut count = 0;
+        let mut seq = serializer.serialize_seq(Some(len))?;
+        for (key, val) in self.iter() {
+            seq.serialize_element(&(key.0, val))?;
+            count += 1;
         }
+        debug_assert_eq!(count, len);
         seq.end()
     }
 }
@@ -31,7 +35,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for PHMVisitor<T> {
     {
         let mut res = PreHashMap::<T>::default();
         while let Some((k, v)) = seq.next_element()? {
-            res.insert(k, v);
+            res.insert(Key(k), v);
         }
         Ok(res)
     }
@@ -45,5 +49,23 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PreHashMap<T> {
         deserializer.deserialize_seq(PHMVisitor {
             _m: Default::default(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_serialize() {
+        let mut map = PreHashMap::with_capacity(16);
+        map.insert(Key(123), 69);
+
+        let js = serde_json::to_string(&map).unwrap();
+
+        let map2: PreHashMap<i32> = serde_json::from_str(&js).unwrap();
+
+        let res = map2.get(Key(123)).unwrap();
+        assert_eq!(*res, 69);
     }
 }

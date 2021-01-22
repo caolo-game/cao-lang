@@ -46,6 +46,7 @@ enum EntryPayload<'a, T> {
     Vacant {
         key: &'a mut Key,
         value: &'a mut MaybeUninit<T>,
+        count: &'a mut usize,
     },
 }
 
@@ -53,9 +54,10 @@ impl<'a, T: 'a> Entry<'a, T> {
     pub fn or_insert_with<F: FnOnce() -> T>(self, fun: F) -> &'a mut T {
         match self.pl {
             EntryPayload::Occupied(res) => res,
-            EntryPayload::Vacant { key, value } => {
+            EntryPayload::Vacant { count, key, value } => {
                 *key = self.key;
                 *value = MaybeUninit::new(fun());
+                *count += 1;
                 unsafe { &mut *value.as_mut_ptr() }
             }
         }
@@ -161,6 +163,7 @@ impl<T> PreHashMap<T> {
             EntryPayload::Vacant {
                 key: &mut self.keys[ind],
                 value: &mut self.values[ind],
+                count: &mut self.count,
             }
         } else {
             EntryPayload::Occupied(unsafe { &mut *self.values[ind].as_mut_ptr() })
@@ -224,10 +227,9 @@ impl<T> PreHashMap<T> {
     }
 
     fn adjust_size(&mut self, capacity: usize) {
-        let mut keys = Vec::with_capacity(capacity);
-        let mut values = Vec::with_capacity(capacity);
+        let keys = vec![Key(0); capacity];
 
-        keys.resize_with(capacity, || Key(0));
+        let mut values = Vec::with_capacity(capacity);
         values.resize_with(capacity, MaybeUninit::uninit);
 
         let mut keys = keys.into_boxed_slice();

@@ -27,7 +27,10 @@ fn can_run_simple_program() {
     let cu = json!({
         "lanes": [ {
             "name": "Foo",
-            "cards": [ { "StringLiteral": "Poggers" } ]
+            "cards": [
+            { "StringLiteral": "Poggers" }
+            , { "SetVar": "Poggers" }
+            ]
         }]
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
