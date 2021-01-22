@@ -176,7 +176,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [Scalar],
-            [Scalar]
+            [i32]
         ),
 
         Card::StringLiteral(_) => subprogram_description!(
