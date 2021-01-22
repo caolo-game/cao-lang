@@ -90,7 +90,7 @@ impl Ord for NodeId {
 
 impl AutoByteEncodeProperties for NodeId {
     fn displayname() -> &'static str {
-        "Card ID"
+        "Lane ID"
     }
 }
 

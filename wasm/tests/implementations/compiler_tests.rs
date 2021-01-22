@@ -13,8 +13,8 @@ use wasm_bindgen::JsValue;
 fn can_compile_simple_program() {
     let cu = json!({
         "lanes": [{
-        "name": "PogChamp",
-        "cards": [ { "ScalarInt": 69 } ]
+            "name": "PogChamp",
+            "cards": [ { "ScalarInt": 69 } ]
         }]
     });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);

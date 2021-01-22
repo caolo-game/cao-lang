@@ -174,9 +174,9 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "ScalarArray",
             "Make an array by providing a number and values",
             SubProgramType::Instruction,
+            [],
             [Scalar],
-            [Scalar],
-            []
+            [Scalar]
         ),
 
         Card::StringLiteral(_) => subprogram_description!(
