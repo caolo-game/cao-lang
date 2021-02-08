@@ -12,7 +12,13 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+          - os: windows-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -24,6 +30,6 @@ jobs:
       uses: actions/upload-artifact@v2.2.2
       with:
         # Artifact name
-        name: caoc-{{matrix.os}}
+        name: caoc-${{matrix.os}}
         # A file, directory or wildcard pattern that describes what to upload
-        path: cli/target/caoc
+        path: cli/target/release/caoc
