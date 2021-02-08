@@ -1,0 +1,29 @@
+name: CLI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: |
+        cd cli
+        cargo build --release
+    - name: Upload
+      uses: actions/upload-artifact@v2.2.2
+      with:
+        # Artifact name
+        name: caoc-{{matrix.os}}
+        # A file, directory or wildcard pattern that describes what to upload
+        path: cli/target/caoc
