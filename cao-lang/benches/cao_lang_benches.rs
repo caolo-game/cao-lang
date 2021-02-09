@@ -28,7 +28,7 @@ fn run_fib(c: &mut Criterion) {
                 let program =
                     compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
 
-                let mut vm = VM::new(None, ()).with_max_iter(250 * iterations);
+                let mut vm = Vm::new(None, ()).with_max_iter(250 * iterations);
                 b.iter(|| {
                     vm.clear();
                     vm.stack_push(iterations).expect("Initial push");
@@ -74,7 +74,7 @@ fn compile_fib(c: &mut Criterion) {
 
 fn clear_vm(c: &mut Criterion) {
     c.bench_function("clear_vm", move |b| {
-        let mut vm = VM::new(None, ()).with_max_iter(250_000_000);
+        let mut vm = Vm::new(None, ()).with_max_iter(250_000_000);
         b.iter(|| {
             vm.clear();
             criterion::black_box(&mut vm);

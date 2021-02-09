@@ -68,9 +68,9 @@ pub struct NodeId {
     pub pos: u16,
 }
 
-impl Into<u32> for NodeId {
-    fn into(self) -> u32 {
-        ((self.lane as u32) << 16) | self.pos as u32
+impl From<NodeId> for u32 {
+    fn from(n: NodeId) -> u32 {
+        ((n.lane as u32) << 16) | n.pos as u32
     }
 }
 
@@ -99,9 +99,9 @@ impl AutoByteEncodeProperties for NodeId {
 )]
 pub struct Pointer(pub u32);
 
-impl Into<u32> for Pointer {
-    fn into(self) -> u32 {
-        self.0
+impl From<Pointer> for u32 {
+    fn from(p: Pointer) -> u32 {
+        p.0
     }
 }
 

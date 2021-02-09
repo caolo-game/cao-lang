@@ -1,7 +1,7 @@
 mod impls;
 
 pub use self::impls::*;
-use crate::{procedures::ExecutionResult, scalar::Scalar, vm::VM};
+use crate::{procedures::ExecutionResult, scalar::Scalar, vm::Vm};
 use std::any::type_name;
 use std::convert::TryFrom;
 use std::fmt::Write;
@@ -67,9 +67,9 @@ pub trait AutoByteEncodeProperties: Copy + std::fmt::Debug {
 }
 
 pub trait Callable<Aux> {
-    /// Take in the VM, parameters and output pointer in parameters and return the length of the
+    /// Take in the Vm, parameters and output pointer in parameters and return the length of the
     /// result
-    fn call(&mut self, vm: &mut VM<Aux>, params: &[Scalar]) -> ExecutionResult;
+    fn call(&mut self, vm: &mut Vm<Aux>, params: &[Scalar]) -> ExecutionResult;
 
     fn num_params(&self) -> u8;
 }

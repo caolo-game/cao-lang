@@ -1,6 +1,6 @@
 use std::mem::take;
 
-use cao_lang::{compiler as caoc, vm::VM};
+use cao_lang::{compiler as caoc, vm::Vm};
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -108,10 +108,10 @@ impl RunResult {
 
 /// Runs the given compiled Cao-Lang program (output of `compile`).
 ///
-/// Will run in a 'plain' VM, no custom methods will be available!
+/// Will run in a 'plain' Vm, no custom methods will be available!
 #[wasm_bindgen(js_name = "runProgram")]
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
-    let mut vm = VM::new(None, ());
+    let mut vm = Vm::new(None, ());
     let program: cao_lang::prelude::CompiledProgram = program.into_serde().map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|res| {
         let history = take(&mut vm.history);

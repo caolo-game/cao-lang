@@ -1,6 +1,6 @@
 use super::*;
 use crate::traits::ByteEncodeProperties;
-use crate::vm::VM;
+use crate::vm::Vm;
 use crate::{procedures::FunctionWrapper, scalar::Scalar};
 use arrayvec::ArrayString;
 
@@ -56,7 +56,7 @@ fn compiling_simple_program() {
 
     // Compilation was successful
 
-    let mut vm = VM::new(None, ());
+    let mut vm = Vm::new(None, ());
     vm.run(&program).unwrap();
 
     assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());
@@ -105,7 +105,7 @@ fn simple_looping_program() {
 
     // Compilation was successful
 
-    let mut vm = VM::new(None, ()).with_max_iter(150);
+    let mut vm = Vm::new(None, ()).with_max_iter(150);
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
@@ -146,7 +146,7 @@ fn breadcrumbs_work_as_expected() {
         CompileOptions::new().with_breadcrumbs(true),
     )
     .unwrap();
-    let mut vm = VM::new(None, ());
+    let mut vm = Vm::new(None, ());
     vm.run(&prog).expect("run failed");
 
     assert_eq!(
@@ -182,7 +182,7 @@ fn no_breadcrumbs_emitted_when_compiled_with_off() {
     };
 
     let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
-    let mut vm = VM::new(None, ());
+    let mut vm = Vm::new(None, ());
     vm.run(&prog).expect("run failed");
     assert_eq!(vm.history, vec![]);
 }
@@ -207,13 +207,13 @@ fn call_test() {
         called: bool,
     }
 
-    let fun = move |vm: &mut VM<State>, ()| {
+    let fun = move |vm: &mut Vm<State>, ()| {
         vm.auxiliary_data.called = true;
         Ok(())
     };
     let fun = FunctionWrapper::new(fun);
 
-    let mut vm = VM::new(None, State { called: false });
+    let mut vm = Vm::new(None, State { called: false });
     vm.register_function(name, fun);
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);

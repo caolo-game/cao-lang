@@ -16,7 +16,7 @@ use slog::{o, Drain, Logger};
 use std::mem::transmute;
 use std::{collections::HashMap, str::FromStr};
 
-type ConvertFn<Aux> = unsafe fn(&Object, &VM<Aux>) -> Box<dyn ObjectProperties>;
+type ConvertFn<Aux> = unsafe fn(&Object, &Vm<Aux>) -> Box<dyn ObjectProperties>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConvertError {
@@ -27,9 +27,9 @@ pub enum ConvertError {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Object {
-    /// nullable index of the Object's data in the VM memory
+    /// nullable index of the Object's data in the Vm memory
     pub index: Option<Pointer>,
-    /// size of the data in the VM memory
+    /// size of the data in the Vm memory
     pub size: u32,
 }
 
@@ -47,7 +47,7 @@ impl Object {
         }
     }
 
-    pub fn as_inner<Aux>(&self, vm: &VM<Aux>) -> Result<Box<dyn ObjectProperties>, ConvertError> {
+    pub fn as_inner<Aux>(&self, vm: &Vm<Aux>) -> Result<Box<dyn ObjectProperties>, ConvertError> {
         self.index
             .ok_or(ConvertError::NullPtr)
             .map(|index| unsafe { vm.converters[&index](self, vm) })
@@ -62,7 +62,7 @@ pub struct HistoryEntry {
 
 /// Cao-Lang bytecode interpreter.
 /// `Aux` is an auxiliary data structure passed to custom functions.
-pub struct VM<'a, Aux = ()>
+pub struct Vm<'a, Aux = ()>
 where
     Aux: 'a,
 {
@@ -83,7 +83,7 @@ where
     _m: std::marker::PhantomData<&'a ()>,
 }
 
-impl<'a, Aux> VM<'a, Aux> {
+impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(logger: impl Into<Option<Logger>>, auxiliary_data: Aux) -> Self {
         let logger = logger
             .into()
@@ -215,7 +215,7 @@ impl<'a, Aux> VM<'a, Aux> {
         };
         self.objects.insert(index, object);
         self.converters
-            .insert(index as Pointer, |o: &Object, vm: &VM<Aux>| {
+            .insert(index as Pointer, |o: &Object, vm: &Vm<Aux>| {
                 let res: T = vm.get_value(o.index.unwrap()).unwrap();
                 Box::new(res)
             });

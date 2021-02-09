@@ -218,7 +218,7 @@ impl<T> PreHashMap<T> {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (Key, &'a T)> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = (Key, &'_ T)> + '_ {
         self.keys
             .iter()
             .enumerate()

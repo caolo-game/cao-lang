@@ -9,7 +9,7 @@ use crate::{
     Pointer, VariableId,
 };
 
-use super::{data::RuntimeData, HistoryEntry, VM};
+use super::{data::RuntimeData, HistoryEntry, Vm};
 
 #[inline]
 pub fn read_str<'a>(bytecode_pos: &mut usize, program: &'a [u8]) -> Option<&'a str> {
@@ -169,7 +169,7 @@ pub fn instr_scalar_array(
 
 #[inline]
 pub fn instr_string_literal<T>(
-    vm: &mut VM<T>,
+    vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
     bytecode: &[u8],
 ) -> ExecutionResult {
@@ -177,7 +177,7 @@ pub fn instr_string_literal<T>(
         read_str(bytecode_pos, bytecode).ok_or_else(|| ExecutionError::invalid_argument(None))?;
     let obj = vm.set_value_with_decoder(literal, |o, vm| {
         // SAFETY
-        // As long as the same VM instance's accessors are used this should be
+        // As long as the same Vm instance's accessors are used this should be
         // fine (tm)
         let res = vm.get_value_in_place::<&str>(o.index.unwrap()).unwrap();
         let res: &'static str = unsafe { mem::transmute(res) };
@@ -236,7 +236,7 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
 
 #[inline]
 pub fn execute_call<T>(
-    vm: &mut VM<T>,
+    vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
     bytecode: &[u8],
 ) -> Result<(), ExecutionError> {
@@ -244,7 +244,7 @@ pub fn execute_call<T>(
     let mut fun = vm
         .callables
         .remove(fun_hash)
-        .ok_or_else(|| ExecutionError::ProcedureNotFound(fun_hash))?;
+        .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
     let logger = vm.logger.new(o!("function"=> fun.name.to_string()));
     let res = (|| {
         let n_inputs = fun.num_params();

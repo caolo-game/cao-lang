@@ -2,7 +2,7 @@
 //!
 pub use crate::traits::Callable;
 use crate::{collections::pre_hash_map::Key, prelude::Scalar};
-use crate::{vm::VM, InputString};
+use crate::{vm::Vm, InputString};
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 use thiserror::Error;
@@ -52,7 +52,7 @@ pub struct Procedure<Aux> {
 }
 
 impl<Aux> Callable<Aux> for Procedure<Aux> {
-    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
         self.fun.call(vm, constants)
     }
 
@@ -78,7 +78,7 @@ impl<Aux> std::fmt::Debug for Procedure<Aux> {
 
 pub struct FunctionWrapper<Aux, F, Args>
 where
-    F: Fn(&mut VM<Aux>, Args) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, Args) -> ExecutionResult,
 {
     pub f: F,
     _args: PhantomData<(Args, Aux)>,
@@ -86,7 +86,7 @@ where
 
 impl<Aux, F, Args> FunctionWrapper<Aux, F, Args>
 where
-    F: Fn(&mut VM<Aux>, Args) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, Args) -> ExecutionResult,
 {
     pub fn new(f: F) -> Self {
         Self {
@@ -98,9 +98,9 @@ where
 
 impl<Aux, F> Callable<Aux> for FunctionWrapper<Aux, F, ()>
 where
-    F: Fn(&mut VM<Aux>, ()) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, ()) -> ExecutionResult,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, _constants: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut Vm<Aux>, _constants: &[Scalar]) -> ExecutionResult {
         (self.f)(vm, ())
     }
 
@@ -111,10 +111,10 @@ where
 
 impl<Aux, F, T> Callable<Aux> for FunctionWrapper<Aux, F, T>
 where
-    F: Fn(&mut VM<Aux>, T) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, T) -> ExecutionResult,
     T: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
         let val = T::try_from(constants[0]).map_err(convert_error(0))?;
         (self.f)(vm, val)
     }
@@ -126,11 +126,11 @@ where
 
 impl<Aux, F, T1, T2> Callable<Aux> for FunctionWrapper<Aux, F, (T1, T2)>
 where
-    F: Fn(&mut VM<Aux>, (T1, T2)) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, (T1, T2)) -> ExecutionResult,
     T1: TryFrom<Scalar>,
     T2: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
         let a = T1::try_from(constants[0]).map_err(convert_error(0))?;
         let b = T2::try_from(constants[1]).map_err(convert_error(1))?;
         (self.f)(vm, (a, b))
@@ -143,12 +143,12 @@ where
 
 impl<Aux, F, T1, T2, T3> Callable<Aux> for FunctionWrapper<Aux, F, (T1, T2, T3)>
 where
-    F: Fn(&mut VM<Aux>, (T1, T2, T3)) -> ExecutionResult,
+    F: Fn(&mut Vm<Aux>, (T1, T2, T3)) -> ExecutionResult,
     T1: TryFrom<Scalar>,
     T2: TryFrom<Scalar>,
     T3: TryFrom<Scalar>,
 {
-    fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+    fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
         let a = T1::try_from(constants[0]).map_err(convert_error(0))?;
         let b = T2::try_from(constants[1]).map_err(convert_error(1))?;
         let c = T3::try_from(constants[1]).map_err(convert_error(2))?;
@@ -168,10 +168,10 @@ macro_rules! callable_array_arg {
     ($num: expr) => {
         impl<Aux, F, T> Callable<Aux> for FunctionWrapper<Aux, F, [T; $num]>
         where
-            F: Fn(&mut VM<Aux>, [T; $num]) -> ExecutionResult,
+            F: Fn(&mut Vm<Aux>, [T; $num]) -> ExecutionResult,
             T: TryFrom<Scalar>,
         {
-            fn call(&mut self, vm: &mut VM<Aux>, constants: &[Scalar]) -> ExecutionResult {
+            fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
                 use arrayvec::ArrayVec;
 
                 let args = constants.iter().enumerate().try_fold(ArrayVec::default(), |mut arr, (i, val)| {

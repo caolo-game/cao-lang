@@ -18,11 +18,11 @@ impl<T: Serialize> Serialize for PreHashMap<T> {
     }
 }
 
-struct PHMVisitor<T> {
+struct PhmVisitor<T> {
     _m: std::marker::PhantomData<T>,
 }
 
-impl<'de, T: Deserialize<'de>> Visitor<'de> for PHMVisitor<T> {
+impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
     type Value = PreHashMap<T>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -46,7 +46,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PreHashMap<T> {
     where
         D: ::serde::Deserializer<'de>,
     {
-        deserializer.deserialize_seq(PHMVisitor {
+        deserializer.deserialize_seq(PhmVisitor {
             _m: Default::default(),
         })
     }

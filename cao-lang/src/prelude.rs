@@ -6,6 +6,6 @@ pub use crate::scalar::*;
 pub use crate::traits::*;
 pub use crate::{
     subprogram_description,
-    vm::{Object, VM},
+    vm::{Object, Vm},
     InputString, NodeId, Pointer, SubProgram, SubProgramType,
 };
