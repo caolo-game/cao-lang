@@ -2,37 +2,64 @@ name: CLI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
+    tags: [v*]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             binary: caoc
-          - os: macos-latest
+          - os: macos-10.15
             binary: caoc
-          - os: windows-latest
+          - os: windows-2019
             binary: caoc.exe
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: |
-        cd cli
-        cargo build --release
-    - name: Upload
-      uses: actions/upload-artifact@v2.2.2
-      with:
-        # Artifact name
-        name: caoc-${{matrix.os}}
-        # A file, directory or wildcard pattern that describes what to upload
-        path: cli/target/release/${{matrix.binary}}
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          cd cli
+          cargo build --release
+      - name: Upload
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          # Artifact name
+          name: caoc-${{matrix.os}}
+          # A file, directory or wildcard pattern that describes what to upload
+          path: cli/target/release/${{matrix.binary}}
+
+  # download artifacts and upload the binaries to Releases
+  #
+  release-cli:
+    runs-on: ubuntu-20.04
+    needs: [build]
+    if: startsWith(github.ref , 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          path: ./
+
+      - name: Copy files
+        run : |
+          ls -al
+          cp caoc-macos-10.15/caoc caoc-macos
+          cp caoc-ubuntu-20.04/caoc caoc-ubuntu
+          cp caoc-windows-2019/caoc.exe caoc-windows.exe
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: caoc-*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

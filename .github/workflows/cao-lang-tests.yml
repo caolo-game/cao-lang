@@ -1,4 +1,4 @@
-name: "Run Cao-Lang tests"
+name: Run Cao-Lang tests
 
 on:
   push:
