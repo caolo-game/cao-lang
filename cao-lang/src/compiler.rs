@@ -215,8 +215,8 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
-            Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast | Add | Sub
-            | Mul | Div | ClearStack => {}
+            ScalarNull | Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast
+            | Add | Sub | Mul | Div | ClearStack => {}
             ReadVar(variable) | SetVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 let varhash = Key::from_bytes(variable.0.as_bytes());

@@ -266,6 +266,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             );
             bytecode_pos += 1;
             match instr {
+                Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
                 Instruction::Breadcrumb => instr_execution::instr_breadcrumb(
                     &self.logger,
                     &mut self.history,

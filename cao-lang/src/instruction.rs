@@ -62,11 +62,13 @@ pub enum Instruction {
     JumpIfFalse = 23,
     /// Insert a history entry
     Breadcrumb = 24,
+    /// Push a `null` value onto the stack
+    ScalarNull = 25,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 24
+        n <= 25
     }
 }
 

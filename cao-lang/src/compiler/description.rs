@@ -30,6 +30,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::SetVar(Default::default())),
         get_desc(Card::ReadVar(Default::default())),
         get_desc(Card::ExitWithCode(Default::default())),
+        get_desc(Card::ScalarNull),
     ]
 }
 
@@ -112,6 +113,15 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Return 1 if the inputs are equal, 0 otherwise",
             SubProgramType::Instruction,
             [Scalar, Scalar],
+            [Scalar],
+            []
+        ),
+
+        Card::ScalarNull => subprogram_description!(
+            "ScalarNull",
+            "Push a `null` scalar onto the stack",
+            SubProgramType::Instruction,
+            [],
             [Scalar],
             []
         ),

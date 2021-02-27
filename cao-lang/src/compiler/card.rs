@@ -25,6 +25,7 @@ pub enum Card {
     ClearStack,
     ExitWithCode(IntegerNode),
     ScalarInt(IntegerNode),
+    ScalarNull,
     ScalarFloat(FloatNode),
     ScalarLabel(IntegerNode),
     ScalarArray(IntegerNode),
@@ -65,6 +66,7 @@ impl Card {
             Card::SetVar(_) => "SetVar",
             Card::ReadVar(_) => "ReadVar",
             Card::ClearStack => "ClearStack",
+            Card::ScalarNull => "ScalarNull",
         }
     }
 
@@ -97,6 +99,7 @@ impl Card {
             Card::SetVar(_) => Some(Instruction::SetVar),
             Card::ReadVar(_) => Some(Instruction::ReadVar),
             Card::ClearStack => Some(Instruction::ClearStack),
+            Card::ScalarNull => Some(Instruction::ScalarNull),
         }
     }
 
@@ -129,6 +132,7 @@ impl Card {
             | Instruction::ScalarFloat
             | Instruction::ScalarInt
             | Instruction::Add
+            | Instruction::ScalarNull
             | Instruction::Pass => {}
         };
     }
