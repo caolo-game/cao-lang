@@ -34,8 +34,8 @@ pub enum Card {
     JumpIfTrue(JumpToLane),
     JumpIfFalse(JumpToLane),
     Jump(JumpToLane),
-    SetVar(VarNode),
-    ReadVar(VarNode),
+    SetGlobalVar(VarNode),
+    ReadGlobalVar(VarNode),
 }
 
 impl Card {
@@ -63,8 +63,8 @@ impl Card {
             Card::JumpIfTrue(_) => "JumpIfTrue",
             Card::JumpIfFalse(_) => "JumpIfFalse",
             Card::Jump(_) => "Jump",
-            Card::SetVar(_) => "SetVar",
-            Card::ReadVar(_) => "ReadVar",
+            Card::SetGlobalVar(_) => "SetGlobalVar",
+            Card::ReadGlobalVar(_) => "ReadGlobalVar",
             Card::ClearStack => "ClearStack",
             Card::ScalarNull => "ScalarNull",
         }
@@ -96,8 +96,8 @@ impl Card {
             Card::JumpIfFalse(_) => Some(Instruction::JumpIfFalse),
             Card::Jump(_) => Some(Instruction::Jump),
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
-            Card::SetVar(_) => Some(Instruction::SetVar),
-            Card::ReadVar(_) => Some(Instruction::ReadVar),
+            Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
+            Card::ReadGlobalVar(_) => Some(Instruction::ReadGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
             Card::ScalarNull => Some(Instruction::ScalarNull),
         }
@@ -108,9 +108,9 @@ impl Card {
     #[allow(unused)]
     fn _instruction_to_node(instr: Instruction) {
         match instr {
-            Instruction::SetVar
+            Instruction::SetGlobalVar
             | Instruction::Breadcrumb
-            | Instruction::ReadVar
+            | Instruction::ReadGlobalVar
             | Instruction::Pop
             | Instruction::Less
             | Instruction::LessOrEq

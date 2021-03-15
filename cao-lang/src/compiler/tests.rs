@@ -75,17 +75,17 @@ fn simple_looping_program() {
         .unwrap_or_default();
     let init_cards = vec![
         Card::ScalarInt(IntegerNode(4)),
-        Card::SetVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
         Card::Jump(JumpToLane("Loop".to_owned())),
     ];
     let loop_cards = vec![
         // push this value in each iteration
         Card::ScalarInt(IntegerNode(42069)),
-        Card::ReadVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::ReadGlobalVar(VarNode(ArrayString::from("i").unwrap())),
         Card::ScalarInt(IntegerNode(1)),
         Card::Sub,
         Card::CopyLast,
-        Card::SetVar(VarNode(ArrayString::from("i").unwrap())),
+        Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
         Card::JumpIfTrue(JumpToLane("Loop".to_owned())),
     ];
 
@@ -252,7 +252,7 @@ fn can_json_de_serialize_output() {
         lanes: vec![Lane {
             name: "Foo".to_owned(),
             cards: vec![
-                Card::SetVar(VarNode(ArrayString::from("asdsdad").unwrap())),
+                Card::SetGlobalVar(VarNode(ArrayString::from("asdsdad").unwrap())),
                 Card::Pass,
                 Card::Pass,
             ],

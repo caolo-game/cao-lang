@@ -99,7 +99,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory_limit: 40000,
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
-                registers: Vec::with_capacity(128),
+                global_vars: Vec::with_capacity(128),
             },
             max_iter: 1000,
             _m: Default::default(),
@@ -115,7 +115,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     #[inline]
     pub fn read_var(&self, name: VariableId) -> Option<&Scalar> {
-        self.runtime_data.registers.get(name.0 as usize)
+        self.runtime_data.global_vars.get(name.0 as usize)
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
@@ -277,7 +277,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::ClearStack => {
                     self.runtime_data.stack.clear();
                 }
-                Instruction::SetVar => {
+                Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
                         &self.logger,
                         &mut self.runtime_data,
@@ -285,7 +285,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         &mut bytecode_pos,
                     )?;
                 }
-                Instruction::ReadVar => {
+                Instruction::ReadGlobalVar => {
                     instr_execution::instr_read_var(
                         &self.logger,
                         &mut self.runtime_data,

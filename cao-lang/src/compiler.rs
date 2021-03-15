@@ -217,7 +217,7 @@ impl<'a> Compiler<'a> {
         match card {
             ScalarNull | Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast
             | Add | Sub | Mul | Div | ClearStack => {}
-            ReadVar(variable) | SetVar(variable) => {
+            ReadGlobalVar(variable) | SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 let varhash = Key::from_bytes(variable.0.as_bytes());
 

@@ -27,8 +27,8 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::JumpIfTrue(Default::default())),
         get_desc(Card::JumpIfFalse(Default::default())),
         get_desc(Card::Jump(Default::default())),
-        get_desc(Card::SetVar(Default::default())),
-        get_desc(Card::ReadVar(Default::default())),
+        get_desc(Card::SetGlobalVar(Default::default())),
+        get_desc(Card::ReadGlobalVar(Default::default())),
         get_desc(Card::ExitWithCode(Default::default())),
         get_desc(Card::ScalarNull),
     ]
@@ -225,7 +225,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [NodeId]
         ),
 
-        Card::SetVar(_) => subprogram_description!(
+        Card::SetGlobalVar(_) => subprogram_description!(
             "SetVar",
             "Sets the value of a variable",
             SubProgramType::Instruction,
@@ -234,7 +234,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [VarName]
         ),
 
-        Card::ReadVar(_) => subprogram_description!(
+        Card::ReadGlobalVar(_) => subprogram_description!(
             "ReadVar",
             "Read the value of a variable",
             SubProgramType::Instruction,

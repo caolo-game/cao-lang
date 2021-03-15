@@ -29,7 +29,7 @@ fn can_run_simple_program() {
             "name": "Foo",
             "cards": [
             { "StringLiteral": "Poggers" }
-            , { "SetVar": "Poggers" }
+            , { "SetGlobalVar": "Poggers" }
             ]
         }]
     });

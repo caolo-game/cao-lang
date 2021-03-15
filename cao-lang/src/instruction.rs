@@ -52,9 +52,9 @@ pub enum Instruction {
     /// Pops the top of the stack and discards it
     Pop = 19,
     /// Sets the variable at the top of the stack to the value of the second item on the stack
-    SetVar = 20,
+    SetGlobalVar = 20,
     /// Reads the variable and pushes its value onto the stack
-    ReadVar = 21,
+    ReadGlobalVar = 21,
 
     ClearStack = 22,
     /// If the value at the top of the stack is falsy jumps to the input node
