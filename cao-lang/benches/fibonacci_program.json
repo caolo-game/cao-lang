@@ -4,19 +4,19 @@
             "name": "init",
             "cards": [
                 {
-                    "SetVar": "i"
+                    "SetGlobalVar": "i"
                 },
                 {
                     "ScalarInt": 1
                 },
                 {
-                    "SetVar": "a"
+                    "SetGlobalVar": "a"
                 },
                 {
                     "ScalarInt": 1
                 },
                 {
-                    "SetVar": "b"
+                    "SetGlobalVar": "b"
                 },
                 {
                     "Jump": "loop"
@@ -27,25 +27,25 @@
             "name": "loop",
             "cards": [
                 {
-                    "ReadVar": "b"
+                    "ReadGlobalVar": "b"
                 },
                 {
                     "CopyLast": null
                 },
                 {
-                    "ReadVar": "a"
+                    "ReadGlobalVar": "a"
                 },
                 {
                     "Add": null
                 },
                 {
-                    "SetVar": "b"
+                    "SetGlobalVar": "b"
                 },
                 {
-                    "SetVar": "a"
+                    "SetGlobalVar": "a"
                 },
                 {
-                    "ReadVar": "i"
+                    "ReadGlobalVar": "i"
                 },
                 {
                     "ScalarInt": 1
@@ -57,7 +57,7 @@
                     "CopyLast": null
                 },
                 {
-                    "SetVar": "i"
+                    "SetGlobalVar": "i"
                 },
                 {
                     "JumpIfTrue": "loop"
