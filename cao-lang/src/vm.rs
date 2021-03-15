@@ -113,6 +113,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.clear();
     }
 
+    #[inline]
     pub fn read_var(&self, name: VariableId) -> Option<&Scalar> {
         self.runtime_data.registers.get(name.0 as usize)
     }
@@ -122,14 +123,17 @@ impl<'a, Aux> Vm<'a, Aux> {
         self
     }
 
+    #[inline]
     pub fn stack(&self) -> &[Scalar] {
         self.runtime_data.stack.as_slice()
     }
 
+    #[inline]
     pub fn get_aux(&self) -> &Aux {
         &self.auxiliary_data
     }
 
+    #[inline]
     pub fn get_aux_mut(&mut self) -> &mut Aux {
         &mut self.auxiliary_data
     }
@@ -140,13 +144,8 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: InputString, f: C) {
-        let hash = Key::from_str(name.as_str()).unwrap();
-        self.callables.insert(hash, Procedure::new(name, f));
-    }
-
-    pub fn register_function_obj(&mut self, name: &str, f: Procedure<Aux>) {
-        let hash = Key::from_str(name).unwrap();
-        self.callables.insert(hash, f);
+        let key = Key::from_str(name.as_str()).unwrap();
+        self.callables.insert(key, Procedure::new(name, f));
     }
 
     pub fn get_value_in_place<T: DecodeInPlace<'a>>(
@@ -227,6 +226,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         Ok(object)
     }
 
+    #[inline]
     pub fn stack_push<S>(&mut self, value: S) -> Result<(), ExecutionError>
     where
         S: Into<Scalar>,
@@ -238,6 +238,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         Ok(())
     }
 
+    #[inline]
     pub fn stack_pop(&mut self) -> Scalar {
         self.runtime_data.stack.pop()
     }
@@ -249,14 +250,14 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.history.clear();
         let mut bytecode_pos = 0;
         let len = program.bytecode.len();
-        let mut max_iter = self.max_iter;
+        let mut remaining_iters = self.max_iter;
         while bytecode_pos < len {
-            max_iter -= 1;
-            if max_iter <= 0 {
+            remaining_iters -= 1;
+            if remaining_iters <= 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
-            let instr = unsafe { transmute(instr) };
+            let instr: u8 = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
+            let instr: Instruction = unsafe { transmute(instr) };
             trace!(
                 self.logger,
                 "Instruction: {:?}({:?}) Pointer: {:?}",

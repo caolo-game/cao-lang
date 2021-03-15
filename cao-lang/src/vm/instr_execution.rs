@@ -75,12 +75,12 @@ pub fn instr_read_var<'a>(
     bytecode: &'a [u8],
     bytecode_pos: &mut usize,
 ) -> ExecutionResult {
-    let VariableId(varname) = unsafe { decode_value(&logger, bytecode, bytecode_pos) };
+    let VariableId(varid) = unsafe { decode_value(&logger, bytecode, bytecode_pos) };
     let value = runtime_data
         .registers
-        .get(varname as usize)
+        .get(varid as usize)
         .ok_or_else(|| {
-            debug!(logger, "Variable {} does not exist", varname);
+            debug!(logger, "Variable {} does not exist", varid);
             ExecutionError::invalid_argument(None)
         })?;
     runtime_data
@@ -99,11 +99,11 @@ pub fn instr_set_var(
 ) -> ExecutionResult {
     let varname = unsafe { decode_value::<VariableId>(logger, bytecode, bytecode_pos) };
     let scalar = runtime_data.stack.pop();
-    let varname = varname.0 as usize;
-    if runtime_data.registers.len() <= varname {
-        runtime_data.registers.resize(varname + 1, Scalar::Null);
+    let varid = varname.0 as usize;
+    if runtime_data.registers.len() <= varid {
+        runtime_data.registers.resize(varid + 1, Scalar::Null);
     }
-    runtime_data.registers[varname] = scalar;
+    runtime_data.registers[varid] = scalar;
     Ok(())
 }
 

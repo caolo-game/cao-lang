@@ -17,6 +17,7 @@ impl Default for Scalar {
 }
 
 impl Scalar {
+    #[inline]
     pub fn as_bool(self) -> bool {
         match self {
             Scalar::Pointer(Pointer(i)) => i != 0,
@@ -26,14 +27,17 @@ impl Scalar {
         }
     }
 
+    #[inline]
     pub fn is_float(self) -> bool {
         matches!(self, Scalar::Floating(_))
     }
 
+    #[inline]
     pub fn is_ptr(self) -> bool {
         matches!(self, Scalar::Pointer(_))
     }
 
+    #[inline]
     pub fn is_integer(self) -> bool {
         matches!(self, Scalar::Integer(_))
     }

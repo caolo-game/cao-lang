@@ -46,7 +46,7 @@ impl ExecutionError {
     }
 }
 
-pub struct Procedure<Aux> {
+pub(crate) struct Procedure<Aux> {
     pub name: InputString,
     pub fun: Box<dyn Callable<Aux>>,
 }
@@ -72,7 +72,7 @@ impl<Aux> Procedure<Aux> {
 
 impl<Aux> std::fmt::Debug for Procedure<Aux> {
     fn fmt(&self, writer: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(writer, "Procedure")
+        writeln!(writer, "Procedure '{}'", self.name)
     }
 }
 

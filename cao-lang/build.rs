@@ -14,6 +14,8 @@ struct Package {
 }
 
 fn main() {
+    println!("cargo:rerun-if-changed=Cargo.toml");
+
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("cao_lang_version.rs");
 
