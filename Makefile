@@ -1,3 +1,5 @@
+.PHONY: test build
+
 test:
 	@${MAKE} -C cao-lang test
 	cd cli && cargo test

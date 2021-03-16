@@ -8,7 +8,7 @@ pub mod description;
 mod tests;
 
 use crate::{
-    collections::pre_hash_map::Key,
+    collections::pre_hash_map::{Key, PreHashMap},
     program::{CompiledProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction,
@@ -21,8 +21,8 @@ use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
 use std::fmt::Debug;
+use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
-use std::{collections::HashMap, mem};
 use std::{
     convert::{Infallible, TryInto},
     str::FromStr,
@@ -82,8 +82,8 @@ pub struct CompilationUnit {
 pub struct Compiler<'a> {
     pub logger: Logger,
 
-    /// maps lane names to their indices
-    pub jump_table: HashMap<String, Key>,
+    /// maps lane names to their NodeId keys
+    pub jump_table: PreHashMap<Key>,
 
     pub options: CompileOptions,
     pub program: CompiledProgram,
@@ -127,6 +127,7 @@ impl<'a> Compiler<'a> {
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> Result<CompiledProgram, CompilationError> {
         self.options = compile_options.into().unwrap_or_default();
+        // minimize the surface of the generic function
         self._compile(compilation_unit)
     }
 
@@ -138,25 +139,41 @@ impl<'a> Compiler<'a> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
         }
+        // initialize
+        self.program = CompiledProgram::default();
+        info!(self.logger, "stage 1");
+        self._compile_stage_1(&mut compilation_unit)?;
+        info!(self.logger, "stage 1 - done");
+        info!(self.logger, "stage 2");
+        self._compile_stage_2(compilation_unit)?;
+        info!(self.logger, "stage 2 - done");
+
+        info!(self.logger, "compilation end");
+        Ok(mem::take(&mut self.program))
+    }
+
+    /// build the jump table and consume the lane names
+    /// also reserve memory for the program labels
+    fn _compile_stage_1(
+        &mut self,
+        compilation_unit: &mut CompilationUnit,
+    ) -> Result<(), CompilationError> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.lanes.len().try_into() {
             Ok(i) => i,
             Err(_) => return Err(CompilationError::TooManyLanes),
         };
 
-        self.program = CompiledProgram::default();
-
         let mut num_cards = 0usize;
-        // build the jump table and consume the lane names
-        // also calculate the number of cards
         for (i, n) in compilation_unit.lanes.iter_mut().enumerate() {
-            if self.jump_table.contains_key(n.name.as_str()) {
+            let k = Key::from_str(n.name.as_str()).expect("Failed to hash lane name");
+            if self.jump_table.contains(k) {
                 return Err(CompilationError::DuplicateName(std::mem::take(&mut n.name)));
             }
             num_cards += n.cards.len();
             self.jump_table.insert(
-                std::mem::take(&mut n.name),
-                Key::from_un32(
+                k,
+                Key::from_u32(
                     NodeId {
                         // we know that i fits in 16 bits from the check above
                         lane: i as u16,
@@ -168,8 +185,14 @@ impl<'a> Compiler<'a> {
         }
 
         self.program.labels.0.reserve(num_cards);
+        Ok(())
+    }
 
-        // consume lane cards
+    /// consume lane cards and build the bytecode
+    fn _compile_stage_2(
+        &mut self,
+        compilation_unit: CompilationUnit,
+    ) -> Result<(), CompilationError> {
         for (il, lane) in compilation_unit
             .lanes
             .into_iter()
@@ -202,14 +225,13 @@ impl<'a> Compiler<'a> {
             )?;
         }
 
-        info!(self.logger, "compilation end");
-        Ok(mem::take(&mut self.program))
+        Ok(())
     }
 
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
         let ptr = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
-        let nodeid_hash = Key::from_un32(nodeid.into());
+        let nodeid_hash = Key::from_u32(nodeid.into());
         self.program.labels.0.insert(nodeid_hash, Label::new(ptr));
 
         if let Some(instr) = card.instruction() {
@@ -240,14 +262,14 @@ impl<'a> Compiler<'a> {
                 id.encode(&mut self.program.bytecode).unwrap();
             }
             Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
-                let to =
-                    self.jump_table
-                        .get(jmp.0.as_str())
-                        .ok_or(CompilationError::InvalidJump {
-                            src: nodeid,
-                            dst: jmp.0,
-                            msg: None,
-                        })?;
+                let to = self
+                    .jump_table
+                    .get(Key::from_str(jmp.0.as_str()).expect("Failed to hash jump target name"))
+                    .ok_or(CompilationError::InvalidJump {
+                        src: nodeid,
+                        dst: jmp.0,
+                        msg: None,
+                    })?;
                 to.encode(&mut self.program.bytecode).unwrap();
             }
             Card::StringLiteral(c) => {

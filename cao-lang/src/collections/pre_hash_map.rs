@@ -87,7 +87,7 @@ impl Key {
         Self(hash as u32)
     }
 
-    pub fn from_un32(key: u32) -> Self {
+    pub fn from_u32(key: u32) -> Self {
         const MASK: u64 = u32::MAX as u64;
 
         let mut key = key.max(1) as u64; // ensure non-zero key
@@ -101,7 +101,7 @@ impl Key {
 
 impl From<u32> for Key {
     fn from(key: u32) -> Self {
-        Self::from_un32(key)
+        Self::from_u32(key)
     }
 }
 
@@ -191,6 +191,11 @@ impl<T> PreHashMap<T> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.count == 0
+    }
+
+    pub fn contains(&self, key: Key) -> bool {
+        let ind = self.find_ind(key);
+        self.keys[ind].0 != 0
     }
 
     pub fn get(&self, key: Key) -> Option<&T> {

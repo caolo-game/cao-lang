@@ -1,3 +1,5 @@
+.PHONY: test bench bench-save
+
 test:
 	cargo test --benches
 
