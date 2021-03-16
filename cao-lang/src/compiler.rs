@@ -73,8 +73,10 @@ pub struct Lane {
     pub cards: Vec<Card>,
 }
 
-/// Single compilation unit of compilation, representing a single program
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// Single unit of compilation, representing a single program
+///
+/// Execution will begin with the first Lane
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompilationUnit {
     pub lanes: Vec<Lane>,
 }
@@ -213,15 +215,21 @@ impl<'a> Compiler<'a> {
                 debug!(self.logger, "procesing card {:?}", nodeid);
                 self.process_node(nodeid, card)?;
             }
-            // insert exit node, so execution stops even if the bytecode contains
-            // additional cards after this lane...
-            // also, this is why empty lanes are valid
+            let card = if il == 0 {
+                // insert exit node, so execution stops even if the bytecode contains
+                // additional cards after this lane...
+                // also, this is why empty lanes are valid
+                Card::ExitWithCode(card::IntegerNode(0))
+            } else {
+                // implicitly return from non-main lanes
+                Card::Return
+            };
             self.process_node(
                 NodeId {
                     lane: il as u16,
                     pos: len,
                 },
-                Card::ExitWithCode(card::IntegerNode(0)),
+                card,
             )?;
         }
 
@@ -295,6 +303,7 @@ impl<'a> Compiler<'a> {
                 s.0.encode(&mut self.program.bytecode).unwrap();
             }
             Card::ScalarNull
+            | Card::Return
             | Card::Pop
             | Card::Equals
             | Card::Less

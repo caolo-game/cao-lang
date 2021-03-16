@@ -64,11 +64,13 @@ pub enum Instruction {
     Breadcrumb = 24,
     /// Push a `null` value onto the stack
     ScalarNull = 25,
+    /// Returns to right-after-the-last-call-instruction
+    Return = 26,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 25
+        n <= 26
     }
 }
 
@@ -77,6 +79,8 @@ impl TryFrom<u8> for Instruction {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if Self::is_valid_instr(value) {
+            // # SAFETY
+            // as long as the values are continous and fit in 8 bits this is fine (tm)
             unsafe { Ok(transmute(value)) }
         } else {
             Err(value)

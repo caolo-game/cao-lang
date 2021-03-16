@@ -179,25 +179,24 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteE
 }
 
 // Types can't impl both Copy and Drop so we'll just encode using memcopy
-impl<T: Sized + AutoByteEncodeProperties> ByteEncodeProperties for T {
+impl<T: Sized + Copy + AutoByteEncodeProperties> ByteEncodeProperties for T {
     type EncodeError = Infallible;
 
     fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
         let ss = mem::size_of::<Self>();
-        let ptr = out.len();
-        out.resize(ptr + ss, 0);
+        let handle = out.len();
+        out.resize(handle + ss, 0); // add enough padding for proper alignment
 
         unsafe {
-            let bytes = out.as_mut_ptr().add(ptr);
-            let ptr = &mut *(bytes as *mut mem::MaybeUninit<Self>);
-            *ptr.as_mut_ptr() = self;
+            let ptr = out.as_mut_ptr().add(handle) as *const Self;
+            std::ptr::write_unaligned(ptr as *mut Self, self);
         }
         Ok(())
     }
 }
 
 // Types can't impl both Copy and Drop so we'll just decode using memcopy
-impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
+impl<T: Sized + Copy + AutoByteEncodeProperties> ByteDecodeProperties for T {
     type DecodeError = ();
 
     fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
@@ -205,19 +204,22 @@ impl<T: Sized + AutoByteEncodeProperties> ByteDecodeProperties for T {
         if bytes.len() < ss {
             Err(())
         } else {
-            let result = unsafe { *(bytes.as_ptr() as *const Self) };
-            Ok((ss, result))
+            unsafe {
+                let ptr = bytes.as_ptr() as *const Self;
+                let result = std::ptr::read_unaligned(ptr);
+                Ok((ss, result))
+            }
         }
     }
 
     unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
         let ss = mem::size_of::<Self>();
-        let result = *(bytes.as_ptr() as *const Self);
+        let result = std::ptr::read_unaligned(bytes.as_ptr() as *const Self);
         (ss, result)
     }
 }
 
-impl<'a, T: Sized + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
+impl<'a, T: Sized + Copy + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
     type Ref = &'a Self;
 
     type DecodeError = ();
@@ -227,8 +229,11 @@ impl<'a, T: Sized + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
         if bytes.len() < ss {
             Err(())
         } else {
-            let result = unsafe { &*(bytes.as_ptr() as *const Self) };
-            Ok((ss, result))
+            unsafe {
+                let ptr = bytes.as_ptr() as *const Self;
+                let result = &*ptr;
+                Ok((ss, result))
+            }
         }
     }
 }

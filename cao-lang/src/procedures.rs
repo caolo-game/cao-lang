@@ -36,6 +36,8 @@ pub enum ExecutionError {
     TaskFailure(String),
     #[error("The program has overflowns its stack")]
     Stackoverflow,
+    #[error("Failed to return from a lane {reason}")]
+    BadReturn { reason: String },
 }
 
 impl ExecutionError {

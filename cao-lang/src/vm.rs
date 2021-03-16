@@ -100,6 +100,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
                 global_vars: Vec::with_capacity(128),
+                call_stack: Vec::with_capacity(128),
             },
             max_iter: 1000,
             _m: Default::default(),
@@ -299,8 +300,23 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                 }
                 Instruction::Jump => {
-                    instr_execution::instr_jump(&self.logger, &mut bytecode_pos, program)?;
+                    instr_execution::instr_jump(
+                        &self.logger,
+                        &mut bytecode_pos,
+                        program,
+                        &mut self.runtime_data.call_stack,
+                    )?;
                 }
+                Instruction::Return => match self.runtime_data.call_stack.pop() {
+                    Some(ptr) => {
+                        bytecode_pos = ptr;
+                    }
+                    None => {
+                        return Err(ExecutionError::BadReturn {
+                            reason: "Call stack is empty".to_string(),
+                        });
+                    }
+                },
                 Instruction::Exit => {
                     return instr_execution::instr_exit(&self.logger, &mut self.runtime_data)
                 }

@@ -195,8 +195,11 @@ pub fn instr_jump(
     logger: &Logger,
     bytecode_pos: &mut usize,
     program: &CompiledProgram,
+    call_stack: &mut Vec<usize>,
 ) -> ExecutionResult {
     let label: Key = unsafe { decode_value(logger, &program.bytecode, bytecode_pos) };
+
+    call_stack.push(*bytecode_pos);
     *bytecode_pos = program
         .labels
         .0
@@ -221,8 +224,11 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
         );
         return Err(ExecutionError::invalid_argument(None));
     }
+
     let cond = runtime_data.stack.pop();
     let label: Key = unsafe { decode_value(logger, &program.bytecode, bytecode_pos) };
+
+    runtime_data.call_stack.push(*bytecode_pos);
     if predicate(cond) {
         *bytecode_pos = program
             .labels

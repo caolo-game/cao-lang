@@ -51,3 +51,18 @@ fn can_run_simple_program() {
         }]
     )
 }
+
+#[wasm_bindgen_test]
+fn test_mandlebrot() {
+    const PROG: &str = include_str!("mandelbrot.json");
+
+    let cu: serde_json::Value = serde_json::from_str(PROG).unwrap();
+    let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
+
+    let output: CompileResult = output.into_serde().unwrap();
+
+    assert!(output.compile_error.is_none());
+    assert!(output.program.is_some());
+
+    todo!()
+}

@@ -1,0 +1,74 @@
+{
+    "_comment": "Take an input x, y and return if the number x+yi is in the Mandelbrot set",
+    "lanes": [
+        {
+            "name": "init",
+            "cards": [
+                {
+                    "SetGlobalVar": "y"
+                },
+                {
+                    "SetGlobalVar": "x"
+                }
+            ]
+        },
+        {
+            "name": "mandelbrot",
+            "cards": [
+                {
+                    "ScalarInt": 0
+                },
+                {
+                    "SetGlobalVar": "n"
+                }
+            ]
+        },
+        {
+            "name": "mandelbrot-loop",
+            "cards": [
+                {
+                    "ScalarFloat": 2.0
+                },
+                {
+                    "Jump": "dot-xy"
+                },
+                {
+                    "Less": null
+                },
+                {
+                    "Exit": null
+                }
+            ]
+        },
+        {
+            "name": "dot-xy",
+            "_desc": "Dot product of the global x,y coordinate with itself",
+            "cards": [
+                {
+                    "ReadGlobalVar": "x"
+                },
+                {
+                    "ReadGlobalVar": "x"
+                },
+                {
+                    "Mul": null
+                },
+                {
+                    "ReadGlobalVar": "y"
+                },
+                {
+                    "ReadGlobalVar": "y"
+                },
+                {
+                    "Mul": null
+                },
+                {
+                    "Add": null
+                },
+                {
+                    "Return": null
+                }
+            ]
+        }
+    ]
+}
