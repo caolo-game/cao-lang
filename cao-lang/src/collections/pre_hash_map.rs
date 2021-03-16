@@ -21,7 +21,7 @@ use std::{
     str::FromStr,
 };
 
-pub const MAX_LOAD: f32 = 0.75;
+pub const MAX_LOAD: f32 = 0.69;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Key(u32);
@@ -156,10 +156,12 @@ impl<T> PreHashMap<T> {
         res
     }
 
+    /// Reserve enough space to hold `capacity` additional items
     #[inline]
     pub fn reserve(&mut self, capacity: usize) {
-        if capacity > self.capacity {
-            self.adjust_size(capacity);
+        let new_cap = capacity + self.count;
+        if new_cap > self.capacity {
+            self.adjust_size((new_cap as f32 * (1.0 + MAX_LOAD)) as usize);
         }
     }
 
@@ -193,6 +195,7 @@ impl<T> PreHashMap<T> {
         self.count == 0
     }
 
+    #[inline]
     pub fn contains(&self, key: Key) -> bool {
         let ind = self.find_ind(key);
         self.keys[ind].0 != 0
