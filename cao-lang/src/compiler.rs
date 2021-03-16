@@ -132,7 +132,7 @@ impl<'a> Compiler<'a> {
 
     fn _compile(
         &mut self,
-        compilation_unit: CompilationUnit,
+        mut compilation_unit: CompilationUnit,
     ) -> Result<CompiledProgram, CompilationError> {
         info!(self.logger, "compilation start");
         if compilation_unit.lanes.is_empty() {
@@ -146,14 +146,16 @@ impl<'a> Compiler<'a> {
 
         self.program = CompiledProgram::default();
 
-        let mut lanes = Vec::with_capacity(compilation_unit.lanes.len());
-        for (i, n) in compilation_unit.lanes.into_iter().enumerate() {
+        let mut num_cards = 0usize;
+        // build the jump table and consume the lane names
+        // also calculate the number of cards
+        for (i, n) in compilation_unit.lanes.iter_mut().enumerate() {
             if self.jump_table.contains_key(n.name.as_str()) {
-                return Err(CompilationError::DuplicateName(n.name));
+                return Err(CompilationError::DuplicateName(std::mem::take(&mut n.name)));
             }
-            lanes.push((i, n.cards));
+            num_cards += n.cards.len();
             self.jump_table.insert(
-                n.name,
+                std::mem::take(&mut n.name),
                 Key::from_un32(
                     NodeId {
                         // we know that i fits in 16 bits from the check above
@@ -165,7 +167,15 @@ impl<'a> Compiler<'a> {
             );
         }
 
-        for (il, lane) in lanes {
+        self.program.labels.0.reserve(num_cards);
+
+        // consume lane cards
+        for (il, lane) in compilation_unit
+            .lanes
+            .into_iter()
+            .map(|Lane { cards, .. }| cards)
+            .enumerate()
+        {
             info!(self.logger, "procesing lane #{}", il);
             // check if len fits in 16 bits
             let len: u16 = match lane.len().try_into() {
@@ -197,8 +207,6 @@ impl<'a> Compiler<'a> {
     }
 
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
-        use Card::*;
-
         let ptr = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_un32(nodeid.into());
@@ -215,9 +223,7 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
-            ScalarNull | Pop | Equals | Less | LessOrEq | NotEquals | Exit | Pass | CopyLast
-            | Add | Sub | Mul | Div | ClearStack => {}
-            ReadGlobalVar(variable) | SetGlobalVar(variable) => {
+            Card::ReadGlobalVar(variable) | Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 let varhash = Key::from_bytes(variable.0.as_bytes());
 
@@ -233,7 +239,7 @@ impl<'a> Compiler<'a> {
                     });
                 id.encode(&mut self.program.bytecode).unwrap();
             }
-            JumpIfFalse(jmp) | JumpIfTrue(jmp) | Jump(jmp) => {
+            Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
                 let to =
                     self.jump_table
                         .get(jmp.0.as_str())
@@ -244,28 +250,42 @@ impl<'a> Compiler<'a> {
                         })?;
                 to.encode(&mut self.program.bytecode).unwrap();
             }
-            StringLiteral(c) => {
+            Card::StringLiteral(c) => {
                 c.0.encode(&mut self.program.bytecode).unwrap();
             }
-            Call(c) => {
+            Card::Call(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
                 key.encode(&mut self.program.bytecode).unwrap();
             }
-            ScalarArray(n) => {
+            Card::ScalarArray(n) => {
                 n.0.encode(&mut self.program.bytecode).unwrap();
             }
-            ExitWithCode(s) => {
+            Card::ExitWithCode(s) => {
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
                 s.0.encode(&mut self.program.bytecode).unwrap();
                 self.program.bytecode.push(Instruction::Exit as u8);
             }
-            ScalarLabel(s) | ScalarInt(s) => {
+            Card::ScalarLabel(s) | Card::ScalarInt(s) => {
                 s.0.encode(&mut self.program.bytecode).unwrap();
             }
-            ScalarFloat(s) => {
+            Card::ScalarFloat(s) => {
                 s.0.encode(&mut self.program.bytecode).unwrap();
             }
+            Card::ScalarNull
+            | Card::Pop
+            | Card::Equals
+            | Card::Less
+            | Card::LessOrEq
+            | Card::NotEquals
+            | Card::Exit
+            | Card::Pass
+            | Card::CopyLast
+            | Card::Add
+            | Card::Sub
+            | Card::Mul
+            | Card::Div
+            | Card::ClearStack => {}
         }
         Ok(())
     }

@@ -2,6 +2,7 @@ use cao_lang::{compiler::CompileOptions, prelude::*};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 const FIB_PROG: &str = include_str!("fibonacci_program.json");
+const LONG_PROG: &str = include_str!("long_program.json");
 
 #[allow(unused)]
 fn fib(n: i32) -> i32 {
@@ -17,7 +18,7 @@ fn fib(n: i32) -> i32 {
 
 fn run_fib(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci numbers");
-    for iterations in 1..6 {
+    for iterations in 3..5 {
         let iterations = 1 << iterations;
 
         group.bench_with_input(
@@ -57,31 +58,25 @@ fn run_fib(c: &mut Criterion) {
     group.finish();
 }
 
-fn compile_fib(c: &mut Criterion) {
-    c.bench_function("compile_fib", move |b| {
-        let cu: CompilationUnit = serde_json::from_str(FIB_PROG).unwrap();
-        b.iter(|| {
-            let program = compile(
-                None,
-                cu.clone(),
-                CompileOptions::new().with_breadcrumbs(false),
-            )
-            .unwrap();
-            program
-        });
-    });
+fn compile_programs(c: &mut Criterion) {
+    let mut group = c.benchmark_group("compile");
+    for (name, prog) in &[("fib", FIB_PROG), ("long", LONG_PROG)] {
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format!("{} {} bytes", name, prog.len())),
+            &(name, prog),
+            |b, &(_, prog)| {
+                b.iter(|| {
+                    let cu: CompilationUnit = serde_json::from_str(prog).unwrap();
+                    let program =
+                        compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+                    program
+                });
+            },
+        );
+    }
+    group.finish();
 }
 
-fn clear_vm(c: &mut Criterion) {
-    c.bench_function("clear_vm", move |b| {
-        let mut vm = Vm::new(None, ()).with_max_iter(250_000_000);
-        b.iter(|| {
-            vm.clear();
-            criterion::black_box(&mut vm);
-        });
-    });
-}
-
-criterion_group!(loop_benches, run_fib, clear_vm, compile_fib);
+criterion_group!(loop_benches, run_fib, compile_programs);
 
 criterion_main!(loop_benches);

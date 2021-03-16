@@ -1,8 +1,8 @@
 test:
-	cd cao-lang && cargo test --benches
+	@${MAKE} -C cao-lang test
 	cd cli && cargo test
-	${MAKE} -C wasm test
+	@${MAKE} -C wasm test
 
 build:
 	cd cli && cargo build --release
-	${MAKE} -C wasm build
+	@${MAKE} -C wasm build

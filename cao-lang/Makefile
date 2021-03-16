@@ -1,3 +1,6 @@
+test:
+	cargo test --benches
+
 bench:
 	cargo bench --bench cao_lang_benches $(benches) -- --baseline master
 

@@ -156,6 +156,13 @@ impl<T> PreHashMap<T> {
         res
     }
 
+    #[inline]
+    pub fn reserve(&mut self, capacity: usize) {
+        if capacity > self.capacity {
+            self.adjust_size(capacity);
+        }
+    }
+
     pub fn entry(&mut self, key: Key) -> Entry<T> {
         let ind = self.find_ind(key);
 
@@ -171,14 +178,17 @@ impl<T> PreHashMap<T> {
         Entry { key, pl }
     }
 
+    #[inline]
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.count
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
@@ -248,12 +258,14 @@ impl<T> PreHashMap<T> {
         }
     }
 
+    #[inline]
     fn grow(&mut self) {
         let new_cap = self.capacity.max(2) * 3 / 2;
         debug_assert!(new_cap > self.capacity);
         self.adjust_size(new_cap);
     }
 
+    /// Returns mutable reference to the just inserted value
     pub fn insert(&mut self, key: Key, value: T) -> &mut T {
         debug_assert_ne!(key.0, 0, "0 keys mean unintialized entries");
         if (self.count + 1) as f32 > self.capacity as f32 * MAX_LOAD {
@@ -262,16 +274,15 @@ impl<T> PreHashMap<T> {
         self._insert(key, value)
     }
 
-    #[inline(always)]
+    #[inline]
     fn _insert(&mut self, key: Key, value: T) -> &mut T {
         let ind = self.find_ind(key);
         let is_new_key = self.keys[ind].0 == 0;
-        if is_new_key {
-            self.count += 1;
-        } else {
-            let old = replace(&mut self.values[ind], MaybeUninit::uninit());
+        self.count += is_new_key as usize;
+
+        if std::mem::needs_drop::<T>() && !is_new_key {
             unsafe {
-                let _old = old.assume_init();
+                std::ptr::drop_in_place(self.values[ind].as_mut_ptr());
             }
         }
 
@@ -280,6 +291,7 @@ impl<T> PreHashMap<T> {
         unsafe { &mut *self.values[ind].as_mut_ptr() }
     }
 
+    /// Removes the element and returns `Some(value)` if it was present, else None
     pub fn remove(&mut self, key: Key) -> Option<T> {
         let ind = self.find_ind(key);
         if self.keys[ind].0 != 0 {
