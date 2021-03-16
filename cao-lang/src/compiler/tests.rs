@@ -37,9 +37,6 @@ fn input_string_decode_error_handling() {
 
 #[test]
 fn compiling_simple_program() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
     let cards = vec![
         Card::ScalarFloat(FloatNode(42.0)),
         Card::ScalarFloat(FloatNode(512.0)),
@@ -70,9 +67,6 @@ fn compiling_simple_program() {
 
 #[test]
 fn simple_looping_program() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
     let init_cards = vec![
         Card::ScalarInt(IntegerNode(4)),
         Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
@@ -87,6 +81,7 @@ fn simple_looping_program() {
         Card::CopyLast,
         Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
         Card::JumpIfTrue(JumpToLane("Loop".to_owned())),
+        Card::ExitWithCode(IntegerNode(0)),
     ];
 
     let program = CompilationUnit {
@@ -129,10 +124,6 @@ fn simple_looping_program() {
 
 #[test]
 fn breadcrumbs_work_as_expected() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: "Main".to_owned(),
@@ -170,10 +161,6 @@ fn breadcrumbs_work_as_expected() {
 
 #[test]
 fn no_breadcrumbs_emitted_when_compiled_with_off() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: "Main".to_owned(),
@@ -189,10 +176,6 @@ fn no_breadcrumbs_emitted_when_compiled_with_off() {
 
 #[test]
 fn call_test() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-
     let name = ArrayString::from("foo").unwrap();
     let cu = CompilationUnit {
         lanes: vec![Lane {
@@ -221,10 +204,6 @@ fn call_test() {
 
 #[test]
 fn lane_names_must_be_unique() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-
     let cu = CompilationUnit {
         lanes: vec![
             Lane {
@@ -244,10 +223,6 @@ fn lane_names_must_be_unique() {
 
 #[test]
 fn can_json_de_serialize_output() {
-    simple_logger::SimpleLogger::new()
-        .init()
-        .unwrap_or_default();
-
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: "Foo".to_owned(),

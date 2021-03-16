@@ -31,6 +31,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::ReadGlobalVar(Default::default())),
         get_desc(Card::ExitWithCode(Default::default())),
         get_desc(Card::ScalarNull),
+        get_desc(Card::Return),
     ]
 }
 
@@ -241,6 +242,15 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [],
             [Pointer],
             [VarName]
+        ),
+
+        Card::Return => subprogram_description!(
+            "Return",
+            "Return to where this Lane was called",
+            SubProgramType::Branch,
+            [],
+            [],
+            []
         ),
     }
 }

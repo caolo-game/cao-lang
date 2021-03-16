@@ -7,6 +7,7 @@ pub struct RuntimeData {
     pub stack: ScalarStack,
     pub memory: Vec<u8>,
     pub global_vars: Vec<Scalar>,
+    pub call_stack: Vec<usize>,
 }
 
 impl RuntimeData {
@@ -14,6 +15,7 @@ impl RuntimeData {
         self.memory.clear();
         self.stack.clear();
         self.global_vars.clear();
+        self.call_stack.clear();
     }
 
     pub fn write_to_memory<T: ByteEncodeProperties>(

@@ -36,6 +36,7 @@ pub enum Card {
     Jump(JumpToLane),
     SetGlobalVar(VarNode),
     ReadGlobalVar(VarNode),
+    Return,
 }
 
 impl Card {
@@ -67,6 +68,7 @@ impl Card {
             Card::ReadGlobalVar(_) => "ReadGlobalVar",
             Card::ClearStack => "ClearStack",
             Card::ScalarNull => "ScalarNull",
+            Card::Return => "Return",
         }
     }
 
@@ -100,6 +102,7 @@ impl Card {
             Card::ReadGlobalVar(_) => Some(Instruction::ReadGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
             Card::ScalarNull => Some(Instruction::ScalarNull),
+            Card::Return => Some(Instruction::Return),
         }
     }
 
@@ -133,6 +136,7 @@ impl Card {
             | Instruction::ScalarInt
             | Instruction::Add
             | Instruction::ScalarNull
+            | Instruction::Return
             | Instruction::Pass => {}
         };
     }
