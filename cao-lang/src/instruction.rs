@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, mem::transmute};
 
 /// Single instruction of the interpreter
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum Instruction {
     /// Add two numbers

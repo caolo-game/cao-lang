@@ -3,6 +3,7 @@ use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Scalar {
     Null,
     Pointer(Pointer),

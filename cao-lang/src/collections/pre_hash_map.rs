@@ -9,13 +9,15 @@
 //! at this moment. Use wisely
 //!
 
+#[cfg(feature = "serde")]
 mod serde;
 
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "serde")]
 pub use self::serde::*;
-use ::serde::{Deserialize, Serialize};
+
 use std::{
     mem::{replace, swap, MaybeUninit},
     str::FromStr,
@@ -23,7 +25,8 @@ use std::{
 
 pub const MAX_LOAD: f32 = 0.69;
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Key(u32);
 impl crate::AutoByteEncodeProperties for Key {}
 

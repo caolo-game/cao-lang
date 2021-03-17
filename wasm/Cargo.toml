@@ -3,9 +3,9 @@ name = "cao-lang-wasm"
 version = "0.1.21"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
-description="Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
-license="MIT"
-repository="https://github.com/caolo-game/cao-lang"
+description = "Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
+license = "MIT"
+repository = "https://github.com/caolo-game/cao-lang"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz", "--enable-mutable-globals"]
@@ -17,14 +17,13 @@ crate-type = ["cdylib", "rlib"]
 default = []
 
 [dependencies]
-cao-lang = { path = "../cao-lang" }
-wasm-bindgen = { version="0.2", features=["serde-serialize"] }
+cao-lang = { path = "../cao-lang", features = ["serde"] }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
 serde = "1"
 serde_derive = "1"
 js-sys = "0.3"
 wasm-logger = "0.2"
-
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
 # all the `std::fmt` and `std::panicking` infrastructure, so isn't great for

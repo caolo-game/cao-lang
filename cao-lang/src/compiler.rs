@@ -17,7 +17,6 @@ use crate::{NodeId, VariableId};
 pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
-use serde::{Deserialize, Serialize};
 use slog::{debug, info};
 use slog::{o, Drain, Logger};
 use std::fmt::Debug;
@@ -67,7 +66,8 @@ impl ByteDecodeProperties for InputString {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
     pub name: String,
     pub cards: Vec<Card>,
@@ -76,7 +76,8 @@ pub struct Lane {
 /// Single unit of compilation, representing a single program
 ///
 /// Execution will begin with the first Lane
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompilationUnit {
     pub lanes: Vec<Lane>,
 }
