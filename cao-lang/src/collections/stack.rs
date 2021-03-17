@@ -1,3 +1,6 @@
+//! Stack containing only cao-lang Scalars
+//! Because Scalars can express `null` values we use them instead of optionals
+//!
 use crate::scalar::Scalar;
 use thiserror::Error;
 

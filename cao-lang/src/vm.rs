@@ -7,7 +7,7 @@ mod tests;
 use crate::{binary_compare, pop_stack};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
-use crate::{collections::stack::ScalarStack, VariableId};
+use crate::{collections::stack::ScalarStack, VariableId, collections::static_stack::Stack as StaticStack};
 use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
 use serde::{Deserialize, Serialize};
@@ -100,7 +100,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
                 global_vars: Vec::with_capacity(128),
-                call_stack: Vec::with_capacity(128),
+                return_stack: StaticStack::new(256),
             },
             max_iter: 1000,
             _m: Default::default(),
@@ -304,10 +304,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                         &self.logger,
                         &mut bytecode_pos,
                         program,
-                        &mut self.runtime_data.call_stack,
+                        &mut self.runtime_data.return_stack,
                     )?;
                 }
-                Instruction::Return => match self.runtime_data.call_stack.pop() {
+                Instruction::Return => match self.runtime_data.return_stack.pop() {
                     Some(ptr) => {
                         bytecode_pos = ptr;
                     }

@@ -11,6 +11,8 @@ pub type ExecutionResult = Result<(), ExecutionError>;
 
 #[derive(Debug, Clone, Error)]
 pub enum ExecutionError {
+    #[error("The program has overflown its call stack")]
+    CallStackOverflow,
     #[error("Input ended unexpectedly")]
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]
