@@ -1,3 +1,6 @@
+//! Cao-Lang back-end
+//!
+//! Interprets the compiled output produced by the Cao-Lang compiler
 pub mod data;
 pub mod instr_execution;
 
