@@ -1,4 +1,4 @@
-use crate::collections::stack::ScalarStack;
+use crate::collections::{stack::ScalarStack, static_stack::Stack as StaticStack};
 use crate::{prelude::*, scalar::Scalar};
 
 pub struct RuntimeData {
@@ -7,7 +7,8 @@ pub struct RuntimeData {
     pub stack: ScalarStack,
     pub memory: Vec<u8>,
     pub global_vars: Vec<Scalar>,
-    pub call_stack: Vec<usize>,
+    /// Store return addresses of Lane calls
+    pub return_stack: StaticStack<usize>,
 }
 
 impl RuntimeData {
@@ -15,7 +16,7 @@ impl RuntimeData {
         self.memory.clear();
         self.stack.clear();
         self.global_vars.clear();
-        self.call_stack.clear();
+        self.return_stack.clear();
     }
 
     pub fn write_to_memory<T: ByteEncodeProperties>(
