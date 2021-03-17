@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompileOptions {
     /// Insert Breadcrumbs into the compiled program.
     /// Default: true

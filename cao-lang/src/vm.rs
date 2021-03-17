@@ -10,10 +10,11 @@ mod tests;
 use crate::{binary_compare, pop_stack};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
-use crate::{collections::stack::ScalarStack, VariableId, collections::static_stack::Stack as StaticStack};
+use crate::{
+    collections::stack::ScalarStack, collections::static_stack::Stack as StaticStack, VariableId,
+};
 use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
-use serde::{Deserialize, Serialize};
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
 use std::mem::transmute;
@@ -57,7 +58,8 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HistoryEntry {
     pub id: NodeId,
     pub instr: Option<Instruction>,

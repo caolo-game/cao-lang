@@ -1,6 +1,7 @@
 .PHONY: test bench bench-save
 
 test:
+	cargo check-all-features
 	cargo test --benches
 
 bench:
@@ -8,4 +9,3 @@ bench:
 
 bench-save:
 	cargo bench --bench cao_lang_benches $(benches) -- --save-baseline master
-

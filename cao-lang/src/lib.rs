@@ -53,14 +53,15 @@ use crate::instruction::Instruction;
 use crate::traits::AutoByteEncodeProperties;
 use arrayvec::ArrayString;
 use prelude::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VariableId(u32);
 impl AutoByteEncodeProperties for VariableId {}
 
 /// Unique id of each nodes in a single compilation
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NodeId {
     /// Index of the lane this node is in
     pub lane: u16,
@@ -94,9 +95,8 @@ impl AutoByteEncodeProperties for NodeId {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Serialize, Deserialize, Default, Eq, PartialEq, Ord, PartialOrd, Hash,
-)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Pointer(pub u32);
 
 impl From<Pointer> for u32 {
@@ -180,7 +180,8 @@ impl<'a> ByteEncodeble for &'a str {
 
 /// Metadata about a subprogram in the program.
 /// Subprograms consume their inputs and produce outputs.
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubProgram<'a> {
     pub name: &'a str,
     pub description: &'a str,
@@ -205,7 +206,8 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SubProgramType {
     /// Any ol' sub-program
     Undefined,
