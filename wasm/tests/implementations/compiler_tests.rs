@@ -64,5 +64,13 @@ fn test_mandlebrot() {
     assert!(output.compile_error.is_none());
     assert!(output.program.is_some());
 
-    todo!()
+    let mut vm = Vm::<()>::new(None, ());
+    // push the input y,x
+    vm.runtime_data.stack.push(Scalar::Floating(42.0)).unwrap();
+    vm.runtime_data.stack.push(Scalar::Floating(69.0)).unwrap();
+    vm.run(output.program.as_ref().unwrap())
+        .expect("mandlebrot program failed");
+
+    let res = vm.runtime_data.stack.pop();
+    todo!("boi {:?}", res)
 }

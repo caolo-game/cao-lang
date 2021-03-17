@@ -9,17 +9,15 @@
                 },
                 {
                     "SetGlobalVar": "x"
-                }
-            ]
-        },
-        {
-            "name": "mandelbrot",
-            "cards": [
+                },
                 {
                     "ScalarInt": 0
                 },
                 {
                     "SetGlobalVar": "n"
+                },
+                {
+                    "Jump": "mandelbrot-loop"
                 }
             ]
         },
@@ -30,34 +28,31 @@
                     "ScalarFloat": 2.0
                 },
                 {
-                    "Jump": "dot-xy"
+                    "ReadGlobalVar": "x"
+                },
+                {
+                    "ReadGlobalVar": "y"
+                },
+                {
+                    "Jump": "len2"
                 },
                 {
                     "Less": null
-                },
-                {
-                    "Exit": null
                 }
             ]
         },
         {
-            "name": "dot-xy",
-            "_desc": "Dot product of the global x,y coordinate with itself",
+            "name": "len2",
+            "_desc": "squared length of a 2d vector",
             "cards": [
                 {
-                    "ReadGlobalVar": "x"
-                },
-                {
-                    "ReadGlobalVar": "x"
+                    "CopyLast": null
                 },
                 {
                     "Mul": null
                 },
                 {
-                    "ReadGlobalVar": "y"
-                },
-                {
-                    "ReadGlobalVar": "y"
+                    "CopyLast": null
                 },
                 {
                     "Mul": null
