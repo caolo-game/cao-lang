@@ -23,7 +23,7 @@ use std::{
     str::FromStr,
 };
 
-pub const MAX_LOAD: f32 = 0.69;
+pub(crate) const MAX_LOAD: f32 = 0.69;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]

@@ -123,8 +123,7 @@ impl AutoByteEncodeProperties for Pointer {
     }
 }
 
-pub const MAX_INPUT_PER_NODE: usize = 8;
-pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
+pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 128;
 
 pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 pub type VarName = ArrayString<[u8; 64]>;
