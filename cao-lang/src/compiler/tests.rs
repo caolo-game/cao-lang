@@ -62,11 +62,11 @@ fn simple_for_loop() {
             },
         ],
     };
-    let program = compile(None, program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
 
     // Compilation was successful
 
-    let mut vm = Vm::new(None, ()).with_max_iter(10000);
+    let mut vm = Vm::new(()).with_max_iter(10000);
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
@@ -87,13 +87,8 @@ fn breadcrumbs_work_as_expected() {
         }],
     };
 
-    let prog = compile(
-        None,
-        cu.clone(),
-        CompileOptions::new().with_breadcrumbs(true),
-    )
-    .unwrap();
-    let mut vm = Vm::new(None, ());
+    let prog = compile(cu.clone(), CompileOptions::new().with_breadcrumbs(true)).unwrap();
+    let mut vm = Vm::new(());
     vm.run(&prog).expect("run failed");
 
     assert_eq!(
@@ -124,8 +119,8 @@ fn no_breadcrumbs_emitted_when_compiled_with_off() {
         }],
     };
 
-    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
-    let mut vm = Vm::new(None, ());
+    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let mut vm = Vm::new(());
     vm.run(&prog).expect("run failed");
     assert_eq!(vm.history, vec![]);
 }
@@ -140,7 +135,7 @@ fn call_test() {
         }],
     };
 
-    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
 
     struct State {
         called: bool,
@@ -152,7 +147,7 @@ fn call_test() {
     };
     let fun = FunctionWrapper::new(fun);
 
-    let mut vm = Vm::new(None, State { called: false });
+    let mut vm = Vm::new(State { called: false });
     vm.register_function(name, fun);
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
@@ -173,7 +168,7 @@ fn lane_names_must_be_unique() {
         ],
     };
 
-    let err = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap_err();
+    let err = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap_err();
     assert!(matches!(err, CompilationError::DuplicateName(_)));
 }
 
@@ -190,7 +185,7 @@ fn can_json_de_serialize_output() {
         }],
     };
 
-    let prog = compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
 
     let ser = serde_json::to_string(&prog).unwrap();
 

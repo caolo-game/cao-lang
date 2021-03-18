@@ -64,7 +64,7 @@ fn test_mandlebrot() {
     assert!(output.compile_error.is_none());
     assert!(output.program.is_some());
 
-    let mut vm = Vm::<()>::new(None, ());
+    let mut vm = Vm::new(());
     // push the input y,x
     vm.runtime_data.stack.push(Scalar::Floating(42.0)).unwrap();
     vm.runtime_data.stack.push(Scalar::Floating(69.0)).unwrap();

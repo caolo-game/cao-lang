@@ -15,8 +15,6 @@ use crate::{
 };
 use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
-use slog::{debug, trace, warn};
-use slog::{o, Drain, Logger};
 use std::{collections::HashMap, str::FromStr};
 use std::{convert::TryFrom, mem::transmute};
 
@@ -71,7 +69,6 @@ pub struct Vm<'a, Aux = ()>
 where
     Aux: 'a,
 {
-    pub logger: Logger,
     /// Breadcrumb instructions will populat this history log.
     pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
@@ -89,12 +86,8 @@ where
 }
 
 impl<'a, Aux> Vm<'a, Aux> {
-    pub fn new(logger: impl Into<Option<Logger>>, auxiliary_data: Aux) -> Self {
-        let logger = logger
-            .into()
-            .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
+    pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            logger,
             history: Vec::new(),
             converters: HashMap::new(),
             auxiliary_data,
@@ -156,10 +149,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
         match self.runtime_data.get_value_in_place::<T>(object) {
             Some(val) => Some(val),
-            None => {
-                warn!(self.logger, "Dereferencing null pointer");
-                None
-            }
+            None => None,
         }
     }
 
@@ -174,10 +164,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     .min(data.len());
                 T::decode(&data[head..tail]).ok().map(|(_, val)| val)
             }
-            None => {
-                warn!(self.logger, "Dereferencing null pointer");
-                None
-            }
+            None => None,
         }
     }
 
@@ -196,8 +183,6 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.converters.insert(index as Pointer, converter);
 
         self.stack_push(Scalar::Pointer(index as Pointer))?;
-
-        debug!(self.logger, "Set value {:?} {}", object, T::displayname());
 
         Ok(object)
     }
@@ -220,8 +205,6 @@ impl<'a, Aux> Vm<'a, Aux> {
             });
 
         self.stack_push(Scalar::Pointer(index as Pointer))?;
-
-        debug!(self.logger, "Set value {:?} {}", object, T::displayname());
 
         Ok(object)
     }
@@ -246,7 +229,6 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is fairly unsafe
     pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
-        debug!(self.logger, "Running program");
         self.history.clear();
         let mut bytecode_pos = 0;
         let len = program.bytecode.len();
@@ -258,13 +240,6 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             let instr: u8 = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
             let instr: Instruction = unsafe { transmute(instr) };
-            trace!(
-                self.logger,
-                "Instruction: {:?}({:?}) Pointer: {:?}",
-                instr,
-                program.bytecode[bytecode_pos],
-                bytecode_pos
-            );
             bytecode_pos += 1;
             match instr {
                 Instruction::GotoIfTrue => {
@@ -337,7 +312,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
                 Instruction::Breadcrumb => instr_execution::instr_breadcrumb(
-                    &self.logger,
                     &mut self.history,
                     &program.bytecode,
                     &mut bytecode_pos,
@@ -347,7 +321,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
-                        &self.logger,
                         &mut self.runtime_data,
                         &program.bytecode,
                         &mut bytecode_pos,
@@ -355,7 +328,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::ReadGlobalVar => {
                     instr_execution::instr_read_var(
-                        &self.logger,
                         &mut self.runtime_data,
                         &program.bytecode,
                         &mut bytecode_pos,
@@ -368,7 +340,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Jump => {
                     instr_execution::instr_jump(
-                        &self.logger,
                         &mut bytecode_pos,
                         program,
                         &mut self.runtime_data,
@@ -393,12 +364,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                         });
                     }
                 },
-                Instruction::Exit => {
-                    return instr_execution::instr_exit(&self.logger, &mut self.runtime_data)
-                }
+                Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
                 Instruction::JumpIfTrue => {
                     instr_execution::jump_if(
-                        &self.logger,
                         &mut self.runtime_data,
                         &mut bytecode_pos,
                         program,
@@ -407,7 +375,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::JumpIfFalse => {
                     instr_execution::jump_if(
-                        &self.logger,
                         &mut self.runtime_data,
                         &mut bytecode_pos,
                         program,
@@ -426,11 +393,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(
-                                &self.logger,
-                                &program.bytecode,
-                                &mut bytecode_pos,
-                            )
+                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -438,11 +401,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(
-                                &self.logger,
-                                &program.bytecode,
-                                &mut bytecode_pos,
-                            )
+                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -450,16 +409,11 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Floating(unsafe {
-                            instr_execution::decode_value(
-                                &self.logger,
-                                &program.bytecode,
-                                &mut bytecode_pos,
-                            )
+                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarArray => instr_execution::instr_scalar_array(
-                    &self.logger,
                     &mut self.runtime_data,
                     &program.bytecode,
                     &mut bytecode_pos,
@@ -481,12 +435,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::execute_call(self, &mut bytecode_pos, &program.bytecode)?
                 }
             }
-            debug!(
-                self.logger,
-                "Stack len: {} ptr: {}",
-                self.runtime_data.stack.len(),
-                bytecode_pos
-            );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)

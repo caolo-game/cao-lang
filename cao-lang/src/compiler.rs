@@ -17,8 +17,6 @@ use crate::{NodeId, VariableId};
 pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
-use slog::{debug, info};
-use slog::{o, Drain, Logger};
 use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
@@ -83,7 +81,6 @@ pub struct CompilationUnit {
 }
 
 pub struct Compiler<'a> {
-    pub logger: Logger,
 
     /// maps lane names to their NodeId keys
     pub jump_table: PreHashMap<Key>,
@@ -95,33 +92,23 @@ pub struct Compiler<'a> {
 }
 
 pub fn compile(
-    logger: impl Into<Option<Logger>>,
     compilation_unit: CompilationUnit,
     compile_options: impl Into<Option<CompileOptions>>,
 ) -> Result<CompiledProgram, CompilationError> {
-    let mut compiler = Compiler::new(logger);
+    let mut compiler = Compiler::new();
     compiler.compile(compilation_unit, compile_options)
 }
 
 impl<'a> Compiler<'a> {
     /// If no `logger` is provided, falls back to the 'standard' log crate.
-    pub fn new<L: Into<Option<Logger>>>(logger: L) -> Self {
-        fn _new<'a>(logger: Logger) -> Compiler<'a> {
-            Compiler {
-                logger,
-                program: CompiledProgram::default(),
-                jump_table: Default::default(),
-                options: Default::default(),
-                next_var: RefCell::new(VariableId(0)),
-                _m: Default::default(),
-            }
+    pub fn new() -> Self {
+        Compiler {
+            program: CompiledProgram::default(),
+            jump_table: Default::default(),
+            options: Default::default(),
+            next_var: RefCell::new(VariableId(0)),
+            _m: Default::default(),
         }
-
-        let logger = logger
-            .into()
-            .unwrap_or_else(|| Logger::root(slog_stdlog::StdLog.fuse(), o!()));
-
-        _new(logger)
     }
 
     pub fn compile(
@@ -138,20 +125,14 @@ impl<'a> Compiler<'a> {
         &mut self,
         mut compilation_unit: CompilationUnit,
     ) -> Result<CompiledProgram, CompilationError> {
-        info!(self.logger, "compilation start");
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
         }
         // initialize
         self.program = CompiledProgram::default();
-        info!(self.logger, "stage 1");
         self._compile_stage_1(&mut compilation_unit)?;
-        info!(self.logger, "stage 1 - done");
-        info!(self.logger, "stage 2");
         self._compile_stage_2(compilation_unit)?;
-        info!(self.logger, "stage 2 - done");
 
-        info!(self.logger, "compilation end");
         Ok(mem::take(&mut self.program))
     }
 
@@ -217,7 +198,6 @@ impl<'a> Compiler<'a> {
         }
 
         for (il, lane) in lanes {
-            info!(self.logger, "procesing lane #{}", il);
             self.program.bytecode.push(Instruction::ScopeStart as u8);
             self._process_lane(il, lane)?;
             self.program.bytecode.push(Instruction::ScopeEnd as u8);
@@ -238,7 +218,6 @@ impl<'a> Compiler<'a> {
                 lane: il as u16,
                 pos: ic as u16,
             };
-            debug!(self.logger, "procesing card {:?}", nodeid);
             self.process_node(nodeid, card)?;
         }
         Ok(())

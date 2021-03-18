@@ -26,10 +26,9 @@ fn run_fib(c: &mut Criterion) {
             &iterations,
             move |b, &iterations| {
                 let cu = serde_json::from_str(FIB_PROG).unwrap();
-                let program =
-                    compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+                let program = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
 
-                let mut vm = Vm::new(None, ()).with_max_iter(250 * iterations);
+                let mut vm = Vm::new(()).with_max_iter(250 * iterations);
                 b.iter(|| {
                     vm.clear();
                     vm.stack_push(iterations).expect("Initial push");
@@ -68,7 +67,7 @@ fn compile_programs(c: &mut Criterion) {
                 b.iter(|| {
                     let cu: CompilationUnit = serde_json::from_str(prog).unwrap();
                     let program =
-                        compile(None, cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+                        compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
                     program
                 });
             },

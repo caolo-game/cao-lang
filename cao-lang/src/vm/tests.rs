@@ -12,7 +12,7 @@ fn test_encode() {
 
 #[test]
 fn test_set_value_memory_limit_error_raised() {
-    let mut vm = Vm::new(None, ());
+    let mut vm = Vm::new(());
     vm.runtime_data.memory_limit = 10;
     vm.set_value("1234567890987654321".to_owned())
         .expect_err("Should return error");
@@ -34,9 +34,9 @@ fn test_array_literal_memory_limit_error_raised() {
             "#;
 
     let compilation_unit = serde_json::from_str(program).unwrap();
-    let program = crate::compiler::compile(None, compilation_unit, None).unwrap();
+    let program = crate::compiler::compile(compilation_unit, None).unwrap();
 
-    let mut vm = Vm::new(None, ());
+    let mut vm = Vm::new(());
     vm.runtime_data.memory_limit = 8;
 
     let err = vm.run(&program).expect_err("Should have failed");
@@ -49,7 +49,7 @@ fn test_array_literal_memory_limit_error_raised() {
 
 #[test]
 fn test_binary_operatons() {
-    let mut vm = Vm::new(None, ());
+    let mut vm = Vm::new(());
 
     vm.runtime_data.stack.push(Scalar::Integer(512)).unwrap();
     vm.runtime_data.stack.push(Scalar::Integer(42)).unwrap();
@@ -65,7 +65,7 @@ fn test_binary_operatons() {
 
 #[test]
 fn test_str_get() {
-    let mut vm = Vm::new(None, ());
+    let mut vm = Vm::new(());
 
     let obj = vm.set_value("winnie".to_owned()).unwrap();
     let ind = obj.index.unwrap();
@@ -79,7 +79,7 @@ fn test_str_get() {
 
 #[test]
 fn test_str_get_drop() {
-    let mut vm = Vm::new(None, ());
+    let mut vm = Vm::new(());
 
     let obj = vm.set_value("winnie".to_owned()).unwrap();
     let ind = obj.index.unwrap();

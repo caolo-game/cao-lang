@@ -33,7 +33,7 @@ fn main() {
         }
     };
 
-    match compile(None, cu, Some(options)) {
+    match compile(cu, Some(options)) {
         Ok(res) => {
             println!("{}", serde_json::to_string(&res).unwrap());
         }
