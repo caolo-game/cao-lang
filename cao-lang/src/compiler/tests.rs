@@ -36,90 +36,48 @@ fn input_string_decode_error_handling() {
 }
 
 #[test]
-fn compiling_simple_program() {
-    let cards = vec![
-        Card::ScalarFloat(FloatNode(42.0)),
-        Card::ScalarFloat(FloatNode(512.0)),
-        Card::Add,
-    ];
-
-    let program = CompilationUnit {
-        lanes: vec![Lane {
-            name: "Foo".to_owned(),
-            cards,
-        }],
-    };
-    let program = compile(None, program, None).unwrap();
-
-    // Compilation was successful
-
-    let mut vm = Vm::new(None, ());
-    vm.run(&program).unwrap();
-
-    assert_eq!(vm.stack().len(), 1, "{:?}", vm.stack());
-
-    let value = vm.stack().last().unwrap();
-    match value {
-        Scalar::Floating(i) => assert_eq!(*i, 42.0 + 512.0),
-        _ => panic!("Invalid value in the stack"),
-    }
-}
-
-#[test]
-fn simple_looping_program() {
-    let init_cards = vec![
-        Card::ScalarInt(IntegerNode(4)),
-        Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
-        Card::Jump(JumpToLane("Loop".to_owned())),
-    ];
-    let loop_cards = vec![
-        // push this value in each iteration
-        Card::ScalarInt(IntegerNode(42069)),
-        Card::ReadGlobalVar(VarNode(ArrayString::from("i").unwrap())),
-        Card::ScalarInt(IntegerNode(1)),
-        Card::Sub,
-        Card::CopyLast,
-        Card::SetGlobalVar(VarNode(ArrayString::from("i").unwrap())),
-        Card::JumpIfTrue(JumpToLane("Loop".to_owned())),
-        Card::ExitWithCode(IntegerNode(0)),
-    ];
-
+fn simple_for_loop() {
     let program = CompilationUnit {
         lanes: vec![
             Lane {
                 name: "Main".to_owned(),
-                cards: init_cards,
+                cards: vec![
+                    // init the result variable
+                    Card::ScalarInt(IntegerNode(0)),
+                    Card::SetGlobalVar(VarNode::from_str("result")),
+                    // loop
+                    Card::Repeat(Repeat {
+                        lane: "Loop".to_string(),
+                        times: 69,
+                    }),
+                ],
             },
             Lane {
                 name: "Loop".to_owned(),
-                cards: loop_cards,
+                cards: vec![
+                    // Add 1 to the global 'result' variable in each iteration
+                    Card::ScalarInt(IntegerNode(1)),
+                    Card::ReadGlobalVar(VarNode::from_str("result")),
+                    Card::Add,
+                    Card::SetGlobalVar(VarNode::from_str("result")),
+                ],
             },
         ],
     };
-    let program = compile(None, program, None).unwrap();
+    let program = compile(None, program, Some(CompileOptions { breadcrumbs: false })).unwrap();
 
     // Compilation was successful
 
-    let mut vm = Vm::new(None, ()).with_max_iter(150);
+    let mut vm = Vm::new(None, ()).with_max_iter(10000);
     let exit_code = vm.run(&program).unwrap();
 
     assert_eq!(exit_code, 0);
     let varid = *program
         .variables
         .0
-        .get(Key::from_str("i").unwrap())
+        .get(Key::from_str("result").unwrap())
         .unwrap();
-    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(0));
-
-    assert_eq!(
-        vm.stack(),
-        &[
-            Scalar::Integer(42069),
-            Scalar::Integer(42069),
-            Scalar::Integer(42069),
-            Scalar::Integer(42069),
-        ]
-    );
+    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(69));
 }
 
 #[test]
@@ -227,7 +185,7 @@ fn can_json_de_serialize_output() {
         lanes: vec![Lane {
             name: "Foo".to_owned(),
             cards: vec![
-                Card::SetGlobalVar(VarNode(ArrayString::from("asdsdad").unwrap())),
+                Card::SetGlobalVar(VarNode::from_str("asdsdad")),
                 Card::Pass,
                 Card::Pass,
             ],

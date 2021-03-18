@@ -3,16 +3,9 @@ use std::{convert::TryFrom, mem};
 use slog::{debug, o, trace, warn, Logger};
 
 use crate::{
-    collections::{pre_hash_map::Key, static_stack::Stack},
-    instruction::Instruction,
-    procedures::ExecutionError,
-    procedures::ExecutionResult,
-    program::CompiledProgram,
-    scalar::Scalar,
-    traits::ByteDecodeProperties,
-    traits::Callable,
-    traits::DecodeInPlace,
-    traits::MAX_STR_LEN,
+    collections::pre_hash_map::Key, instruction::Instruction, procedures::ExecutionError,
+    procedures::ExecutionResult, program::CompiledProgram, scalar::Scalar,
+    traits::ByteDecodeProperties, traits::Callable, traits::DecodeInPlace, traits::MAX_STR_LEN,
     Pointer, VariableId,
 };
 
@@ -202,13 +195,18 @@ pub fn instr_jump(
     logger: &Logger,
     bytecode_pos: &mut usize,
     program: &CompiledProgram,
-    call_stack: &mut Stack<usize>,
+    runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
     let label: Key = unsafe { decode_value(logger, &program.bytecode, bytecode_pos) };
 
-    call_stack
+    runtime_data
+        .return_stack
         .push(*bytecode_pos)
         .map_err(|_| ExecutionError::CallStackOverflow)?;
+    runtime_data
+        .stack
+        .push_sentinel()
+        .map_err(|_| ExecutionError::Stackoverflow)?;
     *bytecode_pos = program
         .labels
         .0
@@ -242,6 +240,10 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
         .push(*bytecode_pos)
         .map_err(|_| ExecutionError::CallStackOverflow)?;
     if predicate(cond) {
+        runtime_data
+            .stack
+            .push_sentinel()
+            .map_err(|_| ExecutionError::Stackoverflow)?;
         *bytecode_pos = program
             .labels
             .0

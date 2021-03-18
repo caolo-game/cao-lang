@@ -17,8 +17,8 @@ use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
 use slog::{debug, trace, warn};
 use slog::{o, Drain, Logger};
-use std::mem::transmute;
 use std::{collections::HashMap, str::FromStr};
+use std::{convert::TryFrom, mem::transmute};
 
 type ConvertFn<Aux> = unsafe fn(&Object, &Vm<Aux>) -> Box<dyn ObjectProperties>;
 
@@ -127,11 +127,6 @@ impl<'a, Aux> Vm<'a, Aux> {
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
         self.max_iter = max_iter;
         self
-    }
-
-    #[inline]
-    pub fn stack(&self) -> &[Scalar] {
-        self.runtime_data.stack.as_slice()
     }
 
     #[inline]
@@ -273,6 +268,74 @@ impl<'a, Aux> Vm<'a, Aux> {
             );
             bytecode_pos += 1;
             match instr {
+                Instruction::GotoIfTrue => {
+                    let pos = self.runtime_data.stack.pop();
+                    let pos: i32 = match i32::try_from(pos) {
+                        Ok(i) => i,
+                        Err(err) => {
+                            return Err(ExecutionError::InvalidArgument {
+                                context: Some(format!(
+                                    "Goto instruction got invalid position value {:?}",
+                                    err
+                                )),
+                            })
+                        }
+                    };
+                    let condition = self.runtime_data.stack.pop();
+                    if condition.as_bool() {
+                        bytecode_pos = pos as usize;
+                    }
+                }
+                Instruction::Goto => {
+                    let pos = self.runtime_data.stack.pop();
+                    let pos: i32 = match i32::try_from(pos) {
+                        Ok(i) => i,
+                        Err(err) => {
+                            return Err(ExecutionError::InvalidArgument {
+                                context: Some(format!(
+                                    "Goto instruction got invalid position value {:?}",
+                                    err
+                                )),
+                            })
+                        }
+                    };
+                    bytecode_pos = pos as usize;
+                }
+                Instruction::SwapLast => {
+                    let b = pop_stack!(self);
+                    let a = pop_stack!(self);
+                    // we popped two values, we know that the stack has capacity for 2 ..
+                    self.stack_push(b).unwrap();
+                    self.stack_push(a).unwrap();
+                }
+                Instruction::Remember => {
+                    //
+                    //
+                    // TODO: we could use the Sentinel values to store the return addresses instead
+                    // of a separate call stack ?
+                    //
+                    //
+                    //
+                    let offset = self.runtime_data.stack.pop();
+                    let offset: i32 = match i32::try_from(offset) {
+                        Ok(i) => i,
+                        Err(err) => {
+                            return Err(ExecutionError::InvalidArgument {
+                                context: Some(format!(
+                                    "Remember instruction got invalid offset value {:?}",
+                                    err
+                                )),
+                            })
+                        }
+                    };
+
+                    self.runtime_data
+                        .stack
+                        .push(Scalar::Integer(
+                            (bytecode_pos as isize + offset as isize) as i32,
+                        ))
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
+                }
                 Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
                 Instruction::Breadcrumb => instr_execution::instr_breadcrumb(
                     &self.logger,
@@ -281,7 +344,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     &mut bytecode_pos,
                 ),
                 Instruction::ClearStack => {
-                    self.runtime_data.stack.clear();
+                    self.runtime_data.stack.clear_until_sentinel();
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
@@ -309,8 +372,17 @@ impl<'a, Aux> Vm<'a, Aux> {
                         &self.logger,
                         &mut bytecode_pos,
                         program,
-                        &mut self.runtime_data.return_stack,
+                        &mut self.runtime_data,
                     )?;
+                }
+                Instruction::ScopeStart => {
+                    self.runtime_data
+                        .stack
+                        .push_sentinel()
+                        .map_err(|_| ExecutionError::Stackoverflow)?;
+                }
+                Instruction::ScopeEnd => {
+                    self.runtime_data.stack.clear_until_sentinel();
                 }
                 Instruction::Return => match self.runtime_data.return_stack.pop() {
                     Some(ptr) => {
@@ -412,22 +484,13 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             debug!(
                 self.logger,
-                "Stack len: {} {:?} ptr: {}",
+                "Stack len: {} ptr: {}",
                 self.runtime_data.stack.len(),
-                self.log_stack(),
                 bytecode_pos
             );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
-    }
-
-    pub fn log_stack(&self) {
-        trace!(self.logger, "--------Stack--------");
-        for s in self.runtime_data.stack.as_slice().iter().rev() {
-            trace!(self.logger, "{:?}", s);
-        }
-        trace!(self.logger, "------End Stack------");
     }
 
     #[inline]

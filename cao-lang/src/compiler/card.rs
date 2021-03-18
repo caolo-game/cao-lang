@@ -38,6 +38,7 @@ pub enum Card {
     SetGlobalVar(VarNode),
     ReadGlobalVar(VarNode),
     Return,
+    Repeat(Repeat),
 }
 
 impl Card {
@@ -70,13 +71,15 @@ impl Card {
             Card::ClearStack => "ClearStack",
             Card::ScalarNull => "ScalarNull",
             Card::Return => "Return",
+            Card::Repeat(_) => "Repeat",
         }
     }
 
-    /// Translate this Card into an Instruction.
+    /// Translate this Card into an Instruction, if possible.
+    /// Some cards expand to multiple instructions, these are handled separately
     pub fn instruction(&self) -> Option<Instruction> {
         match self {
-            Card::ExitWithCode(_) => None,
+            Card::Repeat(_) | Card::ExitWithCode(_) => None,
 
             Card::Pass => Some(Instruction::Pass),
             Card::Add => Some(Instruction::Add),
@@ -107,10 +110,10 @@ impl Card {
         }
     }
 
-    // Trigger compilation errors for newly added instructions so we don't forget implementing them
-    // here
+    // Trigger compilation errors for newly added instructions,
+    // so we don't forget implementing a card for them
     #[allow(unused)]
-    fn _instruction_to_node(instr: Instruction) {
+    fn __instruction_to_node(instr: Instruction) {
         match instr {
             Instruction::SetGlobalVar
             | Instruction::Breadcrumb
@@ -137,7 +140,13 @@ impl Card {
             | Instruction::ScalarInt
             | Instruction::Add
             | Instruction::ScalarNull
+            | Instruction::ScopeStart
+            | Instruction::ScopeEnd
             | Instruction::Return
+            | Instruction::Remember
+            | Instruction::SwapLast
+            | Instruction::Goto
+            | Instruction::GotoIfTrue
             | Instruction::Pass => {}
         };
     }
@@ -170,3 +179,17 @@ pub struct JumpToLane(pub String);
 #[derive(Debug, Clone, Default, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VarNode(pub VarName);
+
+impl VarNode {
+    /// panics if the string is too long
+    pub fn from_str(s: &str) -> Self {
+        Self(VarName::from(s).expect("Failed to parse variable name"))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Repeat {
+    pub lane: String,
+    pub times: u32,
+}

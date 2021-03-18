@@ -203,6 +203,7 @@ impl<'a> Compiler<'a> {
             .enumerate()
         {
             info!(self.logger, "procesing lane #{}", il);
+            self.program.bytecode.push(Instruction::ScopeStart as u8);
             // check if len fits in 16 bits
             let len: u16 = match lane.len().try_into() {
                 Ok(i) => i,
@@ -216,6 +217,7 @@ impl<'a> Compiler<'a> {
                 debug!(self.logger, "procesing card {:?}", nodeid);
                 self.process_node(nodeid, card)?;
             }
+            self.program.bytecode.push(Instruction::ScopeEnd as u8);
             let card = if il == 0 {
                 // insert exit node, so execution stops even if the bytecode contains
                 // additional cards after this lane...
@@ -237,6 +239,19 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
+    fn _jump_to_lane(&mut self, nodeid: NodeId, lane: &str) -> Result<(), CompilationError> {
+        let to = self
+            .jump_table
+            .get(Key::from_str(lane).expect("Failed to hash jump target name"))
+            .ok_or(CompilationError::InvalidJump {
+                src: nodeid,
+                dst: lane.to_string(),
+                msg: None,
+            })?;
+        to.encode(&mut self.program.bytecode).unwrap();
+        Ok(())
+    }
+
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
         let ptr = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
@@ -254,6 +269,43 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
+            Card::Repeat(repeat) => {
+                // ## Semantics:
+                //
+                // push counter + 1 on the stack
+                // remember this slot
+                // push 1
+                // sub
+                // clone last (loop counter)
+                // jump if true to the lane
+                // clone last (loop counter)
+                // return to the remembered slot if true
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                // TODO: check if we fit in i32 - 1...
+                (repeat.times as i32 + 1) // +1 so we can subtract 1 in all cases
+                    .encode(&mut self.program.bytecode)
+                    .unwrap();
+                //
+                // remember just before this instruction
+                //
+                let len = self.program.bytecode.len();
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                1i32.encode(&mut self.program.bytecode).unwrap();
+                self.program.bytecode.push(Instruction::Sub as u8);
+                // leave the loop counter on the stack after the jump and the goto
+                self.program.bytecode.push(Instruction::CopyLast as u8);
+                self.program.bytecode.push(Instruction::CopyLast as u8);
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                (-((self.program.bytecode.len() + 5 - len) as i32))
+                    .encode(&mut self.program.bytecode)
+                    .unwrap();
+                self.program.bytecode.push(Instruction::Remember as u8);
+                self.program.bytecode.push(Instruction::SwapLast as u8);
+                // jump to the lane if not 0
+                self.program.bytecode.push(Instruction::JumpIfTrue as u8);
+                self._jump_to_lane(nodeid, repeat.lane.as_str())?;
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8); // rerun if not 0
+            }
             Card::ReadGlobalVar(variable) | Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 let varhash = Key::from_bytes(variable.0.as_bytes());
@@ -271,15 +323,7 @@ impl<'a> Compiler<'a> {
                 id.encode(&mut self.program.bytecode).unwrap();
             }
             Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
-                let to = self
-                    .jump_table
-                    .get(Key::from_str(jmp.0.as_str()).expect("Failed to hash jump target name"))
-                    .ok_or(CompilationError::InvalidJump {
-                        src: nodeid,
-                        dst: jmp.0,
-                        msg: None,
-                    })?;
-                to.encode(&mut self.program.bytecode).unwrap();
+                self._jump_to_lane(nodeid, jmp.0.as_str())?;
             }
             Card::StringLiteral(c) => {
                 c.0.encode(&mut self.program.bytecode).unwrap();

@@ -91,7 +91,7 @@ impl Ord for NodeId {
 
 impl AutoByteEncodeProperties for NodeId {
     fn displayname() -> &'static str {
-        "Lane ID"
+        "Node ID"
     }
 }
 
@@ -125,8 +125,8 @@ impl AutoByteEncodeProperties for Pointer {
 
 pub const MAX_INPUT_PER_NODE: usize = 8;
 pub const INPUT_STR_LEN_IN_BYTES: usize = 128;
-pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 
+pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
 pub type VarName = ArrayString<[u8; 64]>;
 
 impl ByteEncodeble for VarName {
