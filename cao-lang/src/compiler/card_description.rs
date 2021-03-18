@@ -35,6 +35,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::ScalarNull),
         get_desc(Card::Return),
         get_desc(Card::Repeat(Default::default())),
+        get_desc(Card::While(Default::default())),
     ]
 }
 
@@ -285,6 +286,15 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Repeat a lane the input number of times",
             SubProgramType::Branch,
             [Scalar],
+            [],
+            [String]
+        ),
+
+        Card::While(_) => subprogram_description!(
+            "While",
+            "Repeat a lane until the lane's last value is 0",
+            SubProgramType::Branch,
+            [],
             [],
             [String]
         ),

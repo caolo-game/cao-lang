@@ -42,6 +42,7 @@ pub enum Card {
     ReadGlobalVar(VarNode),
     Return,
     Repeat(Repeat),
+    While(Repeat),
 }
 
 impl Card {
@@ -78,6 +79,7 @@ impl Card {
             Card::ScalarNull => "ScalarNull",
             Card::Return => "Return",
             Card::Repeat(_) => "Repeat",
+            Card::While(_) => "While",
         }
     }
 
@@ -85,7 +87,7 @@ impl Card {
     /// Some cards expand to multiple instructions, these are handled separately
     pub fn instruction(&self) -> Option<Instruction> {
         match self {
-            Card::Repeat(_) | Card::ExitWithCode(_) => None,
+            Card::While(_) | Card::Repeat(_) | Card::ExitWithCode(_) => None,
 
             Card::And => Some(Instruction::And),
             Card::Or => Some(Instruction::Or),

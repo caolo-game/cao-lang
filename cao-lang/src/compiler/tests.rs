@@ -36,6 +36,48 @@ fn input_string_decode_error_handling() {
 }
 
 #[test]
+fn simple_while_loop() {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane {
+                name: "Main".to_owned(),
+                cards: vec![
+                    // init the result variable
+                    Card::ScalarInt(IntegerNode(69)),
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::While(Repeat("Loop".to_string())),
+                ],
+            },
+            Lane {
+                name: "Loop".to_owned(),
+                cards: vec![
+                    // Add 1 to the global 'result' variable in each iteration
+                    Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::ScalarInt(IntegerNode(1)),
+                    Card::Sub,
+                    Card::CopyLast, // return `result`
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ],
+            },
+        ],
+    };
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(10000);
+    let exit_code = vm.run(&program).unwrap();
+
+    assert_eq!(exit_code, 0);
+    let varid = *program
+        .variables
+        .0
+        .get(Key::from_str("result").unwrap())
+        .unwrap();
+    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(0));
+}
+
+#[test]
 fn simple_for_loop() {
     let program = CompilationUnit {
         lanes: vec![
@@ -58,6 +100,7 @@ fn simple_for_loop() {
                     Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
                     Card::Add,
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::ScalarInt(IntegerNode(420)), // check if last value is discarded
                 ],
             },
         ],

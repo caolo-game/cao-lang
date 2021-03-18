@@ -188,7 +188,7 @@ impl<'a> Compiler<'a> {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
-            self._process_lane(il, main_lane)?;
+            self._process_lane(il, main_lane, 0)?;
             let nodeid = NodeId {
                 lane: il as u16,
                 pos: len,
@@ -197,8 +197,21 @@ impl<'a> Compiler<'a> {
         }
 
         for (il, lane) in lanes {
+            // manually add a scope start instruction and the position information
+            let nodeid = NodeId {
+                lane: il as u16,
+                pos: 0,
+            };
+            let nodeid_hash = Key::from_u32(nodeid.into());
+            let ptr = u32::try_from(self.program.bytecode.len())
+                .expect("bytecode length to fit into 32 bits");
+            self.program.labels.0.insert(nodeid_hash, Label::new(ptr));
             self.program.bytecode.push(Instruction::ScopeStart as u8);
-            self._process_lane(il, lane)?;
+
+            // process the lane
+            self._process_lane(il, lane, 1)?;
+
+            // end the scope and return
             self.program.bytecode.push(Instruction::ScopeEnd as u8);
             self.program.bytecode.push(Instruction::Return as u8);
         }
@@ -206,7 +219,12 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn _process_lane(&mut self, il: usize, cards: Vec<Card>) -> Result<(), CompilationError> {
+    fn _process_lane(
+        &mut self,
+        il: usize,
+        cards: Vec<Card>,
+        instruction_offset: i32,
+    ) -> Result<(), CompilationError> {
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {
             Ok(i) => i,
@@ -215,14 +233,14 @@ impl<'a> Compiler<'a> {
         for (ic, card) in cards.into_iter().enumerate() {
             let nodeid = NodeId {
                 lane: il as u16,
-                pos: ic as u16,
+                pos: (ic as i32 + instruction_offset) as u16,
             };
             self.process_node(nodeid, card)?;
         }
         Ok(())
     }
 
-    fn _jump_to_lane(&mut self, nodeid: NodeId, lane: &str) -> Result<(), CompilationError> {
+    fn _encode_jump(&mut self, nodeid: NodeId, lane: &str) -> Result<(), CompilationError> {
         let to = self
             .jump_table
             .get(Key::from_str(lane).expect("Failed to hash jump target name"))
@@ -252,6 +270,16 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
+            Card::While(repeat) => {
+                todo!(); // TODO testing while loops causes segfault...
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                (-5i32).encode(&mut self.program.bytecode).unwrap();
+                self.program.bytecode.push(Instruction::Remember as u8);
+                self.program.bytecode.push(Instruction::Jump as u8);
+                self._encode_jump(nodeid, repeat.0.as_str())?;
+                // rerun if not 0
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+            }
             Card::Repeat(repeat) => {
                 // ## Semantics:
                 //
@@ -268,7 +296,7 @@ impl<'a> Compiler<'a> {
                 1i32.encode(&mut self.program.bytecode).unwrap();
                 self.program.bytecode.push(Instruction::Add as u8);
 
-                let len = self.program.bytecode.len(); // 2)
+                let checkpoint = self.program.bytecode.len(); // 2)
                 self.program.bytecode.push(Instruction::ScalarInt as u8); // 3)
                 1i32.encode(&mut self.program.bytecode).unwrap();
                 self.program.bytecode.push(Instruction::Sub as u8); // 4)
@@ -280,7 +308,7 @@ impl<'a> Compiler<'a> {
                 // 2)
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
                 // remember the position above (+5 is the length of the remember instruction)
-                (-((self.program.bytecode.len() + 5 - len) as i32))
+                (-((self.program.bytecode.len() + 5 - checkpoint) as i32))
                     .encode(&mut self.program.bytecode)
                     .unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
@@ -288,11 +316,12 @@ impl<'a> Compiler<'a> {
                 // jump to the lane if not 0
                 // 6)
                 self.program.bytecode.push(Instruction::JumpIfTrue as u8);
-                self._jump_to_lane(nodeid, repeat.0.as_str())?;
+                self._encode_jump(nodeid, repeat.0.as_str())?;
                 // discard the lane return value
                 self.program.bytecode.push(Instruction::Pop as u8);
                 // rerun if not 0
                 // 7)
+                self.program.bytecode.push(Instruction::SwapLast as u8);
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
             }
             Card::ReadGlobalVar(variable) | Card::SetGlobalVar(variable) => {
@@ -312,7 +341,7 @@ impl<'a> Compiler<'a> {
                 id.encode(&mut self.program.bytecode).unwrap();
             }
             Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
-                self._jump_to_lane(nodeid, jmp.0.as_str())?;
+                self._encode_jump(nodeid, jmp.0.as_str())?;
             }
             Card::StringLiteral(c) => {
                 c.0.encode(&mut self.program.bytecode).unwrap();
