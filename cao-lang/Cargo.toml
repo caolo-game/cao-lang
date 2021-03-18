@@ -10,11 +10,6 @@ build = "build.rs"
 default = ["serde"]
 
 [dependencies]
-slog = { version = "2", features = [
-    "max_level_trace",
-    "release_max_level_info"
-] }
-slog-stdlog = "3"
 serde = { version = "1", features = ["derive"], optional = true }
 arrayvec = { version = "0.5", features = ["serde", "array-sizes-33-128"] }
 thiserror = "1"
