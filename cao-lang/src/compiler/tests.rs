@@ -46,10 +46,8 @@ fn simple_for_loop() {
                     Card::ScalarInt(IntegerNode(0)),
                     Card::SetGlobalVar(VarNode::from_str("result")),
                     // loop
-                    Card::Repeat(Repeat {
-                        lane: "Loop".to_string(),
-                        times: 69,
-                    }),
+                    Card::ScalarInt(IntegerNode(69)),
+                    Card::Repeat(Repeat("Loop".to_string())),
                 ],
             },
             Lane {

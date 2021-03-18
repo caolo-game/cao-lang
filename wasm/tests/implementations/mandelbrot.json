@@ -3,6 +3,10 @@
     "lanes": [
         {
             "name": "init",
+            "cards": [ ]
+        },
+        {
+            "name": "mandelbrot",
             "cards": [
                 {
                     "SetGlobalVar": "y"
@@ -11,16 +15,7 @@
                     "SetGlobalVar": "x"
                 },
                 {
-                    "ScalarInt": 0
-                },
-                {
-                    "SetGlobalVar": "n"
-                },
-                {
-                    "Repeat": {
-                        "lane": "mandelbrot-loop",
-                        "times": 30
-                    }
+                    "Repeat": "mandelbrot-loop"
                 }
             ]
         },

@@ -189,7 +189,4 @@ impl VarNode {
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Repeat {
-    pub lane: String,
-    pub times: u32,
-}
+pub struct Repeat(pub String);
