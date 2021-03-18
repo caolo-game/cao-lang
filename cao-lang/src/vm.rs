@@ -10,9 +10,7 @@ mod tests;
 use crate::{binary_compare, pop_stack};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
-use crate::{
-    collections::stack::ScalarStack, collections::static_stack::Stack as StaticStack, VariableId,
-};
+use crate::{collections::scalar_stack::ScalarStack, collections::bounded_stack::BoundedStack, VariableId};
 use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
 use std::{collections::HashMap, str::FromStr};
@@ -98,7 +96,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
                 global_vars: Vec::with_capacity(128),
-                return_stack: StaticStack::new(256),
+                return_stack: BoundedStack::new(256),
             },
             max_iter: 1000,
             _m: Default::default(),

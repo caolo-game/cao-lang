@@ -1,4 +1,4 @@
-use crate::collections::{stack::ScalarStack, static_stack::Stack as StaticStack};
+use crate::collections::{bounded_stack::BoundedStack, scalar_stack::ScalarStack};
 use crate::{prelude::*, scalar::Scalar};
 
 pub struct RuntimeData {
@@ -8,7 +8,7 @@ pub struct RuntimeData {
     pub memory: Vec<u8>,
     pub global_vars: Vec<Scalar>,
     /// Store return addresses of Lane calls
-    pub return_stack: StaticStack<usize>,
+    pub return_stack: BoundedStack<usize>,
 }
 
 impl RuntimeData {

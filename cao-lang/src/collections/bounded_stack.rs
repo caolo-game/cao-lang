@@ -4,7 +4,7 @@ use std::{
 };
 use thiserror::Error;
 
-pub struct Stack<T> {
+pub struct BoundedStack<T> {
     head: usize,
     capacity: usize,
     storage: Box<[MaybeUninit<T>]>,
@@ -16,7 +16,7 @@ pub enum StackError {
     Full,
 }
 
-impl<T> Stack<T> {
+impl<T> BoundedStack<T> {
     pub fn new(capacity: usize) -> Self {
         let mut storage = Vec::new();
         storage.resize_with(capacity, MaybeUninit::uninit);
@@ -69,7 +69,7 @@ impl<T> Stack<T> {
     }
 }
 
-impl<T> Drop for Stack<T> {
+impl<T> Drop for BoundedStack<T> {
     fn drop(&mut self) {
         self.clear();
     }
@@ -93,7 +93,7 @@ mod tests {
             }
         }
 
-        let mut stack = Stack::new(5);
+        let mut stack = BoundedStack::new(5);
         for _ in 0..5 {
             stack.push(Foo(drops.as_mut().get_mut())).unwrap();
         }
