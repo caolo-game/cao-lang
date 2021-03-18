@@ -196,46 +196,51 @@ impl<'a> Compiler<'a> {
         &mut self,
         compilation_unit: CompilationUnit,
     ) -> Result<(), CompilationError> {
-        for (il, lane) in compilation_unit
+        let mut lanes = compilation_unit
             .lanes
             .into_iter()
             .map(|Lane { cards, .. }| cards)
-            .enumerate()
-        {
-            info!(self.logger, "procesing lane #{}", il);
-            self.program.bytecode.push(Instruction::ScopeStart as u8);
-            // check if len fits in 16 bits
-            let len: u16 = match lane.len().try_into() {
+            .enumerate();
+
+        // main lane has no enclosing scope
+        if let Some((il, main_lane)) = lanes.next() {
+            let len: u16 = match main_lane.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
-            for (ic, card) in lane.into_iter().enumerate() {
-                let nodeid = NodeId {
-                    lane: il as u16,
-                    pos: ic as u16,
-                };
-                debug!(self.logger, "procesing card {:?}", nodeid);
-                self.process_node(nodeid, card)?;
-            }
-            self.program.bytecode.push(Instruction::ScopeEnd as u8);
-            let card = if il == 0 {
-                // insert exit node, so execution stops even if the bytecode contains
-                // additional cards after this lane...
-                // also, this is why empty lanes are valid
-                Card::ExitWithCode(card::IntegerNode(0))
-            } else {
-                // implicitly return from non-main lanes
-                Card::Return
+            self._process_lane(il, main_lane)?;
+            let nodeid = NodeId {
+                lane: il as u16,
+                pos: len,
             };
-            self.process_node(
-                NodeId {
-                    lane: il as u16,
-                    pos: len,
-                },
-                card,
-            )?;
+            self.process_node(nodeid, Card::ExitWithCode(IntegerNode(0)))?;
         }
 
+        for (il, lane) in lanes {
+            info!(self.logger, "procesing lane #{}", il);
+            self.program.bytecode.push(Instruction::ScopeStart as u8);
+            self._process_lane(il, lane)?;
+            self.program.bytecode.push(Instruction::ScopeEnd as u8);
+            self.program.bytecode.push(Instruction::Return as u8);
+        }
+
+        Ok(())
+    }
+
+    fn _process_lane(&mut self, il: usize, cards: Vec<Card>) -> Result<(), CompilationError> {
+        // check if len fits in 16 bits
+        let _len: u16 = match cards.len().try_into() {
+            Ok(i) => i,
+            Err(_) => return Err(CompilationError::TooManyCards(il)),
+        };
+        for (ic, card) in cards.into_iter().enumerate() {
+            let nodeid = NodeId {
+                lane: il as u16,
+                pos: ic as u16,
+            };
+            debug!(self.logger, "procesing card {:?}", nodeid);
+            self.process_node(nodeid, card)?;
+        }
         Ok(())
     }
 
@@ -272,39 +277,43 @@ impl<'a> Compiler<'a> {
             Card::Repeat(repeat) => {
                 // ## Semantics:
                 //
-                // push counter + 1 on the stack
-                // remember this slot
-                // push 1
-                // sub
-                // clone last (loop counter)
-                // jump if true to the lane
-                // clone last (loop counter)
-                // return to the remembered slot if true
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                // TODO: check if we fit in i32 - 1...
-                (repeat.times as i32 + 1) // +1 so we can subtract 1 in all cases
-                    .encode(&mut self.program.bytecode)
-                    .unwrap();
-                //
-                // remember just before this instruction
-                //
-                let len = self.program.bytecode.len();
+                // 1) push counter + 1 on the stack
+                // 2) remember this slot
+                // 3) push 1
+                // 4) sub
+                // 5) clone last (loop counter)
+                // 6) jump if true to the lane
+                // 7) return to the remembered slot if true
+
+                // 1)
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
                 1i32.encode(&mut self.program.bytecode).unwrap();
-                self.program.bytecode.push(Instruction::Sub as u8);
+                self.program.bytecode.push(Instruction::Add as u8);
+
+                let len = self.program.bytecode.len(); // 2)
+                self.program.bytecode.push(Instruction::ScalarInt as u8); // 3)
+                1i32.encode(&mut self.program.bytecode).unwrap();
+                self.program.bytecode.push(Instruction::Sub as u8); // 4)
+
                 // leave the loop counter on the stack after the jump and the goto
+                // 5)
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 self.program.bytecode.push(Instruction::CopyLast as u8);
+                // 2)
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
+                // remember the position above (+5 is the length of the remember instruction)
                 (-((self.program.bytecode.len() + 5 - len) as i32))
                     .encode(&mut self.program.bytecode)
                     .unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
                 self.program.bytecode.push(Instruction::SwapLast as u8);
                 // jump to the lane if not 0
+                // 6)
                 self.program.bytecode.push(Instruction::JumpIfTrue as u8);
-                self._jump_to_lane(nodeid, repeat.lane.as_str())?;
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8); // rerun if not 0
+                self._jump_to_lane(nodeid, repeat.0.as_str())?;
+                // rerun if not 0
+                // 7)
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
             }
             Card::ReadGlobalVar(variable) | Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();

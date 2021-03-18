@@ -2,10 +2,8 @@
     "lanes": [
         {
             "name": "init",
+            "_comment": "Assumes that N is pushed onto the stack before executing the program",
             "cards": [
-                {
-                    "SetGlobalVar": "i"
-                },
                 {
                     "ScalarInt": 1
                 },
@@ -19,7 +17,7 @@
                     "SetGlobalVar": "b"
                 },
                 {
-                    "Jump": "loop"
+                    "Repeat": "loop"
                 }
             ]
         },
@@ -43,24 +41,6 @@
                 },
                 {
                     "SetGlobalVar": "a"
-                },
-                {
-                    "ReadGlobalVar": "i"
-                },
-                {
-                    "ScalarInt": 1
-                },
-                {
-                    "Sub": null
-                },
-                {
-                    "CopyLast": null
-                },
-                {
-                    "SetGlobalVar": "i"
-                },
-                {
-                    "JumpIfTrue": "loop"
                 }
             ]
         }

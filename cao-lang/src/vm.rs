@@ -115,7 +115,6 @@ impl<'a, Aux> Vm<'a, Aux> {
     pub fn clear(&mut self) {
         self.objects.clear();
         self.converters.clear();
-
         self.runtime_data.clear();
     }
 

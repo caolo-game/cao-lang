@@ -257,9 +257,9 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Repeat",
             "Repeat the given lane N times",
             SubProgramType::Branch,
+            [Scalar],
             [],
-            [],
-            [String, Scalar]
+            [String]
         ),
     }
 }
