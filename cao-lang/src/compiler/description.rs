@@ -1,7 +1,6 @@
 use super::Card;
 use crate::scalar::Scalar;
 use crate::traits::ByteEncodeble;
-use crate::NodeId;
 use crate::Pointer;
 use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
@@ -32,6 +31,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::ExitWithCode(Default::default())),
         get_desc(Card::ScalarNull),
         get_desc(Card::Return),
+        get_desc(Card::Repeat(Default::default())),
     ]
 }
 
@@ -205,7 +205,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [Scalar],
             [],
-            [NodeId]
+            [String]
         ),
 
         Card::JumpIfFalse(_) => subprogram_description!(
@@ -214,7 +214,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [Scalar],
             [],
-            [NodeId]
+            [String]
         ),
 
         Card::Jump(_) => subprogram_description!(
@@ -223,7 +223,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [],
             [],
-            [NodeId]
+            [String]
         ),
 
         Card::SetGlobalVar(_) => subprogram_description!(
@@ -251,6 +251,15 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [],
             [],
             []
+        ),
+
+        Card::Repeat(_) => subprogram_description!(
+            "Repeat",
+            "Repeat the given lane N times",
+            SubProgramType::Branch,
+            [],
+            [],
+            [String, Scalar]
         ),
     }
 }

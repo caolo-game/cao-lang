@@ -43,6 +43,11 @@ impl Scalar {
         matches!(self, Scalar::Integer(_))
     }
 
+    #[inline]
+    pub fn is_null(self) -> bool {
+        matches!(self, Scalar::Null)
+    }
+
     /// If either is a float cast both to a floating point number, else cast both to Integer
     fn cast_match(self, other: Self) -> (Self, Self) {
         if self.is_float() || other.is_float() {
@@ -61,6 +66,10 @@ impl Scalar {
                 ),
             );
         }
+        if self.is_null() || other.is_null() {
+            return (Scalar::Null, Scalar::Null);
+        }
+
         let a = i32::try_from(self).unwrap();
         let b = i32::try_from(other).unwrap();
 
@@ -136,7 +145,7 @@ macro_rules! binary_op {
                 }
             }
             (Scalar::Floating(a), Scalar::Floating(b)) => Scalar::Floating(a $op b),
-            _ => unreachable!(),
+            _ => Scalar::Null
         }
         }
     }

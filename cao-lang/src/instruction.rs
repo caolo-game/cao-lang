@@ -39,6 +39,8 @@ pub enum Instruction {
     /// Quit the program
     /// Implicitly inserted by the compiler after every leaf node
     Exit = 13,
+    // TODO: replace jump instructions with an instruction to read label as bytecode position and
+    // use GOTO instead of jumps...
     /// Jump to the label on top of the stack
     Jump = 14,
     /// Compares two scalars
@@ -55,7 +57,7 @@ pub enum Instruction {
     SetGlobalVar = 20,
     /// Reads the variable and pushes its value onto the stack
     ReadGlobalVar = 21,
-
+    /// Clears until the last sentinel
     ClearStack = 22,
     /// If the value at the top of the stack is falsy jumps to the input node
     /// Else does nothing
@@ -65,12 +67,27 @@ pub enum Instruction {
     /// Push a `null` value onto the stack
     ScalarNull = 25,
     /// Returns to right-after-the-last-call-instruction
+    /// Also clears the stack until the last sentinel
     Return = 26,
+    /// Pop an offset from the stack and remember the location to that offset from the current
+    /// position
+    Remember = 27,
+    /// Starts a new scope
+    ScopeStart = 28,
+    /// Starts a new scope
+    ScopeEnd = 29,
+    /// Pop a bytecode position from the stack and `goto` there
+    Goto = 30,
+    /// Swaps the last two values on the stack
+    SwapLast = 31,
+    /// Pop a bytecode position and a scalar from the stack and `goto` there if the value was
+    /// truthy
+    GotoIfTrue = 32,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 26
+        n <= 32
     }
 }
 
