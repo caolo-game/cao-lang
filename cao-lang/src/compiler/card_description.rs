@@ -19,6 +19,9 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::NotEquals),
         get_desc(Card::Pop),
         get_desc(Card::ClearStack),
+        get_desc(Card::And),
+        get_desc(Card::Or),
+        get_desc(Card::Xor),
         get_desc(Card::ScalarInt(Default::default())),
         get_desc(Card::ScalarFloat(Default::default())),
         get_desc(Card::ScalarArray(Default::default())),
@@ -45,6 +48,30 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [],
+            []
+        ),
+        Card::And => subprogram_description!(
+            "And",
+            "Logical And",
+            SubProgramType::Instruction,
+            [Scalar, Scalar],
+            [Scalar],
+            []
+        ),
+        Card::Or => subprogram_description!(
+            "Or",
+            "Logical inclusive Or",
+            SubProgramType::Instruction,
+            [Scalar, Scalar],
+            [Scalar],
+            []
+        ),
+        Card::Xor => subprogram_description!(
+            "Xor",
+            "Logical exclusive Or",
+            SubProgramType::Instruction,
+            [Scalar, Scalar],
+            [Scalar],
             []
         ),
         Card::Add => subprogram_description!(
@@ -255,7 +282,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
 
         Card::Repeat(_) => subprogram_description!(
             "Repeat",
-            "Repeat the given lane N times",
+            "Repeat a lane the input number of times",
             SubProgramType::Branch,
             [Scalar],
             [],

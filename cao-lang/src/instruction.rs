@@ -83,11 +83,14 @@ pub enum Instruction {
     /// Pop a bytecode position and a scalar from the stack and `goto` there if the value was
     /// truthy
     GotoIfTrue = 32,
+    And = 33,
+    Or = 34,
+    Xor = 35,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 32
+        n <= 35
     }
 }
 

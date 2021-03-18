@@ -8,9 +8,11 @@ mod instr_execution;
 mod tests;
 
 use crate::{binary_compare, pop_stack};
+use crate::{
+    collections::bounded_stack::BoundedStack, collections::scalar_stack::ScalarStack, VariableId,
+};
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
-use crate::{collections::scalar_stack::ScalarStack, collections::bounded_stack::BoundedStack, VariableId};
 use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
 use std::{collections::HashMap, str::FromStr};
@@ -350,7 +352,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScopeEnd => {
-                    self.runtime_data.stack.clear_until_sentinel();
+                    let scope_result = self.runtime_data.stack.clear_until_sentinel();
+                    self.stack_push(scope_result).unwrap(); // we just popped this value, there must be capacity for storing it
                 }
                 Instruction::Return => match self.runtime_data.return_stack.pop() {
                     Some(ptr) => {
@@ -416,6 +419,15 @@ impl<'a, Aux> Vm<'a, Aux> {
                     &program.bytecode,
                     &mut bytecode_pos,
                 )?,
+                Instruction::And => {
+                    self.binary_op(|a, b| Scalar::from(a.as_bool() && b.as_bool()))?
+                }
+                Instruction::Or => {
+                    self.binary_op(|a, b| Scalar::from(a.as_bool() || b.as_bool()))?
+                }
+                Instruction::Xor => {
+                    self.binary_op(|a, b| Scalar::from(a.as_bool() ^ b.as_bool()))?
+                }
                 Instruction::Add => self.binary_op(|a, b| a + b)?,
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,
                 Instruction::Mul => self.binary_op(|a, b| a * b)?,
