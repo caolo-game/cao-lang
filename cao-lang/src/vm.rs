@@ -2,7 +2,7 @@
 //!
 //! Interprets the compiled output produced by the Cao-Lang compiler
 pub mod data;
-pub mod instr_execution;
+mod instr_execution;
 
 #[cfg(test)]
 mod tests;
