@@ -89,8 +89,8 @@ impl ScalarStack {
     ///
     /// Returns the very frist item
     pub fn clear_until_sentinel(&mut self) -> Scalar {
-        let mut count = self.count.saturating_sub(1);
         let res = self.pop();
+        let mut count = self.count.saturating_sub(1);
         while count > 0 && matches!(self.buffer[count], StackEntry::Scalar(_)) {
             self.buffer[count] = StackEntry::Sentinel;
             count -= 1;

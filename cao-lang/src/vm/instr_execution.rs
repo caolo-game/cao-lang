@@ -158,10 +158,6 @@ pub fn instr_jump(
         .return_stack
         .push(*bytecode_pos)
         .map_err(|_| ExecutionError::CallStackOverflow)?;
-    runtime_data
-        .stack
-        .push_sentinel()
-        .map_err(|_| ExecutionError::Stackoverflow)?;
     *bytecode_pos = program
         .labels
         .0
@@ -177,10 +173,6 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
     program: &CompiledProgram,
     predicate: F,
 ) -> Result<(), ExecutionError> {
-    if runtime_data.stack.is_empty() {
-        return Err(ExecutionError::invalid_argument(None));
-    }
-
     let cond = runtime_data.stack.pop();
     let label: Key = unsafe { decode_value(&program.bytecode, bytecode_pos) };
 
@@ -189,10 +181,6 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
         .push(*bytecode_pos)
         .map_err(|_| ExecutionError::CallStackOverflow)?;
     if predicate(cond) {
-        runtime_data
-            .stack
-            .push_sentinel()
-            .map_err(|_| ExecutionError::Stackoverflow)?;
         *bytecode_pos = program
             .labels
             .0

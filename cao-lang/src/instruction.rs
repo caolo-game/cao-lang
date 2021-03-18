@@ -36,8 +36,7 @@ pub enum Instruction {
     /// If the value at the top of the stack is truthy jumps to the input node
     /// Else does nothing
     JumpIfTrue = 12,
-    /// Quit the program
-    /// Implicitly inserted by the compiler after every leaf node
+    /// Quit the program returning the last value on the stack
     Exit = 13,
     // TODO: replace jump instructions with an instruction to read label as bytecode position and
     // use GOTO instead of jumps...
