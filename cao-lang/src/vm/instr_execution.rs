@@ -11,7 +11,6 @@ use crate::{
 
 use super::{data::RuntimeData, HistoryEntry, Vm};
 
-#[inline]
 pub fn read_str<'a>(bytecode_pos: &mut usize, program: &'a [u8]) -> Option<&'a str> {
     let p = *bytecode_pos;
     let limit = program.len().min(p + MAX_STR_LEN);
@@ -25,7 +24,6 @@ pub fn read_str<'a>(bytecode_pos: &mut usize, program: &'a [u8]) -> Option<&'a s
 ///
 /// Assumes that the underlying data is safely decodable to the given type
 ///
-#[inline]
 pub unsafe fn decode_value<T: ByteDecodeProperties>(
     logger: &Logger,
     bytes: &[u8],
@@ -44,7 +42,6 @@ pub unsafe fn decode_value<T: ByteDecodeProperties>(
 }
 
 #[allow(unused)]
-#[inline]
 pub fn decode_in_place<'a, T: DecodeInPlace<'a>>(
     logger: &Logger,
     bytes: &'a [u8],
@@ -68,20 +65,18 @@ pub fn decode_in_place<'a, T: DecodeInPlace<'a>>(
     Ok(val)
 }
 
-#[inline]
 pub fn instr_read_var<'a>(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
     bytecode: &'a [u8],
     bytecode_pos: &mut usize,
 ) -> ExecutionResult {
-    let VariableId(varid) = unsafe { decode_value(&logger, bytecode, bytecode_pos) };
+    let VariableId(varid) = unsafe { decode_value(logger, bytecode, bytecode_pos) };
     let value = runtime_data
         .global_vars
         .get(varid as usize)
         .ok_or_else(|| {
-            debug!(logger, "Variable {} does not exist", varid);
-            ExecutionError::invalid_argument(None)
+            ExecutionError::invalid_argument(format!("Variable {} does not exist", varid))
         })?;
     runtime_data
         .stack
@@ -90,7 +85,6 @@ pub fn instr_read_var<'a>(
     Ok(())
 }
 
-#[inline]
 pub fn instr_set_var(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
@@ -107,7 +101,6 @@ pub fn instr_set_var(
     Ok(())
 }
 
-#[inline]
 pub fn instr_exit(logger: &Logger, runtime_data: &mut RuntimeData) -> Result<i32, ExecutionError> {
     debug!(logger, "Exit called");
     let code = runtime_data.stack.pop();
@@ -118,7 +111,6 @@ pub fn instr_exit(logger: &Logger, runtime_data: &mut RuntimeData) -> Result<i32
     Ok(0)
 }
 
-#[inline]
 pub fn instr_breadcrumb(
     logger: &Logger,
     history: &mut Vec<HistoryEntry>,
@@ -134,7 +126,6 @@ pub fn instr_breadcrumb(
     history.push(HistoryEntry { id: nodeid, instr });
 }
 
-#[inline]
 pub fn instr_scalar_array(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
@@ -167,7 +158,6 @@ pub fn instr_scalar_array(
     Ok(())
 }
 
-#[inline]
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
@@ -190,7 +180,6 @@ pub fn instr_string_literal<T>(
     Ok(())
 }
 
-#[inline]
 pub fn instr_jump(
     logger: &Logger,
     bytecode_pos: &mut usize,
@@ -216,7 +205,6 @@ pub fn instr_jump(
     Ok(())
 }
 
-#[inline]
 pub fn jump_if<F: Fn(Scalar) -> bool>(
     logger: &Logger,
     runtime_data: &mut RuntimeData,
@@ -254,7 +242,6 @@ pub fn jump_if<F: Fn(Scalar) -> bool>(
     Ok(())
 }
 
-#[inline]
 pub fn execute_call<T>(
     vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
