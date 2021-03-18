@@ -24,6 +24,9 @@ pub enum Card {
     NotEquals,
     Pop,
     ClearStack,
+    And,
+    Or,
+    Xor,
     ExitWithCode(IntegerNode),
     ScalarInt(IntegerNode),
     ScalarNull,
@@ -56,6 +59,9 @@ impl Card {
             Card::Equals => "Equals",
             Card::NotEquals => "NotEquals",
             Card::Pop => "Pop",
+            Card::And => "And",
+            Card::Or => "Either",
+            Card::Xor => "Exclusive Or",
             Card::ExitWithCode(_) => "ExitWithCode",
             Card::ScalarInt(_) => "ScalarInt",
             Card::ScalarFloat(_) => "ScalarFloat",
@@ -81,6 +87,9 @@ impl Card {
         match self {
             Card::Repeat(_) | Card::ExitWithCode(_) => None,
 
+            Card::And => Some(Instruction::And),
+            Card::Or => Some(Instruction::Or),
+            Card::Xor => Some(Instruction::Xor),
             Card::Pass => Some(Instruction::Pass),
             Card::Add => Some(Instruction::Add),
             Card::Sub => Some(Instruction::Sub),
@@ -137,6 +146,9 @@ impl Card {
             | Instruction::ScalarLabel
             | Instruction::ClearStack
             | Instruction::ScalarFloat
+            | Instruction::And
+            | Instruction::Or
+            | Instruction::Xor
             | Instruction::ScalarInt
             | Instruction::Add
             | Instruction::ScalarNull

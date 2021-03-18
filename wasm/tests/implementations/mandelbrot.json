@@ -3,7 +3,14 @@
     "lanes": [
         {
             "name": "init",
-            "cards": [ ]
+            "cards": [
+                {
+                    "ScalarInt": 0
+                },
+                {
+                    "SetGlobalVar": "n"
+                }
+            ]
         },
         {
             "name": "mandelbrot",
@@ -36,6 +43,41 @@
                 },
                 {
                     "Less": null
+                },
+                {
+                    "ReadGlobalVar": "n"
+                },
+                {
+                    "ScalarInt": 80
+                },
+                {
+                    "Less": null
+                },
+                {
+                    "And": null
+                },
+                {
+                    "JumpIfFalse": "exit"
+                },
+                {
+                    "ReadGlobalVar": "n"
+                },
+                {
+                    "ScalarInt": 1
+                },
+                {
+                    "Add": null
+                }
+            ]
+        },
+        {
+            "name": "exit",
+            "cards": [
+                {
+                    "ReadGlobalVar": "n"
+                },
+                {
+                    "Exit": null
                 }
             ]
         },

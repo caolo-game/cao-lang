@@ -2,7 +2,7 @@ mod card;
 mod compilation_error;
 mod compile_options;
 
-pub mod description;
+pub mod card_description;
 
 #[cfg(test)]
 mod tests;
@@ -289,6 +289,8 @@ impl<'a> Compiler<'a> {
                 // 6)
                 self.program.bytecode.push(Instruction::JumpIfTrue as u8);
                 self._jump_to_lane(nodeid, repeat.0.as_str())?;
+                // discard the lane return value
+                self.program.bytecode.push(Instruction::Pop as u8);
                 // rerun if not 0
                 // 7)
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
@@ -336,6 +338,9 @@ impl<'a> Compiler<'a> {
             }
             Card::ScalarNull
             | Card::Return
+            | Card::And
+            | Card::Or
+            | Card::Xor
             | Card::Pop
             | Card::Equals
             | Card::Less
