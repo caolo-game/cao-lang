@@ -81,7 +81,6 @@ pub struct CompilationUnit {
 }
 
 pub struct Compiler<'a> {
-
     /// maps lane names to their NodeId keys
     pub jump_table: PreHashMap<Key>,
 

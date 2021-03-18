@@ -34,6 +34,7 @@ impl ScalarStack {
             buffer: vec![StackEntry::Sentinel; size].into_boxed_slice(),
         }
     }
+    #[inline]
 
     pub fn as_slice(&self) -> &[StackEntry] {
         &self.buffer[0..self.count]
@@ -64,6 +65,7 @@ impl ScalarStack {
         self.buffer[0] = StackEntry::Sentinel; // in case the stack is pop'ed when empty
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         self.count
     }
@@ -94,6 +96,7 @@ impl ScalarStack {
         self.count = count;
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
