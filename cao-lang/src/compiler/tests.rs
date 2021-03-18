@@ -44,7 +44,7 @@ fn simple_for_loop() {
                 cards: vec![
                     // init the result variable
                     Card::ScalarInt(IntegerNode(0)),
-                    Card::SetGlobalVar(VarNode::from_str("result")),
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
                     Card::ScalarInt(IntegerNode(69)),
                     Card::Repeat(Repeat("Loop".to_string())),
@@ -55,9 +55,9 @@ fn simple_for_loop() {
                 cards: vec![
                     // Add 1 to the global 'result' variable in each iteration
                     Card::ScalarInt(IntegerNode(1)),
-                    Card::ReadGlobalVar(VarNode::from_str("result")),
+                    Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
                     Card::Add,
-                    Card::SetGlobalVar(VarNode::from_str("result")),
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                 ],
             },
         ],
@@ -178,7 +178,7 @@ fn can_json_de_serialize_output() {
         lanes: vec![Lane {
             name: "Foo".to_owned(),
             cards: vec![
-                Card::SetGlobalVar(VarNode::from_str("asdsdad")),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
                 Card::Pass,
                 Card::Pass,
             ],

@@ -182,7 +182,7 @@ pub struct VarNode(pub VarName);
 
 impl VarNode {
     /// panics if the string is too long
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_str_unchecked(s: &str) -> Self {
         Self(VarName::from(s).expect("Failed to parse variable name"))
     }
 }
