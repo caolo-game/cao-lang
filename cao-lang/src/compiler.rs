@@ -98,6 +98,12 @@ pub fn compile(
     compiler.compile(compilation_unit, compile_options)
 }
 
+impl<'a> Default for Compiler<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> Compiler<'a> {
     /// If no `logger` is provided, falls back to the 'standard' log crate.
     pub fn new() -> Self {
