@@ -35,14 +35,14 @@ pub enum Card {
     ScalarArray(IntegerNode),
     StringLiteral(StringNode),
     Call(CallNode),
-    JumpIfTrue(JumpToLane),
-    JumpIfFalse(JumpToLane),
-    Jump(JumpToLane),
+    JumpIfTrue(LaneNode),
+    JumpIfFalse(LaneNode),
+    Jump(LaneNode),
     SetGlobalVar(VarNode),
     ReadGlobalVar(VarNode),
     Return,
-    Repeat(Repeat),
-    While(Repeat),
+    Repeat(LaneNode),
+    While(LaneNode),
 }
 
 impl Card {
@@ -186,10 +186,6 @@ pub struct SubProgramNode(pub InputString);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StringNode(pub String);
 
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct JumpToLane(pub String);
-
 #[derive(Debug, Clone, Default, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VarNode(pub VarName);
@@ -203,4 +199,4 @@ impl VarNode {
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Repeat(pub String);
+pub struct LaneNode(pub String);

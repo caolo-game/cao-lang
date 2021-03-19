@@ -1,4 +1,6 @@
-use crate::collections::pre_hash_map::PreHashMap;
+use std::str::FromStr;
+
+use crate::collections::pre_hash_map::{Key, PreHashMap};
 use crate::{version, VariableId};
 
 #[derive(Debug, Clone, Default)]
@@ -30,6 +32,15 @@ pub struct CompiledProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
+}
+
+impl CompiledProgram {
+    pub fn variable_id(&self, name: &str) -> Option<VariableId> {
+        self.variables
+            .0
+            .get(Key::from_str(name).unwrap())
+            .map(|x| *x) // trigger an error if VariableId is no longer Copy...
+    }
 }
 
 impl Default for CompiledProgram {

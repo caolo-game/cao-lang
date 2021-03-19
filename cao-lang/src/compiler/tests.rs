@@ -34,6 +34,43 @@ fn input_string_decode_error_handling() {
         _ => panic!("Bad error {:?}", err),
     }
 }
+#[test]
+fn test_string_literal() {
+    let program = CompilationUnit {
+        lanes: vec![Lane {
+            name: "main".to_string(),
+            cards: vec![
+                Card::StringLiteral(StringNode("Boiiii".to_string())),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ],
+        }],
+    };
+
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+
+    let varid = program.variable_id("result").unwrap();
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(10000);
+
+    // expect result variable to not exist at this point
+    if let Some(s) = vm.read_var(varid) {
+        panic!(
+            "Expected variable to not be initialized at this point {:?}",
+            s
+        );
+    }
+
+    let res = vm.run(&program).unwrap();
+    assert_eq!(res, 0);
+
+    let myptr = vm.read_var(varid).expect("failed to get `result`");
+    let resvalue: &str = vm
+        .get_value_in_place::<&str>(myptr.try_into().unwrap())
+        .expect("Failed to get value of `result`");
+
+    assert_eq!(resvalue, "Boiiii");
+}
 
 #[test]
 fn simple_while_loop() {
@@ -45,7 +82,7 @@ fn simple_while_loop() {
                     // init the result variable
                     Card::ScalarInt(IntegerNode(69)),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    Card::While(Repeat("Loop".to_string())),
+                    Card::While(LaneNode("Loop".to_string())),
                 ],
             },
             Lane {
@@ -74,7 +111,7 @@ fn simple_while_loop() {
         .0
         .get(Key::from_str("result").unwrap())
         .unwrap();
-    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(0));
+    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(0));
 }
 
 #[test]
@@ -89,7 +126,7 @@ fn simple_for_loop() {
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
                     Card::ScalarInt(IntegerNode(69)),
-                    Card::Repeat(Repeat("Loop".to_string())),
+                    Card::Repeat(LaneNode("Loop".to_string())),
                 ],
             },
             Lane {
@@ -118,7 +155,7 @@ fn simple_for_loop() {
         .0
         .get(Key::from_str("result").unwrap())
         .unwrap();
-    assert_eq!(*vm.read_var(varid).unwrap(), Scalar::Integer(69));
+    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
 }
 
 #[test]
