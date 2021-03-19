@@ -271,9 +271,9 @@ impl<'a> Compiler<'a> {
         }
         match card {
             Card::While(repeat) => {
-                todo!(); // TODO testing while loops causes segfault...
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                (-5i32).encode(&mut self.program.bytecode).unwrap();
+                // 6 = sizeof scalarint + sizeof remember = right before this bit of code
+                (-6i32).encode(&mut self.program.bytecode).unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
                 self.program.bytecode.push(Instruction::Jump as u8);
                 self._encode_jump(nodeid, repeat.0.as_str())?;
@@ -307,7 +307,7 @@ impl<'a> Compiler<'a> {
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 // 2)
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                // remember the position above (+5 is the length of the remember instruction)
+                // remember the position above (+5 is the length of the remember instruction -1)
                 (-((self.program.bytecode.len() + 5 - checkpoint) as i32))
                     .encode(&mut self.program.bytecode)
                     .unwrap();
