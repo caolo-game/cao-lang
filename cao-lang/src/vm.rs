@@ -241,12 +241,6 @@ impl<'a, Aux> Vm<'a, Aux> {
             let instr: u8 = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
             let instr: Instruction = unsafe { transmute(instr) };
             bytecode_pos += 1;
-            println!(
-                "start {} {:?} {:?}",
-                bytecode_pos,
-                instr,
-                self.runtime_data.stack.as_slice()
-            );
             match instr {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
@@ -451,12 +445,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::execute_call(self, &mut bytecode_pos, &program.bytecode)?
                 }
             }
-            println!(
-                "end   {} {:?} {:?}",
-                bytecode_pos,
-                instr,
-                self.runtime_data.stack.as_slice()
-            );
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)

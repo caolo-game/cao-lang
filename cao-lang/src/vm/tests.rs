@@ -20,20 +20,18 @@ fn test_set_value_memory_limit_error_raised() {
 
 #[test]
 fn test_array_literal_memory_limit_error_raised() {
-    let program = r#"{
-  "lanes": [ {
-    "name": "Foo",
-    "cards": [
-        { "ScalarInt": 42 },
-        { "ScalarInt": 42 },
-        { "ScalarInt": 42 },
-        { "ScalarArray": 3 }
-    ]
-  } ]
-}
-            "#;
+    const PROGRAM: &str = r#"
+lanes:
+    - 
+        name: Foo
+        cards:
+            - ScalarInt: 42
+            - ScalarInt: 42
+            - ScalarInt: 42
+            - ScalarArray: 3
+"#;
 
-    let compilation_unit = serde_json::from_str(program).unwrap();
+    let compilation_unit = serde_yaml::from_str(PROGRAM).unwrap();
     let program = crate::compiler::compile(compilation_unit, None).unwrap();
 
     let mut vm = Vm::new(());
