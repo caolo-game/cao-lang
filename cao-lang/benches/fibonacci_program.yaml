@@ -6,7 +6,8 @@ lanes:
       - SetGlobalVar: a
       - ScalarInt: 1
       - SetGlobalVar: "b"
-      - Repeat: "loop"
+      - Repeat:
+          LaneName: "loop"
   - name: loop
     cards:
       - ReadGlobalVar: b

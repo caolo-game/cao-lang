@@ -197,6 +197,15 @@ impl VarNode {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LaneNode(pub String);
+pub enum LaneNode {
+    LaneName(String),
+    LaneId(usize),
+}
+
+impl Default for LaneNode {
+    fn default() -> Self {
+        Self::LaneId(0)
+    }
+}

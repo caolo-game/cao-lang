@@ -37,13 +37,10 @@ fn input_string_decode_error_handling() {
 #[test]
 fn test_string_literal() {
     let program = CompilationUnit {
-        lanes: vec![Lane {
-            name: "main".to_string(),
-            cards: vec![
-                Card::StringLiteral(StringNode("Boiiii".to_string())),
-                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-            ],
-        }],
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::StringLiteral(StringNode("Boiiii".to_string())))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
     };
 
     let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
@@ -76,26 +73,19 @@ fn test_string_literal() {
 fn simple_while_loop() {
     let program = CompilationUnit {
         lanes: vec![
-            Lane {
-                name: "Main".to_owned(),
-                cards: vec![
-                    // init the result variable
-                    Card::ScalarInt(IntegerNode(69)),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    Card::While(LaneNode("Loop".to_string())),
-                ],
-            },
-            Lane {
-                name: "Loop".to_owned(),
-                cards: vec![
-                    // Add 1 to the global 'result' variable in each iteration
-                    Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
-                    Card::ScalarInt(IntegerNode(1)),
-                    Card::Sub,
-                    Card::CopyLast, // return `result`
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ],
-            },
+            Lane::default()
+                .with_name("Main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(69)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))
+                .with_card(Card::While(LaneNode::LaneId(1))),
+            Lane::default().with_cards(vec![
+                // Add 1 to the global 'result' variable in each iteration
+                Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
+                Card::ScalarInt(IntegerNode(1)),
+                Card::Sub,
+                Card::CopyLast, // return `result`
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
         ],
     };
     let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
@@ -119,18 +109,18 @@ fn simple_for_loop() {
     let program = CompilationUnit {
         lanes: vec![
             Lane {
-                name: "Main".to_owned(),
+                name: Some("Main".to_owned()),
                 cards: vec![
                     // init the result variable
                     Card::ScalarInt(IntegerNode(0)),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
                     Card::ScalarInt(IntegerNode(69)),
-                    Card::Repeat(LaneNode("Loop".to_string())),
+                    Card::Repeat(LaneNode::LaneName("Loop".to_string())),
                 ],
             },
             Lane {
-                name: "Loop".to_owned(),
+                name: Some("Loop".to_owned()),
                 cards: vec![
                     // Add 1 to the global 'result' variable in each iteration
                     Card::ScalarInt(IntegerNode(1)),
@@ -162,7 +152,7 @@ fn simple_for_loop() {
 fn breadcrumbs_work_as_expected() {
     let cu = CompilationUnit {
         lanes: vec![Lane {
-            name: "Main".to_owned(),
+            name: Some("Main".to_owned()),
             cards: vec![Card::Pass, Card::Pass, Card::Pass],
         }],
     };
@@ -194,7 +184,7 @@ fn breadcrumbs_work_as_expected() {
 fn no_breadcrumbs_emitted_when_compiled_with_off() {
     let cu = CompilationUnit {
         lanes: vec![Lane {
-            name: "Main".to_owned(),
+            name: Some("Main".to_owned()),
             cards: vec![Card::Pass, Card::Pass, Card::Pass],
         }],
     };
@@ -210,7 +200,7 @@ fn call_test() {
     let name = ArrayString::from("foo").unwrap();
     let cu = CompilationUnit {
         lanes: vec![Lane {
-            name: "Main".to_owned(),
+            name: Some("Main".to_owned()),
             cards: vec![Card::Call(CallNode(name))],
         }],
     };
@@ -238,11 +228,11 @@ fn lane_names_must_be_unique() {
     let cu = CompilationUnit {
         lanes: vec![
             Lane {
-                name: "Foo".to_owned(),
+                name: Some("Foo".to_owned()),
                 cards: vec![],
             },
             Lane {
-                name: "Foo".to_owned(),
+                name: Some("Foo".to_owned()),
                 cards: vec![],
             },
         ],
@@ -256,7 +246,7 @@ fn lane_names_must_be_unique() {
 fn can_json_de_serialize_output() {
     let cu = CompilationUnit {
         lanes: vec![Lane {
-            name: "Foo".to_owned(),
+            name: Some("Foo".to_owned()),
             cards: vec![
                 Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
                 Card::Pass,

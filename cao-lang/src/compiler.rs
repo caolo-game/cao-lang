@@ -67,8 +67,35 @@ impl ByteDecodeProperties for InputString {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
-    pub name: String,
+    pub name: Option<String>,
     pub cards: Vec<Card>,
+}
+
+impl Default for Lane {
+    fn default() -> Self {
+        Self {
+            name: None,
+            cards: Vec::new(),
+        }
+    }
+}
+
+impl Lane {
+    pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_card(mut self, card: Card) -> Self {
+        self.cards.push(card);
+        self
+    }
+
+    /// overrides the existing cards
+    pub fn with_cards<C: Into<Vec<Card>>>(mut self, cards: C) -> Self {
+        self.cards = cards.into();
+        self
+    }
 }
 
 /// Single unit of compilation, representing a single program
@@ -155,22 +182,27 @@ impl<'a> Compiler<'a> {
 
         let mut num_cards = 0usize;
         for (i, n) in compilation_unit.lanes.iter_mut().enumerate() {
-            let k = Key::from_str(n.name.as_str()).expect("Failed to hash lane name");
-            if self.jump_table.contains(k) {
-                return Err(CompilationError::DuplicateName(std::mem::take(&mut n.name)));
-            }
+            let indexkey = Key::from_u32(i as u32);
+            assert!(!self.jump_table.contains(indexkey));
             num_cards += n.cards.len();
-            self.jump_table.insert(
-                k,
-                Key::from_u32(
-                    NodeId {
-                        // we know that i fits in 16 bits from the check above
-                        lane: i as u16,
-                        pos: 0,
-                    }
-                    .into(),
-                ),
+
+            let nodekey = Key::from_u32(
+                NodeId {
+                    // we know that i fits in 16 bits from the check above
+                    lane: i as u16,
+                    pos: 0,
+                }
+                .into(),
             );
+            // allow referencing lanes using both name and index
+            self.jump_table.insert(indexkey, nodekey);
+            if let Some(ref mut name) = n.name.as_mut() {
+                let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
+                if self.jump_table.contains(namekey) {
+                    return Err(CompilationError::DuplicateName(std::mem::take(name)));
+                }
+                self.jump_table.insert(namekey, nodekey);
+            }
         }
 
         self.program.labels.0.reserve(num_cards);
@@ -246,15 +278,24 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn _encode_jump(&mut self, nodeid: NodeId, lane: &str) -> Result<(), CompilationError> {
-        let to = self
-            .jump_table
-            .get(Key::from_str(lane).expect("Failed to hash jump target name"))
-            .ok_or(CompilationError::InvalidJump {
-                src: nodeid,
-                dst: lane.to_string(),
-                msg: None,
-            })?;
+    fn _encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> Result<(), CompilationError> {
+        let to = match lane {
+            LaneNode::LaneName(lane) => self
+                .jump_table
+                .get(Key::from_str(lane).expect("Failed to hash jump target name"))
+                .ok_or(CompilationError::InvalidJump {
+                    src: nodeid,
+                    dst: lane.to_string(),
+                    msg: None,
+                })?,
+            LaneNode::LaneId(id) => self.jump_table.get(Key::from_u32(*id as u32)).ok_or(
+                CompilationError::InvalidJump {
+                    src: nodeid,
+                    dst: format!("Lane id {}", id),
+                    msg: None,
+                },
+            )?,
+        };
         to.encode(&mut self.program.bytecode).unwrap();
         Ok(())
     }
@@ -282,7 +323,7 @@ impl<'a> Compiler<'a> {
                 (-6i32).encode(&mut self.program.bytecode).unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
                 self.program.bytecode.push(Instruction::Jump as u8);
-                self._encode_jump(nodeid, repeat.0.as_str())?;
+                self._encode_jump(nodeid, &repeat)?;
                 // rerun if not 0
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
             }
@@ -322,7 +363,7 @@ impl<'a> Compiler<'a> {
                 // jump to the lane if not 0
                 // 6)
                 self.program.bytecode.push(Instruction::JumpIfTrue as u8);
-                self._encode_jump(nodeid, repeat.0.as_str())?;
+                self._encode_jump(nodeid, &repeat)?;
                 // discard the lane return value
                 self.program.bytecode.push(Instruction::Pop as u8);
                 // rerun if not 0
@@ -347,7 +388,7 @@ impl<'a> Compiler<'a> {
                 id.encode(&mut self.program.bytecode).unwrap();
             }
             Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
-                self._encode_jump(nodeid, jmp.0.as_str())?;
+                self._encode_jump(nodeid, &jmp)?;
             }
             Card::StringLiteral(c) => {
                 c.0.encode(&mut self.program.bytecode).unwrap();
