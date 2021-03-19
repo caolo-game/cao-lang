@@ -52,25 +52,26 @@ fn can_run_simple_program() {
     )
 }
 
-#[wasm_bindgen_test]
-fn test_mandlebrot() {
-    const PROG: &str = include_str!("mandelbrot.json");
-
-    let cu: serde_json::Value = serde_json::from_str(PROG).unwrap();
-    let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
-
-    let output: CompileResult = output.into_serde().unwrap();
-
-    assert!(output.compile_error.is_none());
-    assert!(output.program.is_some());
-
-    let mut vm = Vm::new(());
-    // push the input y,x
-    vm.runtime_data.stack.push(Scalar::Floating(42.0)).unwrap();
-    vm.runtime_data.stack.push(Scalar::Floating(69.0)).unwrap();
-    vm.run(output.program.as_ref().unwrap())
-        .expect("mandlebrot program failed");
-
-    let res = vm.runtime_data.stack.pop();
-    todo!("boi {:?}", res)
-}
+// TODO
+// #[wasm_bindgen_test]
+// fn test_mandlebrot() {
+//     const PROG: &str = include_str!("mandelbrot.json");
+//
+//     let cu: serde_json::Value = serde_json::from_str(PROG).unwrap();
+//     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
+//
+//     let output: CompileResult = output.into_serde().unwrap();
+//
+//     assert!(output.compile_error.is_none());
+//     assert!(output.program.is_some());
+//
+//     let mut vm = Vm::new(());
+//     // push the input y,x
+//     vm.runtime_data.stack.push(Scalar::Floating(42.0)).unwrap();
+//     vm.runtime_data.stack.push(Scalar::Floating(69.0)).unwrap();
+//     vm.run(output.program.as_ref().unwrap())
+//         .expect("mandlebrot program failed");
+//
+//     let res = vm.runtime_data.stack.pop();
+//     todo!("boi {:?}", res)
+// }
