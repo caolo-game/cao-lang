@@ -28,10 +28,17 @@ impl<T> BoundedStack<T> {
         }
     }
 
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.head
     }
 
+    #[inline]
     pub fn capacity(&self) -> usize {
         self.capacity
     }

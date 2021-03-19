@@ -147,25 +147,19 @@ impl<'a, Aux> Vm<'a, Aux> {
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
         let object = self.objects.get(&bytecode_pos)?;
 
-        match self.runtime_data.get_value_in_place::<T>(object) {
-            Some(val) => Some(val),
-            None => None,
-        }
+        self.runtime_data.get_value_in_place::<T>(object)
     }
 
     pub fn get_value<T: ByteDecodeProperties>(&self, bytecode_pos: Pointer) -> Option<T> {
         let object = self.objects.get(&bytecode_pos)?;
-        match object.index {
-            Some(index) => {
-                let data = &self.runtime_data.memory;
-                let head = index.0 as usize;
-                let tail = (head.checked_add(object.size as usize))
-                    .unwrap_or(data.len())
-                    .min(data.len());
-                T::decode(&data[head..tail]).ok().map(|(_, val)| val)
-            }
-            None => None,
-        }
+        object.index.and_then(|index| {
+            let data = &self.runtime_data.memory;
+            let head = index.0 as usize;
+            let tail = (head.checked_add(object.size as usize))
+                .unwrap_or(data.len())
+                .min(data.len());
+            T::decode(&data[head..tail]).ok().map(|(_, val)| val)
+        })
     }
 
     /// Save `val` in memory and push a pointer to the object onto the stack

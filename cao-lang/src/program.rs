@@ -39,7 +39,7 @@ impl CompiledProgram {
         self.variables
             .0
             .get(Key::from_str(name).unwrap())
-            .map(|x| *x) // trigger an error if VariableId is no longer Copy...
+            .copied()
     }
 }
 
