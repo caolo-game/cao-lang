@@ -112,8 +112,8 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     #[inline]
-    pub fn read_var(&self, name: VariableId) -> Option<&Scalar> {
-        self.runtime_data.global_vars.get(name.0 as usize)
+    pub fn read_var(&self, name: VariableId) -> Option<Scalar> {
+        self.runtime_data.global_vars.get(name.0 as usize).cloned()
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {

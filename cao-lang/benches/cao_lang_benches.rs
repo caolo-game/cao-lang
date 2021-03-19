@@ -43,7 +43,7 @@ fn run_fib(c: &mut Criterion) {
                             .0
                             .get(Key::from_str("b").unwrap())
                             .unwrap();
-                        let val = *vm.read_var(*varid).expect("failed to read b");
+                        let val = vm.read_var(*varid).expect("failed to read b");
                         assert!(val.is_integer());
                         let val: i32 = val.try_into().unwrap();
                         assert_eq!(val, fib(iterations));
