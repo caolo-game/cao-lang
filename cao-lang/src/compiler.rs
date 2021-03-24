@@ -337,8 +337,10 @@ impl<'a> Compiler<'a> {
         match card {
             Card::While(repeat) => {
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                // 6 = sizeof scalarint + sizeof remember = right before this bit of code
-                (-6i32).encode(&mut self.program.bytecode).unwrap();
+                (-(instruction_span(Instruction::ScalarInt)
+                    + instruction_span(Instruction::Remember)))
+                .encode(&mut self.program.bytecode)
+                .unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
                 self.program.bytecode.push(Instruction::Jump as u8);
                 self._encode_jump(nodeid, &repeat)?;
@@ -372,8 +374,11 @@ impl<'a> Compiler<'a> {
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 // 2)
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                // remember the position above (+5 is the length of the remember instruction -1)
-                (-((self.program.bytecode.len() + 5 - checkpoint) as i32))
+                // remember the position above
+                (-((self.program.bytecode.len() - 1
+                    + instruction_span(Instruction::ScalarInt) as usize
+                    + instruction_span(Instruction::Sub) as usize
+                    - checkpoint) as i32))
                     .encode(&mut self.program.bytecode)
                     .unwrap();
                 self.program.bytecode.push(Instruction::Remember as u8);
@@ -449,5 +454,50 @@ impl<'a> Compiler<'a> {
             | Card::ClearStack => { /* These cards translate to a single instruction */ }
         }
         Ok(())
+    }
+}
+
+/// return the number of bytes this instruction spans in the bytecode
+const fn instruction_span(instr: Instruction) -> i32 {
+    match instr {
+        Instruction::Add
+        | Instruction::Sub
+        | Instruction::Mul
+        | Instruction::Div
+        | Instruction::Call
+        | Instruction::Equals
+        | Instruction::NotEquals
+        | Instruction::Less
+        | Instruction::LessOrEq
+        | Instruction::Pop
+        | Instruction::Exit
+        | Instruction::Pass
+        | Instruction::ScalarNull
+        | Instruction::ClearStack
+        | Instruction::CopyLast
+        | Instruction::Return
+        | Instruction::Remember
+        | Instruction::ScopeStart
+        | Instruction::ScopeEnd
+        | Instruction::Goto
+        | Instruction::SwapLast
+        | Instruction::GotoIfTrue
+        | Instruction::And
+        | Instruction::Or
+        | Instruction::Xor
+        | Instruction::Not => 1,
+        //
+        Instruction::ScalarInt
+        | Instruction::ScalarFloat
+        | Instruction::ScalarLabel
+        | Instruction::ScalarArray
+        | Instruction::StringLiteral => 5,
+        //
+        Instruction::SetGlobalVar | Instruction::ReadGlobalVar => 5,
+        //
+        Instruction::JumpIfTrue
+        | Instruction::Jump
+        | Instruction::JumpIfFalse
+        | Instruction::Breadcrumb => 5,
     }
 }
