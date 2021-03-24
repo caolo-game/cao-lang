@@ -241,9 +241,12 @@ impl<'a> Compiler<'a> {
                 pos: 0,
             };
             let nodeid_hash = Key::from_u32(nodeid.into());
-            let ptr = u32::try_from(self.program.bytecode.len())
+            let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
-            self.program.labels.0.insert(nodeid_hash, Label::new(ptr));
+            self.program
+                .labels
+                .0
+                .insert(nodeid_hash, Label::new(handle));
             self.program.bytecode.push(Instruction::ScopeStart as u8);
 
             // process the lane
@@ -300,11 +303,26 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
+    /// push `data` into the `data section` of the program and encode a poiter to it for the current instruction
+    fn _push_data<T: ByteEncodeProperties>(&mut self, data: T) -> Result<(), CompilationError> {
+        let handle = self.program.data.len();
+        data.encode(&mut self.program.data)
+            .expect("Failed to encode data");
+        let handle: u32 = handle
+            .try_into()
+            .expect("data handle doesn't fit into 32 bits");
+        handle.encode(&mut self.program.bytecode).unwrap();
+        Ok(())
+    }
+
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
-        let ptr = u32::try_from(self.program.bytecode.len())
+        let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_u32(nodeid.into());
-        self.program.labels.0.insert(nodeid_hash, Label::new(ptr));
+        self.program
+            .labels
+            .0
+            .insert(nodeid_hash, Label::new(handle));
 
         if let Some(instr) = card.instruction() {
             if self.options.breadcrumbs {
@@ -390,9 +408,7 @@ impl<'a> Compiler<'a> {
             Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
                 self._encode_jump(nodeid, &jmp)?;
             }
-            Card::StringLiteral(c) => {
-                c.0.encode(&mut self.program.bytecode).unwrap();
-            }
+            Card::StringLiteral(c) => self._push_data(c.0)?,
             Card::Call(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();

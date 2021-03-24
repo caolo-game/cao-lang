@@ -128,10 +128,11 @@ pub fn instr_scalar_array(
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
-    bytecode: &[u8],
+    program: &CompiledProgram,
 ) -> ExecutionResult {
-    let literal =
-        read_str(bytecode_pos, bytecode).ok_or_else(|| ExecutionError::invalid_argument(None))?;
+    let handle: u32 = unsafe { decode_value(&program.bytecode, bytecode_pos) };
+    let literal = read_str(&mut (handle as usize), program.data.as_slice())
+        .ok_or_else(|| ExecutionError::invalid_argument(None))?;
     let obj = vm.set_value_with_decoder(literal, |o, vm| {
         // SAFETY
         // As long as the same Vm instance's accessors are used this should be

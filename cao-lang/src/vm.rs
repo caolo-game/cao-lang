@@ -438,7 +438,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::StringLiteral => instr_execution::instr_string_literal(
                     self,
                     &mut bytecode_pos,
-                    &program.bytecode,
+                    &program,
                 )?,
                 Instruction::Call => {
                     instr_execution::execute_call(self, &mut bytecode_pos, &program.bytecode)?
