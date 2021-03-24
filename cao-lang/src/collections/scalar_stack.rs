@@ -7,7 +7,7 @@ use thiserror::Error;
 #[derive(Debug)]
 pub struct ScalarStack {
     count: usize,
-    buffer: Box<[StackEntry]>,
+    data: Box<[StackEntry]>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -31,13 +31,13 @@ impl ScalarStack {
         assert!(size > 0);
         Self {
             count: 0,
-            buffer: vec![StackEntry::Sentinel; size].into_boxed_slice(),
+            data: vec![StackEntry::Sentinel; size].into_boxed_slice(),
         }
     }
-    #[inline]
 
+    #[inline]
     pub fn as_slice(&self) -> &[StackEntry] {
-        &self.buffer[0..self.count]
+        &self.data[0..self.count]
     }
 
     #[inline]
@@ -46,8 +46,8 @@ impl ScalarStack {
     }
 
     fn _push(&mut self, value: StackEntry) -> Result<(), StackError> {
-        if self.count + 1 < self.buffer.len() {
-            self.buffer[self.count] = value;
+        if self.count + 1 < self.data.len() {
+            self.data[self.count] = value;
             self.count += 1;
             Ok(())
         } else {
@@ -62,7 +62,7 @@ impl ScalarStack {
 
     pub fn clear(&mut self) {
         self.count = 0;
-        self.buffer[0] = StackEntry::Sentinel; // in case the stack is pop'ed when empty
+        self.data[0] = StackEntry::Sentinel; // in case the stack is popped when empty
     }
 
     #[inline]
@@ -75,11 +75,11 @@ impl ScalarStack {
     pub fn pop(&mut self) -> Scalar {
         let count = self.count.saturating_sub(1);
         // if we hit a sentinel we don't actually return a value
-        match self.buffer[count] {
+        match self.data[count] {
             StackEntry::Sentinel => Scalar::Null,
             StackEntry::Scalar(s) => {
                 self.count = count;
-                self.buffer[self.count] = StackEntry::Sentinel;
+                self.data[self.count] = StackEntry::Sentinel;
                 s
             }
         }
@@ -91,11 +91,11 @@ impl ScalarStack {
     pub fn clear_until_sentinel(&mut self) -> Scalar {
         let res = self.pop();
         let mut count = self.count.saturating_sub(1);
-        while count > 0 && matches!(self.buffer[count], StackEntry::Scalar(_)) {
-            self.buffer[count] = StackEntry::Sentinel;
+        while count > 0 && matches!(self.data[count], StackEntry::Scalar(_)) {
+            self.data[count] = StackEntry::Sentinel;
             count -= 1;
         }
-        self.buffer[count] = StackEntry::Sentinel;
+        self.data[count] = StackEntry::Sentinel;
         self.count = count;
         res
     }
@@ -109,7 +109,7 @@ impl ScalarStack {
     #[inline]
     pub fn last(&self) -> Scalar {
         if self.count > 0 {
-            match self.buffer[self.count - 1] {
+            match self.data[self.count - 1] {
                 StackEntry::Sentinel => Scalar::Null,
                 StackEntry::Scalar(s) => s,
             }

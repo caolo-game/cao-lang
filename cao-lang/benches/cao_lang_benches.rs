@@ -17,7 +17,7 @@ fn fib(n: i32) -> i32 {
 
 fn run_fib(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci numbers");
-    for iterations in 1..5 {
+    for iterations in 2..6 {
         let iterations = 1 << iterations;
 
         group.bench_with_input(

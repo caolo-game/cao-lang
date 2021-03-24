@@ -94,13 +94,9 @@ fn simple_while_loop() {
 
     let mut vm = Vm::new(()).with_max_iter(10000);
     let exit_code = vm.run(&program).unwrap();
-
     assert_eq!(exit_code, 0);
-    let varid = *program
-        .variables
-        .0
-        .get(Key::from_str("result").unwrap())
-        .unwrap();
+
+    let varid = program.variable_id("result").unwrap();
     assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(0));
 }
 
