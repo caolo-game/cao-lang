@@ -22,6 +22,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::And),
         get_desc(Card::Or),
         get_desc(Card::Xor),
+        get_desc(Card::Not),
         get_desc(Card::ScalarInt(Default::default())),
         get_desc(Card::ScalarFloat(Default::default())),
         get_desc(Card::ScalarArray(Default::default())),
@@ -49,6 +50,14 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [],
+            []
+        ),
+        Card::Not => subprogram_description!(
+            "Not",
+            "Logically negates the value on the top of the stack",
+            SubProgramType::Instruction,
+            [Scalar],
+            [Scalar],
             []
         ),
         Card::And => subprogram_description!(

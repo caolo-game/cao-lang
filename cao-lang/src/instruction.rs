@@ -85,11 +85,12 @@ pub enum Instruction {
     And = 33,
     Or = 34,
     Xor = 35,
+    Not = 36,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 35
+        n <= 36
     }
 }
 

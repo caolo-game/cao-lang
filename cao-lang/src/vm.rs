@@ -413,6 +413,11 @@ impl<'a, Aux> Vm<'a, Aux> {
                     &program.bytecode,
                     &mut bytecode_pos,
                 )?,
+                Instruction::Not => {
+                    let value = self.stack_pop();
+                    let value = !value.as_bool();
+                    self.stack_push(Scalar::Integer(value as i32))?;
+                },
                 Instruction::And => {
                     self.binary_op(|a, b| Scalar::from(a.as_bool() && b.as_bool()))?
                 }

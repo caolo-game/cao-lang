@@ -27,12 +27,14 @@ pub enum Card {
     And,
     Or,
     Xor,
-    ExitWithCode(IntegerNode),
-    ScalarInt(IntegerNode),
+    Not,
+    Return,
     ScalarNull,
+    ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
     ScalarLabel(IntegerNode),
     ScalarArray(IntegerNode),
+    ExitWithCode(IntegerNode),
     StringLiteral(StringNode),
     Call(CallNode),
     JumpIfTrue(LaneNode),
@@ -40,7 +42,6 @@ pub enum Card {
     Jump(LaneNode),
     SetGlobalVar(VarNode),
     ReadGlobalVar(VarNode),
-    Return,
     Repeat(LaneNode),
     While(LaneNode),
 }
@@ -55,6 +56,7 @@ impl Card {
             Card::Div => "Div",
             Card::Exit => "Exit",
             Card::CopyLast => "CopyLast",
+            Card::Not => "Not",
             Card::Less => "Less",
             Card::LessOrEq => "LessOrEq",
             Card::Equals => "Equals",
@@ -90,6 +92,7 @@ impl Card {
             Card::While(_) | Card::Repeat(_) | Card::ExitWithCode(_) => None,
 
             Card::And => Some(Instruction::And),
+            Card::Not => Some(Instruction::Not),
             Card::Or => Some(Instruction::Or),
             Card::Xor => Some(Instruction::Xor),
             Card::Pass => Some(Instruction::Pass),
@@ -149,6 +152,7 @@ impl Card {
             | Instruction::ClearStack
             | Instruction::ScalarFloat
             | Instruction::And
+            | Instruction::Not
             | Instruction::Or
             | Instruction::Xor
             | Instruction::ScalarInt

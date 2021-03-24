@@ -415,6 +415,7 @@ impl<'a> Compiler<'a> {
             Card::ScalarNull
             | Card::Return
             | Card::And
+            | Card::Not
             | Card::Or
             | Card::Xor
             | Card::Pop
@@ -429,7 +430,7 @@ impl<'a> Compiler<'a> {
             | Card::Sub
             | Card::Mul
             | Card::Div
-            | Card::ClearStack => {}
+            | Card::ClearStack => { /* These cards translate to a single instruction */ }
         }
         Ok(())
     }
