@@ -222,7 +222,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is fairly unsafe
-    pub fn run(&mut self, program: &CompiledProgram) -> Result<i32, ExecutionError> {
+    pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
         self.history.clear();
         let mut bytecode_pos = 0;
         let len = program.bytecode.len();

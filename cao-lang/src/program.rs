@@ -26,7 +26,7 @@ impl Label {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CompiledProgram {
+pub struct CaoProgram {
     /// Instructions
     pub bytecode: Vec<u8>,
     /// Data used by instuctions with variable length inputs
@@ -36,15 +36,15 @@ pub struct CompiledProgram {
     pub cao_lang_version: (u8, u8, u16),
 }
 
-impl CompiledProgram {
+impl CaoProgram {
     pub fn variable_id(&self, name: &str) -> Option<VariableId> {
         self.variables.0.get(Key::from_str(name).unwrap()).copied()
     }
 }
 
-impl Default for CompiledProgram {
+impl Default for CaoProgram {
     fn default() -> Self {
-        CompiledProgram {
+        Self {
             bytecode: Default::default(),
             data: Default::default(),
             labels: Default::default(),

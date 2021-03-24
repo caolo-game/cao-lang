@@ -9,7 +9,7 @@ mod tests;
 
 use crate::{
     collections::pre_hash_map::{Key, PreHashMap},
-    program::{CompiledProgram, Label},
+    program::{CaoProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction,
 };
@@ -112,7 +112,7 @@ pub struct Compiler<'a> {
     pub jump_table: PreHashMap<Key>,
 
     pub options: CompileOptions,
-    pub program: CompiledProgram,
+    pub program: CaoProgram,
     pub next_var: RefCell<VariableId>,
     _m: std::marker::PhantomData<&'a ()>,
 }
@@ -120,7 +120,7 @@ pub struct Compiler<'a> {
 pub fn compile(
     compilation_unit: CompilationUnit,
     compile_options: impl Into<Option<CompileOptions>>,
-) -> Result<CompiledProgram, CompilationError> {
+) -> Result<CaoProgram, CompilationError> {
     let mut compiler = Compiler::new();
     compiler.compile(compilation_unit, compile_options)
 }
@@ -135,7 +135,7 @@ impl<'a> Compiler<'a> {
     /// If no `logger` is provided, falls back to the 'standard' log crate.
     pub fn new() -> Self {
         Compiler {
-            program: CompiledProgram::default(),
+            program: CaoProgram::default(),
             jump_table: Default::default(),
             options: Default::default(),
             next_var: RefCell::new(VariableId(0)),
@@ -147,7 +147,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         compilation_unit: CompilationUnit,
         compile_options: impl Into<Option<CompileOptions>>,
-    ) -> Result<CompiledProgram, CompilationError> {
+    ) -> Result<CaoProgram, CompilationError> {
         self.options = compile_options.into().unwrap_or_default();
         // minimize the surface of the generic function
         self._compile(compilation_unit)
@@ -156,12 +156,12 @@ impl<'a> Compiler<'a> {
     fn _compile(
         &mut self,
         mut compilation_unit: CompilationUnit,
-    ) -> Result<CompiledProgram, CompilationError> {
+    ) -> Result<CaoProgram, CompilationError> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
         }
         // initialize
-        self.program = CompiledProgram::default();
+        self.program = CaoProgram::default();
         self._compile_stage_1(&mut compilation_unit)?;
         self._compile_stage_2(compilation_unit)?;
 

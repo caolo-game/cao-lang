@@ -1,6 +1,6 @@
 use std::mem::take;
 
-use cao_lang::{compiler as caoc, vm::Vm};
+use cao_lang::{compiler as caoc, prelude::*, vm::Vm};
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -65,7 +65,7 @@ pub fn compile(
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CompileResult {
-    pub program: Option<cao_lang::program::CompiledProgram>,
+    pub program: Option<CaoProgram>,
     #[serde(rename = "compileError")]
     pub compile_error: Option<String>,
 }
@@ -112,7 +112,7 @@ impl RunResult {
 #[wasm_bindgen(js_name = "runProgram")]
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = Vm::new(());
-    let program: cao_lang::prelude::CompiledProgram = program.into_serde().map_err(err_to_js)?;
+    let program: CaoProgram = program.into_serde().map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|res| {
         let history = take(&mut vm.history);
         RunResult {

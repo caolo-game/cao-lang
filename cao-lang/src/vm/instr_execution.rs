@@ -2,7 +2,7 @@ use std::{convert::TryFrom, mem};
 
 use crate::{
     collections::pre_hash_map::Key, instruction::Instruction, procedures::ExecutionError,
-    procedures::ExecutionResult, program::CompiledProgram, scalar::Scalar,
+    procedures::ExecutionResult, program::CaoProgram, scalar::Scalar,
     traits::ByteDecodeProperties, traits::Callable, traits::DecodeInPlace, traits::MAX_STR_LEN,
     Pointer, VariableId,
 };
@@ -128,7 +128,7 @@ pub fn instr_scalar_array(
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
-    program: &CompiledProgram,
+    program: &CaoProgram,
 ) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(&program.bytecode, bytecode_pos) };
     let literal = read_str(&mut (handle as usize), program.data.as_slice())
@@ -150,7 +150,7 @@ pub fn instr_string_literal<T>(
 
 pub fn instr_jump(
     bytecode_pos: &mut usize,
-    program: &CompiledProgram,
+    program: &CaoProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
     let label: Key = unsafe { decode_value(&program.bytecode, bytecode_pos) };
@@ -171,7 +171,7 @@ pub fn instr_jump(
 pub fn jump_if<F: Fn(Scalar) -> bool>(
     runtime_data: &mut RuntimeData,
     bytecode_pos: &mut usize,
-    program: &CompiledProgram,
+    program: &CaoProgram,
     predicate: F,
 ) -> Result<(), ExecutionError> {
     let cond = runtime_data.stack.pop();

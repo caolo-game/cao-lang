@@ -255,5 +255,5 @@ fn can_json_de_serialize_output() {
 
     let ser = serde_json::to_string(&prog).unwrap();
 
-    let _prog: CompiledProgram = serde_json::from_str(&ser).unwrap();
+    let _prog: CaoProgram = serde_json::from_str(&ser).unwrap();
 }
