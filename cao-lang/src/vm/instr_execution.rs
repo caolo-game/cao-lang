@@ -3,7 +3,7 @@ use std::{convert::TryFrom, mem};
 use crate::{
     collections::pre_hash_map::Key, instruction::Instruction, procedures::ExecutionError,
     procedures::ExecutionResult, program::CaoProgram, scalar::Scalar, traits::ByteDecodeProperties,
-    traits::Callable, traits::DecodeInPlace, traits::MAX_STR_LEN, Pointer, VariableId,
+    traits::DecodeInPlace, traits::MAX_STR_LEN, Pointer, VariableId,
 };
 
 use super::{data::RuntimeData, HistoryEntry, Vm};
@@ -197,22 +197,12 @@ pub fn execute_call<T>(
     bytecode: &[u8],
 ) -> Result<(), ExecutionError> {
     let fun_hash = unsafe { decode_value(bytecode, bytecode_pos) };
-    let mut fun = vm
+    let fun = vm
         .callables
         .remove(fun_hash)
         .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
-    let res = (|| {
-        let n_inputs = fun.num_params();
-        let mut inputs = Vec::with_capacity(n_inputs as usize);
-        for _ in 0..n_inputs {
-            let arg = vm.runtime_data.stack.pop();
-            inputs.push(arg)
-        }
-        fun.call(vm, &inputs).map_err(|e| e)?;
-
-        Ok(())
-    })();
-    // cleanup
+    let res = fun.fun.call(vm);
+    //cleanup
     vm.callables.insert(fun_hash, fun);
     res
 }

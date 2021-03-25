@@ -145,12 +145,12 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// }
     ///
     /// let mut vm = Vm::new(());
-    /// vm.register_function("epic", my_epic_func);
+    /// vm.register_function("epic", my_epic_func as VmFunction1<_, _>);
     /// ```
     pub fn register_function<S, C>(&mut self, name: S, f: C)
     where
         S: Into<String>,
-        C: Callable<Aux> + 'static,
+        C: VmFunction<Aux> + 'static,
     {
         let name = name.into();
         let key = Key::from_str(name.as_str()).unwrap();

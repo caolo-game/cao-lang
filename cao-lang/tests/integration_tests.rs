@@ -206,11 +206,10 @@ fn call_test() {
         called: bool,
     }
 
-    let fun = move |vm: &mut Vm<State>, ()| {
+    let fun = move |vm: &mut Vm<State>| {
         vm.auxiliary_data.called = true;
         Ok(())
     };
-    let fun = FunctionWrapper::new(fun);
 
     let mut vm = Vm::new(State { called: false });
     vm.register_function(name, fun);
