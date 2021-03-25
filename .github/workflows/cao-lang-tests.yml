@@ -35,7 +35,9 @@ jobs:
           override: true
 
       - name: Run cargo test
-        run: cargo test --all --benches
+        run: |
+          cargo test --all --benches
+          cargo test --doc
         env:
           RUST_BACKTRACE: 1
           CARGO_INCREMENTAL: 0
