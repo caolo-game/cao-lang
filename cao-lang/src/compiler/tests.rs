@@ -2,7 +2,6 @@ use super::*;
 use crate::traits::ByteEncodeProperties;
 use crate::vm::Vm;
 use crate::{procedures::FunctionWrapper, scalar::Scalar};
-use arrayvec::ArrayString;
 
 #[test]
 fn input_string_decode_error_handling() {
@@ -193,11 +192,11 @@ fn no_breadcrumbs_emitted_when_compiled_with_off() {
 
 #[test]
 fn call_test() {
-    let name = ArrayString::from("foo").unwrap();
+    let name = "foo";
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: Some("Main".to_owned()),
-            cards: vec![Card::Call(CallNode(name))],
+            cards: vec![Card::Call(CallNode(InputString::from(name).unwrap()))],
         }],
     };
 

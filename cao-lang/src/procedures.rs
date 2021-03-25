@@ -1,8 +1,8 @@
 //! Helper module for dealing with function extensions.
 //!
 pub use crate::traits::Callable;
+use crate::vm::Vm;
 use crate::{collections::pre_hash_map::Key, prelude::Scalar};
-use crate::{vm::Vm, InputString};
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 use thiserror::Error;
@@ -51,8 +51,8 @@ impl ExecutionError {
 }
 
 pub(crate) struct Procedure<Aux> {
-    pub name: InputString,
     pub fun: Box<dyn Callable<Aux>>,
+    pub name: String,
 }
 
 impl<Aux> Callable<Aux> for Procedure<Aux> {
@@ -66,10 +66,10 @@ impl<Aux> Callable<Aux> for Procedure<Aux> {
 }
 
 impl<Aux> Procedure<Aux> {
-    pub fn new<C: Callable<Aux> + 'static>(name: InputString, f: C) -> Self {
+    pub fn new<S: Into<String>, C: Callable<Aux> + 'static>(name: S, f: C) -> Self {
         Self {
             fun: Box::new(f),
-            name,
+            name: name.into(),
         }
     }
 }

@@ -7,13 +7,13 @@ mod instr_execution;
 #[cfg(test)]
 mod tests;
 
+use crate::scalar::Scalar;
 use crate::{binary_compare, pop_stack};
 use crate::{
     collections::bounded_stack::BoundedStack, collections::scalar_stack::ScalarStack, VariableId,
 };
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
-use crate::{scalar::Scalar, InputString};
 use data::RuntimeData;
 use std::{collections::HashMap, str::FromStr};
 use std::{convert::TryFrom, mem::transmute};
@@ -136,7 +136,23 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.auxiliary_data
     }
 
-    pub fn register_function<C: Callable<Aux> + 'static>(&mut self, name: InputString, f: C) {
+    /// ```
+    /// use cao_lang::prelude::*;
+    ///
+    /// fn my_epic_func(vm: &mut Vm<()>, inp: i32) -> Result<(), ExecutionError> {
+    ///     vm.stack_push(inp * 2);
+    ///     Ok(())
+    /// }
+    ///
+    /// let mut vm = Vm::new(());
+    /// vm.register_function("epic", my_epic_func);
+    /// ```
+    pub fn register_function<S, C>(&mut self, name: S, f: C)
+    where
+        S: Into<String>,
+        C: Callable<Aux> + 'static,
+    {
+        let name = name.into();
         let key = Key::from_str(name.as_str()).unwrap();
         self.callables.insert(key, Procedure::new(name, f));
     }
@@ -417,7 +433,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let value = self.stack_pop();
                     let value = !value.as_bool();
                     self.stack_push(Scalar::Integer(value as i32))?;
-                },
+                }
                 Instruction::And => {
                     self.binary_op(|a, b| Scalar::from(a.as_bool() && b.as_bool()))?
                 }
@@ -435,11 +451,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::NotEquals => binary_compare!(self, !=, true),
                 Instruction::Less => binary_compare!(self, <, false),
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
-                Instruction::StringLiteral => instr_execution::instr_string_literal(
-                    self,
-                    &mut bytecode_pos,
-                    &program,
-                )?,
+                Instruction::StringLiteral => {
+                    instr_execution::instr_string_literal(self, &mut bytecode_pos, &program)?
+                }
                 Instruction::Call => {
                     instr_execution::execute_call(self, &mut bytecode_pos, &program.bytecode)?
                 }
