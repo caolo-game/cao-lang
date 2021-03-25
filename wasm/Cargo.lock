@@ -19,7 +19,7 @@ checksum = "63396b8a4b9de3f4fdfb320ab6080762242f66a8ef174c49d8e19b674db4cdbe"
 
 [[package]]
 name = "cao-lang"
-version = "0.1.13"
+version = "0.1.14"
 dependencies = [
  "arrayvec",
  "semver",
@@ -30,7 +30,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-wasm"
-version = "0.1.22"
+version = "0.1.23"
 dependencies = [
  "cao-lang",
  "console_error_panic_hook",
