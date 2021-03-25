@@ -164,32 +164,3 @@ where
         self(vm, v1, v2, v3, v4)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_function_registry() {
-        fn myfunc1(_vm: &mut Vm<()>) -> ExecutionResult {
-            Ok(())
-        }
-
-        fn myfunc2(_vm: &mut Vm<()>, _i: i32) -> ExecutionResult {
-            Ok(())
-        }
-
-        fn myfunc3(_vm: &mut Vm<()>, _i: i32, _j: f32) -> ExecutionResult {
-            Ok(())
-        }
-
-        let mut vm = Vm::new(());
-
-        // if this compiles we're good to go
-        // TODO: test correct calls
-
-        vm.register_function("func1", myfunc1);
-        vm.register_function("func2", myfunc2 as VmFunction1<(), i32>);
-        vm.register_function("func3", myfunc3 as VmFunction2<(), i32, f32>);
-    }
-}

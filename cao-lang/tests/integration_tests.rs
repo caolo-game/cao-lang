@@ -216,3 +216,77 @@ fn call_test() {
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
 }
+
+#[test]
+fn test_function_registry() {
+    struct State {
+        call_0: bool,
+        call_1: bool,
+        call_2: bool,
+        call_3: bool,
+    }
+
+    fn myfunc0(vm: &mut Vm<State>) -> ExecutionResult {
+        vm.auxiliary_data.call_0 = true;
+        Ok(())
+    }
+
+    fn myfunc1(vm: &mut Vm<State>, i: i32) -> ExecutionResult {
+        vm.auxiliary_data.call_1 = true;
+        assert_eq!(i, 42);
+        Ok(())
+    }
+
+    fn myfunc2(vm: &mut Vm<State>, i: i32, j: f32) -> ExecutionResult {
+        vm.auxiliary_data.call_2 = true;
+        assert_eq!(i, 12);
+        assert_eq!(j, 4.2);
+        Ok(())
+    }
+
+    fn myfunc3(vm: &mut Vm<State>, i: i32, j: f32, b: bool) -> ExecutionResult {
+        vm.auxiliary_data.call_3 = true;
+        assert_eq!(i, 33);
+        assert_eq!(j, 2.88);
+        assert_eq!(b, false);
+        Ok(())
+    }
+
+    let mut vm = Vm::new(State {
+        call_0: false,
+        call_1: false,
+        call_2: false,
+        call_3: false,
+    });
+
+    // if this compiles we're good to go
+    vm.register_function("func0", myfunc0);
+    vm.register_function("func1", myfunc1 as VmFunction1<_, i32>);
+    vm.register_function("func2", myfunc2 as VmFunction2<_, i32, f32>);
+    vm.register_function("func3", myfunc3 as VmFunction3<_, i32, f32, bool>);
+
+    const PROG: &str = r#"
+lanes:
+    - cards:
+        - Call: "func0"
+        - ScalarInt: 42
+        - Call: "func1"
+        - ScalarInt: 12
+        - ScalarFloat: 4.2
+        - Call: "func2"
+        - ScalarInt: 33
+        - ScalarFloat: 2.88
+        - ScalarInt: 0
+        - Call: "func3"
+"#;
+    let cu = serde_yaml::from_str(PROG).unwrap();
+    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+
+    vm.run(&prog).expect("run failed");
+
+    let state = vm.unwrap_aux();
+    assert!(state.call_0);
+    assert!(state.call_1);
+    assert!(state.call_2);
+    assert!(state.call_3);
+}
