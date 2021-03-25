@@ -2,7 +2,8 @@
 
 test:
 	cargo check-all-features
-	cargo test --benches
+	cargo test --benches --all
+	cargo test --doc
 
 bench:
 	cargo bench --bench cao_lang_benches $(benches) -- --baseline master

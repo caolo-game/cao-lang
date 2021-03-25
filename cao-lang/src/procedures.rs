@@ -155,7 +155,7 @@ where
     fn call(&mut self, vm: &mut Vm<Aux>, constants: &[Scalar]) -> ExecutionResult {
         let a = T1::try_from(constants[0]).map_err(convert_error(0))?;
         let b = T2::try_from(constants[1]).map_err(convert_error(1))?;
-        let c = T3::try_from(constants[1]).map_err(convert_error(2))?;
+        let c = T3::try_from(constants[2]).map_err(convert_error(2))?;
         (self.f)(vm, (a, b, c))
     }
 

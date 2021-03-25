@@ -66,6 +66,7 @@ pub trait AutoByteEncodeProperties: Copy + std::fmt::Debug {
     }
 }
 
+/// Objects that can act as Cao-Lang functions
 pub trait Callable<Aux> {
     /// Take in the Vm, parameters and output pointer in parameters and return the length of the
     /// result
