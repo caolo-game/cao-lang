@@ -2,9 +2,8 @@ use std::{convert::TryFrom, mem};
 
 use crate::{
     collections::pre_hash_map::Key, instruction::Instruction, procedures::ExecutionError,
-    procedures::ExecutionResult, program::CaoProgram, scalar::Scalar,
-    traits::ByteDecodeProperties, traits::Callable, traits::DecodeInPlace, traits::MAX_STR_LEN,
-    Pointer, VariableId,
+    procedures::ExecutionResult, program::CaoProgram, scalar::Scalar, traits::ByteDecodeProperties,
+    traits::Callable, traits::DecodeInPlace, traits::MAX_STR_LEN, Pointer, VariableId,
 };
 
 use super::{data::RuntimeData, HistoryEntry, Vm};

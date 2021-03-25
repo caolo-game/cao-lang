@@ -2,7 +2,7 @@
 
 test:
 	cargo check-all-features
-	cargo test --benches --all
+	cargo test --tests --benches
 	cargo test --doc
 
 bench:

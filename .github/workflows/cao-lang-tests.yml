@@ -36,7 +36,7 @@ jobs:
 
       - name: Run cargo test
         run: |
-          cargo test --all --benches
+          cargo test --tests --benches
           cargo test --doc
         env:
           RUST_BACKTRACE: 1
