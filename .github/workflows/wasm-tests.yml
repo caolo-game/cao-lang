@@ -32,7 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          rustup update
+          rustc --version
+
       - run: |
           wasm-pack test ${{ matrix.test-flags }}
 
@@ -41,7 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          rustup update
+          rustc --version
       - run: |
           wasm-pack build --scope caolo-game -d out/pkg --dev
       - name: Upload pkg
