@@ -1,4 +1,4 @@
-target
+target/
 env/
 *.pyc
 *.pyo
@@ -13,4 +13,3 @@ target
 setuptools_rust/version.py
 pyo3
 docs/_build
-*.pyd
