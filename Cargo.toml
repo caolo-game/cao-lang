@@ -1,0 +1,2 @@
+[workspace]
+members = ["cao-lang", "cli", "py", "wasm"]

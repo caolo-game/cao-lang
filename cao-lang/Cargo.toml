@@ -28,6 +28,3 @@ criterion = { version = "0.3", features = ["html_reports"] }
 [[bench]]
 name = "cao_lang_benches"
 harness = false
-
-[profile.bench]
-debug = true
