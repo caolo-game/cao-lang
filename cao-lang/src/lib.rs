@@ -123,10 +123,10 @@ impl AutoByteEncodeProperties for Pointer {
     }
 }
 
-pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 128;
+pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 255;
 
-pub type InputString = ArrayString<[u8; INPUT_STR_LEN_IN_BYTES]>;
-pub type VarName = ArrayString<[u8; 64]>;
+pub type InputString = ArrayString<INPUT_STR_LEN_IN_BYTES>;
+pub type VarName = ArrayString<64>;
 
 impl ByteEncodeble for VarName {
     fn displayname() -> &'static str {

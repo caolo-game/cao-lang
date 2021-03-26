@@ -11,7 +11,8 @@ default = ["serde"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
-arrayvec = { version = "0.5", features = ["serde", "array-sizes-33-128"] }
+# TODO: only use serde feature if our serde feature is enabled...
+arrayvec = { version = "0.6", features = ["serde"] }
 thiserror = "1"
 
 [build-dependencies]
