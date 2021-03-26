@@ -52,15 +52,14 @@ jobs:
         if: ${{ matrix.toolchain == 'nightly' }}
         run: |
           mkdir ./coverage
-          ./grcov ./target/debug -s . --token ${{ secrets.COVERALLS_TOKEN }} --ignore="/*" > ./coverage/lcov.info
+          ./grcov ../target/debug -s . --token ${{ secrets.COVERALLS_TOKEN }} --ignore="/*" > ./coverage/lcov.info
 
       - name: Coveralls
         if: ${{ matrix.toolchain == 'nightly' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          base-path: cao-lang/
-          path-to-lcov: cao-lang/coverage/lcov.info
+          path-to-lcov: ./cao-lang/coverage/lcov.info
 
   clippy_check:
     needs: [test]
