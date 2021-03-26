@@ -36,7 +36,7 @@ pub enum Card {
     ScalarArray(IntegerNode),
     ExitWithCode(IntegerNode),
     StringLiteral(StringNode),
-    Call(CallNode),
+    Call(Box<CallNode>),
     JumpIfTrue(LaneNode),
     JumpIfFalse(LaneNode),
     Jump(LaneNode),

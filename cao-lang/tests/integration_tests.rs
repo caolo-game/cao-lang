@@ -196,7 +196,9 @@ fn call_test() {
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: Some("Main".to_owned()),
-            cards: vec![Card::Call(CallNode(InputString::from(name).unwrap()))],
+            cards: vec![Card::Call(Box::new(CallNode(
+                InputString::from(name).unwrap(),
+            )))],
         }],
     };
 

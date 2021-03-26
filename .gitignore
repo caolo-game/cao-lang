@@ -14,3 +14,4 @@ setuptools_rust/version.py
 pyo3
 docs/_build
 *.pyd
+/cao-lang-*/

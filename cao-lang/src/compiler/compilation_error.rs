@@ -1,5 +1,4 @@
 use super::NodeId;
-use crate::InputString;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
@@ -18,7 +17,7 @@ pub enum CompilationError {
     DuplicateName(String),
 
     #[error("SubProgram: [{0}] was not found")]
-    MissingSubProgram(InputString),
+    MissingSubProgram(String),
 
     #[error("Program references node [{0:?}] but it was not found")]
     MissingNode(NodeId),
