@@ -36,4 +36,4 @@ jobs:
           python-version: 3.6
 
       - run: pip install tox
-      - run: tox -p auto
+      - run: tox -q -p auto
