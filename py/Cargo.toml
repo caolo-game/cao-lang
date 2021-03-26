@@ -1,0 +1,16 @@
+[package]
+name = "cao-lang-py"
+version = "0.1.0"
+authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "cao_lang_py"
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+cao-lang = { path = "../cao-lang", default-features = false, features = ["serde"] }
+pyo3 = { version = "0.13", features = ["extension-module"] }
+serde_json = "*"
+serde_yaml = "*"

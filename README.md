@@ -7,3 +7,19 @@
 The abstract, node based "language" that governs the actors in the game CaoLo
 
 [WASM package documentation](https://caolo-game.github.io/cao-lang/index.html)
+
+
+## Project layout
+
+```
+ |+ cao-lang/           # core library
+ |+ cli/                # command line interface
+ |+ py/                 # Python interface
+ |+ wasm/               # WASM interface
+ |  MANIFEST.in         # Python build dependency
+ |  pyproject.toml      # Python build dependency
+ |  README.md
+ |  setup.py            # Python build dependency
+ |  tox.ini             # Python testing dependency
+
+```

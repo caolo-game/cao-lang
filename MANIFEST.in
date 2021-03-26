@@ -1,0 +1,5 @@
+global-exclude *target/*
+global-exclude *.tox
+
+recursive-include ./py *.rs *.py Cargo.toml
+recursive-include ./cao-lang *.rs Cargo.toml
