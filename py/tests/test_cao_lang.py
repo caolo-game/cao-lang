@@ -1,4 +1,4 @@
-import cao_lang_py as caoc
+import cao_lang as caoc
 
 
 def test_compile_and_run():
