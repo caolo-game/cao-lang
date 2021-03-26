@@ -2,9 +2,9 @@ name: Run Cao-Lang tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 defaults:
   run:
@@ -20,7 +20,8 @@ jobs:
           - nightly
         include:
           - toolchain: nightly
-            flags: "-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests"
+            flags: "-Zinstrument-coverage"
+
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
@@ -34,8 +35,15 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install grcov deps
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: |
+          curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+          rustup component add llvm-tools-preview
+
       - name: Run cargo test
         run: |
+          cargo build
           cargo test --tests --benches
           cargo test --doc
         env:
@@ -43,23 +51,19 @@ jobs:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: ${{ matrix.flags }}
           RUSTDOCFLAGS: "-Cpanic=abort"
-
-      - name: Install grcov
-        if: ${{ matrix.toolchain == 'nightly' }}
-        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-linux-x86_64.tar.bz2 | tar jxf -
+          LLVM_PROFILE_FILE: cao_lang-%p-%m.profraw
 
       - name: Generate coverage report
         if: ${{ matrix.toolchain == 'nightly' }}
         run: |
-          mkdir ./coverage
-          ./grcov ../target/debug -s . --token ${{ secrets.COVERALLS_TOKEN }} --ignore="/*" > ./coverage/lcov.info
+          ./grcov . --binary-path ../target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
 
       - name: Coveralls
         if: ${{ matrix.toolchain == 'nightly' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./cao-lang/coverage/lcov.info
+          path-to-lcov: ./cao-lang/lcov.info
 
   clippy_check:
     needs: [test]
@@ -69,9 +73,9 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            components: clippy
-            override: true
+          toolchain: nightly
+          components: clippy
+          override: true
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
