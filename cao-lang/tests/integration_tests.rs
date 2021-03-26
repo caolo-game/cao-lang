@@ -261,9 +261,9 @@ fn test_function_registry() {
 
     // if this compiles we're good to go
     vm.register_function("func0", myfunc0);
-    vm.register_function("func1", myfunc1 as VmFunction1<_, i32>);
-    vm.register_function("func2", myfunc2 as VmFunction2<_, i32, f32>);
-    vm.register_function("func3", myfunc3 as VmFunction3<_, i32, f32, bool>);
+    vm.register_function("func1", into_f1(myfunc1));
+    vm.register_function("func2", into_f2(myfunc2));
+    vm.register_function("func3", into_f3(myfunc3));
 
     const PROG: &str = r#"
 lanes:

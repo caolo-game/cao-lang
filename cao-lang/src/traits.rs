@@ -75,7 +75,18 @@ pub trait VmFunction<Aux> {
     fn call(&self, vm: &mut Vm<Aux>) -> ExecutionResult;
 }
 
-/// Type alias for free functions with 1 parameter
+pub type VmFunction1<Aux, T1> = fn(&mut Vm<Aux>, T1) -> ExecutionResult;
+pub type VmFunction2<Aux, T1, T2> = fn(&mut Vm<Aux>, T1, T2) -> ExecutionResult;
+pub type VmFunction3<Aux, T1, T2, T3> = fn(&mut Vm<Aux>, T1, T2, T3) -> ExecutionResult;
+pub type VmFunction4<Aux, T1, T2, T3, T4> = fn(&mut Vm<Aux>, T1, T2, T3, T4) -> ExecutionResult;
+
+/// Casts the given function pointer to a Cao-Lang VM function taking 1 argument
+///
+/// See also:
+///
+/// - [into_f2]
+/// - [into_f3]
+/// - [into_f4]
 ///
 /// ```
 /// use cao_lang::prelude::*;
@@ -86,13 +97,30 @@ pub trait VmFunction<Aux> {
 ///     Ok(())
 /// }
 ///
-/// // first type argument is the auxiliary data, the second the the parameter type
-/// vm.register_function("my function", fun as VmFunction1<_, _>);
+/// vm.register_function("my function", into_f1(fun));
+///
 /// ```
-pub type VmFunction1<Aux, T1> = fn(&mut Vm<Aux>, T1) -> ExecutionResult;
-pub type VmFunction2<Aux, T1, T2> = fn(&mut Vm<Aux>, T1, T2) -> ExecutionResult;
-pub type VmFunction3<Aux, T1, T2, T3> = fn(&mut Vm<Aux>, T1, T2, T3) -> ExecutionResult;
-pub type VmFunction4<Aux, T1, T2, T3, T4> = fn(&mut Vm<Aux>, T1, T2, T3, T4) -> ExecutionResult;
+pub fn into_f1<Aux, T1>(f: fn(&mut Vm<Aux>, T1) -> ExecutionResult) -> VmFunction1<Aux, T1> {
+    f as VmFunction1<_, _>
+}
+
+pub fn into_f2<Aux, T1, T2>(
+    f: fn(&mut Vm<Aux>, T1, T2) -> ExecutionResult,
+) -> VmFunction2<Aux, T1, T2> {
+    f as VmFunction2<_, _, _>
+}
+
+pub fn into_f3<Aux, T1, T2, T3>(
+    f: fn(&mut Vm<Aux>, T1, T2, T3) -> ExecutionResult,
+) -> VmFunction3<Aux, T1, T2, T3> {
+    f as VmFunction3<_, _, _, _>
+}
+
+pub fn into_f4<Aux, T1, T2, T3, T4>(
+    f: fn(&mut Vm<Aux>, T1, T2, T3, T4) -> ExecutionResult,
+) -> VmFunction4<Aux, T1, T2, T3, T4> {
+    f as VmFunction4<_, _, _, _, _>
+}
 
 impl<Aux, F> VmFunction<Aux> for F
 where
