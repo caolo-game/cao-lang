@@ -1,6 +1,7 @@
 # Cao-Lang
 
-[![Coverage Status](https://coveralls.io/repos/github/caolo-game/cao-lang/badge.svg?branch=master)](https://coveralls.io/github/caolo-game/cao-lang?branch=master)
+<!-- [![Coverage Status](https://coveralls.io/repos/github/caolo-game/cao-lang/badge.svg?branch=master)](https://coveralls.io/github/caolo-game/cao-lang?branch=master) -->
+
 ![Cao-Lang tests](https://github.com/caolo-game/cao-lang/workflows/Run%20Cao-Lang%20tests/badge.svg)
 ![WASM tests](https://github.com/caolo-game/cao-lang/workflows/Run%20WASM%20tests/badge.svg)
 [![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml)
