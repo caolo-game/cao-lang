@@ -2,17 +2,28 @@ lanes:
   - name: init
     _comment: "Assumes that N is pushed onto the stack before executing the program"
     cards:
-      - ScalarInt: 1
-      - SetGlobalVar: a
-      - ScalarInt: 1
-      - SetGlobalVar: "b"
-      - Repeat:
+      - ty: ScalarInt
+        val: 1
+      - ty: SetGlobalVar
+        val: a
+      - ty: ScalarInt
+        val: 1
+      - ty: SetGlobalVar
+        val: "b"
+      - ty: Repeat
+        val:
           LaneName: "loop"
   - name: loop
     cards:
-      - ReadGlobalVar: b
-      - CopyLast: null
-      - ReadGlobalVar: a
-      - Add: null
-      - SetGlobalVar: b
-      - SetGlobalVar: a
+      - ty: ReadGlobalVar
+        val: b
+      - ty: CopyLast
+        val: null
+      - ty: ReadGlobalVar
+        val: a
+      - ty: Add
+        val: null
+      - ty: SetGlobalVar
+        val: b
+      - ty: SetGlobalVar
+        val: a

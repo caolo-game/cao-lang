@@ -10,6 +10,7 @@ impl Default for Card {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(tag = "ty", content="val"))]
 pub enum Card {
     Pass,
     Add,

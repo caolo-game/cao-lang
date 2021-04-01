@@ -14,7 +14,7 @@ fn can_compile_simple_program() {
     let cu = json!({
         "lanes": [{
             "name": "PogChamp",
-            "cards": [ { "ScalarInt": 69 } ]
+            "cards": [ {"ty": "ScalarInt", "val": 69 } ]
         }]
     });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);
@@ -28,8 +28,8 @@ fn can_run_simple_program() {
         "lanes": [ {
             "name": "Foo",
             "cards": [
-            { "StringLiteral": "Poggers" }
-            , { "SetGlobalVar": "Poggers" }
+            { "ty": "StringLiteral", "val": "Poggers" }
+            , {"ty": "SetGlobalVar", "val": "Poggers" }
             ]
         }]
     });

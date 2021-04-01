@@ -9,9 +9,11 @@ def test_compile_and_run():
     PROGRAM_YAML = """
 lanes:
     - cards:
-        - ScalarInt: 5 
-        - ScalarInt: 5 
-        - Add: null
+        - ty: ScalarInt
+          val: 5 
+        - ty: ScalarInt
+          val: 5 
+        - ty: Add
 """
 
     program = caoc.CompilationUnit.from_yaml(PROGRAM_YAML)

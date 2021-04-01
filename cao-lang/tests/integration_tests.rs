@@ -13,10 +13,14 @@ lanes:
     - 
         name: Foo
         cards:
-            - ScalarInt: 42
-            - ScalarInt: 42
-            - ScalarInt: 42
-            - ScalarArray: 3
+            - ty: ScalarInt
+              val: 42
+            - ty: ScalarInt
+              val: 42
+            - ty: ScalarInt
+              val: 42
+            - ty: ScalarArray
+              val: 3
 "#;
 
     let compilation_unit = serde_yaml::from_str(PROGRAM).unwrap();
@@ -270,16 +274,26 @@ fn test_function_registry() {
     const PROG: &str = r#"
 lanes:
     - cards:
-        - Call: "func0"
-        - ScalarInt: 42
-        - Call: "func1"
-        - ScalarInt: 12
-        - ScalarFloat: 4.2
-        - Call: "func2"
-        - ScalarInt: 33
-        - ScalarFloat: 2.88
-        - ScalarInt: 0
-        - Call: "func3"
+        - ty: Call
+          val: "func0"
+        - ty: ScalarInt
+          val: 42
+        - ty: Call
+          val: "func1"
+        - ty: ScalarInt
+          val: 12
+        - ty: ScalarFloat
+          val: 4.2
+        - ty: Call
+          val: "func2"
+        - ty: ScalarInt
+          val: 33
+        - ty: ScalarFloat
+          val: 2.88
+        - ty: ScalarInt
+          val: 0
+        - ty: Call
+          val: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
     let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();

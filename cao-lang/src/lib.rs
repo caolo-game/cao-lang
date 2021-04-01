@@ -15,10 +15,11 @@
 //!         "name":"Main",
 //!         "cards":[
 //!            {
-//!               "ScalarInt":42
+//!               "ty": "ScalarInt",
+//!               "val":42
 //!            },
 //!            {
-//!               "Call":"log_scalar"
+//!               "ty": "Call", "val":"log_scalar"
 //!            }
 //!         ]
 //!      }

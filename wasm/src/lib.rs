@@ -28,10 +28,10 @@ pub fn _start() {
 ///         "name": "Foo",
 ///         "cards": [
 ///             {
-///                 "ScalarInt": 1
+///                 "ty": "ScalarInt" , "val": 1
 ///             },
 ///             {
-///                 "Pass": null
+///                 "ty": "Pass"
 ///             }
 ///         ]
 ///     }]
