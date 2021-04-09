@@ -111,6 +111,11 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.clear();
     }
 
+    pub fn get_object_properties(&self, ptr: Pointer) -> Option<Box<dyn ObjectProperties>> {
+        let object = self.objects.get(&ptr)?;
+        object.as_inner(self).ok()
+    }
+
     #[inline]
     pub fn read_var(&self, name: VariableId) -> Option<Scalar> {
         self.runtime_data.global_vars.get(name.0 as usize).cloned()
