@@ -413,8 +413,8 @@ impl<'a> Compiler<'a> {
         }
         match card {
             // TODO: blocked by lane ABI
-            Card::While(repeat) => return Err(CompilationError::Unimplemented("While cards")),
-            Card::Repeat(repeat) => return Err(CompilationError::Unimplemented("Repeat cards")),
+            Card::While(_) => return Err(CompilationError::Unimplemented("While cards")),
+            Card::Repeat(_) => return Err(CompilationError::Unimplemented("Repeat cards")),
             Card::ReadVar(variable) => {
                 let scope = self.resolve_var(variable.0.as_str());
                 if scope < 0 {

@@ -205,16 +205,25 @@ fn simple_while_loop() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+    /*let program =*/
+    match compile(program, Some(CompileOptions { breadcrumbs: false })) {
+        Ok(_) => {
+            panic!("Expected error, update this test pls")
+        }
+        Err(CompilationError::Unimplemented(_)) => {}
+        Err(err) => {
+            panic!("Expected unimplemented error, instead got: {}", err)
+        }
+    }
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(10000);
-    let exit_code = vm.run(&program).unwrap();
-    assert_eq!(exit_code, 0);
-
-    let varid = program.variable_id("result").unwrap();
-    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(0));
+    // let mut vm = Vm::new(()).with_max_iter(10000);
+    // let exit_code = vm.run(&program).unwrap();
+    // assert_eq!(exit_code, 0);
+    //
+    // let varid = program.variable_id("result").unwrap();
+    // assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(0));
 }
 
 #[test]
@@ -245,20 +254,29 @@ fn simple_for_loop() {
             },
         ],
     };
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+    /*let program =*/
+    match compile(program, Some(CompileOptions { breadcrumbs: false })) {
+        Ok(_) => {
+            panic!("Expected error, update this test pls")
+        }
+        Err(CompilationError::Unimplemented(_)) => {}
+        Err(err) => {
+            panic!("Expected unimplemented error, instead got: {}", err)
+        }
+    }
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(10000);
-    let exit_code = vm.run(&program).unwrap();
-
-    assert_eq!(exit_code, 0);
-    let varid = *program
-        .variables
-        .0
-        .get(Key::from_str("result").unwrap())
-        .unwrap();
-    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
+    // let mut vm = Vm::new(()).with_max_iter(10000);
+    // let exit_code = vm.run(&program).unwrap();
+    //
+    // assert_eq!(exit_code, 0);
+    // let varid = *program
+    //     .variables
+    //     .0
+    //     .get(Key::from_str("result").unwrap())
+    //     .unwrap();
+    // assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
 }
 
 #[test]
