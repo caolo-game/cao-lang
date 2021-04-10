@@ -31,4 +31,7 @@ pub enum CompilationError {
 
     #[error("Internal failure during compilation")]
     InternalError,
+
+    #[error("Too many locals in scope")]
+    TooManyLocals,
 }

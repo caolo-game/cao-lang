@@ -260,34 +260,32 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos = self.runtime_data.stack.pop();
-                    let pos: i32 = match i32::try_from(pos) {
-                        Ok(i) => i,
-                        Err(err) => {
-                            return Err(ExecutionError::InvalidArgument {
-                                context: Some(format!(
-                                    "Goto instruction got invalid position value {:?}",
-                                    err
-                                )),
-                            })
-                        }
+                    let pos: i32 = unsafe {
+                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
                     };
+                    assert!(pos >= 0);
+                    bytecode_pos = pos as usize;
                     if condition.as_bool() {
                         bytecode_pos = pos as usize;
                     }
                 }
-                Instruction::Goto => {
+                Instruction::GotoIfFalse => {
+                    let condition = self.runtime_data.stack.pop();
                     let pos = self.runtime_data.stack.pop();
-                    let pos: i32 = match i32::try_from(pos) {
-                        Ok(i) => i,
-                        Err(err) => {
-                            return Err(ExecutionError::InvalidArgument {
-                                context: Some(format!(
-                                    "Goto instruction got invalid position value {:?}",
-                                    err
-                                )),
-                            })
-                        }
+                    let pos: i32 = unsafe {
+                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
                     };
+                    assert!(pos >= 0);
+                    bytecode_pos = pos as usize;
+                    if !condition.as_bool() {
+                        bytecode_pos = pos as usize;
+                    }
+                }
+                Instruction::Goto => {
+                    let pos: i32 = unsafe {
+                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
+                    };
+                    assert!(pos >= 0);
                     bytecode_pos = pos as usize;
                 }
                 Instruction::SwapLast => {
@@ -381,22 +379,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                 },
                 Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
-                Instruction::JumpIfTrue => {
-                    instr_execution::jump_if(
-                        &mut self.runtime_data,
-                        &mut bytecode_pos,
-                        program,
-                        |s| s.as_bool(),
-                    )?;
-                }
-                Instruction::JumpIfFalse => {
-                    instr_execution::jump_if(
-                        &mut self.runtime_data,
-                        &mut bytecode_pos,
-                        program,
-                        |s| !s.as_bool(),
-                    )?;
-                }
                 Instruction::CopyLast => {
                     let val = self.runtime_data.stack.last();
                     self.runtime_data

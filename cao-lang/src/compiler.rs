@@ -114,7 +114,18 @@ pub struct Compiler<'a> {
     pub options: CompileOptions,
     pub program: CaoProgram,
     pub next_var: RefCell<VariableId>,
+
+    pub locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
+    pub local_count: i32,
+    pub scope_depth: i32,
+
     _m: std::marker::PhantomData<&'a ()>,
+}
+
+/// local variables during compilation
+pub struct Local<'a> {
+    pub name: &'a str,
+    pub depth: i32,
 }
 
 pub fn compile(
@@ -139,6 +150,9 @@ impl<'a> Compiler<'a> {
             jump_table: Default::default(),
             options: Default::default(),
             next_var: RefCell::new(VariableId(0)),
+            locals: Default::default(),
+            local_count: 0,
+            scope_depth: 0,
             _m: Default::default(),
         }
     }
@@ -162,15 +176,15 @@ impl<'a> Compiler<'a> {
         }
         // initialize
         self.program = CaoProgram::default();
-        self._compile_stage_1(&mut compilation_unit)?;
-        self._compile_stage_2(compilation_unit)?;
+        self.compile_stage_1(&mut compilation_unit)?;
+        self.compile_stage_2(compilation_unit)?;
 
         Ok(mem::take(&mut self.program))
     }
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn _compile_stage_1(
+    fn compile_stage_1(
         &mut self,
         compilation_unit: &mut CompilationUnit,
     ) -> Result<(), CompilationError> {
@@ -210,7 +224,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn _compile_stage_2(
+    fn compile_stage_2(
         &mut self,
         compilation_unit: CompilationUnit,
     ) -> Result<(), CompilationError> {
@@ -226,7 +240,7 @@ impl<'a> Compiler<'a> {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
-            self._process_lane(il, main_lane, 0)?;
+            self.process_lane(il, main_lane, 0)?;
             let nodeid = NodeId {
                 lane: il as u16,
                 pos: len,
@@ -236,31 +250,64 @@ impl<'a> Compiler<'a> {
 
         for (il, lane) in lanes {
             // manually add a scope start instruction and the position information
-            let nodeid = NodeId {
-                lane: il as u16,
-                pos: 0,
-            };
-            let nodeid_hash = Key::from_u32(nodeid.into());
-            let handle = u32::try_from(self.program.bytecode.len())
-                .expect("bytecode length to fit into 32 bits");
-            self.program
-                .labels
-                .0
-                .insert(nodeid_hash, Label::new(handle));
-            self.program.bytecode.push(Instruction::ScopeStart as u8);
+            {
+                let nodeid = NodeId {
+                    lane: il as u16,
+                    pos: 0,
+                };
+                let nodeid_hash = Key::from_u32(nodeid.into());
+                let handle = u32::try_from(self.program.bytecode.len())
+                    .expect("bytecode length to fit into 32 bits");
+                self.program
+                    .labels
+                    .0
+                    .insert(nodeid_hash, Label::new(handle));
+                self.program.bytecode.push(Instruction::ScopeStart as u8);
+            }
+
+            self.scope_begin()?;
 
             // process the lane
-            self._process_lane(il, lane, 1)?;
+            self.process_lane(il, lane, 1)?;
 
-            // end the scope and return
-            self.program.bytecode.push(Instruction::ScopeEnd as u8);
+            self.scope_end()?;
             self.program.bytecode.push(Instruction::Return as u8);
         }
 
         Ok(())
     }
 
-    fn _process_lane(
+    fn scope_begin(&mut self) -> Result<(), CompilationError> {
+        self.scope_depth += 1;
+        Ok(())
+    }
+
+    fn scope_end(&mut self) -> Result<(), CompilationError> {
+        self.scope_depth -= 1;
+        // while the last item's depth is greater than scope_depth
+        while self
+            .locals
+            .last()
+            .map(|l| l.depth > self.scope_depth)
+            .unwrap_or(false)
+        {
+            self.locals.pop();
+            self.program.bytecode.push(Instruction::Pop as u8);
+        }
+        Ok(())
+    }
+
+    fn add_local(&mut self, name: &'a str) -> Result<(), CompilationError> {
+        self.locals
+            .try_push(Local {
+                name,
+                depth: self.scope_depth,
+            })
+            .map_err(|_| CompilationError::TooManyLocals)?;
+        Ok(())
+    }
+
+    fn process_lane(
         &mut self,
         il: usize,
         cards: Vec<Card>,
@@ -281,7 +328,28 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn _encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> Result<(), CompilationError> {
+    fn conditional_jump(
+        &mut self,
+        check_instr: Instruction,
+        nodeid: NodeId,
+        lane: &LaneNode,
+    ) -> Result<(), CompilationError> {
+        self.program.bytecode.push(check_instr as u8);
+        assert!(
+            matches!(
+                check_instr,
+                Instruction::GotoIfTrue | Instruction::GotoIfFalse
+            ),
+            "invalid check instruction"
+        );
+        let pos = instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 - 1;
+        pos.encode(&mut self.program.bytecode).unwrap();
+        self.program.bytecode.push(Instruction::Jump as u8);
+        self.encode_jump(nodeid, lane)?;
+        Ok(())
+    }
+
+    fn encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> Result<(), CompilationError> {
         let to = match lane {
             LaneNode::LaneName(lane) => self
                 .jump_table
@@ -304,7 +372,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// push `data` into the `data section` of the program and encode a poiter to it for the current instruction
-    fn _push_data<T: ByteEncodeProperties>(&mut self, data: T) -> Result<(), CompilationError> {
+    fn push_data<T: ByteEncodeProperties>(&mut self, data: T) -> Result<(), CompilationError> {
         let handle = self.program.data.len();
         data.encode(&mut self.program.data)
             .expect("Failed to encode data");
@@ -313,6 +381,15 @@ impl<'a> Compiler<'a> {
             .expect("data handle doesn't fit into 32 bits");
         handle.encode(&mut self.program.bytecode).unwrap();
         Ok(())
+    }
+
+    fn resolve_var(&self, name: &str) -> isize {
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if local.name == name {
+                return i as isize;
+            }
+        }
+        -1
     }
 
     pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
@@ -336,65 +413,35 @@ impl<'a> Compiler<'a> {
         }
         match card {
             Card::While(repeat) => {
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                (-(instruction_span(Instruction::ScalarInt)
-                    + instruction_span(Instruction::Remember)))
-                .encode(&mut self.program.bytecode)
-                .unwrap();
-                self.program.bytecode.push(Instruction::Remember as u8);
-                self.program.bytecode.push(Instruction::Jump as u8);
-                self._encode_jump(nodeid, &repeat)?;
-                // rerun if not 0
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                todo!();
             }
             Card::Repeat(repeat) => {
-                // ## Semantics:
-                //
-                // 1) push counter + 1 on the stack
-                // 2) remember this slot
-                // 3) push 1
-                // 4) sub
-                // 5) clone last (loop counter)
-                // 6) jump if true to the lane
-                // 7) return to the remembered slot if true
-
-                // 1)
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                1i32.encode(&mut self.program.bytecode).unwrap();
-                self.program.bytecode.push(Instruction::Add as u8);
-
-                let checkpoint = self.program.bytecode.len(); // 2)
-                self.program.bytecode.push(Instruction::ScalarInt as u8); // 3)
-                1i32.encode(&mut self.program.bytecode).unwrap();
-                self.program.bytecode.push(Instruction::Sub as u8); // 4)
-
-                // leave the loop counter on the stack after the jump and the goto
-                // 5)
-                self.program.bytecode.push(Instruction::CopyLast as u8);
-                self.program.bytecode.push(Instruction::CopyLast as u8);
-                // 2)
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                // remember the position above
-                (-((self.program.bytecode.len() - 1
-                    + instruction_span(Instruction::ScalarInt) as usize
-                    + instruction_span(Instruction::Sub) as usize
-                    - checkpoint) as i32))
-                    .encode(&mut self.program.bytecode)
-                    .unwrap();
-                self.program.bytecode.push(Instruction::Remember as u8);
-                self.program.bytecode.push(Instruction::SwapLast as u8);
-                // jump to the lane if not 0
-                // 6)
-                self.program.bytecode.push(Instruction::JumpIfTrue as u8);
-                self._encode_jump(nodeid, &repeat)?;
-                // discard the lane return value
-                self.program.bytecode.push(Instruction::Pop as u8);
-                // rerun if not 0
-                // 7)
-                self.program.bytecode.push(Instruction::SwapLast as u8);
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                todo!()
             }
-            Card::ReadGlobalVar(variable) | Card::SetGlobalVar(variable) => {
+            Card::ReadVar(variable) => {
+                let scope = self.resolve_var(variable.0.as_str());
+                if scope < 0 {
+                    // global
+                    let mut next_var = self.next_var.borrow_mut();
+                    let varhash = Key::from_bytes(variable.0.as_bytes());
+                    let id = self
+                        .program
+                        .variables
+                        .0
+                        .entry(varhash)
+                        .or_insert_with(move || {
+                            let id = *next_var;
+                            *next_var = VariableId(id.0 + 1);
+                            id
+                        });
+                    self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
+                    id.encode(&mut self.program.bytecode).unwrap();
+                } else {
+                    //local
+                    todo!()
+                }
+            }
+            Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 let varhash = Key::from_bytes(variable.0.as_bytes());
 
@@ -410,10 +457,18 @@ impl<'a> Compiler<'a> {
                     });
                 id.encode(&mut self.program.bytecode).unwrap();
             }
-            Card::JumpIfFalse(jmp) | Card::JumpIfTrue(jmp) | Card::Jump(jmp) => {
-                self._encode_jump(nodeid, &jmp)?;
+            Card::JumpIfFalse(jmp) => {
+                // if the value is true we DON'T jump
+                self.conditional_jump(Instruction::GotoIfTrue, nodeid, &jmp)?;
             }
-            Card::StringLiteral(c) => self._push_data(c.0)?,
+            Card::JumpIfTrue(jmp) => {
+                // if the value is false we DON'T jump
+                self.conditional_jump(Instruction::GotoIfFalse, nodeid, &jmp)?;
+            }
+            Card::Jump(jmp) => {
+                self.encode_jump(nodeid, &jmp)?;
+            }
+            Card::StringLiteral(c) => self.push_data(c.0)?,
             Card::Call(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
@@ -479,9 +534,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Remember
         | Instruction::ScopeStart
         | Instruction::ScopeEnd
-        | Instruction::Goto
         | Instruction::SwapLast
-        | Instruction::GotoIfTrue
         | Instruction::And
         | Instruction::Or
         | Instruction::Xor
@@ -495,9 +548,10 @@ const fn instruction_span(instr: Instruction) -> i32 {
         //
         Instruction::SetGlobalVar | Instruction::ReadGlobalVar => 5,
         //
-        Instruction::JumpIfTrue
+        Instruction::Goto
+        | Instruction::GotoIfTrue
+        | Instruction::GotoIfFalse
         | Instruction::Jump
-        | Instruction::JumpIfFalse
         | Instruction::Breadcrumb => 5,
     }
 }

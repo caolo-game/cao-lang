@@ -35,62 +35,61 @@ pub enum Instruction {
     CopyLast = 11,
     /// If the value at the top of the stack is truthy jumps to the input node
     /// Else does nothing
-    JumpIfTrue = 12,
     /// Quit the program returning the last value on the stack
-    Exit = 13,
+    Exit = 12,
     // TODO: replace jump instructions with an instruction to read label as bytecode position and
     // use GOTO instead of jumps...
     /// Jump to the label on top of the stack
-    Jump = 14,
+    Jump = 13,
     /// Compares two scalars
-    Equals = 15,
+    Equals = 14,
     /// Compares two scalars
-    NotEquals = 16,
+    NotEquals = 15,
     /// Is the first param less than the second?
-    Less = 17,
+    Less = 16,
     /// Is the first param less than or equal to the second?
-    LessOrEq = 18,
+    LessOrEq = 17,
     /// Pops the top of the stack and discards it
-    Pop = 19,
+    Pop = 18,
     /// Sets the variable at the top of the stack to the value of the second item on the stack
-    SetGlobalVar = 20,
+    SetGlobalVar = 19,
     /// Reads the variable and pushes its value onto the stack
-    ReadGlobalVar = 21,
+    ReadGlobalVar = 20,
     /// Clears until the last sentinel
-    ClearStack = 22,
+    ClearStack = 21,
     /// If the value at the top of the stack is falsy jumps to the input node
     /// Else does nothing
-    JumpIfFalse = 23,
     /// Insert a history entry
-    Breadcrumb = 24,
+    Breadcrumb = 22,
     /// Push a `null` value onto the stack
-    ScalarNull = 25,
+    ScalarNull = 23,
     /// Returns to right-after-the-last-call-instruction
     /// Also clears the stack until the last sentinel
-    Return = 26,
+    Return = 24,
     /// Pop an offset from the stack and remember the location to that offset from the current
     /// position
-    Remember = 27,
+    Remember = 25,
     /// Starts a new scope
-    ScopeStart = 28,
+    ScopeStart = 26,
     /// Starts a new scope
-    ScopeEnd = 29,
-    /// Pop a bytecode position from the stack and `goto` there
-    Goto = 30,
+    ScopeEnd = 27,
+    /// Read bytecode position and move there
+    Goto = 28,
     /// Swaps the last two values on the stack
-    SwapLast = 31,
-    /// Pop a bytecode position and a scalar from the stack and `goto` there if the value was
+    SwapLast = 29,
+    /// Pop a scalar from the stack and `goto` there if the value was
     /// truthy
-    GotoIfTrue = 32,
-    And = 33,
-    Or = 34,
-    Xor = 35,
-    Not = 36,
+    GotoIfTrue = 30,
+    And = 31,
+    Or = 32,
+    Xor = 33,
+    Not = 34,
+    GotoIfFalse = 35,
 }
 
 impl Instruction {
     pub fn is_valid_instr(n: u8) -> bool {
-        n <= 36
+        n <= 35
     }
 }
 

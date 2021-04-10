@@ -73,6 +73,33 @@ fn test_string_literal() {
 }
 
 #[test]
+fn simple_if_statement() {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("Main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::JumpIfTrue(LaneNode::LaneId(1))),
+            Lane::default().with_cards(vec![
+                // Add 1 to the global 'result' variable in each iteration
+                Card::ScalarInt(IntegerNode(69)),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
+        ],
+    };
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(1000);
+    let exit_code = vm.run(&program).unwrap();
+    assert_eq!(exit_code, 0);
+
+    let varid = program.variable_id("result").unwrap();
+    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
+}
+
+#[test]
 fn simple_while_loop() {
     let program = CompilationUnit {
         lanes: vec![
@@ -83,7 +110,7 @@ fn simple_while_loop() {
                 .with_card(Card::While(LaneNode::LaneId(1))),
             Lane::default().with_cards(vec![
                 // Add 1 to the global 'result' variable in each iteration
-                Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
+                Card::ReadVar(VarNode::from_str_unchecked("result")),
                 Card::ScalarInt(IntegerNode(1)),
                 Card::Sub,
                 Card::CopyLast, // return `result`
@@ -123,7 +150,7 @@ fn simple_for_loop() {
                 cards: vec![
                     // Add 1 to the global 'result' variable in each iteration
                     Card::ScalarInt(IntegerNode(1)),
-                    Card::ReadGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::ReadVar(VarNode::from_str_unchecked("result")),
                     Card::Add,
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     Card::ScalarInt(IntegerNode(420)), // check if last value is discarded

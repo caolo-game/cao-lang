@@ -10,7 +10,7 @@ impl Default for Card {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ty", content="val"))]
+#[cfg_attr(feature = "serde", serde(tag = "ty", content = "val"))]
 pub enum Card {
     Pass,
     Add,
@@ -42,7 +42,7 @@ pub enum Card {
     JumpIfFalse(LaneNode),
     Jump(LaneNode),
     SetGlobalVar(VarNode),
-    ReadGlobalVar(VarNode),
+    ReadVar(VarNode),
     Repeat(LaneNode),
     While(LaneNode),
 }
@@ -77,7 +77,7 @@ impl Card {
             Card::JumpIfFalse(_) => "JumpIfFalse",
             Card::Jump(_) => "Jump",
             Card::SetGlobalVar(_) => "SetGlobalVar",
-            Card::ReadGlobalVar(_) => "ReadGlobalVar",
+            Card::ReadVar(_) => "ReadVar",
             Card::ClearStack => "ClearStack",
             Card::ScalarNull => "ScalarNull",
             Card::Return => "Return",
@@ -90,7 +90,7 @@ impl Card {
     /// Some cards expand to multiple instructions, these are handled separately
     pub fn instruction(&self) -> Option<Instruction> {
         match self {
-            Card::While(_) | Card::Repeat(_) | Card::ExitWithCode(_) => None,
+            Card::ReadVar(_) | Card::While(_) | Card::Repeat(_) | Card::ExitWithCode(_) => None,
 
             Card::And => Some(Instruction::And),
             Card::Not => Some(Instruction::Not),
@@ -113,12 +113,11 @@ impl Card {
             Card::ScalarArray(_) => Some(Instruction::ScalarArray),
             Card::ScalarLabel(_) => Some(Instruction::ScalarLabel),
             Card::Call(_) => Some(Instruction::Call),
-            Card::JumpIfTrue(_) => Some(Instruction::JumpIfTrue),
-            Card::JumpIfFalse(_) => Some(Instruction::JumpIfFalse),
+            Card::JumpIfTrue(_) => None,
+            Card::JumpIfFalse(_) => None,
             Card::Jump(_) => Some(Instruction::Jump),
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
-            Card::ReadGlobalVar(_) => Some(Instruction::ReadGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
             Card::ScalarNull => Some(Instruction::ScalarNull),
             Card::Return => Some(Instruction::Return),
@@ -140,8 +139,6 @@ impl Card {
             | Instruction::NotEquals
             | Instruction::Exit
             | Instruction::StringLiteral
-            | Instruction::JumpIfTrue
-            | Instruction::JumpIfFalse
             | Instruction::Jump
             | Instruction::CopyLast
             | Instruction::Call
@@ -166,6 +163,7 @@ impl Card {
             | Instruction::SwapLast
             | Instruction::Goto
             | Instruction::GotoIfTrue
+            | Instruction::GotoIfFalse
             | Instruction::Pass => {}
         };
     }
