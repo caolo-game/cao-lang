@@ -25,30 +25,36 @@ fn run_fib(c: &mut Criterion) {
             &iterations,
             move |b, &iterations| {
                 let cu = serde_yaml::from_str(FIB_PROG).unwrap();
-                let program = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+                // let program = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+                match compile(cu, CompileOptions::new().with_breadcrumbs(false)) {
+                    Err(CompilationError::Unimplemented(_)) => {}
+                    a @ Ok(_) |a @ Err(_) => {
+                        panic!("Expected unimplemented, instead got {:?}. Please update this benchmark", a)
+                    }
+                }
 
                 let mut vm = Vm::new(()).with_max_iter(250 * iterations);
                 b.iter(|| {
-                    vm.clear();
-                    vm.stack_push(iterations).expect("Initial push");
-                    let res = vm.run(&program).expect("run failed");
-                    #[cfg(debug_assertions)]
-                    {
-                        use cao_lang::collections::pre_hash_map::Key;
-                        use std::convert::TryInto;
-                        use std::str::FromStr;
-
-                        let varid = program
-                            .variables
-                            .0
-                            .get(Key::from_str("b").unwrap())
-                            .unwrap();
-                        let val = vm.read_var(*varid).expect("failed to read b");
-                        assert!(val.is_integer());
-                        let val: i32 = val.try_into().unwrap();
-                        assert_eq!(val, fib(iterations));
-                    }
-                    res
+                //     vm.clear();
+                //     vm.stack_push(iterations).expect("Initial push");
+                //     let res = vm.run(&program).expect("run failed");
+                //     #[cfg(debug_assertions)]
+                //     {
+                //         use cao_lang::collections::pre_hash_map::Key;
+                //         use std::convert::TryInto;
+                //         use std::str::FromStr;
+                //
+                //         let varid = program
+                //             .variables
+                //             .0
+                //             .get(Key::from_str("b").unwrap())
+                //             .unwrap();
+                //         let val = vm.read_var(*varid).expect("failed to read b");
+                //         assert!(val.is_integer());
+                //         let val: i32 = val.try_into().unwrap();
+                //         assert_eq!(val, fib(iterations));
+                //     }
+                //     res
                 })
             },
         );

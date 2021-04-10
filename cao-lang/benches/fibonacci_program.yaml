@@ -15,11 +15,11 @@ lanes:
           LaneName: "loop"
   - name: loop
     cards:
-      - ty: ReadGlobalVar
+      - ty: ReadVar
         val: b
       - ty: CopyLast
         val: null
-      - ty: ReadGlobalVar
+      - ty: ReadVar
         val: a
       - ty: Add
         val: null
