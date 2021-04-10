@@ -5,10 +5,14 @@ pub struct RuntimeData {
     pub memory_limit: usize,
 
     pub stack: ScalarStack,
+    pub call_stack: BoundedStack<CallFrame>,
     pub memory: Vec<u8>,
     pub global_vars: Vec<Scalar>,
+}
+
+pub struct CallFrame {
     /// Store return addresses of Lane calls
-    pub return_stack: BoundedStack<usize>,
+    pub instr_ptr: usize,
 }
 
 impl RuntimeData {
@@ -16,7 +20,7 @@ impl RuntimeData {
         self.memory.clear();
         self.stack.clear();
         self.global_vars.clear();
-        self.return_stack.clear();
+        self.call_stack.clear();
     }
 
     pub fn write_to_memory<T: ByteEncodeProperties>(

@@ -10,6 +10,8 @@ pub type ExecutionResult = Result<(), ExecutionError>;
 pub enum ExecutionError {
     #[error("The program has overflown its call stack")]
     CallStackOverflow,
+    #[error("The program has returned too many times")]
+    CallStackEmpty,
     #[error("Input ended unexpectedly")]
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]

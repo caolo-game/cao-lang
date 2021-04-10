@@ -66,6 +66,15 @@ impl<T> BoundedStack<T> {
         })
     }
 
+    pub fn last(&self) -> Option<&T> {
+        (self.head > 0).then(|| unsafe { &*self.storage.get_unchecked(self.head - 1).as_ptr() })
+    }
+
+    pub fn last_mut(&mut self) -> Option<&mut T> {
+        (self.head > 0)
+            .then(|| unsafe { &mut *self.storage.get_unchecked_mut(self.head - 1).as_mut_ptr() })
+    }
+
     pub fn clear(&mut self) {
         if std::mem::needs_drop::<T>() {
             for i in 0..self.head {
