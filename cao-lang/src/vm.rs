@@ -164,15 +164,15 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     pub fn get_value_in_place<T: DecodeInPlace<'a>>(
         &'a self,
-        bytecode_pos: Pointer,
+        instr_ptr: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        let object = self.objects.get(&bytecode_pos)?;
+        let object = self.objects.get(&instr_ptr)?;
 
         self.runtime_data.get_value_in_place::<T>(object)
     }
 
-    pub fn get_value<T: ByteDecodeProperties>(&self, bytecode_pos: Pointer) -> Option<T> {
-        let object = self.objects.get(&bytecode_pos)?;
+    pub fn get_value<T: ByteDecodeProperties>(&self, instr_ptr: Pointer) -> Option<T> {
+        let object = self.objects.get(&instr_ptr)?;
         object.index.and_then(|index| {
             let data = &self.runtime_data.memory;
             let head = index.0 as usize;
@@ -245,48 +245,41 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// As such running non-compiler emitted programs is fairly unsafe
     pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
         self.history.clear();
-        let mut bytecode_pos = 0;
+        let mut instr_ptr = 0; // TODO: usize isize istead of usize?
         let len = program.bytecode.len();
         let mut remaining_iters = self.max_iter;
-        while bytecode_pos < len {
+        while instr_ptr < len {
             remaining_iters -= 1;
             if remaining_iters <= 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr: u8 = unsafe { *program.bytecode.as_ptr().add(bytecode_pos) };
+            let instr: u8 = unsafe { *program.bytecode.as_ptr().add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
-            bytecode_pos += 1;
+            instr_ptr += 1;
             match instr {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
-                    let pos = self.runtime_data.stack.pop();
-                    let pos: i32 = unsafe {
-                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
-                    };
+                    let pos: i32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     assert!(pos >= 0);
-                    bytecode_pos = pos as usize;
                     if condition.as_bool() {
-                        bytecode_pos = pos as usize;
+                        instr_ptr = pos as usize;
                     }
                 }
                 Instruction::GotoIfFalse => {
                     let condition = self.runtime_data.stack.pop();
-                    let pos = self.runtime_data.stack.pop();
-                    let pos: i32 = unsafe {
-                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
-                    };
+                    let pos: i32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     assert!(pos >= 0);
-                    bytecode_pos = pos as usize;
                     if !condition.as_bool() {
-                        bytecode_pos = pos as usize;
+                        instr_ptr = pos as usize;
                     }
                 }
                 Instruction::Goto => {
-                    let pos: i32 = unsafe {
-                        instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
-                    };
+                    let pos: i32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     assert!(pos >= 0);
-                    bytecode_pos = pos as usize;
+                    instr_ptr = pos as usize;
                 }
                 Instruction::SwapLast => {
                     let b = pop_stack!(self);
@@ -319,7 +312,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Integer(
-                            (bytecode_pos as isize + offset as isize) as i32,
+                            (instr_ptr as isize + offset as isize) as i32,
                         ))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -327,7 +320,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Breadcrumb => instr_execution::instr_breadcrumb(
                     &mut self.history,
                     &program.bytecode,
-                    &mut bytecode_pos,
+                    &mut instr_ptr,
                 ),
                 Instruction::ClearStack => {
                     self.runtime_data.stack.clear_until_sentinel();
@@ -336,14 +329,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_set_var(
                         &mut self.runtime_data,
                         &program.bytecode,
-                        &mut bytecode_pos,
+                        &mut instr_ptr,
                     )?;
                 }
                 Instruction::ReadGlobalVar => {
                     instr_execution::instr_read_var(
                         &mut self.runtime_data,
                         &program.bytecode,
-                        &mut bytecode_pos,
+                        &mut instr_ptr,
                     )?;
                 }
                 Instruction::Pop => {
@@ -352,11 +345,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                 }
                 Instruction::Jump => {
-                    instr_execution::instr_jump(
-                        &mut bytecode_pos,
-                        program,
-                        &mut self.runtime_data,
-                    )?;
+                    instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)?;
                 }
                 Instruction::ScopeStart => {
                     self.runtime_data
@@ -370,7 +359,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Return => match self.runtime_data.return_stack.pop() {
                     Some(ptr) => {
-                        bytecode_pos = ptr;
+                        instr_ptr = ptr;
                     }
                     None => {
                         return Err(ExecutionError::BadReturn {
@@ -391,7 +380,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -399,7 +388,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -407,14 +396,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Scalar::Floating(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut bytecode_pos)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarArray => instr_execution::instr_scalar_array(
                     &mut self.runtime_data,
                     &program.bytecode,
-                    &mut bytecode_pos,
+                    &mut instr_ptr,
                 )?,
                 Instruction::Not => {
                     let value = self.stack_pop();
@@ -439,10 +428,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Less => binary_compare!(self, <, false),
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
-                    instr_execution::instr_string_literal(self, &mut bytecode_pos, &program)?
+                    instr_execution::instr_string_literal(self, &mut instr_ptr, &program)?
                 }
                 Instruction::Call => {
-                    instr_execution::execute_call(self, &mut bytecode_pos, &program.bytecode)?
+                    instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode)?
                 }
             }
         }

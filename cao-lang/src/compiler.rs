@@ -271,6 +271,7 @@ impl<'a> Compiler<'a> {
             self.process_lane(il, lane, 1)?;
 
             self.scope_end()?;
+            self.program.bytecode.push(Instruction::ScopeEnd as u8);
             self.program.bytecode.push(Instruction::Return as u8);
         }
 
@@ -330,19 +331,20 @@ impl<'a> Compiler<'a> {
 
     fn conditional_jump(
         &mut self,
-        check_instr: Instruction,
+        skip_instr: Instruction,
         nodeid: NodeId,
         lane: &LaneNode,
     ) -> Result<(), CompilationError> {
-        self.program.bytecode.push(check_instr as u8);
         assert!(
             matches!(
-                check_instr,
+                skip_instr,
                 Instruction::GotoIfTrue | Instruction::GotoIfFalse
             ),
-            "invalid check instruction"
+            "invalid skip instruction"
         );
-        let pos = instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 - 1;
+        self.program.bytecode.push(skip_instr as u8);
+        let pos = instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
+        debug_assert_eq!(std::mem::size_of_val(&pos), 4);
         pos.encode(&mut self.program.bytecode).unwrap();
         self.program.bytecode.push(Instruction::Jump as u8);
         self.encode_jump(nodeid, lane)?;
@@ -412,6 +414,7 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
+            // TODO: blocked by lane ABI
             Card::While(repeat) => {
                 todo!();
             }
@@ -457,11 +460,35 @@ impl<'a> Compiler<'a> {
                     });
                 id.encode(&mut self.program.bytecode).unwrap();
             }
-            Card::JumpIfFalse(jmp) => {
+            Card::IfElse {
+                then: then_lane,
+                r#else: else_lane,
+            } => {
+                // if true jump to then (2nd item) else execute 1st item then jump over the 2nd
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                let pos = instruction_span(Instruction::Goto)
+                    + instruction_span(Instruction::Jump)
+                    + self.program.bytecode.len() as i32
+                    + 4; // +4 == sizeof pos
+                debug_assert_eq!(std::mem::size_of_val(&pos), 4);
+                pos.encode(&mut self.program.bytecode).unwrap();
+                // else
+                self.program.bytecode.push(Instruction::Jump as u8);
+                self.encode_jump(nodeid, &else_lane)?;
+
+                self.program.bytecode.push(Instruction::Goto as u8);
+                let pos =
+                    instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
+                pos.encode(&mut self.program.bytecode).unwrap();
+                // then
+                self.program.bytecode.push(Instruction::Jump as u8);
+                self.encode_jump(nodeid, &then_lane)?;
+            }
+            Card::IfFalse(jmp) => {
                 // if the value is true we DON'T jump
                 self.conditional_jump(Instruction::GotoIfTrue, nodeid, &jmp)?;
             }
-            Card::JumpIfTrue(jmp) => {
+            Card::IfTrue(jmp) => {
                 // if the value is false we DON'T jump
                 self.conditional_jump(Instruction::GotoIfFalse, nodeid, &jmp)?;
             }

@@ -27,8 +27,8 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::ScalarFloat(Default::default())),
         get_desc(Card::ScalarArray(Default::default())),
         get_desc(Card::StringLiteral(Default::default())),
-        get_desc(Card::JumpIfTrue(Default::default())),
-        get_desc(Card::JumpIfFalse(Default::default())),
+        get_desc(Card::IfTrue(Default::default())),
+        get_desc(Card::IfFalse(Default::default())),
         get_desc(Card::Jump(Default::default())),
         get_desc(Card::SetGlobalVar(Default::default())),
         get_desc(Card::ReadVar(Default::default())),
@@ -37,6 +37,10 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::Return),
         get_desc(Card::Repeat(Default::default())),
         get_desc(Card::While(Default::default())),
+        get_desc(Card::IfElse {
+            then: Default::default(),
+            r#else: Default::default(),
+        }),
     ]
 }
 
@@ -236,27 +240,36 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [String]
         ),
 
-        Card::JumpIfTrue(_) => subprogram_description!(
-            "JumpIfTrue",
-            "Jump to the input node if the last value is true else do nothing.",
+        Card::IfTrue(_) => subprogram_description!(
+            "IfTrue",
+            "Jump to the input lane if the last value is true else do nothing.",
             SubProgramType::Branch,
             [Scalar],
             [],
             [String]
         ),
 
-        Card::JumpIfFalse(_) => subprogram_description!(
-            "JumpIfFalse",
-            "Jump to the input node if the last value is false else do nothing.",
+        Card::IfFalse(_) => subprogram_description!(
+            "IfFalse",
+            "Jump to the input lane if the last value is false else do nothing.",
             SubProgramType::Branch,
             [Scalar],
             [],
             [String]
+        ),
+
+        Card::IfElse { .. } => subprogram_description!(
+            "IfElse",
+            "Jump to the input lane if the last value is true else jump to the second input lane.",
+            SubProgramType::Branch,
+            [Scalar],
+            [],
+            [String, String]
         ),
 
         Card::Jump(_) => subprogram_description!(
             "Jump",
-            "Jump to the input node.",
+            "Jump to the input lane.",
             SubProgramType::Branch,
             [],
             [],

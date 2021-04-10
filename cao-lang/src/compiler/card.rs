@@ -38,8 +38,9 @@ pub enum Card {
     ExitWithCode(IntegerNode),
     StringLiteral(StringNode),
     Call(Box<CallNode>),
-    JumpIfTrue(LaneNode),
-    JumpIfFalse(LaneNode),
+    IfTrue(LaneNode),
+    IfFalse(LaneNode),
+    IfElse { then: LaneNode, r#else: LaneNode },
     Jump(LaneNode),
     SetGlobalVar(VarNode),
     ReadVar(VarNode),
@@ -73,8 +74,8 @@ impl Card {
             Card::ScalarArray(_) => "ScalarArray",
             Card::StringLiteral(_) => "StringLiteral",
             Card::Call(_) => "Call",
-            Card::JumpIfTrue(_) => "JumpIfTrue",
-            Card::JumpIfFalse(_) => "JumpIfFalse",
+            Card::IfTrue(_) => "IfTrue",
+            Card::IfFalse(_) => "IfFalse",
             Card::Jump(_) => "Jump",
             Card::SetGlobalVar(_) => "SetGlobalVar",
             Card::ReadVar(_) => "ReadVar",
@@ -83,6 +84,7 @@ impl Card {
             Card::Return => "Return",
             Card::Repeat(_) => "Repeat",
             Card::While(_) => "While",
+            Card::IfElse { .. } => "IfElse",
         }
     }
 
@@ -90,7 +92,11 @@ impl Card {
     /// Some cards expand to multiple instructions, these are handled separately
     pub fn instruction(&self) -> Option<Instruction> {
         match self {
-            Card::ReadVar(_) | Card::While(_) | Card::Repeat(_) | Card::ExitWithCode(_) => None,
+            Card::IfElse { .. }
+            | Card::ReadVar(_)
+            | Card::While(_)
+            | Card::Repeat(_)
+            | Card::ExitWithCode(_) => None,
 
             Card::And => Some(Instruction::And),
             Card::Not => Some(Instruction::Not),
@@ -113,8 +119,8 @@ impl Card {
             Card::ScalarArray(_) => Some(Instruction::ScalarArray),
             Card::ScalarLabel(_) => Some(Instruction::ScalarLabel),
             Card::Call(_) => Some(Instruction::Call),
-            Card::JumpIfTrue(_) => None,
-            Card::JumpIfFalse(_) => None,
+            Card::IfTrue(_) => None,
+            Card::IfFalse(_) => None,
             Card::Jump(_) => Some(Instruction::Jump),
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),

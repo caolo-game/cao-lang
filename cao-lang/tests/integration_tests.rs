@@ -79,9 +79,34 @@ fn simple_if_statement() {
             Lane::default()
                 .with_name("Main".to_owned())
                 .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::JumpIfTrue(LaneNode::LaneId(1))),
+                .with_card(Card::IfTrue(LaneNode::LaneId(1))),
             Lane::default().with_cards(vec![
-                // Add 1 to the global 'result' variable in each iteration
+                Card::ScalarInt(IntegerNode(69)),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
+        ],
+    };
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).expect("compile");
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(1000);
+    let exit_code = vm.run(&program).expect("run");
+    assert_eq!(exit_code, 0);
+
+    let varid = program.variable_id("result").expect("varid");
+    assert_eq!(vm.read_var(varid).expect("read var"), Scalar::Integer(69));
+}
+
+#[test]
+fn simple_if_statement_skips_if_false() {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("Main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::IfTrue(LaneNode::LaneId(1))),
+            Lane::default().with_cards(vec![
                 Card::ScalarInt(IntegerNode(69)),
                 Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
             ]),
@@ -96,7 +121,69 @@ fn simple_if_statement() {
     assert_eq!(exit_code, 0);
 
     let varid = program.variable_id("result").unwrap();
-    assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
+    let value = vm.read_var(varid);
+    assert!(value.is_none(), "{:?}", value);
+}
+
+fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Scalar) {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("Main".to_owned())
+                .with_card(condition)
+                .with_card(Card::IfElse {
+                    then: LaneNode::LaneId(1),
+                    r#else: LaneNode::LaneId(2),
+                })
+                .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
+            Lane::default().with_cards(vec![
+                true_res,
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
+            Lane::default().with_cards(vec![
+                false_res,
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
+        ],
+    };
+    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).expect("compile");
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(1000);
+    let exit_code = vm.run(&program).expect("program run");
+    assert_eq!(exit_code, 0);
+
+    let varid = program.variable_id("result").expect("varid");
+    assert_eq!(vm.read_var(varid).expect("read var"), expected_result);
+
+    // test if the cards after the if statement were executed
+    let varid = program.variable_id("result2").expect("varid");
+    assert_eq!(
+        vm.read_var(varid).expect("read var"),
+        Scalar::Integer(0xbeef)
+    );
+}
+
+#[test]
+fn simple_if_else_statement_test_then() {
+    if_else_test(
+        Card::ScalarInt(IntegerNode(1)),
+        Card::ScalarInt(IntegerNode(42)),
+        Card::ScalarInt(IntegerNode(69)),
+        Scalar::Integer(42),
+    );
+}
+
+#[test]
+fn simple_if_else_statement_test_else() {
+    if_else_test(
+        Card::ScalarInt(IntegerNode(0)),
+        Card::ScalarInt(IntegerNode(42)),
+        Card::ScalarInt(IntegerNode(69)),
+        Scalar::Integer(69),
+    );
 }
 
 #[test]
