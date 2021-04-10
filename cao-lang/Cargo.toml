@@ -14,6 +14,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 # TODO: only use serde feature if our serde feature is enabled...
 arrayvec = { version = "0.6", features = ["serde"] }
 thiserror = "1"
+num_enum = "0.5"
 
 [build-dependencies]
 toml = "0.4"
