@@ -31,7 +31,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::JumpIfFalse(Default::default())),
         get_desc(Card::Jump(Default::default())),
         get_desc(Card::SetGlobalVar(Default::default())),
-        get_desc(Card::ReadGlobalVar(Default::default())),
+        get_desc(Card::ReadVar(Default::default())),
         get_desc(Card::ExitWithCode(Default::default())),
         get_desc(Card::ScalarNull),
         get_desc(Card::Return),
@@ -265,14 +265,14 @@ fn get_desc(node: Card) -> SubProgram<'static> {
 
         Card::SetGlobalVar(_) => subprogram_description!(
             "SetVar",
-            "Sets the value of a variable",
+            "Sets the value of a global variable",
             SubProgramType::Instruction,
             [Pointer],
             [],
             [VarName]
         ),
 
-        Card::ReadGlobalVar(_) => subprogram_description!(
+        Card::ReadVar(_) => subprogram_description!(
             "ReadVar",
             "Read the value of a variable",
             SubProgramType::Instruction,

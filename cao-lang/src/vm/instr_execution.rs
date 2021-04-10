@@ -167,30 +167,6 @@ pub fn instr_jump(
     Ok(())
 }
 
-pub fn jump_if<F: Fn(Scalar) -> bool>(
-    runtime_data: &mut RuntimeData,
-    bytecode_pos: &mut usize,
-    program: &CaoProgram,
-    predicate: F,
-) -> Result<(), ExecutionError> {
-    let cond = runtime_data.stack.pop();
-    let label: Key = unsafe { decode_value(&program.bytecode, bytecode_pos) };
-
-    runtime_data
-        .return_stack
-        .push(*bytecode_pos)
-        .map_err(|_| ExecutionError::CallStackOverflow)?;
-    if predicate(cond) {
-        *bytecode_pos = program
-            .labels
-            .0
-            .get(label)
-            .ok_or(ExecutionError::InvalidLabel(label))?
-            .pos as usize;
-    }
-    Ok(())
-}
-
 pub fn execute_call<T>(
     vm: &mut Vm<T>,
     bytecode_pos: &mut usize,
