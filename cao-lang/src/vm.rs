@@ -18,6 +18,8 @@ use data::RuntimeData;
 use std::{collections::HashMap, str::FromStr};
 use std::{convert::TryFrom, mem::transmute};
 
+use self::data::CallFrame;
+
 type ConvertFn<Aux> = unsafe fn(&Object, &Vm<Aux>) -> Box<dyn ObjectProperties>;
 
 #[derive(Debug, Clone, Copy)]
@@ -98,7 +100,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
                 global_vars: Vec::with_capacity(128),
-                return_stack: BoundedStack::new(256),
+                call_stack: BoundedStack::new(64),
             },
             max_iter: 1000,
             _m: Default::default(),
@@ -245,9 +247,14 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// As such running non-compiler emitted programs is fairly unsafe
     pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
         self.history.clear();
-        let mut instr_ptr = 0; // TODO: usize isize istead of usize?
+        self.runtime_data
+            .call_stack
+            .push(CallFrame { instr_ptr: 0 })
+            .map_err(|_| ExecutionError::CallStackOverflow)?;
         let len = program.bytecode.len();
         let mut remaining_iters = self.max_iter;
+
+        let mut instr_ptr = 0;
         while instr_ptr < len {
             remaining_iters -= 1;
             if remaining_iters <= 0 {
@@ -289,13 +296,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(a).unwrap();
                 }
                 Instruction::Remember => {
-                    //
-                    //
-                    // TODO: we could use the Sentinel values to store the return addresses instead
-                    // of a separate call stack ?
-                    //
-                    //
-                    //
                     let offset = self.runtime_data.stack.pop();
                     let offset: i32 = match i32::try_from(offset) {
                         Ok(i) => i,
@@ -357,16 +357,25 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let scope_result = self.runtime_data.stack.clear_until_sentinel();
                     self.stack_push(scope_result).unwrap(); // we just popped this value, there must be capacity for storing it
                 }
-                Instruction::Return => match self.runtime_data.return_stack.pop() {
-                    Some(ptr) => {
-                        instr_ptr = ptr;
-                    }
-                    None => {
+                Instruction::Return => {
+                    // pop the current stack frame
+                    if self.runtime_data.call_stack.pop().is_none() {
                         return Err(ExecutionError::BadReturn {
                             reason: "Call stack is empty".to_string(),
                         });
                     }
-                },
+                    // read the previous frame
+                    match self.runtime_data.call_stack.last_mut() {
+                        Some(CallFrame { instr_ptr: ptr }) => {
+                            instr_ptr = *ptr;
+                        }
+                        None => {
+                            return Err(ExecutionError::BadReturn {
+                                reason: "Failed to find return address".to_string(),
+                            });
+                        }
+                    }
+                }
                 Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
                 Instruction::CopyLast => {
                     let val = self.runtime_data.stack.last();
