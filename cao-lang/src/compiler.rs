@@ -262,7 +262,6 @@ impl<'a> Compiler<'a> {
                     .labels
                     .0
                     .insert(nodeid_hash, Label::new(handle));
-                self.program.bytecode.push(Instruction::ScopeStart as u8);
             }
 
             self.scope_begin()?;
@@ -271,7 +270,6 @@ impl<'a> Compiler<'a> {
             self.process_lane(il, lane, 1)?;
 
             self.scope_end()?;
-            self.program.bytecode.push(Instruction::ScopeEnd as u8);
             self.program.bytecode.push(Instruction::Return as u8);
         }
 
@@ -415,12 +413,8 @@ impl<'a> Compiler<'a> {
         }
         match card {
             // TODO: blocked by lane ABI
-            Card::While(repeat) => {
-                todo!();
-            }
-            Card::Repeat(repeat) => {
-                todo!()
-            }
+            Card::While(repeat) => return Err(CompilationError::Unimplemented("While cards")),
+            Card::Repeat(repeat) => return Err(CompilationError::Unimplemented("Repeat cards")),
             Card::ReadVar(variable) => {
                 let scope = self.resolve_var(variable.0.as_str());
                 if scope < 0 {
@@ -441,7 +435,7 @@ impl<'a> Compiler<'a> {
                     id.encode(&mut self.program.bytecode).unwrap();
                 } else {
                     //local
-                    todo!()
+                    return Err(CompilationError::Unimplemented("Local variables"));
                 }
             }
             Card::SetGlobalVar(variable) => {
@@ -559,8 +553,6 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::CopyLast
         | Instruction::Return
         | Instruction::Remember
-        | Instruction::ScopeStart
-        | Instruction::ScopeEnd
         | Instruction::SwapLast
         | Instruction::And
         | Instruction::Or

@@ -83,11 +83,7 @@ pub fn instr_exit(runtime_data: &mut RuntimeData) -> Result<i32, ExecutionError>
     Ok(0)
 }
 
-pub fn instr_breadcrumb(
-    history: &mut Vec<HistoryEntry>,
-    bytecode: &[u8],
-    instr_ptr: &mut usize,
-) {
+pub fn instr_breadcrumb(history: &mut Vec<HistoryEntry>, bytecode: &[u8], instr_ptr: &mut usize) {
     let nodeid = unsafe { decode_value(&bytecode, instr_ptr) };
 
     let instr = bytecode[*instr_ptr];
@@ -169,6 +165,7 @@ pub fn instr_jump(
         .call_stack
         .push(CallFrame {
             instr_ptr: *instr_ptr,
+            stack_offset: runtime_data.stack.len(),
         })
         .map_err(|_| ExecutionError::CallStackOverflow)?;
 

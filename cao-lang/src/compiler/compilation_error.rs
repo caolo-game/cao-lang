@@ -3,6 +3,9 @@ use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 pub enum CompilationError {
+    #[error("The requested functionality ({0}) is not yet implemented")]
+    Unimplemented(&'static str),
+
     #[error("Program was empty")]
     EmptyProgram,
     #[error("No start node was found")]

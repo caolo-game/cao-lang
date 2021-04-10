@@ -13,6 +13,8 @@ pub struct RuntimeData {
 pub struct CallFrame {
     /// Store return addresses of Lane calls
     pub instr_ptr: usize,
+    /// beginning of the local stack
+    pub stack_offset: usize,
 }
 
 impl RuntimeData {

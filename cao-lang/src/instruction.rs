@@ -67,10 +67,6 @@ pub enum Instruction {
     /// Pop an offset from the stack and remember the location to that offset from the current
     /// position
     Remember,
-    /// Starts a new scope
-    ScopeStart,
-    /// Starts a new scope
-    ScopeEnd,
     /// Read bytecode position and move there
     Goto,
     /// Swaps the last two values on the stack
