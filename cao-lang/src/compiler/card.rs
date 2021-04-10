@@ -162,8 +162,6 @@ impl Card {
             | Instruction::ScalarInt
             | Instruction::Add
             | Instruction::ScalarNull
-            | Instruction::ScopeStart
-            | Instruction::ScopeEnd
             | Instruction::Return
             | Instruction::Remember
             | Instruction::SwapLast

@@ -249,7 +249,10 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.history.clear();
         self.runtime_data
             .call_stack
-            .push(CallFrame { instr_ptr: 0 })
+            .push(CallFrame {
+                instr_ptr: 0,
+                stack_offset: 0,
+            })
             .map_err(|_| ExecutionError::CallStackOverflow)?;
         let len = program.bytecode.len();
         let mut remaining_iters = self.max_iter;
@@ -323,7 +326,13 @@ impl<'a, Aux> Vm<'a, Aux> {
                     &mut instr_ptr,
                 ),
                 Instruction::ClearStack => {
-                    self.runtime_data.stack.clear_until_sentinel();
+                    self.runtime_data.stack.clear_until(
+                        self.runtime_data
+                            .call_stack
+                            .last()
+                            .expect("No callframe available")
+                            .stack_offset,
+                    );
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
@@ -347,16 +356,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Jump => {
                     instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)?;
                 }
-                Instruction::ScopeStart => {
-                    self.runtime_data
-                        .stack
-                        .push_sentinel()
-                        .map_err(|_| ExecutionError::Stackoverflow)?;
-                }
-                Instruction::ScopeEnd => {
-                    let scope_result = self.runtime_data.stack.clear_until_sentinel();
-                    self.stack_push(scope_result).unwrap(); // we just popped this value, there must be capacity for storing it
-                }
                 Instruction::Return => {
                     // pop the current stack frame
                     if self.runtime_data.call_stack.pop().is_none() {
@@ -366,8 +365,12 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                     // read the previous frame
                     match self.runtime_data.call_stack.last_mut() {
-                        Some(CallFrame { instr_ptr: ptr }) => {
+                        Some(CallFrame {
+                            instr_ptr: ptr,
+                            stack_offset,
+                        }) => {
                             instr_ptr = *ptr;
+                            self.runtime_data.stack.clear_until(*stack_offset);
                         }
                         None => {
                             return Err(ExecutionError::BadReturn {
