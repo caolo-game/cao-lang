@@ -18,6 +18,18 @@ pub enum StackError {
     #[error("Stack is full")]
     Full,
 }
+impl std::fmt::Display for ScalarStack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.count == 0 {
+            return write!(f, "[]");
+        }
+        write!(f, "[ {:?}", self.data[0])?;
+        for i in 1..self.count {
+            write!(f, ", {:?}", &self.data[i])?;
+        }
+        write!(f, " ]")
+    }
+}
 
 impl ScalarStack {
     pub fn new(size: usize) -> Self {
@@ -66,7 +78,7 @@ impl ScalarStack {
 
     /// Returns the very first item
     pub fn clear_until(&mut self, index: usize) -> Scalar {
-        let res = self.pop();
+        let res = self.last();
         while self.count > index {
             self.count = self.count.saturating_sub(1);
             self.data[self.count] = Scalar::Null;

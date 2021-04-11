@@ -136,7 +136,6 @@ impl Card {
     fn __instruction_to_node(instr: Instruction) {
         match instr {
             Instruction::SetGlobalVar
-            | Instruction::Breadcrumb
             | Instruction::ReadGlobalVar
             | Instruction::Pop
             | Instruction::Less

@@ -36,9 +36,8 @@ impl CompilationUnit {
 #[pymethods]
 impl CompilationOptions {
     #[new]
-    #[args(breadcrumbs = "false")]
-    fn new(breadcrumbs: bool) -> Self {
-        let inner = cao_lang::prelude::CompileOptions { breadcrumbs };
+    fn new() -> Self {
+        let inner = cao_lang::prelude::CompileOptions {};
         Self { inner }
     }
 }
