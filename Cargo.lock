@@ -60,7 +60,7 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cao-lang"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "arrayvec",
  "criterion",
@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-py"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "cao-lang",
  "pyo3",
@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-wasm"
-version = "0.1.24"
+version = "0.1.25"
 dependencies = [
  "cao-lang",
  "console_error_panic_hook",
