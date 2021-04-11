@@ -1,5 +1,3 @@
-use std::mem::take;
-
 use cao_lang::{compiler as caoc, prelude::*, vm::Vm};
 use wasm_bindgen::prelude::*;
 
@@ -72,14 +70,11 @@ pub struct CompileResult {
 
 #[wasm_bindgen]
 #[derive(Debug, Default)]
-pub struct CompileOptions {
-    /// Emit breadcrumbs / history when executing this program
-    pub breadcrumbs: bool,
-}
+pub struct CompileOptions {}
 
 impl Into<caoc::CompileOptions> for CompileOptions {
     fn into(self) -> caoc::CompileOptions {
-        caoc::CompileOptions::new().with_breadcrumbs(self.breadcrumbs)
+        caoc::CompileOptions::new()
     }
 }
 
@@ -88,23 +83,10 @@ impl Into<caoc::CompileOptions> for CompileOptions {
 pub struct RunResult {
     #[wasm_bindgen(js_name = "returnCode")]
     pub return_code: i32,
-
-    #[wasm_bindgen(skip)]
-    pub history: Vec<cao_lang::vm::HistoryEntry>,
 }
 
 #[wasm_bindgen]
-impl RunResult {
-    #[wasm_bindgen(getter)]
-    pub fn history(&self) -> Box<[JsValue]> {
-        self.history
-            .iter()
-            .map(JsValue::from_serde)
-            .filter_map(|x| x.ok())
-            .collect::<Vec<_>>()
-            .into_boxed_slice()
-    }
-}
+impl RunResult {}
 
 /// Runs the given compiled Cao-Lang program (output of `compile`).
 ///
@@ -113,13 +95,9 @@ impl RunResult {
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = Vm::new(());
     let program: CaoProgram = program.into_serde().map_err(err_to_js)?;
-    vm.run(&program).map_err(err_to_js).map(|res| {
-        let history = take(&mut vm.history);
-        RunResult {
-            return_code: res,
-            history,
-        }
-    })
+    vm.run(&program)
+        .map_err(err_to_js)
+        .map(|res| RunResult { return_code: res })
 }
 
 fn err_to_js(e: impl std::error::Error) -> JsValue {

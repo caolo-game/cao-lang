@@ -1,10 +1,8 @@
 use cao_lang::{
-    collections::pre_hash_map::Key,
     compiler::{CallNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
 use std::convert::TryInto;
-use std::str::FromStr;
 
 #[test]
 fn test_array_literal_memory_limit_error_raised() {
@@ -46,7 +44,7 @@ fn test_string_literal() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
     };
 
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+    let program = compile(program, Some(CompileOptions::new())).unwrap();
 
     let varid = program.variable_id("result").unwrap();
     // Compilation was successful
@@ -86,7 +84,7 @@ fn simple_if_statement() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).expect("compile");
+    let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -112,7 +110,7 @@ fn simple_if_statement_skips_if_false() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).unwrap();
+    let program = compile(program, Some(CompileOptions::new())).unwrap();
 
     // Compilation was successful
 
@@ -147,7 +145,7 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions { breadcrumbs: false })).expect("compile");
+    let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -206,7 +204,7 @@ fn simple_while_loop() {
         ],
     };
     /*let program =*/
-    match compile(program, Some(CompileOptions { breadcrumbs: false })) {
+    match compile(program, Some(CompileOptions::new())) {
         Ok(_) => {
             panic!("Expected error, update this test pls")
         }
@@ -237,7 +235,7 @@ fn simple_for_loop() {
                     Card::ScalarInt(IntegerNode(0)),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
-                    Card::ScalarInt(IntegerNode(69)),
+                    Card::ScalarInt(IntegerNode(5)),
                     Card::Repeat(LaneNode::LaneName("Loop".to_string())),
                 ],
             },
@@ -249,81 +247,22 @@ fn simple_for_loop() {
                     Card::ReadVar(VarNode::from_str_unchecked("result")),
                     Card::Add,
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    Card::ScalarInt(IntegerNode(420)), // check if last value is discarded
                 ],
             },
         ],
     };
-    /*let program =*/
-    match compile(program, Some(CompileOptions { breadcrumbs: false })) {
-        Ok(_) => {
-            panic!("Expected error, update this test pls")
-        }
-        Err(CompilationError::Unimplemented(_)) => {}
-        Err(err) => {
-            panic!("Expected unimplemented error, instead got: {}", err)
-        }
-    }
+    let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
-    // let mut vm = Vm::new(()).with_max_iter(10000);
-    // let exit_code = vm.run(&program).unwrap();
-    //
-    // assert_eq!(exit_code, 0);
-    // let varid = *program
-    //     .variables
-    //     .0
-    //     .get(Key::from_str("result").unwrap())
-    //     .unwrap();
-    // assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(69));
-}
+    let mut vm = Vm::new(()).with_max_iter(500);
+    let exit_code = vm.run(&program);
 
-#[test]
-fn breadcrumbs_work_as_expected() {
-    let cu = CompilationUnit {
-        lanes: vec![Lane {
-            name: Some("Main".to_owned()),
-            cards: vec![Card::Pass, Card::Pass, Card::Pass],
-        }],
-    };
-
-    let prog = compile(cu.clone(), CompileOptions::new().with_breadcrumbs(true)).unwrap();
-    let mut vm = Vm::new(());
-    vm.run(&prog).expect("run failed");
-
-    assert_eq!(
-        vm.history,
-        vec![
-            cao_lang::vm::HistoryEntry {
-                id: NodeId { lane: 0, pos: 0 },
-                instr: Some(Instruction::Pass)
-            },
-            cao_lang::vm::HistoryEntry {
-                id: NodeId { lane: 0, pos: 1 },
-                instr: Some(Instruction::Pass)
-            },
-            cao_lang::vm::HistoryEntry {
-                id: NodeId { lane: 0, pos: 2 },
-                instr: Some(Instruction::Pass)
-            }
-        ]
-    );
-}
-
-#[test]
-fn no_breadcrumbs_emitted_when_compiled_with_off() {
-    let cu = CompilationUnit {
-        lanes: vec![Lane {
-            name: Some("Main".to_owned()),
-            cards: vec![Card::Pass, Card::Pass, Card::Pass],
-        }],
-    };
-
-    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
-    let mut vm = Vm::new(());
-    vm.run(&prog).expect("run failed");
-    assert_eq!(vm.history, vec![]);
+    assert!(matches!(exit_code, Ok(0i32)), "{:?}", exit_code);
+    let res = vm
+        .read_var_by_name("result", &program.variables)
+        .expect("Failed to read result variable");
+    assert_eq!(res, Scalar::Integer(5));
 }
 
 #[test]
@@ -338,7 +277,7 @@ fn call_test() {
         }],
     };
 
-    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let prog = compile(cu, CompileOptions::new()).unwrap();
 
     struct State {
         called: bool,
@@ -428,7 +367,7 @@ lanes:
           val: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
-    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let prog = compile(cu, CompileOptions::new()).unwrap();
 
     vm.run(&prog).expect("run failed");
 

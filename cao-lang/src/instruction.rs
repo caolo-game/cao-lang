@@ -55,10 +55,6 @@ pub enum Instruction {
     ReadGlobalVar,
     /// Clears until the last sentinel
     ClearStack,
-    /// If the value at the top of the stack is falsy jumps to the input node
-    /// Else does nothing
-    /// Insert a history entry
-    Breadcrumb,
     /// Push a `null` value onto the stack
     ScalarNull,
     /// Returns to right-after-the-last-call-instruction

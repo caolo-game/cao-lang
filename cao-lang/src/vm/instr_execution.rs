@@ -1,14 +1,14 @@
-use std::{convert::TryFrom, mem};
+use std::mem;
 
 use crate::{
-    collections::pre_hash_map::Key, instruction::Instruction, procedures::ExecutionError,
-    procedures::ExecutionResult, program::CaoProgram, scalar::Scalar, traits::ByteDecodeProperties,
-    traits::DecodeInPlace, traits::MAX_STR_LEN, Pointer, VariableId,
+    collections::pre_hash_map::Key, procedures::ExecutionError, procedures::ExecutionResult,
+    program::CaoProgram, scalar::Scalar, traits::ByteDecodeProperties, traits::DecodeInPlace,
+    traits::MAX_STR_LEN, Pointer, VariableId,
 };
 
 use super::{
     data::{CallFrame, RuntimeData},
-    HistoryEntry, Vm,
+    Vm,
 };
 
 pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
@@ -81,15 +81,6 @@ pub fn instr_exit(runtime_data: &mut RuntimeData) -> Result<i32, ExecutionError>
         return Ok(code);
     }
     Ok(0)
-}
-
-pub fn instr_breadcrumb(history: &mut Vec<HistoryEntry>, bytecode: &[u8], instr_ptr: &mut usize) {
-    let nodeid = unsafe { decode_value(&bytecode, instr_ptr) };
-
-    let instr = bytecode[*instr_ptr];
-    let instr = Instruction::try_from(instr).ok();
-    *instr_ptr += 1;
-    history.push(HistoryEntry { id: nodeid, instr });
 }
 
 pub fn instr_scalar_array(

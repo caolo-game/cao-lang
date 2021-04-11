@@ -47,7 +47,7 @@ fn lane_names_must_be_unique() {
         ],
     };
 
-    let err = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap_err();
+    let err = compile(cu, CompileOptions::new()).unwrap_err();
     assert!(matches!(err, CompilationError::DuplicateName(_)));
 }
 
@@ -64,7 +64,7 @@ fn can_json_de_serialize_output() {
         }],
     };
 
-    let prog = compile(cu, CompileOptions::new().with_breadcrumbs(false)).unwrap();
+    let prog = compile(cu, CompileOptions::new()).unwrap();
 
     let ser = serde_json::to_string(&prog).unwrap();
 

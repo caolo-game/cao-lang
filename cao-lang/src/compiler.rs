@@ -296,7 +296,7 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn add_local(&mut self, name: &'a str) -> Result<(), CompilationError> {
+    fn _add_local(&mut self, name: &'a str) -> Result<(), CompilationError> {
         self.locals
             .try_push(Local {
                 name,
@@ -402,19 +402,39 @@ impl<'a> Compiler<'a> {
             .insert(nodeid_hash, Label::new(handle));
 
         if let Some(instr) = card.instruction() {
-            if self.options.breadcrumbs {
-                self.program.bytecode.push(Instruction::Breadcrumb as u8);
-                nodeid.encode(&mut self.program.bytecode).unwrap();
-                // instr for the breadcrumb
-                self.program.bytecode.push(instr as u8);
-            }
             // instruction itself
             self.program.bytecode.push(instr as u8);
         }
         match card {
             // TODO: blocked by lane ABI
             Card::While(_) => return Err(CompilationError::Unimplemented("While cards")),
-            Card::Repeat(_) => return Err(CompilationError::Unimplemented("Repeat cards")),
+            Card::Repeat(repeat) => {
+                // Init, add 1
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                1i32.encode(&mut self.program.bytecode)
+                    .expect("Failed to encode 1");
+                self.program.bytecode.push(Instruction::Add as u8);
+                // Condition
+                let cond_block_begin = self.program.bytecode.len() as i32;
+                self.program.bytecode.push(Instruction::ScalarInt as u8);
+                1i32.encode(&mut self.program.bytecode)
+                    .expect("Failed to encode 1");
+                self.program.bytecode.push(Instruction::Sub as u8);
+                self.program.bytecode.push(Instruction::CopyLast as u8);
+                self.program.bytecode.push(Instruction::GotoIfFalse as u8);
+                let execute_block_len =
+                    instruction_span(Instruction::Jump) + instruction_span(Instruction::Goto);
+                (self.program.bytecode.len() as i32 + 4 + execute_block_len)
+                    .encode(&mut self.program.bytecode)
+                    .expect("Failed to encode skip goto");
+                // Execute
+                self.program.bytecode.push(Instruction::Jump as u8);
+                self.encode_jump(nodeid, &repeat)?;
+                self.program.bytecode.push(Instruction::Goto as u8);
+                cond_block_begin
+                    .encode(&mut self.program.bytecode)
+                    .expect("Failed to encode goto");
+            }
             Card::ReadVar(variable) => {
                 let scope = self.resolve_var(variable.0.as_str());
                 if scope < 0 {
@@ -570,7 +590,6 @@ const fn instruction_span(instr: Instruction) -> i32 {
         Instruction::Goto
         | Instruction::GotoIfTrue
         | Instruction::GotoIfFalse
-        | Instruction::Jump
-        | Instruction::Breadcrumb => 5,
+        | Instruction::Jump => 5,
     }
 }

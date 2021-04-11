@@ -17,7 +17,7 @@ lanes:
 """
 
     program = caoc.CompilationUnit.from_yaml(PROGRAM_YAML)
-    options = caoc.CompilationOptions(breadcrumbs=True)
+    options = caoc.CompilationOptions()
 
     program = caoc.compile(program, options)
 

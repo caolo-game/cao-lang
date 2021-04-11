@@ -58,21 +58,12 @@ impl Object {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct HistoryEntry {
-    pub id: NodeId,
-    pub instr: Option<Instruction>,
-}
-
 /// Cao-Lang bytecode interpreter.
 /// `Aux` is an auxiliary data structure passed to custom functions.
 pub struct Vm<'a, Aux = ()>
 where
     Aux: 'a,
 {
-    /// Breadcrumb instructions will populat this history log.
-    pub history: Vec<HistoryEntry>,
     pub auxiliary_data: Aux,
     /// Number of instructions `run` will execute before returning Timeout
     pub max_iter: i32,
@@ -90,7 +81,6 @@ where
 impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            history: Vec::new(),
             converters: HashMap::new(),
             auxiliary_data,
             callables: PreHashMap::default(),
@@ -116,6 +106,11 @@ impl<'a, Aux> Vm<'a, Aux> {
     pub fn get_object_properties(&self, ptr: Pointer) -> Option<Box<dyn ObjectProperties>> {
         let object = self.objects.get(&ptr)?;
         object.as_inner(self).ok()
+    }
+
+    pub fn read_var_by_name(&self, name: &str, vars: &Variables) -> Option<Scalar> {
+        let varid = vars.0.get(Key::from_str(name).ok()?)?;
+        self.read_var(*varid)
     }
 
     #[inline]
@@ -246,7 +241,6 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is fairly unsafe
     pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
-        self.history.clear();
         self.runtime_data
             .call_stack
             .push(CallFrame {
@@ -320,11 +314,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
-                Instruction::Breadcrumb => instr_execution::instr_breadcrumb(
-                    &mut self.history,
-                    &program.bytecode,
-                    &mut instr_ptr,
-                ),
                 Instruction::ClearStack => {
                     self.runtime_data.stack.clear_until(
                         self.runtime_data
@@ -358,19 +347,20 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Return => {
                     // pop the current stack frame
-                    if self.runtime_data.call_stack.pop().is_none() {
-                        return Err(ExecutionError::BadReturn {
-                            reason: "Call stack is empty".to_string(),
-                        });
+                    match self.runtime_data.call_stack.pop() {
+                        Some(rt) => {
+                            self.runtime_data.stack.clear_until(rt.stack_offset);
+                        }
+                        None => {
+                            return Err(ExecutionError::BadReturn {
+                                reason: "Call stack is empty".to_string(),
+                            })
+                        }
                     }
                     // read the previous frame
                     match self.runtime_data.call_stack.last_mut() {
-                        Some(CallFrame {
-                            instr_ptr: ptr,
-                            stack_offset,
-                        }) => {
+                        Some(CallFrame { instr_ptr: ptr, .. }) => {
                             instr_ptr = *ptr;
-                            self.runtime_data.stack.clear_until(*stack_offset);
                         }
                         None => {
                             return Err(ExecutionError::BadReturn {
