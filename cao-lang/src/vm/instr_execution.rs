@@ -148,7 +148,7 @@ pub fn instr_jump(
     runtime_data
         .call_stack
         .last_mut()
-        .ok_or_else(|| ExecutionError::CallStackEmpty)?
+        .ok_or(ExecutionError::CallStackEmpty)?
         .instr_ptr = *instr_ptr;
 
     // init the new call frame
