@@ -8,7 +8,7 @@ use std::convert::TryInto;
 fn test_array_literal_memory_limit_error_raised() {
     const PROGRAM: &str = r#"
 lanes:
-    - 
+    -
         name: Foo
         cards:
             - ty: ScalarInt
@@ -183,6 +183,62 @@ fn simple_if_else_statement_test_else() {
         Scalar::Integer(69),
     );
 }
+#[test]
+fn test_local_variable() {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("main")
+                // init the global variable
+                .with_card(Card::ScalarInt(IntegerNode(420)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
+                // set another value in local var
+                .with_card(Card::ScalarInt(IntegerNode(123)))
+                .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+                // read the var and set the global variable
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
+        ],
+    };
+
+    let program = compile(program, None).expect("compile");
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(500);
+    vm.run(&program).unwrap();
+
+    let res = vm
+        .read_var_by_name("bar", &program.variables)
+        .expect("Failed to read result variable");
+    assert_eq!(res, Scalar::Integer(123));
+
+}
+
+#[test]
+fn local_variable_doesnt_leak_out_of_scope() {
+    let program = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("main")
+                .with_card(Card::ScalarInt(IntegerNode(123)))
+                .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::Jump(LaneNode::LaneId(1))),
+            Lane::default()
+                .with_name("bar")
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+        ],
+    };
+
+    let program = compile(program, None).expect("compile");
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(500);
+    let res = vm.run(&program);
+    let _name = "foo".to_string();
+    assert!(matches!(res, Err(ExecutionError::VarNotFound(_name))));
+}
 
 #[test]
 fn simple_while_loop() {
@@ -271,7 +327,7 @@ fn call_test() {
     let cu = CompilationUnit {
         lanes: vec![Lane {
             name: Some("Main".to_owned()),
-            cards: vec![Card::Call(Box::new(CallNode(
+            cards: vec![Card::CallNative(Box::new(CallNode(
                 InputString::from(name).unwrap(),
             )))],
         }],
@@ -345,17 +401,17 @@ fn test_function_registry() {
     const PROG: &str = r#"
 lanes:
     - cards:
-        - ty: Call
+        - ty: CallNative
           val: "func0"
         - ty: ScalarInt
           val: 42
-        - ty: Call
+        - ty: CallNative
           val: "func1"
         - ty: ScalarInt
           val: 12
         - ty: ScalarFloat
           val: 4.2
-        - ty: Call
+        - ty: CallNative
           val: "func2"
         - ty: ScalarInt
           val: 33
@@ -363,7 +419,7 @@ lanes:
           val: 2.88
         - ty: ScalarInt
           val: 0
-        - ty: Call
+        - ty: CallNative
           val: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();

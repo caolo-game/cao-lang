@@ -11,7 +11,7 @@ use crate::{
     collections::pre_hash_map::{Key, PreHashMap},
     program::{CaoProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
-    InputString, Instruction,
+    InputString, Instruction, VarName,
 };
 use crate::{NodeId, VariableId};
 pub use card::*;
@@ -116,16 +116,17 @@ pub struct Compiler<'a> {
     pub next_var: RefCell<VariableId>,
 
     pub locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
-    pub local_count: i32,
     pub scope_depth: i32,
 
     _m: std::marker::PhantomData<&'a ()>,
 }
 
 /// local variables during compilation
+#[derive(Debug)]
 pub struct Local<'a> {
-    pub name: &'a str,
+    pub name: VarName,
     pub depth: i32,
+    _m: std::marker::PhantomData<&'a ()>,
 }
 
 pub fn compile(
@@ -151,7 +152,6 @@ impl<'a> Compiler<'a> {
             options: Default::default(),
             next_var: RefCell::new(VariableId(0)),
             locals: Default::default(),
-            local_count: 0,
             scope_depth: 0,
             _m: Default::default(),
         }
@@ -234,18 +234,20 @@ impl<'a> Compiler<'a> {
             .map(|Lane { cards, .. }| cards)
             .enumerate();
 
-        // main lane has no enclosing scope
         if let Some((il, main_lane)) = lanes.next() {
             let len: u16 = match main_lane.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
+            self.scope_begin()?;
             self.process_lane(il, main_lane, 0)?;
             let nodeid = NodeId {
                 lane: il as u16,
                 pos: len,
             };
-            self.process_node(nodeid, Card::ExitWithCode(IntegerNode(0)))?;
+            self.scope_end()?;
+            // insert explicit exit after the first lane
+            self.process_card(nodeid, Card::ExitWithCode(IntegerNode(0)))?;
         }
 
         for (il, lane) in lanes {
@@ -296,11 +298,12 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn _add_local(&mut self, name: &'a str) -> Result<(), CompilationError> {
+    fn add_local(&mut self, name: VarName) -> Result<(), CompilationError> {
         self.locals
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
+                _m: Default::default(),
             })
             .map_err(|_| CompilationError::TooManyLocals)?;
         Ok(())
@@ -322,7 +325,7 @@ impl<'a> Compiler<'a> {
                 lane: il as u16,
                 pos: (ic as i32 + instruction_offset) as u16,
             };
-            self.process_node(nodeid, card)?;
+            self.process_card(nodeid, card)?;
         }
         Ok(())
     }
@@ -385,14 +388,14 @@ impl<'a> Compiler<'a> {
 
     fn resolve_var(&self, name: &str) -> isize {
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if local.name == name {
+            if local.name.as_str() == name {
                 return i as isize;
             }
         }
         -1
     }
 
-    pub fn process_node(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
+    pub fn process_card(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_u32(nodeid.into());
@@ -444,19 +447,33 @@ impl<'a> Compiler<'a> {
                     let id = self
                         .program
                         .variables
-                        .0
+                        .ids
                         .entry(varhash)
                         .or_insert_with(move || {
                             let id = *next_var;
                             *next_var = VariableId(id.0 + 1);
                             id
                         });
+                    self.program
+                        .variables
+                        .names
+                        .entry(*id)
+                        .or_insert_with(|| variable.0);
                     self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
                     id.encode(&mut self.program.bytecode).unwrap();
                 } else {
                     //local
-                    return Err(CompilationError::Unimplemented("Local variables"));
+                    dbg!(&self.locals);
+                    let index = scope as u32;
+                    self.program.bytecode.push(Instruction::ReadLocalVar as u8);
+                    index.encode(&mut self.program.bytecode).unwrap();
                 }
+            }
+            Card::SetLocalVar(var) => {
+                let index = self.locals.len() as u32;
+                self.add_local(var.0)?;
+                self.program.bytecode.push(Instruction::SetLocalVar as u8);
+                index.encode(&mut self.program.bytecode).unwrap();
             }
             Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
@@ -465,13 +482,18 @@ impl<'a> Compiler<'a> {
                 let id = self
                     .program
                     .variables
-                    .0
+                    .ids
                     .entry(varhash)
                     .or_insert_with(move || {
                         let id = *next_var;
                         *next_var = VariableId(id.0 + 1);
                         id
                     });
+                self.program
+                    .variables
+                    .names
+                    .entry(*id)
+                    .or_insert_with(move || variable.0);
                 id.encode(&mut self.program.bytecode).unwrap();
             }
             Card::IfElse {
@@ -510,7 +532,7 @@ impl<'a> Compiler<'a> {
                 self.encode_jump(nodeid, &jmp)?;
             }
             Card::StringLiteral(c) => self.push_data(c.0)?,
-            Card::Call(c) => {
+            Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
                 key.encode(&mut self.program.bytecode).unwrap();
@@ -572,7 +594,6 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::ClearStack
         | Instruction::CopyLast
         | Instruction::Return
-        | Instruction::Remember
         | Instruction::SwapLast
         | Instruction::And
         | Instruction::Or
@@ -585,7 +606,10 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::ScalarArray
         | Instruction::StringLiteral => 5,
         //
-        Instruction::SetGlobalVar | Instruction::ReadGlobalVar => 5,
+        Instruction::SetLocalVar
+        | Instruction::ReadLocalVar
+        | Instruction::SetGlobalVar
+        | Instruction::ReadGlobalVar => 5,
         //
         Instruction::Goto
         | Instruction::GotoIfTrue

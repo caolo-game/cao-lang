@@ -20,6 +20,8 @@ pub enum Instruction {
     ScalarFloat,
     /// Push a label onto the stack
     ScalarLabel,
+    /// Push a `null` value onto the stack
+    ScalarNull,
     /// Pop the next N (positive integer) number of items from the stack and write them to memory
     /// Push the pointer to the beginning of the array onto the stack
     ScalarArray,
@@ -53,26 +55,29 @@ pub enum Instruction {
     SetGlobalVar,
     /// Reads the variable and pushes its value onto the stack
     ReadGlobalVar,
-    /// Clears until the last sentinel
+    /// Set the value in position given by the instruction to the value on top of the stack
+    SetLocalVar,
+    /// Read the value in position given by the instruction
+    ReadLocalVar,
+    /// Clears the last callframe's stack
     ClearStack,
-    /// Push a `null` value onto the stack
-    ScalarNull,
     /// Returns to right-after-the-last-call-instruction
-    /// Also clears the stack until the last sentinel
+    /// Also clears the stack until the last call frame
+    ///
+    /// Pops the stack and pushes the value back after clearing.
     Return,
-    /// Pop an offset from the stack and remember the location to that offset from the current
-    /// position
-    Remember,
-    /// Read bytecode position and move there
-    Goto,
     /// Swaps the last two values on the stack
     SwapLast,
-    /// Pop a scalar from the stack and `goto` there if the value was
-    /// truthy
-    GotoIfTrue,
     And,
     Or,
     Xor,
     Not,
+    /// Read bytecode position and move there
+    Goto,
+    /// Pop a scalar from the stack and `goto` there if the value was
+    /// truthy
+    GotoIfTrue,
+    /// Pop a scalar from the stack and `goto` there if the value was
+    /// falsy
     GotoIfFalse,
 }

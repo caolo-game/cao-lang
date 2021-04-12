@@ -10,13 +10,12 @@ pub struct ScalarStack {
     data: Box<[Scalar]>,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-struct Sentinel;
-
 #[derive(Debug, Error)]
 pub enum StackError {
     #[error("Stack is full")]
     Full,
+    #[error("Index out of bounds: capacity: {capacity} index: {index}")]
+    OutOfBounds { capacity: usize, index: usize },
 }
 impl std::fmt::Display for ScalarStack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -74,6 +73,54 @@ impl ScalarStack {
         self.count = count;
         self.data[self.count] = Scalar::Null;
         s
+    }
+
+    /// Pop value, treating offset as the 0 position
+    ///
+    /// ```
+    /// use cao_lang::collections::scalar_stack::ScalarStack;
+    /// use cao_lang::prelude::Scalar;
+    ///
+    /// let mut stack = ScalarStack::new(4);
+    /// stack.push(Scalar::Integer(42));
+    /// let res = stack.pop_w_offset(1);
+    /// assert_eq!(res, Scalar::Null);
+    /// let res = stack.pop();
+    /// assert_eq!(res, Scalar::Integer(42));
+    /// ```
+    ///
+    pub fn pop_w_offset(&mut self, offset: usize) -> Scalar {
+        if self.count <= offset {
+            return Scalar::Null;
+        }
+        self.pop()
+    }
+
+    /// Sets a value
+    /// Only previous values may be set
+    ///
+    /// Returns the old value
+    pub fn set(&mut self, index: usize, value: Scalar) -> Result<Scalar, StackError> {
+        if index > self.count {
+            return Err(StackError::OutOfBounds {
+                capacity: self.count,
+                index,
+            });
+        }
+        if index == self.count {
+            self.push(value)?;
+            Ok(Scalar::Null)
+        } else {
+            let old = std::mem::replace(&mut self.data[index], value);
+            Ok(old)
+        }
+    }
+
+    pub fn get(&mut self, index: usize) -> Scalar {
+        if index >= self.count {
+            return Scalar::Null;
+        }
+        self.data[index]
     }
 
     /// Returns the very first item

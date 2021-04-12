@@ -15,8 +15,8 @@ use crate::{
 use crate::{collections::pre_hash_map::Key, instruction::Instruction};
 use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
 use data::RuntimeData;
+use std::mem::transmute;
 use std::{collections::HashMap, str::FromStr};
-use std::{convert::TryFrom, mem::transmute};
 
 use self::data::CallFrame;
 
@@ -66,7 +66,7 @@ where
 {
     pub auxiliary_data: Aux,
     /// Number of instructions `run` will execute before returning Timeout
-    pub max_iter: i32,
+    pub max_instr: i32,
 
     pub runtime_data: RuntimeData,
 
@@ -92,7 +92,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 global_vars: Vec::with_capacity(128),
                 call_stack: BoundedStack::new(64),
             },
-            max_iter: 1000,
+            max_instr: 1000,
             _m: Default::default(),
         }
     }
@@ -109,7 +109,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn read_var_by_name(&self, name: &str, vars: &Variables) -> Option<Scalar> {
-        let varid = vars.0.get(Key::from_str(name).ok()?)?;
+        let varid = vars.ids.get(Key::from_str(name).ok()?)?;
         self.read_var(*varid)
     }
 
@@ -119,7 +119,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn with_max_iter(mut self, max_iter: i32) -> Self {
-        self.max_iter = max_iter;
+        self.max_instr = max_iter;
         self
     }
 
@@ -239,7 +239,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     /// This mostly assumes that program is valid, produced by the compiler.
-    /// As such running non-compiler emitted programs is fairly unsafe
+    /// As such running non-compiler emitted programs is very un-safe
     pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
         self.runtime_data
             .call_stack
@@ -249,7 +249,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             })
             .map_err(|_| ExecutionError::CallStackOverflow)?;
         let len = program.bytecode.len();
-        let mut remaining_iters = self.max_iter;
+        let mut remaining_iters = self.max_instr;
 
         let mut instr_ptr = 0;
         while instr_ptr < len {
@@ -292,27 +292,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(b).unwrap();
                     self.stack_push(a).unwrap();
                 }
-                Instruction::Remember => {
-                    let offset = self.runtime_data.stack.pop();
-                    let offset: i32 = match i32::try_from(offset) {
-                        Ok(i) => i,
-                        Err(err) => {
-                            return Err(ExecutionError::InvalidArgument {
-                                context: Some(format!(
-                                    "Remember instruction got invalid offset value {:?}",
-                                    err
-                                )),
-                            })
-                        }
-                    };
-
-                    self.runtime_data
-                        .stack
-                        .push(Scalar::Integer(
-                            (instr_ptr as isize + offset as isize) as i32,
-                        ))
-                        .map_err(|_| ExecutionError::Stackoverflow)?;
-                }
                 Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
                 Instruction::ClearStack => {
                     self.runtime_data.stack.clear_until(
@@ -322,6 +301,32 @@ impl<'a, Aux> Vm<'a, Aux> {
                             .expect("No callframe available")
                             .stack_offset,
                     );
+                }
+                Instruction::SetLocalVar => {
+                    let handle: u32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let offset = self
+                        .runtime_data
+                        .call_stack
+                        .last()
+                        .expect("Call stack is emtpy")
+                        .stack_offset;
+                    let value = self.runtime_data.stack.pop_w_offset(offset);
+                    self.runtime_data
+                        .stack
+                        .set(handle as usize, value)
+                        .map_err(|err| {
+                            ExecutionError::VarNotFound(format!(
+                                "Failed to set local variable: {}",
+                                err
+                            ))
+                        })?;
+                }
+                Instruction::ReadLocalVar => {
+                    let handle: u32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let value = self.runtime_data.stack.get(handle as usize);
+                    self.stack_push(value)?;
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
@@ -333,8 +338,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::ReadGlobalVar => {
                     instr_execution::instr_read_var(
                         &mut self.runtime_data,
-                        &program.bytecode,
                         &mut instr_ptr,
+                        &program,
                     )?;
                 }
                 Instruction::Pop => {
@@ -347,16 +352,15 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Return => {
                     // pop the current stack frame
-                    match self.runtime_data.call_stack.pop() {
-                        Some(rt) => {
-                            self.runtime_data.stack.clear_until(rt.stack_offset);
-                        }
+                    let value = match self.runtime_data.call_stack.pop() {
+                        // return value
+                        Some(rt) => self.runtime_data.stack.clear_until(rt.stack_offset),
                         None => {
                             return Err(ExecutionError::BadReturn {
                                 reason: "Call stack is empty".to_string(),
                             })
                         }
-                    }
+                    };
                     // read the previous frame
                     match self.runtime_data.call_stack.last_mut() {
                         Some(CallFrame { instr_ptr: ptr, .. }) => {
@@ -368,6 +372,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                             });
                         }
                     }
+                    // push the return value
+                    self.stack_push(value)?;
                 }
                 Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
                 Instruction::CopyLast => {

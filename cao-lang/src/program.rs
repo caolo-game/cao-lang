@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
-use crate::collections::pre_hash_map::{Key, PreHashMap};
+use crate::{
+    collections::pre_hash_map::{Key, PreHashMap},
+    VarName,
+};
 use crate::{version, VariableId};
 
 #[derive(Debug, Clone, Default)]
@@ -9,7 +12,11 @@ pub struct Labels(pub PreHashMap<Label>);
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Variables(pub PreHashMap<VariableId>);
+pub struct Variables {
+    pub ids: PreHashMap<VariableId>,
+    /// maps the variableIds back to names for debugging purposes
+    pub names: std::collections::HashMap<VariableId, VarName>,
+}
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -38,7 +45,10 @@ pub struct CaoProgram {
 
 impl CaoProgram {
     pub fn variable_id(&self, name: &str) -> Option<VariableId> {
-        self.variables.0.get(Key::from_str(name).unwrap()).copied()
+        self.variables
+            .ids
+            .get(Key::from_str(name).unwrap())
+            .copied()
     }
 }
 

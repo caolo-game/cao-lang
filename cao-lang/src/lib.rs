@@ -19,7 +19,7 @@
 //!               "val":42
 //!            },
 //!            {
-//!               "ty": "Call", "val":"log_scalar"
+//!               "ty": "CallNative", "val":"log_scalar"
 //!            }
 //!         ]
 //!      }

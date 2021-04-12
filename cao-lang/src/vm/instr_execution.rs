@@ -43,15 +43,22 @@ pub fn decode_in_place<'a, T: DecodeInPlace<'a>>(
 
 pub fn instr_read_var<'a>(
     runtime_data: &mut RuntimeData,
-    bytecode: &'a [u8],
     instr_ptr: &mut usize,
+    program: &CaoProgram,
 ) -> ExecutionResult {
-    let VariableId(varid) = unsafe { decode_value(bytecode, instr_ptr) };
+    let VariableId(varid) = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let value = runtime_data
         .global_vars
         .get(varid as usize)
         .ok_or_else(|| {
-            ExecutionError::invalid_argument(format!("Variable {} does not exist", varid))
+            ExecutionError::VarNotFound(
+                program
+                    .variables
+                    .names
+                    .get(&VariableId(varid))
+                    .map(|x| x.to_string())
+                    .unwrap_or_else(|| "<<<Unknown variable>>>".to_string()),
+            )
         })?;
     runtime_data
         .stack

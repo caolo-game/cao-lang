@@ -47,7 +47,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 #[inline(always)]
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
-        Card::Call(_) | Card::ScalarLabel(_) | Card::Exit => unreachable!(),
+        Card::CallNative(_) | Card::ScalarLabel(_) | Card::Exit => unreachable!(),
         Card::Pass => subprogram_description!(
             "Pass",
             "Do nothing",
@@ -277,8 +277,16 @@ fn get_desc(node: Card) -> SubProgram<'static> {
         ),
 
         Card::SetGlobalVar(_) => subprogram_description!(
-            "SetVar",
+            "SetGlobalVar",
             "Sets the value of a global variable",
+            SubProgramType::Instruction,
+            [Pointer],
+            [],
+            [VarName]
+        ),
+        Card::SetLocalVar(_) => subprogram_description!(
+            "SetLocalVar",
+            "Sets the value of a local variable. Local variables are only usable in the Lane they were created in.",
             SubProgramType::Instruction,
             [Pointer],
             [],

@@ -37,12 +37,13 @@ pub enum Card {
     ScalarArray(IntegerNode),
     ExitWithCode(IntegerNode),
     StringLiteral(StringNode),
-    Call(Box<CallNode>),
+    CallNative(Box<CallNode>),
     IfTrue(LaneNode),
     IfFalse(LaneNode),
     IfElse { then: LaneNode, r#else: LaneNode },
     Jump(LaneNode),
     SetGlobalVar(VarNode),
+    SetLocalVar(VarNode),
     ReadVar(VarNode),
     Repeat(LaneNode),
     While(LaneNode),
@@ -51,6 +52,7 @@ pub enum Card {
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
+            Card::SetLocalVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
             Card::Add => "Add",
             Card::Sub => "Sub",
@@ -73,7 +75,7 @@ impl Card {
             Card::ScalarLabel(_) => "ScalarLabel",
             Card::ScalarArray(_) => "ScalarArray",
             Card::StringLiteral(_) => "StringLiteral",
-            Card::Call(_) => "Call",
+            Card::CallNative(_) => "Call",
             Card::IfTrue(_) => "IfTrue",
             Card::IfFalse(_) => "IfFalse",
             Card::Jump(_) => "Jump",
@@ -94,6 +96,7 @@ impl Card {
         match self {
             Card::IfElse { .. }
             | Card::ReadVar(_)
+            | Card::SetLocalVar(_)
             | Card::While(_)
             | Card::Repeat(_)
             | Card::ExitWithCode(_) => None,
@@ -118,7 +121,7 @@ impl Card {
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
             Card::ScalarArray(_) => Some(Instruction::ScalarArray),
             Card::ScalarLabel(_) => Some(Instruction::ScalarLabel),
-            Card::Call(_) => Some(Instruction::Call),
+            Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
             Card::Jump(_) => Some(Instruction::Jump),
@@ -162,8 +165,9 @@ impl Card {
             | Instruction::Add
             | Instruction::ScalarNull
             | Instruction::Return
-            | Instruction::Remember
             | Instruction::SwapLast
+            | Instruction::ReadLocalVar
+            | Instruction::SetLocalVar
             | Instruction::Goto
             | Instruction::GotoIfTrue
             | Instruction::GotoIfFalse

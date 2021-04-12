@@ -23,6 +23,8 @@ pub enum ExecutionError {
     #[error("Got an invalid argument to function call; {}",
         .context.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
     InvalidArgument { context: Option<String> },
+    #[error("Variable {0} was not found!")]
+    VarNotFound(String),
     #[error("Procedure by the hash {0:?} could not be found")]
     ProcedureNotFound(Key),
     #[error("Unimplemented")]
