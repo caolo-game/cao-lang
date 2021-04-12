@@ -10,9 +10,9 @@ def test_compile_and_run():
 lanes:
     - cards:
         - ty: ScalarInt
-          val: 5 
+          val: 5
         - ty: ScalarInt
-          val: 5 
+          val: 5
         - ty: Add
 """
 
@@ -22,3 +22,9 @@ lanes:
     program = caoc.compile(program, options)
 
     caoc.run(program)
+
+
+def test_get_version():
+    v = caoc.version_human()
+    assert isinstance(v, str)
+    assert 0, v

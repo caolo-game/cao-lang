@@ -63,10 +63,17 @@ fn run(prog: CaoProgram) -> PyResult<()> {
         .map(|_| ())
 }
 
+/// Return the version of the native Cao-Lang used
+#[pyfunction]
+fn native_version() -> PyResult<String> {
+    Ok(cao_lang::version::VERSION_STR.to_string())
+}
+
 #[pymodule]
 fn cao_lang_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(run, m)?)?;
+    m.add_function(wrap_pyfunction!(native_version, m)?)?;
 
     m.add_class::<CompilationUnit>()?;
     m.add_class::<CompilationOptions>()?;

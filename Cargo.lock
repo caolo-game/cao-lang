@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-py"
-version = "0.1.4"
+version = "0.1.0"
 dependencies = [
  "cao-lang",
  "pyo3",
