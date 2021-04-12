@@ -27,4 +27,3 @@ lanes:
 def test_get_version():
     v = caoc.version_human()
     assert isinstance(v, str)
-    assert 0, v
