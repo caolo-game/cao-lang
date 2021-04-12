@@ -1,6 +1,8 @@
 lanes:
   - name: init
     _comment: "Assumes that N is pushed onto the stack before executing the program"
+    arguments: 
+      - N
     cards:
       - ty: ScalarInt
         val: 1
@@ -10,6 +12,8 @@ lanes:
         val: 1
       - ty: SetGlobalVar
         val: b
+      - ty: ReadVar
+        val: N
       - ty: Repeat
         val:
           LaneName: "loop"
