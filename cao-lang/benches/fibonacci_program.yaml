@@ -1,11 +1,11 @@
 lanes:
   - name: init
-    _comment: "Assumes that N is pushed onto the stack before executing the program"
+    # Assumes that N is pushed onto the stack before executing the program
     arguments: 
       - N
     cards:
       - ty: ScalarInt
-        val: 1
+        val: 0
       - ty: SetGlobalVar
         val: a
       - ty: ScalarInt

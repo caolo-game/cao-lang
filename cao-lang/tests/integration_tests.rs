@@ -460,3 +460,52 @@ fn jump_lane_w_params_test() {
         _ => panic!("Unexpected value set for bar {:?}", bar),
     }
 }
+
+mod fibonacci {
+    use cao_lang::prelude::*;
+
+    const RECURSIVE_FIB: &str = include_str!("../benches/fibonacci_program_recursive.yaml");
+
+    fn fib(n: i32) -> i32 {
+        let mut a = 0;
+        let mut b = 1;
+        for _ in 0..n {
+            let t = a + b;
+            a = b;
+            b = t;
+        }
+        b
+    }
+
+    #[test]
+    fn fibonacci_1() {
+        let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
+        let program = compile(cu, CompileOptions::new()).unwrap();
+
+        let mut vm = Vm::new(());
+        vm.stack_push(Scalar::Integer(1)).unwrap();
+        vm.run(&program).expect("run failed");
+
+        let result = vm
+            .read_var_by_name("result", &program.variables)
+            .expect("Failed to read result variable");
+
+        assert_eq!(result, Scalar::Integer(1));
+    }
+
+    #[test]
+    fn fibonacci_4() {
+        let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
+        let program = compile(cu, CompileOptions::new()).unwrap();
+
+        let mut vm = Vm::new(());
+        vm.stack_push(Scalar::Integer(4)).unwrap();
+        vm.run(&program).expect("run failed");
+
+        let result = vm
+            .read_var_by_name("result", &program.variables)
+            .expect("Failed to read result variable");
+
+        assert_eq!(result, Scalar::Integer(fib(4)));
+    }
+}

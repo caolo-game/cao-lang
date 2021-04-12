@@ -1,11 +1,12 @@
 use cao_lang::{compiler::CompileOptions, prelude::*};
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 const FIB_PROG: &str = include_str!("fibonacci_program.yaml");
+const FIB_RECURSE_PROG: &str = include_str!("fibonacci_program_recursive.yaml");
 
 #[allow(unused)]
 fn fib(n: i32) -> i32 {
-    let mut a = 1;
+    let mut a = 0;
     let mut b = 1;
     for _ in 0..n {
         let t = a + b;
@@ -17,11 +18,11 @@ fn fib(n: i32) -> i32 {
 
 fn run_fib(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci numbers");
-    for iterations in 2..6 {
+    for iterations in 1..5 {
         let iterations = 1 << iterations;
 
         group.bench_with_input(
-            BenchmarkId::from_parameter(iterations),
+            format!("iterative/{}", iterations),
             &iterations,
             move |b, &iterations| {
                 let cu = serde_yaml::from_str(FIB_PROG).unwrap();
@@ -38,6 +39,33 @@ fn run_fib(c: &mut Criterion) {
 
                         let b = vm
                             .read_var_by_name("b", &program.variables)
+                            .expect("Failed to read `b` variable");
+                        assert!(b.is_integer());
+                        let b: i32 = b.try_into().unwrap();
+                        assert_eq!(b, fib(iterations));
+                    }
+                    res
+                })
+            },
+        );
+        group.bench_with_input(
+            format!("recursive/{}", iterations),
+            &iterations,
+            move |b, &iterations| {
+                let cu = serde_yaml::from_str(FIB_RECURSE_PROG).unwrap();
+                let program = compile(cu, CompileOptions::new()).unwrap();
+
+                let mut vm = Vm::new(()).with_max_iter(1<<30);
+                b.iter(|| {
+                    vm.clear();
+                    vm.stack_push(iterations).expect("Initial push");
+                    let res = vm.run(&program).expect("run failed");
+                    #[cfg(debug_assertions)]
+                    {
+                        use std::convert::TryInto;
+
+                        let b = vm
+                            .read_var_by_name("result", &program.variables)
                             .expect("Failed to read `b` variable");
                         assert!(b.is_integer());
                         let b: i32 = b.try_into().unwrap();

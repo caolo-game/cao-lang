@@ -269,7 +269,6 @@ impl<'a> Compiler<'a> {
         }
 
         for (il, lane) in lanes {
-            // manually add a scope start instruction and the position information
             {
                 let nodeid = NodeId {
                     lane: il as u16,

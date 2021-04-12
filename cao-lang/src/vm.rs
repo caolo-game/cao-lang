@@ -90,7 +90,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 memory: Vec::with_capacity(512),
                 stack: ScalarStack::new(256),
                 global_vars: Vec::with_capacity(128),
-                call_stack: BoundedStack::new(64),
+                call_stack: BoundedStack::new(256),
             },
             max_instr: 1000,
             _m: Default::default(),
@@ -325,7 +325,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::ReadLocalVar => {
                     let handle: u32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    let value = self.runtime_data.stack.get(handle as usize);
+                    let value = self.runtime_data.stack.get(
+                        self.runtime_data
+                            .call_stack
+                            .last()
+                            .expect("no call frame found")
+                            .stack_offset
+                            + handle as usize,
+                    );
                     self.stack_push(value)?;
                 }
                 Instruction::SetGlobalVar => {
