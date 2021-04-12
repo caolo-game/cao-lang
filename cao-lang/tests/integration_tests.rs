@@ -1,5 +1,5 @@
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, LaneNode, StringNode, VarNode},
+    compiler::{CallNode, FloatNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
 use std::convert::TryInto;
@@ -186,19 +186,17 @@ fn simple_if_else_statement_test_else() {
 #[test]
 fn test_local_variable() {
     let program = CompilationUnit {
-        lanes: vec![
-            Lane::default()
-                .with_name("main")
-                // init the global variable
-                .with_card(Card::ScalarInt(IntegerNode(420)))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
-                // set another value in local var
-                .with_card(Card::ScalarInt(IntegerNode(123)))
-                .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
-                // read the var and set the global variable
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
-        ],
+        lanes: vec![Lane::default()
+            .with_name("main")
+            // init the global variable
+            .with_card(Card::ScalarInt(IntegerNode(420)))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
+            // set another value in local var
+            .with_card(Card::ScalarInt(IntegerNode(123)))
+            .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+            // read the var and set the global variable
+            .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))],
     };
 
     let program = compile(program, None).expect("compile");
@@ -212,7 +210,6 @@ fn test_local_variable() {
         .read_var_by_name("bar", &program.variables)
         .expect("Failed to read result variable");
     assert_eq!(res, Scalar::Integer(123));
-
 }
 
 #[test]
@@ -284,27 +281,21 @@ fn simple_while_loop() {
 fn simple_for_loop() {
     let program = CompilationUnit {
         lanes: vec![
-            Lane {
-                name: Some("Main".to_owned()),
-                cards: vec![
-                    // init the result variable
-                    Card::ScalarInt(IntegerNode(0)),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    // loop
-                    Card::ScalarInt(IntegerNode(5)),
-                    Card::Repeat(LaneNode::LaneName("Loop".to_string())),
-                ],
-            },
-            Lane {
-                name: Some("Loop".to_owned()),
-                cards: vec![
-                    // Add 1 to the global 'result' variable in each iteration
-                    Card::ScalarInt(IntegerNode(1)),
-                    Card::ReadVar(VarNode::from_str_unchecked("result")),
-                    Card::Add,
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ],
-            },
+            Lane::default().with_name("Main").with_cards(vec![
+                // init the result variable
+                Card::ScalarInt(IntegerNode(0)),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                // loop
+                Card::ScalarInt(IntegerNode(5)),
+                Card::Repeat(LaneNode::LaneName("Loop".to_string())),
+            ]),
+            Lane::default().with_name("Loop").with_cards(vec![
+                // Add 1 to the global 'result' variable in each iteration
+                Card::ScalarInt(IntegerNode(1)),
+                Card::ReadVar(VarNode::from_str_unchecked("result")),
+                Card::Add,
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ]),
         ],
     };
     let program = compile(program, Some(CompileOptions::new())).expect("compile");
@@ -322,15 +313,14 @@ fn simple_for_loop() {
 }
 
 #[test]
-fn call_test() {
+fn call_native_test() {
     let name = "foo";
     let cu = CompilationUnit {
-        lanes: vec![Lane {
-            name: Some("Main".to_owned()),
-            cards: vec![Card::CallNative(Box::new(CallNode(
+        lanes: vec![Lane::default()
+            .with_name("Main")
+            .with_cards(vec![Card::CallNative(Box::new(CallNode(
                 InputString::from(name).unwrap(),
-            )))],
-        }],
+            )))])],
     };
 
     let prog = compile(cu, CompileOptions::new()).unwrap();
@@ -432,4 +422,41 @@ lanes:
     assert!(state.call_1);
     assert!(state.call_2);
     assert!(state.call_3);
+}
+
+#[test]
+fn jump_lane_w_params_test() {
+    let cu = CompilationUnit {
+        lanes: vec![
+            Lane::default()
+                .with_name("main")
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarFloat(FloatNode(6.9)))
+                .with_card(Card::Jump(LaneNode::LaneId(1))),
+            Lane::default()
+                .with_arg("foo")
+                .with_arg("bar")
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("bar")))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_bar"))),
+        ],
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(());
+    vm.run(&program).expect("run");
+    let foo = vm
+        .read_var_by_name("g_foo", &program.variables)
+        .expect("Failed to read foo variable");
+    let bar = vm
+        .read_var_by_name("g_bar", &program.variables)
+        .expect("Failed to read bar variable");
+    dbg!(foo, bar);
+    assert!(matches!(foo, Scalar::Integer(42)));
+    match bar {
+        Scalar::Floating(f) => assert!((f - 6.9).abs() < std::f32::EPSILON),
+        _ => panic!("Unexpected value set for bar {:?}", bar),
+    }
 }

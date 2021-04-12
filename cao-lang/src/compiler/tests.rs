@@ -36,14 +36,8 @@ fn input_string_decode_error_handling() {
 fn lane_names_must_be_unique() {
     let cu = CompilationUnit {
         lanes: vec![
-            Lane {
-                name: Some("Foo".to_owned()),
-                cards: vec![],
-            },
-            Lane {
-                name: Some("Foo".to_owned()),
-                cards: vec![],
-            },
+            Lane::default().with_name("Foo").with_cards(vec![]),
+            Lane::default().with_name("Foo").with_cards(vec![]),
         ],
     };
 
@@ -54,14 +48,11 @@ fn lane_names_must_be_unique() {
 #[test]
 fn can_json_de_serialize_output() {
     let cu = CompilationUnit {
-        lanes: vec![Lane {
-            name: Some("Foo".to_owned()),
-            cards: vec![
-                Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
-                Card::Pass,
-                Card::Pass,
-            ],
-        }],
+        lanes: vec![Lane::default().with_name("Foo").with_cards(vec![
+            Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
+            Card::Pass,
+            Card::Pass,
+        ])],
     };
 
     let prog = compile(cu, CompileOptions::new()).unwrap();

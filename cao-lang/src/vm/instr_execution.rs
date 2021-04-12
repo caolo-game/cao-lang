@@ -150,6 +150,7 @@ pub fn instr_jump(
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
     let label: Key = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let argcount: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
 
     // remember the location after this jump
     runtime_data
@@ -163,7 +164,11 @@ pub fn instr_jump(
         .call_stack
         .push(CallFrame {
             instr_ptr: *instr_ptr,
-            stack_offset: runtime_data.stack.len(),
+            stack_offset: runtime_data
+                .stack
+                .len()
+                .checked_sub(argcount as usize)
+                .ok_or(ExecutionError::MissingArgument)?,
         })
         .map_err(|_| ExecutionError::CallStackOverflow)?;
 

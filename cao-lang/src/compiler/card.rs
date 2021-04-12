@@ -124,7 +124,7 @@ impl Card {
             Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
-            Card::Jump(_) => Some(Instruction::Jump),
+            Card::Jump(_) => Some(Instruction::CallLane),
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
@@ -147,7 +147,7 @@ impl Card {
             | Instruction::NotEquals
             | Instruction::Exit
             | Instruction::StringLiteral
-            | Instruction::Jump
+            | Instruction::CallLane
             | Instruction::CopyLast
             | Instruction::Call
             | Instruction::Sub

@@ -68,6 +68,9 @@ impl ByteDecodeProperties for InputString {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
     pub name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
+    pub arguments: Vec<VarName>,
+    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
     pub cards: Vec<Card>,
 }
 
@@ -75,6 +78,7 @@ impl Default for Lane {
     fn default() -> Self {
         Self {
             name: None,
+            arguments: Vec::new(),
             cards: Vec::new(),
         }
     }
@@ -83,6 +87,12 @@ impl Default for Lane {
 impl Lane {
     pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_arg(mut self, name: &str) -> Self {
+        let name = VarName::from_str(name).expect("Bad variable name");
+        self.arguments.push(name);
         self
     }
 
@@ -108,17 +118,24 @@ pub struct CompilationUnit {
 }
 
 pub struct Compiler<'a> {
-    /// maps lane names to their NodeId keys
-    pub jump_table: PreHashMap<Key>,
-
     pub options: CompileOptions,
     pub program: CaoProgram,
-    pub next_var: RefCell<VariableId>,
+    next_var: RefCell<VariableId>,
 
-    pub locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
-    pub scope_depth: i32,
+    /// maps lanes to their pre-hash-map keys
+    jump_table: PreHashMap<LaneMeta>,
+
+    locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
+    scope_depth: i32,
 
     _m: std::marker::PhantomData<&'a ()>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LaneMeta {
+    pub hash_key: Key,
+    /// number of arguments
+    pub arity: u32,
 }
 
 /// local variables during compilation
@@ -176,6 +193,7 @@ impl<'a> Compiler<'a> {
         }
         // initialize
         self.program = CaoProgram::default();
+        self.next_var = RefCell::new(VariableId(0));
         self.compile_stage_1(&mut compilation_unit)?;
         self.compile_stage_2(compilation_unit)?;
 
@@ -209,13 +227,17 @@ impl<'a> Compiler<'a> {
                 .into(),
             );
             // allow referencing lanes using both name and index
-            self.jump_table.insert(indexkey, nodekey);
+            let metadata = LaneMeta {
+                hash_key: nodekey,
+                arity: n.arguments.len() as u32,
+            };
+            self.jump_table.insert(indexkey, metadata);
             if let Some(ref mut name) = n.name.as_mut() {
                 let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
                 if self.jump_table.contains(namekey) {
                     return Err(CompilationError::DuplicateName(std::mem::take(name)));
                 }
-                self.jump_table.insert(namekey, nodekey);
+                self.jump_table.insert(namekey, metadata);
             }
         }
 
@@ -228,14 +250,10 @@ impl<'a> Compiler<'a> {
         &mut self,
         compilation_unit: CompilationUnit,
     ) -> Result<(), CompilationError> {
-        let mut lanes = compilation_unit
-            .lanes
-            .into_iter()
-            .map(|Lane { cards, .. }| cards)
-            .enumerate();
+        let mut lanes = compilation_unit.lanes.into_iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
-            let len: u16 = match main_lane.len().try_into() {
+            let len: u16 = match main_lane.cards.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
@@ -312,7 +330,10 @@ impl<'a> Compiler<'a> {
     fn process_lane(
         &mut self,
         il: usize,
-        cards: Vec<Card>,
+        Lane {
+            cards, arguments, ..
+        }: Lane,
+        // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> Result<(), CompilationError> {
         // check if len fits in 16 bits
@@ -320,6 +341,13 @@ impl<'a> Compiler<'a> {
             Ok(i) => i,
             Err(_) => return Err(CompilationError::TooManyCards(il)),
         };
+        // at runtime: pop arguments in the same order as the variables were declared
+        for param in arguments.iter() {
+            self.add_local(
+                VarName::from_str(param.as_str())
+                    .map_err(|_| CompilationError::BadVariableName(param.to_string()))?,
+            )?;
+        }
         for (ic, card) in cards.into_iter().enumerate() {
             let nodeid = NodeId {
                 lane: il as u16,
@@ -344,10 +372,10 @@ impl<'a> Compiler<'a> {
             "invalid skip instruction"
         );
         self.program.bytecode.push(skip_instr as u8);
-        let pos = instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
+        let pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
         debug_assert_eq!(std::mem::size_of_val(&pos), 4);
         pos.encode(&mut self.program.bytecode).unwrap();
-        self.program.bytecode.push(Instruction::Jump as u8);
+        self.program.bytecode.push(Instruction::CallLane as u8);
         self.encode_jump(nodeid, lane)?;
         Ok(())
     }
@@ -370,7 +398,8 @@ impl<'a> Compiler<'a> {
                 },
             )?,
         };
-        to.encode(&mut self.program.bytecode).unwrap();
+        to.hash_key.encode(&mut self.program.bytecode).unwrap();
+        to.arity.encode(&mut self.program.bytecode).unwrap();
         Ok(())
     }
 
@@ -426,12 +455,12 @@ impl<'a> Compiler<'a> {
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 self.program.bytecode.push(Instruction::GotoIfFalse as u8);
                 let execute_block_len =
-                    instruction_span(Instruction::Jump) + instruction_span(Instruction::Goto);
+                    instruction_span(Instruction::CallLane) + instruction_span(Instruction::Goto);
                 (self.program.bytecode.len() as i32 + 4 + execute_block_len)
                     .encode(&mut self.program.bytecode)
                     .expect("Failed to encode skip goto");
                 // Execute
-                self.program.bytecode.push(Instruction::Jump as u8);
+                self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &repeat)?;
                 self.program.bytecode.push(Instruction::Goto as u8);
                 cond_block_begin
@@ -463,7 +492,6 @@ impl<'a> Compiler<'a> {
                     id.encode(&mut self.program.bytecode).unwrap();
                 } else {
                     //local
-                    dbg!(&self.locals);
                     let index = scope as u32;
                     self.program.bytecode.push(Instruction::ReadLocalVar as u8);
                     index.encode(&mut self.program.bytecode).unwrap();
@@ -503,21 +531,22 @@ impl<'a> Compiler<'a> {
                 // if true jump to then (2nd item) else execute 1st item then jump over the 2nd
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
                 let pos = instruction_span(Instruction::Goto)
-                    + instruction_span(Instruction::Jump)
+                    + instruction_span(Instruction::CallLane)
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
                 debug_assert_eq!(std::mem::size_of_val(&pos), 4);
                 pos.encode(&mut self.program.bytecode).unwrap();
                 // else
-                self.program.bytecode.push(Instruction::Jump as u8);
+                self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &else_lane)?;
 
                 self.program.bytecode.push(Instruction::Goto as u8);
-                let pos =
-                    instruction_span(Instruction::Jump) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
+                let pos = instruction_span(Instruction::CallLane)
+                    + self.program.bytecode.len() as i32
+                    + 4; // +4 == sizeof pos
                 pos.encode(&mut self.program.bytecode).unwrap();
                 // then
-                self.program.bytecode.push(Instruction::Jump as u8);
+                self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &then_lane)?;
             }
             Card::IfFalse(jmp) => {
@@ -611,9 +640,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::SetGlobalVar
         | Instruction::ReadGlobalVar => 5,
         //
-        Instruction::Goto
-        | Instruction::GotoIfTrue
-        | Instruction::GotoIfFalse
-        | Instruction::Jump => 5,
+        Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
+        Instruction::CallLane => 9,
     }
 }

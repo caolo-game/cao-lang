@@ -265,7 +265,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    assert!(pos >= 0);
+                    debug_assert!(pos >= 0);
                     if condition.as_bool() {
                         instr_ptr = pos as usize;
                     }
@@ -274,7 +274,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    assert!(pos >= 0);
+                    debug_assert!(pos >= 0);
                     if !condition.as_bool() {
                         instr_ptr = pos as usize;
                     }
@@ -282,7 +282,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Goto => {
                     let pos: i32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    assert!(pos >= 0);
+                    debug_assert!(pos >= 0);
                     instr_ptr = pos as usize;
                 }
                 Instruction::SwapLast => {
@@ -347,7 +347,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         self.runtime_data.stack.pop();
                     }
                 }
-                Instruction::Jump => {
+                Instruction::CallLane => {
                     instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)?;
                 }
                 Instruction::Return => {

@@ -37,10 +37,8 @@ pub enum Instruction {
     /// Else does nothing
     /// Quit the program returning the last value on the stack
     Exit,
-    // TODO: replace jump instructions with an instruction to read label as bytecode position and
-    // use GOTO instead of jumps...
-    /// Jump to the label on top of the stack
-    Jump,
+    /// Read bytecode position and Lane arity from the program and perform a jump there.
+    CallLane,
     /// Compares two scalars
     Equals,
     /// Compares two scalars

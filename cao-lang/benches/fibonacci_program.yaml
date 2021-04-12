@@ -9,7 +9,7 @@ lanes:
       - ty: ScalarInt
         val: 1
       - ty: SetGlobalVar
-        val: "b"
+        val: b
       - ty: Repeat
         val:
           LaneName: "loop"

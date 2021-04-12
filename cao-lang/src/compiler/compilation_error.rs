@@ -37,4 +37,7 @@ pub enum CompilationError {
 
     #[error("Too many locals in scope")]
     TooManyLocals,
+
+    #[error("Variable name {0} can not be used")]
+    BadVariableName(String)
 }
