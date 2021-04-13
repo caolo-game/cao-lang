@@ -12,11 +12,14 @@ use crate::{binary_compare, pop_stack};
 use crate::{
     collections::bounded_stack::BoundedStack, collections::scalar_stack::ScalarStack, VariableId,
 };
-use crate::{collections::pre_hash_map::Key, instruction::Instruction};
-use crate::{collections::pre_hash_map::PreHashMap, prelude::*};
+use crate::{
+    collections::pre_hash_map::{Key, PreHashMap},
+    instruction::Instruction,
+    prelude::*,
+};
 use data::RuntimeData;
 use std::mem::transmute;
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use self::data::CallFrame;
 
@@ -54,7 +57,7 @@ impl Object {
     pub fn as_inner<Aux>(&self, vm: &Vm<Aux>) -> Result<Box<dyn ObjectProperties>, ConvertError> {
         self.index
             .ok_or(ConvertError::NullPtr)
-            .map(|index| unsafe { vm.converters[&index](self, vm) })
+            .map(|index| unsafe { vm.converters[index.0](self, vm) })
     }
 }
 
@@ -71,9 +74,9 @@ where
     pub runtime_data: RuntimeData,
 
     callables: PreHashMap<Procedure<Aux>>,
-    objects: HashMap<Pointer, Object>,
+    objects: PreHashMap<Object>,
     /// Functions to convert Objects to dyn ObjectProperties
-    converters: HashMap<Pointer, ConvertFn<Aux>>,
+    converters: PreHashMap<ConvertFn<Aux>>,
 
     _m: std::marker::PhantomData<&'a ()>,
 }
@@ -81,10 +84,10 @@ where
 impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            converters: HashMap::new(),
+            converters: PreHashMap::with_capacity(128),
             auxiliary_data,
             callables: PreHashMap::default(),
-            objects: HashMap::with_capacity(128),
+            objects: PreHashMap::with_capacity(128),
             runtime_data: RuntimeData {
                 memory_limit: 40000,
                 memory: Vec::with_capacity(512),
@@ -104,7 +107,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn get_object_properties(&self, ptr: Pointer) -> Option<Box<dyn ObjectProperties>> {
-        let object = self.objects.get(&ptr)?;
+        let object = self.objects.get(Key::from_u32(ptr.0))?;
         object.as_inner(self).ok()
     }
 
@@ -163,13 +166,13 @@ impl<'a, Aux> Vm<'a, Aux> {
         &'a self,
         instr_ptr: Pointer,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        let object = self.objects.get(&instr_ptr)?;
+        let object = self.objects.get(Key::from_u32(instr_ptr.0))?;
 
         self.runtime_data.get_value_in_place::<T>(object)
     }
 
     pub fn get_value<T: ByteDecodeProperties>(&self, instr_ptr: Pointer) -> Option<T> {
-        let object = self.objects.get(&instr_ptr)?;
+        let object = self.objects.get(Key::from_u32(instr_ptr.0))?;
         object.index.and_then(|index| {
             let data = &self.runtime_data.memory;
             let head = index.0 as usize;
@@ -186,15 +189,16 @@ impl<'a, Aux> Vm<'a, Aux> {
         val: T,
         converter: ConvertFn<Aux>,
     ) -> Result<Object, ExecutionError> {
-        let (index, size) = self.runtime_data.write_to_memory(val)?;
+        let (handle, size) = self.runtime_data.write_to_memory(val)?;
         let object = Object {
-            index: Some(index),
+            index: Some(handle),
             size: size as u32,
         };
-        self.objects.insert(index, object);
-        self.converters.insert(index as Pointer, converter);
+        let key = Key::from_u32(handle.0);
+        self.objects.insert(key, object);
+        self.converters.insert(key, converter);
 
-        self.stack_push(Scalar::Pointer(index as Pointer))?;
+        self.stack_push(Scalar::Pointer(handle as Pointer))?;
 
         Ok(object)
     }
@@ -204,19 +208,19 @@ impl<'a, Aux> Vm<'a, Aux> {
         &mut self,
         val: T,
     ) -> Result<Object, ExecutionError> {
-        let (index, size) = self.runtime_data.write_to_memory(val)?;
+        let (handle, size) = self.runtime_data.write_to_memory(val)?;
         let object = Object {
-            index: Some(index),
+            index: Some(handle),
             size: size as u32,
         };
-        self.objects.insert(index, object);
-        self.converters
-            .insert(index as Pointer, |o: &Object, vm: &Vm<Aux>| {
-                let res: T = vm.get_value(o.index.unwrap()).unwrap();
-                Box::new(res)
-            });
+        let key = Key::from_u32(handle.0);
+        self.objects.insert(key, object);
+        self.converters.insert(key, |o: &Object, vm: &Vm<Aux>| {
+            let res: T = vm.get_value(o.index.unwrap()).unwrap();
+            Box::new(res)
+        });
 
-        self.stack_push(Scalar::Pointer(index as Pointer))?;
+        self.stack_push(Scalar::Pointer(handle as Pointer))?;
 
         Ok(object)
     }

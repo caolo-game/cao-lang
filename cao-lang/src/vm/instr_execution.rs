@@ -33,7 +33,7 @@ pub unsafe fn decode_value<T: ByteDecodeProperties>(bytes: &[u8], instr_ptr: &mu
 }
 
 #[inline]
-pub fn instr_read_var<'a>(
+pub fn instr_read_var(
     runtime_data: &mut RuntimeData,
     instr_ptr: &mut usize,
     program: &CaoProgram,

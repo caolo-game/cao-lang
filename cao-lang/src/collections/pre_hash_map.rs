@@ -20,6 +20,7 @@ pub use self::serde::*;
 
 use std::{
     mem::{replace, swap, MaybeUninit},
+    ops::{Index, IndexMut},
     str::FromStr,
 };
 
@@ -138,12 +139,7 @@ where
 
 impl<T> Drop for PreHashMap<T> {
     fn drop(&mut self) {
-        for (i, _) in self.keys.iter().enumerate().filter(|(_, Key(x))| *x != 0) {
-            let value = replace(&mut self.values[i], MaybeUninit::uninit());
-            unsafe {
-                let _value = value.assume_init();
-            }
-        }
+        self.clear();
     }
 }
 
@@ -157,6 +153,22 @@ impl<T> PreHashMap<T> {
         };
         res.adjust_size(capacity);
         res
+    }
+
+    pub fn clear(&mut self) {
+        for (i, k) in self
+            .keys
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, Key(x))| *x != 0)
+        {
+            k.0 = 0;
+            if std::mem::needs_drop::<T>() {
+                unsafe {
+                    std::ptr::drop_in_place(self.values[i].as_mut_ptr());
+                }
+            }
+        }
     }
 
     /// Reserve enough space to hold `capacity` additional items
@@ -313,5 +325,59 @@ impl<T> PreHashMap<T> {
         } else {
             None
         }
+    }
+}
+
+impl<T> Index<Key> for PreHashMap<T> {
+    type Output = T;
+
+    fn index(&self, key: Key) -> &Self::Output {
+        let ind = self.find_ind(key);
+        assert!(self.keys[ind].0 != 0);
+        unsafe {
+            let r = self.values.get_unchecked(ind).as_ptr();
+            &*r
+        }
+    }
+}
+impl<T> IndexMut<Key> for PreHashMap<T> {
+    fn index_mut(&mut self, key: Key) -> &mut Self::Output {
+        let ind = self.find_ind(key);
+        assert!(self.keys[ind].0 != 0);
+        unsafe {
+            let r = self.values.get_unchecked_mut(ind).as_mut_ptr();
+            &mut *r
+        }
+    }
+}
+
+impl<T> Index<u32> for PreHashMap<T> {
+    type Output = T;
+
+    fn index(&self, key: u32) -> &Self::Output {
+        let key = Key::from_u32(key);
+        &self[key]
+    }
+}
+
+impl<T> IndexMut<u32> for PreHashMap<T> {
+    fn index_mut(&mut self, key: u32) -> &mut Self::Output {
+        let key = Key::from_u32(key);
+        &mut self[key]
+    }
+}
+
+impl<T> Index<&[u8]> for PreHashMap<T> {
+    type Output = T;
+
+    fn index(&self, key: &[u8]) -> &Self::Output {
+        let key = Key::from_bytes(key);
+        &self[key]
+    }
+}
+impl<T> IndexMut<&[u8]> for PreHashMap<T> {
+    fn index_mut(&mut self, key: &[u8]) -> &mut Self::Output {
+        let key = Key::from_bytes(key);
+        &mut self[key]
     }
 }

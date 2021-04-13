@@ -1,11 +1,13 @@
 #[macro_export(local_inner_macros)]
 macro_rules! load_ptr {
-    ($val: expr, $from: ident) => {
+    ($val: expr, $from: ident) => {{
+        use crate::collections::pre_hash_map::Key;
+        let key = Key::from_u32($val.0);
         $from
             .objects
-            .get($val)
-            .ok_or(ExecutionError::InvalidArgument { context: None })?;
-    };
+            .get(key)
+            .ok_or(ExecutionError::InvalidArgument { context: None })?
+    }};
 }
 
 #[macro_export(local_inner_macros)]

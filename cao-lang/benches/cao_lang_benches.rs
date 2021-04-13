@@ -23,10 +23,7 @@ fn jump_lane(c: &mut Criterion) {
         let program = compile(cu, CompileOptions::new()).unwrap();
 
         let mut vm = Vm::new(()).with_max_iter(1 << 30);
-        b.iter(|| {
-            vm.clear();
-            vm.run(&program).unwrap()
-        })
+        b.iter(|| vm.run(&program).unwrap())
     });
 }
 

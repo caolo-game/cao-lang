@@ -39,5 +39,5 @@ pub enum CompilationError {
     TooManyLocals,
 
     #[error("Variable name {0} can not be used")]
-    BadVariableName(String)
+    BadVariableName(String),
 }
