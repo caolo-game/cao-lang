@@ -6,7 +6,7 @@
 ![WASM tests](https://github.com/caolo-game/cao-lang/workflows/Run%20WASM%20tests/badge.svg)
 [![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml)
 
-The abstract, node based "language" that governs the actors in the game CaoLo
+The node based "language" that governs the actors in the game CaoLo
 
 [WASM package documentation](https://caolo-game.github.io/cao-lang/index.html)
 
