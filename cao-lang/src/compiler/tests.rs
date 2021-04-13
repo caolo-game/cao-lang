@@ -1,36 +1,5 @@
 use super::*;
-use crate::traits::ByteEncodeProperties;
-
-#[test]
-fn input_string_decode_error_handling() {
-    const NEGATIVELEN: i32 = -123i32;
-
-    let mut negativelen = vec![];
-    NEGATIVELEN.encode(&mut negativelen).unwrap();
-
-    let err = InputString::decode(&negativelen).unwrap_err();
-    match err {
-        StringDecodeError::LengthError(e) => assert_eq!(e, NEGATIVELEN),
-        _ => panic!("Bad error {:?}", err),
-    }
-
-    let err = InputString::decode(&negativelen[..3]).unwrap_err();
-    match err {
-        StringDecodeError::LengthDecodeError => {}
-        _ => panic!("Bad error {:?}", err),
-    }
-
-    let len = 1_000_000i32;
-    let mut bytes = vec![];
-    len.encode(&mut bytes).unwrap();
-    bytes.extend((0..len).map(|_| 69));
-
-    let err = InputString::decode(&bytes).unwrap_err();
-    match err {
-        StringDecodeError::CapacityError(_len) => {}
-        _ => panic!("Bad error {:?}", err),
-    }
-}
+use crate::traits::{ByteEncodeProperties, DecodeInPlace};
 
 #[test]
 fn lane_names_must_be_unique() {

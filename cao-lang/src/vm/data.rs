@@ -1,13 +1,12 @@
-use crate::collections::{bounded_stack::BoundedStack, scalar_stack::ScalarStack};
-use crate::{prelude::*, scalar::Scalar};
+use crate::alloc::BumpAllocator;
+use crate::collections::{bounded_stack::BoundedStack, value_stack::ValueStack};
+use crate::{prelude::*, value::Value};
 
 pub struct RuntimeData {
-    pub memory_limit: usize,
-
-    pub stack: ScalarStack,
+    pub stack: ValueStack,
     pub call_stack: BoundedStack<CallFrame>,
-    pub memory: Vec<u8>,
-    pub global_vars: Vec<Scalar>,
+    pub global_vars: Vec<Value>,
+    pub memory: BumpAllocator,
 }
 
 pub struct CallFrame {
@@ -19,58 +18,36 @@ pub struct CallFrame {
 
 impl RuntimeData {
     pub fn clear(&mut self) {
-        self.memory.clear();
         self.stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();
+        unsafe {
+            self.memory.clear();
+        }
+    }
+
+    pub fn set_memory_limit(&mut self, capacity: usize) {
+        unsafe {
+            self.memory.reset(capacity);
+        }
     }
 
     pub fn write_to_memory<T: ByteEncodeProperties>(
         &mut self,
         val: T,
-    ) -> Result<(Pointer, usize), ExecutionError> {
-        let result = self.memory.len();
+    ) -> Result<Pointer, ExecutionError> {
+        let l = val.layout();
+        unsafe {
+            let mut ptr = self
+                .memory
+                .alloc(l)
+                .map_err(|_| ExecutionError::OutOfMemory)?;
 
-        val.encode(&mut self.memory).map_err(|err| {
-            ExecutionError::invalid_argument(format!("Failed to encode argument {:?}", err))
-        })?;
+            val.encode(ptr.as_mut()).map_err(|err| {
+                ExecutionError::invalid_argument(format!("Failed to encode argument {:?}", err))
+            })?;
 
-        if self.memory.len() >= self.memory_limit {
-            return Err(ExecutionError::OutOfMemory);
-        }
-        Ok((Pointer(result as u32), self.memory.len() - result))
-    }
-
-    pub fn get_value_in_place<'a, T: DecodeInPlace<'a>>(
-        &'a self,
-        object: &MemoryHandle,
-    ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        match object.index {
-            Some(index) => {
-                let data = &self.memory;
-                let head = index.0 as usize;
-                let tail = (head.checked_add(object.size as usize))
-                    .unwrap_or(data.len())
-                    .min(data.len());
-                T::decode_in_place(&data[head..tail])
-                    .ok()
-                    .map(|(_, val)| val)
-            }
-            None => None,
-        }
-    }
-
-    pub fn get_value<T: ByteDecodeProperties>(&self, object: &MemoryHandle) -> Option<T> {
-        match object.index {
-            Some(index) => {
-                let data = &self.memory;
-                let head = index.0 as usize;
-                let tail = (head.checked_add(object.size as usize))
-                    .unwrap_or(data.len())
-                    .min(data.len());
-                T::decode(&data[head..tail]).ok().map(|(_, val)| val)
-            }
-            None => None,
+            Ok(Pointer(ptr.as_ptr()))
         }
     }
 }

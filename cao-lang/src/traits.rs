@@ -3,53 +3,33 @@ mod impls;
 pub use self::impls::*;
 use crate::{
     procedures::{ExecutionError, ExecutionResult},
-    scalar::Scalar,
+    value::Value,
     vm::Vm,
 };
 use std::any::type_name;
 use std::convert::TryFrom;
-use std::fmt::Write;
 
 pub const MAX_STR_LEN: usize = 256;
 
-pub trait ObjectProperties: std::fmt::Debug {
-    fn write_debug(&self, output: &mut String) {
-        write!(output, "[object {:?}]", self).unwrap();
-    }
-}
-
-pub trait ByteEncodeble: Sized + ObjectProperties {
+pub trait ByteEncodeble {
     fn displayname() -> &'static str {
         type_name::<Self>()
     }
 }
 
-pub trait ByteEncodeProperties: Sized + ObjectProperties + ByteEncodeble {
+pub trait ByteEncodeProperties: ByteEncodeble {
     type EncodeError: std::fmt::Debug;
 
-    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError>;
+    /// Return the layout needed by this instance (instance! not type!)
+    fn layout(&self) -> std::alloc::Layout;
+    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError>;
 }
 
-pub trait ByteDecodeProperties: Sized + ObjectProperties + ByteEncodeble {
+pub trait DecodeInPlace<'a>: ByteEncodeble {
     type DecodeError: std::fmt::Debug;
 
     /// return the bytes read
-    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError>;
-
-    /// return the bytes read
-    ///
-    /// # Safety
-    ///
-    /// Can assume that the underlying data represents this type
-    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self);
-}
-
-pub trait DecodeInPlace<'a>: Sized + ObjectProperties + ByteEncodeble {
-    type Ref;
-    type DecodeError: std::fmt::Debug;
-
-    /// return the bytes read
-    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), Self::DecodeError>;
+    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, &'a Self), Self::DecodeError>;
 }
 
 #[derive(Debug)]
@@ -57,7 +37,7 @@ pub enum StringDecodeError {
     /// Could not decode lengt
     LengthDecodeError,
     /// Got an invalid length
-    LengthError(i32),
+    LengthError(usize),
     /// Did not fit into available space
     CapacityError(usize),
     Utf8DecodeError(std::str::Utf8Error),
@@ -133,7 +113,7 @@ where
 
 impl<Aux, T1> VmFunction<Aux> for VmFunction1<Aux, T1>
 where
-    T1: TryFrom<Scalar>,
+    T1: TryFrom<Value>,
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ExecutionResult {
         let v1 = vm.stack_pop();
@@ -144,8 +124,8 @@ where
 
 impl<Aux, T1, T2> VmFunction<Aux> for fn(&mut Vm<Aux>, T1, T2) -> ExecutionResult
 where
-    T1: TryFrom<Scalar>,
-    T2: TryFrom<Scalar>,
+    T1: TryFrom<Value>,
+    T2: TryFrom<Value>,
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ExecutionResult {
         let v2 = vm.stack_pop();
@@ -158,9 +138,9 @@ where
 
 impl<Aux, T1, T2, T3> VmFunction<Aux> for fn(&mut Vm<Aux>, T1, T2, T3) -> ExecutionResult
 where
-    T1: TryFrom<Scalar>,
-    T2: TryFrom<Scalar>,
-    T3: TryFrom<Scalar>,
+    T1: TryFrom<Value>,
+    T2: TryFrom<Value>,
+    T3: TryFrom<Value>,
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ExecutionResult {
         let v3 = vm.stack_pop();
@@ -175,10 +155,10 @@ where
 
 impl<Aux, T1, T2, T3, T4> VmFunction<Aux> for fn(&mut Vm<Aux>, T1, T2, T3, T4) -> ExecutionResult
 where
-    T1: TryFrom<Scalar>,
-    T2: TryFrom<Scalar>,
-    T3: TryFrom<Scalar>,
-    T4: TryFrom<Scalar>,
+    T1: TryFrom<Value>,
+    T2: TryFrom<Value>,
+    T3: TryFrom<Value>,
+    T4: TryFrom<Value>,
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ExecutionResult {
         let v4 = vm.stack_pop();
@@ -191,4 +171,18 @@ where
         let v1 = T1::try_from(v1).map_err(|_| ExecutionError::invalid_argument(None))?;
         self(vm, v1, v2, v3, v4)
     }
+}
+
+pub fn write_to_vec<T>(
+    t: T,
+    v: &mut Vec<u8>,
+) -> Result<(), <T as ByteEncodeProperties>::EncodeError>
+where
+    T: ByteEncodeProperties,
+{
+    let layout = t.layout();
+    let ind = v.len();
+    v.resize(v.len() + layout.size(), 0);
+
+    t.encode(&mut v[ind..])
 }

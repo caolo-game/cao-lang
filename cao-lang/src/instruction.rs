@@ -20,11 +20,8 @@ pub enum Instruction {
     ScalarFloat,
     /// Push a label onto the stack
     ScalarLabel,
-    /// Push a `null` value onto the stack
-    ScalarNull,
-    /// Pop the next N (positive integer) number of items from the stack and write them to memory
-    /// Push the pointer to the beginning of the array onto the stack
-    ScalarArray,
+    /// Push a `nil` value onto the stack
+    ScalarNil,
     /// Writes the strings followed by the instruction to memory and pushes the pointer pointing to
     /// it onto the stack
     StringLiteral,

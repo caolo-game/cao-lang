@@ -7,10 +7,10 @@ mod instr_execution;
 #[cfg(test)]
 mod tests;
 
-use crate::scalar::Scalar;
+use crate::value::Value;
 use crate::{binary_compare, pop_stack};
 use crate::{
-    collections::bounded_stack::BoundedStack, collections::scalar_stack::ScalarStack, VariableId,
+    collections::bounded_stack::BoundedStack, collections::value_stack::ValueStack, VariableId,
 };
 use crate::{
     collections::key_map::{Key, KeyMap},
@@ -19,46 +19,16 @@ use crate::{
 };
 use data::RuntimeData;
 use std::mem::transmute;
+use std::ptr::NonNull;
 use std::str::FromStr;
 
 use self::data::CallFrame;
-
-type ConvertFn<Aux> = unsafe fn(&MemoryHandle, &Vm<Aux>) -> Box<dyn ObjectProperties>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConvertError {
     /// Null object was passed to convert
     NullPtr,
     BadType,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct MemoryHandle {
-    /// nullable index of the Object's data in the Vm memory
-    pub index: Option<Pointer>,
-    /// size of the data in the Vm memory
-    pub size: u32,
-}
-
-impl Default for MemoryHandle {
-    fn default() -> Self {
-        Self::null()
-    }
-}
-
-impl MemoryHandle {
-    pub fn null() -> Self {
-        Self {
-            index: None,
-            size: 0,
-        }
-    }
-
-    pub fn as_inner<Aux>(&self, vm: &Vm<Aux>) -> Result<Box<dyn ObjectProperties>, ConvertError> {
-        self.index
-            .ok_or(ConvertError::NullPtr)
-            .map(|index| unsafe { vm.converters[index.0](self, vm) })
-    }
 }
 
 /// Cao-Lang bytecode interpreter.
@@ -69,29 +39,22 @@ where
 {
     pub auxiliary_data: Aux,
     /// Number of instructions `run` will execute before returning Timeout
-    pub max_instr: i32,
+    pub max_instr: u64,
 
     pub runtime_data: RuntimeData,
 
     callables: KeyMap<Procedure<Aux>>,
-    objects: KeyMap<MemoryHandle>,
-    /// Functions to convert Objects to dyn ObjectProperties
-    converters: KeyMap<ConvertFn<Aux>>,
-
     _m: std::marker::PhantomData<&'a ()>,
 }
 
 impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            converters: KeyMap::with_capacity(128),
             auxiliary_data,
             callables: KeyMap::default(),
-            objects: KeyMap::with_capacity(128),
             runtime_data: RuntimeData {
-                memory_limit: 40000,
-                memory: Vec::with_capacity(512),
-                stack: ScalarStack::new(256),
+                memory: crate::alloc::BumpAllocator::new(40 * 1024),
+                stack: ValueStack::new(256),
                 global_vars: Vec::with_capacity(128),
                 call_stack: BoundedStack::new(256),
             },
@@ -101,27 +64,20 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn clear(&mut self) {
-        self.objects.clear();
-        self.converters.clear();
         self.runtime_data.clear();
     }
 
-    pub fn get_object_properties(&self, ptr: Pointer) -> Option<Box<dyn ObjectProperties>> {
-        let object = self.objects.get(Key::from_u32(ptr.0))?;
-        object.as_inner(self).ok()
-    }
-
-    pub fn read_var_by_name(&self, name: &str, vars: &Variables) -> Option<Scalar> {
+    pub fn read_var_by_name(&self, name: &str, vars: &Variables) -> Option<Value> {
         let varid = vars.ids.get(Key::from_str(name).ok()?)?;
         self.read_var(*varid)
     }
 
     #[inline]
-    pub fn read_var(&self, name: VariableId) -> Option<Scalar> {
+    pub fn read_var(&self, name: VariableId) -> Option<Value> {
         self.runtime_data.global_vars.get(name.0 as usize).cloned()
     }
 
-    pub fn with_max_iter(mut self, max_iter: i32) -> Self {
+    pub fn with_max_iter(mut self, max_iter: u64) -> Self {
         self.max_instr = max_iter;
         self
     }
@@ -144,7 +100,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// ```
     /// use cao_lang::prelude::*;
     ///
-    /// fn my_epic_func(vm: &mut Vm<()>, inp: i32) -> Result<(), ExecutionError> {
+    /// fn my_epic_func(vm: &mut Vm<()>, inp: i64) -> Result<(), ExecutionError> {
     ///     vm.stack_push(inp * 2);
     ///     Ok(())
     /// }
@@ -152,84 +108,20 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// let mut vm = Vm::new(());
     /// vm.register_function("epic", my_epic_func as VmFunction1<_, _>);
     /// ```
-    pub fn register_function<S, C>(&mut self, name: S, f: C)
+    pub fn register_function<'b, S, C>(&mut self, name: S, f: C)
     where
-        S: Into<String>,
+        S: Into<&'b str>,
         C: VmFunction<Aux> + 'static,
     {
         let name = name.into();
-        let key = Key::from_str(name.as_str()).unwrap();
+        let key = Key::from_str(name).unwrap();
         self.callables.insert(key, Procedure::new(name, f));
-    }
-
-    pub fn get_value_in_place<T: DecodeInPlace<'a>>(
-        &'a self,
-        instr_ptr: Pointer,
-    ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
-        let object = self.objects.get(Key::from_u32(instr_ptr.0))?;
-
-        self.runtime_data.get_value_in_place::<T>(object)
-    }
-
-    pub fn get_value<T: ByteDecodeProperties>(&self, instr_ptr: Pointer) -> Option<T> {
-        let object = self.objects.get(Key::from_u32(instr_ptr.0))?;
-        object.index.and_then(|index| {
-            let data = &self.runtime_data.memory;
-            let head = index.0 as usize;
-            let tail = (head.checked_add(object.size as usize))
-                .unwrap_or(data.len())
-                .min(data.len());
-            T::decode(&data[head..tail]).ok().map(|(_, val)| val)
-        })
-    }
-
-    /// Save `val` in memory and push a pointer to the object onto the stack
-    pub fn set_value_with_decoder<T: ByteEncodeProperties>(
-        &mut self,
-        val: T,
-        converter: ConvertFn<Aux>,
-    ) -> Result<MemoryHandle, ExecutionError> {
-        let (handle, size) = self.runtime_data.write_to_memory(val)?;
-        let object = MemoryHandle {
-            index: Some(handle),
-            size: size as u32,
-        };
-        let key = Key::from_u32(handle.0);
-        self.objects.insert(key, object);
-        self.converters.insert(key, converter);
-
-        self.stack_push(Scalar::Pointer(handle as Pointer))?;
-
-        Ok(object)
-    }
-
-    /// Save `val` in memory and push a pointer to the object onto the stack
-    pub fn set_value<T: ByteEncodeProperties + ByteDecodeProperties + 'static>(
-        &mut self,
-        val: T,
-    ) -> Result<MemoryHandle, ExecutionError> {
-        let (handle, size) = self.runtime_data.write_to_memory(val)?;
-        let object = MemoryHandle {
-            index: Some(handle),
-            size: size as u32,
-        };
-        let key = Key::from_u32(handle.0);
-        self.objects.insert(key, object);
-        self.converters
-            .insert(key, |o: &MemoryHandle, vm: &Vm<Aux>| {
-                let res: T = vm.get_value(o.index.unwrap()).unwrap();
-                Box::new(res)
-            });
-
-        self.stack_push(Scalar::Pointer(handle as Pointer))?;
-
-        Ok(object)
     }
 
     #[inline]
     pub fn stack_push<S>(&mut self, value: S) -> Result<(), ExecutionError>
     where
-        S: Into<Scalar>,
+        S: Into<Value>,
     {
         self.runtime_data
             .stack
@@ -239,13 +131,13 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     #[inline]
-    pub fn stack_pop(&mut self) -> Scalar {
+    pub fn stack_pop(&mut self) -> Value {
         self.runtime_data.stack.pop()
     }
 
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is very un-safe
-    pub fn run(&mut self, program: &CaoProgram) -> Result<i32, ExecutionError> {
+    pub fn run(&mut self, program: &CaoProgram) -> Result<(), ExecutionError> {
         self.runtime_data
             .call_stack
             .push(CallFrame {
@@ -269,7 +161,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     if condition.as_bool() {
                         instr_ptr = pos as usize;
@@ -278,7 +170,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::GotoIfFalse => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     if !condition.as_bool() {
                         instr_ptr = pos as usize;
@@ -286,7 +178,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Goto => {
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     instr_ptr = pos as usize;
                 }
@@ -297,7 +189,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(b).unwrap();
                     self.stack_push(a).unwrap();
                 }
-                Instruction::ScalarNull => self.stack_push(Scalar::Null)?,
+                Instruction::ScalarNil => self.stack_push(Value::Nil)?,
                 Instruction::ClearStack => {
                     self.runtime_data.stack.clear_until(
                         self.runtime_data
@@ -338,7 +230,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Return => {
                     instr_execution::instr_return(self, &mut instr_ptr)?;
                 }
-                Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
+                Instruction::Exit => return Ok(()),
                 Instruction::CopyLast => {
                     let val = self.runtime_data.stack.last();
                     self.runtime_data
@@ -350,45 +242,40 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::ScalarLabel => {
                     self.runtime_data
                         .stack
-                        .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                        .push(Value::Integer(unsafe {
+                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarInt => {
                     self.runtime_data
                         .stack
-                        .push(Scalar::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                        .push(Value::Integer(unsafe {
+                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::ScalarFloat => {
                     self.runtime_data
                         .stack
-                        .push(Scalar::Floating(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                        .push(Value::Floating(unsafe {
+                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
-                Instruction::ScalarArray => instr_execution::instr_scalar_array(
-                    &mut self.runtime_data,
-                    &program.bytecode,
-                    &mut instr_ptr,
-                )?,
                 Instruction::Not => {
                     let value = self.stack_pop();
                     let value = !value.as_bool();
-                    self.stack_push(Scalar::Integer(value as i32))?;
+                    self.stack_push(Value::Integer(value as i64))?;
                 }
                 Instruction::And => {
-                    self.binary_op(|a, b| Scalar::from(a.as_bool() && b.as_bool()))?
+                    self.binary_op(|a, b| Value::from(a.as_bool() && b.as_bool()))?
                 }
                 Instruction::Or => {
-                    self.binary_op(|a, b| Scalar::from(a.as_bool() || b.as_bool()))?
+                    self.binary_op(|a, b| Value::from(a.as_bool() || b.as_bool()))?
                 }
                 Instruction::Xor => {
-                    self.binary_op(|a, b| Scalar::from(a.as_bool() ^ b.as_bool()))?
+                    self.binary_op(|a, b| Value::from(a.as_bool() ^ b.as_bool()))?
                 }
                 Instruction::Add => self.binary_op(|a, b| a + b)?,
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,
@@ -413,7 +300,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     #[inline]
     fn binary_op<F>(&mut self, op: F) -> Result<(), ExecutionError>
     where
-        F: Fn(Scalar, Scalar) -> Scalar,
+        F: Fn(Value, Value) -> Value,
     {
         let b = pop_stack!(self);
         let a = pop_stack!(self);

@@ -10,7 +10,7 @@ mod tests;
 use crate::{
     collections::key_map::{Key, KeyMap},
     program::{CaoProgram, Label},
-    traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
+    traits::{write_to_vec, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction, VarName,
 };
 use crate::{NodeId, VariableId};
@@ -32,35 +32,14 @@ impl ByteEncodeble for InputString {
 }
 
 impl ByteEncodeProperties for InputString {
-    type EncodeError = Infallible;
-    fn encode(self, rr: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
-        (self.len() as i32).encode(rr)?;
-        rr.extend(self.as_bytes());
-        Ok(())
-    }
-}
+    type EncodeError = StringDecodeError;
 
-impl ByteDecodeProperties for InputString {
-    type DecodeError = StringDecodeError;
-
-    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
-        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
-        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
-        if bytes.len() < ll + len {
-            return Err(StringDecodeError::LengthError((ll + len) as i32));
-        }
-        let res = std::str::from_utf8(&bytes[ll..ll + len])
-            .map_err(StringDecodeError::Utf8DecodeError)?;
-        Self::from(res)
-            .map_err(|_| StringDecodeError::CapacityError(ll + len))
-            .map(|res| (ll + len, res))
+    fn layout(&self) -> std::alloc::Layout {
+        <&str as ByteEncodeProperties>::layout(&self.as_str())
     }
 
-    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
-        let (ll, len) = i32::decode_unsafe(bytes);
-        let len = len as usize;
-        let res = std::str::from_utf8_unchecked(&bytes[ll..ll + len]);
-        Self::from(res).map(|res| (ll + len, res)).unwrap()
+    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError> {
+        <&str as ByteEncodeProperties>::encode(self.as_str(), out)
     }
 }
 
@@ -265,7 +244,7 @@ impl<'a> Compiler<'a> {
             };
             self.scope_end()?;
             // insert explicit exit after the first lane
-            self.process_card(nodeid, Card::ExitWithCode(IntegerNode(0)))?;
+            self.process_card(nodeid, Card::Abort)?;
         }
 
         for (il, lane) in lanes {
@@ -373,7 +352,7 @@ impl<'a> Compiler<'a> {
         self.program.bytecode.push(skip_instr as u8);
         let pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
         debug_assert_eq!(std::mem::size_of_val(&pos), 4);
-        pos.encode(&mut self.program.bytecode).unwrap();
+        write_to_vec(pos, &mut self.program.bytecode).unwrap();
         self.program.bytecode.push(Instruction::CallLane as u8);
         self.encode_jump(nodeid, lane)?;
         Ok(())
@@ -397,20 +376,19 @@ impl<'a> Compiler<'a> {
                 },
             )?,
         };
-        to.hash_key.encode(&mut self.program.bytecode).unwrap();
-        to.arity.encode(&mut self.program.bytecode).unwrap();
+        write_to_vec(to.hash_key, &mut self.program.bytecode).unwrap();
+        write_to_vec(to.arity, &mut self.program.bytecode).unwrap();
         Ok(())
     }
 
     /// push `data` into the `data section` of the program and encode a poiter to it for the current instruction
     fn push_data<T: ByteEncodeProperties>(&mut self, data: T) -> Result<(), CompilationError> {
         let handle = self.program.data.len();
-        data.encode(&mut self.program.data)
-            .expect("Failed to encode data");
+        write_to_vec(data, &mut self.program.data).expect("Failed to encode data");
         let handle: u32 = handle
             .try_into()
             .expect("data handle doesn't fit into 32 bits");
-        handle.encode(&mut self.program.bytecode).unwrap();
+        write_to_vec(handle, &mut self.program.bytecode).unwrap();
         Ok(())
     }
 
@@ -442,28 +420,27 @@ impl<'a> Compiler<'a> {
             Card::Repeat(repeat) => {
                 // Init, add 1
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                1i32.encode(&mut self.program.bytecode)
-                    .expect("Failed to encode 1");
+                write_to_vec(1i32, &mut self.program.bytecode).expect("Failed to encode 1");
                 self.program.bytecode.push(Instruction::Add as u8);
                 // Condition
                 let cond_block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                1i32.encode(&mut self.program.bytecode)
-                    .expect("Failed to encode 1");
+                write_to_vec(1i32, &mut self.program.bytecode).expect("Failed to encode 1");
                 self.program.bytecode.push(Instruction::Sub as u8);
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 self.program.bytecode.push(Instruction::GotoIfFalse as u8);
                 let execute_block_len =
                     instruction_span(Instruction::CallLane) + instruction_span(Instruction::Goto);
-                (self.program.bytecode.len() as i32 + 4 + execute_block_len)
-                    .encode(&mut self.program.bytecode)
-                    .expect("Failed to encode skip goto");
+                write_to_vec(
+                    self.program.bytecode.len() as i32 + 4 + execute_block_len,
+                    &mut self.program.bytecode,
+                )
+                .expect("Failed to encode skip goto");
                 // Execute
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &repeat)?;
                 self.program.bytecode.push(Instruction::Goto as u8);
-                cond_block_begin
-                    .encode(&mut self.program.bytecode)
+                write_to_vec(cond_block_begin, &mut self.program.bytecode)
                     .expect("Failed to encode goto");
             }
             Card::ReadVar(variable) => {
@@ -488,19 +465,19 @@ impl<'a> Compiler<'a> {
                         .entry(*id)
                         .or_insert_with(|| variable.0);
                     self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
-                    id.encode(&mut self.program.bytecode).unwrap();
+                    write_to_vec(*id, &mut self.program.bytecode).unwrap();
                 } else {
                     //local
                     let index = scope as u32;
                     self.program.bytecode.push(Instruction::ReadLocalVar as u8);
-                    index.encode(&mut self.program.bytecode).unwrap();
+                    write_to_vec(index, &mut self.program.bytecode).unwrap();
                 }
             }
             Card::SetLocalVar(var) => {
                 let index = self.locals.len() as u32;
                 self.add_local(var.0)?;
                 self.program.bytecode.push(Instruction::SetLocalVar as u8);
-                index.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(index, &mut self.program.bytecode).unwrap();
             }
             Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
@@ -521,7 +498,7 @@ impl<'a> Compiler<'a> {
                     .names
                     .entry(*id)
                     .or_insert_with(move || variable.0);
-                id.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(*id, &mut self.program.bytecode).unwrap();
             }
             Card::IfElse {
                 then: then_lane,
@@ -534,7 +511,7 @@ impl<'a> Compiler<'a> {
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
                 debug_assert_eq!(std::mem::size_of_val(&pos), 4);
-                pos.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(pos, &mut self.program.bytecode).unwrap();
                 // else
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &else_lane)?;
@@ -543,7 +520,7 @@ impl<'a> Compiler<'a> {
                 let pos = instruction_span(Instruction::CallLane)
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
-                pos.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(pos, &mut self.program.bytecode).unwrap();
                 // then
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &then_lane)?;
@@ -559,29 +536,22 @@ impl<'a> Compiler<'a> {
             Card::Jump(jmp) => {
                 self.encode_jump(nodeid, &jmp)?;
             }
-            Card::StringLiteral(c) => self.push_data(c.0)?,
+            Card::StringLiteral(c) => self.push_data(c.0.as_str())?,
             Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
-                key.encode(&mut self.program.bytecode).unwrap();
-            }
-            Card::ScalarArray(n) => {
-                n.0.encode(&mut self.program.bytecode).unwrap();
-            }
-            Card::ExitWithCode(s) => {
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                s.0.encode(&mut self.program.bytecode).unwrap();
-                self.program.bytecode.push(Instruction::Exit as u8);
+                write_to_vec(key, &mut self.program.bytecode).unwrap();
             }
             Card::ScalarLabel(s) | Card::ScalarInt(s) => {
-                s.0.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(s.0, &mut self.program.bytecode).unwrap();
             }
             Card::ScalarFloat(s) => {
-                s.0.encode(&mut self.program.bytecode).unwrap();
+                write_to_vec(s.0, &mut self.program.bytecode).unwrap();
             }
-            Card::ScalarNull
+            Card::ScalarNil
             | Card::Return
             | Card::And
+            | Card::Abort
             | Card::Not
             | Card::Or
             | Card::Xor
@@ -590,7 +560,6 @@ impl<'a> Compiler<'a> {
             | Card::Less
             | Card::LessOrEq
             | Card::NotEquals
-            | Card::Exit
             | Card::Pass
             | Card::CopyLast
             | Card::Add
@@ -608,6 +577,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
     match instr {
         Instruction::Add
         | Instruction::Sub
+        | Instruction::Exit
         | Instruction::Mul
         | Instruction::Div
         | Instruction::Call
@@ -616,9 +586,8 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Less
         | Instruction::LessOrEq
         | Instruction::Pop
-        | Instruction::Exit
         | Instruction::Pass
-        | Instruction::ScalarNull
+        | Instruction::ScalarNil
         | Instruction::ClearStack
         | Instruction::CopyLast
         | Instruction::Return
@@ -628,11 +597,8 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Xor
         | Instruction::Not => 1,
         //
-        Instruction::ScalarInt
-        | Instruction::ScalarFloat
-        | Instruction::ScalarLabel
-        | Instruction::ScalarArray
-        | Instruction::StringLiteral => 5,
+        Instruction::ScalarInt | Instruction::ScalarFloat | Instruction::ScalarLabel => 9,
+        Instruction::StringLiteral => 5,
         //
         Instruction::SetLocalVar
         | Instruction::ReadLocalVar
