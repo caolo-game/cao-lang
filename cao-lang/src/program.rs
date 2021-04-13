@@ -1,19 +1,19 @@
 use std::str::FromStr;
 
 use crate::{
-    collections::pre_hash_map::{Key, PreHashMap},
+    collections::key_map::{Key, KeyMap},
     VarName,
 };
 use crate::{version, VariableId};
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Labels(pub PreHashMap<Label>);
+pub struct Labels(pub KeyMap<Label>);
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Variables {
-    pub ids: PreHashMap<VariableId>,
+    pub ids: KeyMap<VariableId>,
     /// maps the variableIds back to names for debugging purposes
     pub names: std::collections::HashMap<VariableId, VarName>,
 }

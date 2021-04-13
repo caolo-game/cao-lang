@@ -32,7 +32,7 @@ pub struct Key(u32);
 impl crate::AutoByteEncodeProperties for Key {}
 
 #[derive(Debug)]
-pub struct PreHashMap<T> {
+pub struct KeyMap<T> {
     keys: Box<[Key]>,
     values: Box<[MaybeUninit<T>]>,
 
@@ -115,13 +115,13 @@ impl<'a> From<&'a str> for Key {
     }
 }
 
-impl<T> Default for PreHashMap<T> {
+impl<T> Default for KeyMap<T> {
     fn default() -> Self {
         Self::with_capacity(16)
     }
 }
 
-impl<T> Clone for PreHashMap<T>
+impl<T> Clone for KeyMap<T>
 where
     T: Clone,
 {
@@ -137,13 +137,13 @@ where
     }
 }
 
-impl<T> Drop for PreHashMap<T> {
+impl<T> Drop for KeyMap<T> {
     fn drop(&mut self) {
         self.clear();
     }
 }
 
-impl<T> PreHashMap<T> {
+impl<T> KeyMap<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         let mut res = Self {
             keys: Box::new([]),
@@ -328,7 +328,7 @@ impl<T> PreHashMap<T> {
     }
 }
 
-impl<T> Index<Key> for PreHashMap<T> {
+impl<T> Index<Key> for KeyMap<T> {
     type Output = T;
 
     fn index(&self, key: Key) -> &Self::Output {
@@ -340,7 +340,7 @@ impl<T> Index<Key> for PreHashMap<T> {
         }
     }
 }
-impl<T> IndexMut<Key> for PreHashMap<T> {
+impl<T> IndexMut<Key> for KeyMap<T> {
     fn index_mut(&mut self, key: Key) -> &mut Self::Output {
         let ind = self.find_ind(key);
         assert!(self.keys[ind].0 != 0);
@@ -351,7 +351,7 @@ impl<T> IndexMut<Key> for PreHashMap<T> {
     }
 }
 
-impl<T> Index<u32> for PreHashMap<T> {
+impl<T> Index<u32> for KeyMap<T> {
     type Output = T;
 
     fn index(&self, key: u32) -> &Self::Output {
@@ -360,14 +360,14 @@ impl<T> Index<u32> for PreHashMap<T> {
     }
 }
 
-impl<T> IndexMut<u32> for PreHashMap<T> {
+impl<T> IndexMut<u32> for KeyMap<T> {
     fn index_mut(&mut self, key: u32) -> &mut Self::Output {
         let key = Key::from_u32(key);
         &mut self[key]
     }
 }
 
-impl<T> Index<&[u8]> for PreHashMap<T> {
+impl<T> Index<&[u8]> for KeyMap<T> {
     type Output = T;
 
     fn index(&self, key: &[u8]) -> &Self::Output {
@@ -375,7 +375,7 @@ impl<T> Index<&[u8]> for PreHashMap<T> {
         &self[key]
     }
 }
-impl<T> IndexMut<&[u8]> for PreHashMap<T> {
+impl<T> IndexMut<&[u8]> for KeyMap<T> {
     fn index_mut(&mut self, key: &[u8]) -> &mut Self::Output {
         let key = Key::from_bytes(key);
         &mut self[key]

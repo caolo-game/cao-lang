@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    collections::pre_hash_map::Key, procedures::ExecutionError, procedures::ExecutionResult,
+    collections::key_map::Key, procedures::ExecutionError, procedures::ExecutionResult,
     program::CaoProgram, scalar::Scalar, traits::ByteDecodeProperties, traits::DecodeInPlace,
     traits::MAX_STR_LEN, Pointer, VariableId,
 };

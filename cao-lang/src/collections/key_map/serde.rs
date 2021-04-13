@@ -1,7 +1,7 @@
 use super::*;
 use ::serde::{de::SeqAccess, de::Visitor, ser::SerializeSeq, Deserialize, Serialize};
 
-impl<T: Serialize> Serialize for PreHashMap<T> {
+impl<T: Serialize> Serialize for KeyMap<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: ::serde::Serializer,
@@ -23,7 +23,7 @@ struct PhmVisitor<T> {
 }
 
 impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
-    type Value = PreHashMap<T>;
+    type Value = KeyMap<T>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("A list of nodeid-label tuples")
@@ -33,7 +33,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
     where
         A: SeqAccess<'de>,
     {
-        let mut res = PreHashMap::<T>::default();
+        let mut res = KeyMap::<T>::default();
         while let Some((k, v)) = seq.next_element()? {
             res.insert(Key(k), v);
         }
@@ -41,7 +41,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
     }
 }
 
-impl<'de, T: Deserialize<'de>> Deserialize<'de> for PreHashMap<T> {
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for KeyMap<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: ::serde::Deserializer<'de>,
@@ -58,12 +58,12 @@ mod tests {
 
     #[test]
     fn can_serialize() {
-        let mut map = PreHashMap::with_capacity(16);
+        let mut map = KeyMap::with_capacity(16);
         map.insert(Key(123), 69);
 
         let js = serde_json::to_string(&map).unwrap();
 
-        let map2: PreHashMap<i32> = serde_json::from_str(&js).unwrap();
+        let map2: KeyMap<i32> = serde_json::from_str(&js).unwrap();
 
         let res = map2.get(Key(123)).unwrap();
         assert_eq!(*res, 69);

@@ -1,7 +1,7 @@
 #[macro_export(local_inner_macros)]
 macro_rules! load_ptr {
     ($val: expr, $from: ident) => {{
-        use crate::collections::pre_hash_map::Key;
+        use crate::collections::key_map::Key;
         let key = Key::from_u32($val.0);
         $from
             .objects

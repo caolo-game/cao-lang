@@ -13,7 +13,7 @@ use crate::{
     collections::bounded_stack::BoundedStack, collections::scalar_stack::ScalarStack, VariableId,
 };
 use crate::{
-    collections::pre_hash_map::{Key, PreHashMap},
+    collections::key_map::{Key, KeyMap},
     instruction::Instruction,
     prelude::*,
 };
@@ -23,7 +23,7 @@ use std::str::FromStr;
 
 use self::data::CallFrame;
 
-type ConvertFn<Aux> = unsafe fn(&Object, &Vm<Aux>) -> Box<dyn ObjectProperties>;
+type ConvertFn<Aux> = unsafe fn(&MemoryHandle, &Vm<Aux>) -> Box<dyn ObjectProperties>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConvertError {
@@ -33,20 +33,20 @@ pub enum ConvertError {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Object {
+pub struct MemoryHandle {
     /// nullable index of the Object's data in the Vm memory
     pub index: Option<Pointer>,
     /// size of the data in the Vm memory
     pub size: u32,
 }
 
-impl Default for Object {
+impl Default for MemoryHandle {
     fn default() -> Self {
         Self::null()
     }
 }
 
-impl Object {
+impl MemoryHandle {
     pub fn null() -> Self {
         Self {
             index: None,
@@ -73,10 +73,10 @@ where
 
     pub runtime_data: RuntimeData,
 
-    callables: PreHashMap<Procedure<Aux>>,
-    objects: PreHashMap<Object>,
+    callables: KeyMap<Procedure<Aux>>,
+    objects: KeyMap<MemoryHandle>,
     /// Functions to convert Objects to dyn ObjectProperties
-    converters: PreHashMap<ConvertFn<Aux>>,
+    converters: KeyMap<ConvertFn<Aux>>,
 
     _m: std::marker::PhantomData<&'a ()>,
 }
@@ -84,10 +84,10 @@ where
 impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(auxiliary_data: Aux) -> Self {
         Self {
-            converters: PreHashMap::with_capacity(128),
+            converters: KeyMap::with_capacity(128),
             auxiliary_data,
-            callables: PreHashMap::default(),
-            objects: PreHashMap::with_capacity(128),
+            callables: KeyMap::default(),
+            objects: KeyMap::with_capacity(128),
             runtime_data: RuntimeData {
                 memory_limit: 40000,
                 memory: Vec::with_capacity(512),
@@ -188,9 +188,9 @@ impl<'a, Aux> Vm<'a, Aux> {
         &mut self,
         val: T,
         converter: ConvertFn<Aux>,
-    ) -> Result<Object, ExecutionError> {
+    ) -> Result<MemoryHandle, ExecutionError> {
         let (handle, size) = self.runtime_data.write_to_memory(val)?;
-        let object = Object {
+        let object = MemoryHandle {
             index: Some(handle),
             size: size as u32,
         };
@@ -207,18 +207,19 @@ impl<'a, Aux> Vm<'a, Aux> {
     pub fn set_value<T: ByteEncodeProperties + ByteDecodeProperties + 'static>(
         &mut self,
         val: T,
-    ) -> Result<Object, ExecutionError> {
+    ) -> Result<MemoryHandle, ExecutionError> {
         let (handle, size) = self.runtime_data.write_to_memory(val)?;
-        let object = Object {
+        let object = MemoryHandle {
             index: Some(handle),
             size: size as u32,
         };
         let key = Key::from_u32(handle.0);
         self.objects.insert(key, object);
-        self.converters.insert(key, |o: &Object, vm: &Vm<Aux>| {
-            let res: T = vm.get_value(o.index.unwrap()).unwrap();
-            Box::new(res)
-        });
+        self.converters
+            .insert(key, |o: &MemoryHandle, vm: &Vm<Aux>| {
+                let res: T = vm.get_value(o.index.unwrap()).unwrap();
+                Box::new(res)
+            });
 
         self.stack_push(Scalar::Pointer(handle as Pointer))?;
 

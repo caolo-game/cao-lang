@@ -1,6 +1,6 @@
 //! Helper module for dealing with function extensions.
 //!
-use crate::collections::pre_hash_map::Key;
+use crate::collections::key_map::Key;
 use crate::traits::VmFunction;
 use thiserror::Error;
 

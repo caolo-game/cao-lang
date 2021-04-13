@@ -8,7 +8,7 @@ pub mod card_description;
 mod tests;
 
 use crate::{
-    collections::pre_hash_map::{Key, PreHashMap},
+    collections::key_map::{Key, KeyMap},
     program::{CaoProgram, Label},
     traits::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
     InputString, Instruction, VarName,
@@ -123,7 +123,7 @@ pub struct Compiler<'a> {
     next_var: RefCell<VariableId>,
 
     /// maps lanes to their pre-hash-map keys
-    jump_table: PreHashMap<LaneMeta>,
+    jump_table: KeyMap<LaneMeta>,
 
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,

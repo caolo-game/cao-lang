@@ -43,7 +43,7 @@ impl RuntimeData {
 
     pub fn get_value_in_place<'a, T: DecodeInPlace<'a>>(
         &'a self,
-        object: &Object,
+        object: &MemoryHandle,
     ) -> Option<<T as DecodeInPlace<'a>>::Ref> {
         match object.index {
             Some(index) => {
@@ -60,7 +60,7 @@ impl RuntimeData {
         }
     }
 
-    pub fn get_value<T: ByteDecodeProperties>(&self, object: &Object) -> Option<T> {
+    pub fn get_value<T: ByteDecodeProperties>(&self, object: &MemoryHandle) -> Option<T> {
         match object.index {
             Some(index) => {
                 let data = &self.memory;
