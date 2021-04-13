@@ -40,10 +40,11 @@ pub mod instruction;
 pub mod prelude;
 pub mod procedures;
 pub mod program;
-pub mod value;
 pub mod traits;
+pub mod value;
 pub mod vm;
 
+mod bytecode;
 mod macros;
 
 pub mod version {
@@ -53,14 +54,12 @@ pub mod version {
 use std::cmp::Ordering;
 
 use crate::instruction::Instruction;
-use crate::traits::AutoByteEncodeProperties;
 use arrayvec::ArrayString;
-use prelude::{ByteEncodeProperties, ByteEncodeble, StringDecodeError};
+use prelude::{ByteEncodeble, StringDecodeError};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VariableId(u32);
-impl AutoByteEncodeProperties for VariableId {}
 
 /// Unique id of each nodes in a single compilation
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
@@ -92,21 +91,9 @@ impl Ord for NodeId {
     }
 }
 
-impl AutoByteEncodeProperties for NodeId {
-    fn displayname() -> &'static str {
-        "Node ID"
-    }
-}
-
 /// Memory handles
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct Pointer(pub *mut [u8]);
-
-impl AutoByteEncodeProperties for Pointer {
-    fn displayname() -> &'static str {
-        "Object Reference"
-    }
-}
+pub struct Pointer(pub *mut u8);
 
 pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 255;
 
@@ -116,18 +103,6 @@ pub type VarName = ArrayString<64>;
 impl ByteEncodeble for VarName {
     fn displayname() -> &'static str {
         "Text"
-    }
-}
-
-impl ByteEncodeProperties for VarName {
-    type EncodeError = StringDecodeError;
-
-    fn layout(&self) -> std::alloc::Layout {
-        <&str as ByteEncodeProperties>::layout(&self.as_str())
-    }
-
-    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError> {
-        <&str as ByteEncodeProperties>::encode(self.as_str(), out)
     }
 }
 
@@ -194,7 +169,7 @@ impl SubProgramType {
 
 #[macro_export]
 macro_rules! subprogram_description {
-    ($name: expr, $description: expr, $ty: expr, [$($inputs: ty),*], [$($outputs: ty),*], [$($constants: ty),*]) => {
+    ($name: expr, $description: expr, $ty: expr, [$($inputs: expr),*], [$($outputs: expr),*], [$($constants: expr),*]) => {
         SubProgram {
             name: $name,
             description: $description,
@@ -205,10 +180,10 @@ macro_rules! subprogram_description {
         }
     };
 
-    (@input $($lst:ty),*) => {
+    (@input $($lst: expr),*) => {
         vec![
             $(
-                <$lst as ByteEncodeble>::displayname()
+                $lst
             ),*
         ]
         .into_boxed_slice()

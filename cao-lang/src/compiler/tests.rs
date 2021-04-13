@@ -1,5 +1,4 @@
 use super::*;
-use crate::traits::{ByteEncodeProperties, DecodeInPlace};
 
 #[test]
 fn lane_names_must_be_unique() {

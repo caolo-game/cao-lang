@@ -17,21 +17,6 @@ pub trait ByteEncodeble {
     }
 }
 
-pub trait ByteEncodeProperties: ByteEncodeble {
-    type EncodeError: std::fmt::Debug;
-
-    /// Return the layout needed by this instance (instance! not type!)
-    fn layout(&self) -> std::alloc::Layout;
-    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError>;
-}
-
-pub trait DecodeInPlace<'a>: ByteEncodeble {
-    type DecodeError: std::fmt::Debug;
-
-    /// return the bytes read
-    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, &'a Self), Self::DecodeError>;
-}
-
 #[derive(Debug)]
 pub enum StringDecodeError {
     /// Could not decode lengt
@@ -41,13 +26,6 @@ pub enum StringDecodeError {
     /// Did not fit into available space
     CapacityError(usize),
     Utf8DecodeError(std::str::Utf8Error),
-}
-
-/// Opts in for the default implementation of ByteEncodeProperties which is memcopy
-pub trait AutoByteEncodeProperties: Copy + std::fmt::Debug {
-    fn displayname() -> &'static str {
-        type_name::<Self>()
-    }
 }
 
 /// Objects that can act as Cao-Lang functions
@@ -171,18 +149,4 @@ where
         let v1 = T1::try_from(v1).map_err(|_| ExecutionError::invalid_argument(None))?;
         self(vm, v1, v2, v3, v4)
     }
-}
-
-pub fn write_to_vec<T>(
-    t: T,
-    v: &mut Vec<u8>,
-) -> Result<(), <T as ByteEncodeProperties>::EncodeError>
-where
-    T: ByteEncodeProperties,
-{
-    let layout = t.layout();
-    let ind = v.len();
-    v.resize(v.len() + layout.size(), 0);
-
-    t.encode(&mut v[ind..])
 }

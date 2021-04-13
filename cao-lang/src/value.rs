@@ -1,4 +1,4 @@
-use crate::{traits::AutoByteEncodeProperties, Pointer};
+use crate::Pointer;
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -77,8 +77,6 @@ impl Value {
     }
 }
 
-impl AutoByteEncodeProperties for Value {}
-
 impl From<Value> for bool {
     fn from(s: Value) -> Self {
         s.as_bool()
@@ -101,7 +99,7 @@ impl TryFrom<Value> for i64 {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Pointer(Pointer(i)) => Ok(unsafe { (*i).as_ptr() } as i64),
+            Value::Pointer(Pointer(i)) => Ok(i as i64),
             Value::Integer(i) => Ok(i),
             _ => Err(v),
         }

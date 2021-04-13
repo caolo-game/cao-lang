@@ -70,7 +70,7 @@ impl BumpAllocator {
     /// # SAFETY
     /// `alloc` is not thread safe. It is on the caller to ensure that only a single thread uses
     /// the allocator at a time
-    pub unsafe fn alloc(&self, l: Layout) -> Result<NonNull<[u8]>, AllocError> {
+    pub unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
         let s = l.size() + l.align();
         if *self.head.get() + s >= self.capacity {
             return Err(AllocError::OutOfMemory);
@@ -78,8 +78,7 @@ impl BumpAllocator {
         let ptr = self.data.as_ptr().add(*self.head.get());
         *self.head.get() += s;
         let ptr = ptr.add(ptr.align_offset(l.align()));
-        let res = std::slice::from_raw_parts_mut(ptr, l.size());
-        Ok(NonNull::new_unchecked(res as *mut _))
+        Ok(NonNull::new_unchecked(ptr))
     }
 
     /// # SAFETY

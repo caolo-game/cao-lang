@@ -19,7 +19,6 @@ use crate::{
 };
 use data::RuntimeData;
 use std::mem::transmute;
-use std::ptr::NonNull;
 use std::str::FromStr;
 
 use self::data::CallFrame;
@@ -161,7 +160,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
-                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     if condition.as_bool() {
                         instr_ptr = pos as usize;
@@ -170,7 +169,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::GotoIfFalse => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
-                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     if !condition.as_bool() {
                         instr_ptr = pos as usize;
@@ -178,7 +177,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Goto => {
                     let pos: i32 =
-                        unsafe { *instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
                     instr_ptr = pos as usize;
                 }
@@ -243,7 +242,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Value::Integer(unsafe {
-                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -251,7 +250,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Value::Integer(unsafe {
-                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
@@ -259,7 +258,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data
                         .stack
                         .push(Value::Floating(unsafe {
-                            *instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
