@@ -1,0 +1,7 @@
+lanes:
+  - name: main
+    cards:
+      - ty: Jump
+        val:
+          LaneId: 1
+  - cards: []

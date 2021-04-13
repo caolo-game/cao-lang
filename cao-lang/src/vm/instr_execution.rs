@@ -11,6 +11,7 @@ use super::{
     Vm,
 };
 
+#[inline]
 pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
     let p = *instr_ptr;
     let limit = program.len().min(p + MAX_STR_LEN);
@@ -24,23 +25,14 @@ pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str>
 ///
 /// Assumes that the underlying data is safely decodable to the given type
 ///
+#[inline]
 pub unsafe fn decode_value<T: ByteDecodeProperties>(bytes: &[u8], instr_ptr: &mut usize) -> T {
     let (len, val) = T::decode_unsafe(&bytes[*instr_ptr..]);
     *instr_ptr += len;
     val
 }
 
-#[allow(unused)]
-pub fn decode_in_place<'a, T: DecodeInPlace<'a>>(
-    bytes: &'a [u8],
-    instr_ptr: &mut usize,
-) -> Result<T::Ref, ExecutionError> {
-    let (len, val) = T::decode_in_place(&bytes[*instr_ptr..])
-        .map_err(|_| ExecutionError::invalid_argument("Failed to decode value".to_owned()))?;
-    *instr_ptr += len;
-    Ok(val)
-}
-
+#[inline]
 pub fn instr_read_var<'a>(
     runtime_data: &mut RuntimeData,
     instr_ptr: &mut usize,
@@ -67,6 +59,7 @@ pub fn instr_read_var<'a>(
     Ok(())
 }
 
+#[inline]
 pub fn instr_set_var(
     runtime_data: &mut RuntimeData,
     bytecode: &[u8],
@@ -82,6 +75,7 @@ pub fn instr_set_var(
     Ok(())
 }
 
+#[inline]
 pub fn instr_exit(runtime_data: &mut RuntimeData) -> Result<i32, ExecutionError> {
     let code = runtime_data.stack.pop();
     if let Scalar::Integer(code) = code {
@@ -90,6 +84,7 @@ pub fn instr_exit(runtime_data: &mut RuntimeData) -> Result<i32, ExecutionError>
     Ok(0)
 }
 
+#[inline]
 pub fn instr_scalar_array(
     runtime_data: &mut RuntimeData,
     bytecode: &[u8],
@@ -121,6 +116,7 @@ pub fn instr_scalar_array(
     Ok(())
 }
 
+#[inline]
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     instr_ptr: &mut usize,
@@ -144,6 +140,7 @@ pub fn instr_string_literal<T>(
     Ok(())
 }
 
+#[inline]
 pub fn instr_jump(
     instr_ptr: &mut usize,
     program: &CaoProgram,
@@ -156,7 +153,7 @@ pub fn instr_jump(
     runtime_data
         .call_stack
         .last_mut()
-        .ok_or(ExecutionError::CallStackEmpty)?
+        .expect("Call stack was empty")
         .instr_ptr = *instr_ptr;
 
     // init the new call frame
@@ -173,20 +170,12 @@ pub fn instr_jump(
         .map_err(|_| ExecutionError::CallStackOverflow)?;
 
     // set the instr_ptr to the new lane's beginning
-    *instr_ptr = program
-        .labels
-        .0
-        .get(label)
-        .ok_or(ExecutionError::InvalidLabel(label))?
-        .pos as usize;
+    *instr_ptr = program.labels.0.get(label).expect("Label not found").pos as usize;
     Ok(())
 }
 
-pub fn execute_call<T>(
-    vm: &mut Vm<T>,
-    instr_ptr: &mut usize,
-    bytecode: &[u8],
-) -> Result<(), ExecutionError> {
+#[inline]
+pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -> ExecutionResult {
     let fun_hash = unsafe { decode_value(bytecode, instr_ptr) };
     let fun = vm
         .callables
@@ -196,4 +185,66 @@ pub fn execute_call<T>(
     //cleanup
     vm.callables.insert(fun_hash, fun);
     res
+}
+
+#[inline]
+pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let offset = vm
+        .runtime_data
+        .call_stack
+        .last()
+        .expect("Call stack is emtpy")
+        .stack_offset;
+    let value = vm.runtime_data.stack.pop_w_offset(offset);
+    vm.runtime_data
+        .stack
+        .set(handle as usize, value)
+        .map_err(|err| {
+            ExecutionError::VarNotFound(format!("Failed to set local variable: {}", err))
+        })?;
+    Ok(())
+}
+
+#[inline]
+pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let value = vm.runtime_data.stack.get(
+        vm.runtime_data
+            .call_stack
+            .last()
+            .expect("no call frame found")
+            .stack_offset
+            + handle as usize,
+    );
+    vm.stack_push(value)?;
+    Ok(())
+}
+
+#[inline]
+pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult {
+    // pop the current stack frame
+    let value = match vm.runtime_data.call_stack.pop() {
+        // return value
+        Some(rt) => vm.runtime_data.stack.clear_until(rt.stack_offset),
+        None => {
+            return Err(ExecutionError::BadReturn {
+                reason: "Call stack is empty".to_string(),
+            })
+        }
+    };
+    // read the previous frame
+    match vm.runtime_data.call_stack.last_mut() {
+        Some(CallFrame { instr_ptr: ptr, .. }) => {
+            *instr_ptr = *ptr;
+        }
+        None => {
+            return Err(ExecutionError::BadReturn {
+                reason: "Failed to find return address".to_string(),
+            });
+        }
+    }
+    // push the return value
+    vm.stack_push(value)?;
+    Ok(())
 }

@@ -303,37 +303,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                     );
                 }
                 Instruction::SetLocalVar => {
-                    let handle: u32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    let offset = self
-                        .runtime_data
-                        .call_stack
-                        .last()
-                        .expect("Call stack is emtpy")
-                        .stack_offset;
-                    let value = self.runtime_data.stack.pop_w_offset(offset);
-                    self.runtime_data
-                        .stack
-                        .set(handle as usize, value)
-                        .map_err(|err| {
-                            ExecutionError::VarNotFound(format!(
-                                "Failed to set local variable: {}",
-                                err
-                            ))
-                        })?;
+                    instr_execution::set_local(self, &program.bytecode, &mut instr_ptr)?;
                 }
                 Instruction::ReadLocalVar => {
-                    let handle: u32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
-                    let value = self.runtime_data.stack.get(
-                        self.runtime_data
-                            .call_stack
-                            .last()
-                            .expect("no call frame found")
-                            .stack_offset
-                            + handle as usize,
-                    );
-                    self.stack_push(value)?;
+                    instr_execution::get_local(self, &program.bytecode, &mut instr_ptr)?;
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
@@ -358,29 +331,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)?;
                 }
                 Instruction::Return => {
-                    // pop the current stack frame
-                    let value = match self.runtime_data.call_stack.pop() {
-                        // return value
-                        Some(rt) => self.runtime_data.stack.clear_until(rt.stack_offset),
-                        None => {
-                            return Err(ExecutionError::BadReturn {
-                                reason: "Call stack is empty".to_string(),
-                            })
-                        }
-                    };
-                    // read the previous frame
-                    match self.runtime_data.call_stack.last_mut() {
-                        Some(CallFrame { instr_ptr: ptr, .. }) => {
-                            instr_ptr = *ptr;
-                        }
-                        None => {
-                            return Err(ExecutionError::BadReturn {
-                                reason: "Failed to find return address".to_string(),
-                            });
-                        }
-                    }
-                    // push the return value
-                    self.stack_push(value)?;
+                    instr_execution::instr_return(self, &mut instr_ptr)?;
                 }
                 Instruction::Exit => return instr_execution::instr_exit(&mut self.runtime_data),
                 Instruction::CopyLast => {

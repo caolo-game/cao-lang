@@ -4,20 +4,16 @@ use crate::collections::pre_hash_map::Key;
 use crate::traits::VmFunction;
 use thiserror::Error;
 
-pub type ExecutionResult = Result<(), ExecutionError>;
+pub type ExecutionResult<T = ()> = Result<T, ExecutionError>;
 
 #[derive(Debug, Clone, Error)]
 pub enum ExecutionError {
     #[error("The program has overflown its call stack")]
     CallStackOverflow,
-    #[error("The program has returned too many times")]
-    CallStackEmpty,
     #[error("Input ended unexpectedly")]
     UnexpectedEndOfInput,
     #[error("Program exited with status code: {0}")]
     ExitCode(i32),
-    #[error("Got an invalid label hash: {0:?}")]
-    InvalidLabel(Key),
     #[error("Got an invalid instruction code {0}")]
     InvalidInstruction(u8),
     #[error("Got an invalid argument to function call; {}",
