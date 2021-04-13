@@ -4,46 +4,8 @@ use cao_lang::{
 };
 use std::convert::TryInto;
 
-#[test]
-#[ignore]
-fn test_string_literal() {
-    let program = CompilationUnit {
-        lanes: vec![Lane::default()
-            .with_name("main")
-            .with_card(Card::StringLiteral(StringNode("Boiiii".to_string())))
-            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
-    };
-
-    let program = compile(program, Some(CompileOptions::new())).unwrap();
-
-    let varid = program.variable_id("result").unwrap();
-    // Compilation was successful
-
-    let mut vm = Vm::new(()).with_max_iter(10000);
-
-    // expect result variable to not exist at this point
-    if let Some(s) = vm.read_var(varid) {
-        panic!(
-            "Expected variable to not be initialized at this point {:?}",
-            s
-        );
-    }
-
-    vm.run(&program).unwrap();
-
-    let myptr = vm.read_var(varid).expect("failed to get `result`");
-    let myptr: Pointer = myptr.try_into().unwrap();
-    let resvalue: &str = unsafe {
-        str::decode_in_place(&*myptr.0)
-            .expect("Failed to get value of `result`")
-            .1
-    };
-
-    assert_eq!(resvalue, "Boiiii");
-}
 
 #[test]
-#[ignore]
 fn simple_if_statement() {
     let program = CompilationUnit {
         lanes: vec![
@@ -69,7 +31,6 @@ fn simple_if_statement() {
 }
 
 #[test]
-#[ignore]
 fn simple_if_statement_skips_if_false() {
     let program = CompilationUnit {
         lanes: vec![
@@ -136,7 +97,6 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
 }
 
 #[test]
-#[ignore]
 fn simple_if_else_statement_test_then() {
     if_else_test(
         Card::ScalarInt(IntegerNode(1)),
@@ -147,7 +107,6 @@ fn simple_if_else_statement_test_then() {
 }
 
 #[test]
-#[ignore]
 fn simple_if_else_statement_test_else() {
     if_else_test(
         Card::ScalarInt(IntegerNode(0)),
@@ -158,7 +117,6 @@ fn simple_if_else_statement_test_else() {
 }
 
 #[test]
-#[ignore]
 fn test_local_variable() {
     let program = CompilationUnit {
         lanes: vec![Lane::default()
@@ -188,7 +146,6 @@ fn test_local_variable() {
 }
 
 #[test]
-#[ignore]
 fn local_variable_doesnt_leak_out_of_scope() {
     let program = CompilationUnit {
         lanes: vec![
@@ -214,7 +171,6 @@ fn local_variable_doesnt_leak_out_of_scope() {
 }
 
 #[test]
-#[ignore]
 fn simple_while_loop() {
     let program = CompilationUnit {
         lanes: vec![
@@ -255,7 +211,6 @@ fn simple_while_loop() {
 }
 
 #[test]
-#[ignore]
 fn simple_for_loop() {
     let program = CompilationUnit {
         lanes: vec![
@@ -290,7 +245,6 @@ fn simple_for_loop() {
 }
 
 #[test]
-#[ignore] // TODO
 fn call_native_test() {
     let name = "foo";
     let cu = CompilationUnit {
@@ -319,7 +273,6 @@ fn call_native_test() {
 }
 
 #[test]
-#[ignore]
 fn test_function_registry() {
     struct State {
         call_0: bool,
@@ -404,7 +357,6 @@ lanes:
 }
 
 #[test]
-#[ignore]
 fn jump_lane_w_params_test() {
     let cu = CompilationUnit {
         lanes: vec![
@@ -474,7 +426,6 @@ mod fibonacci {
     }
 
     #[test]
-    #[ignore]
     fn fibonacci_4() {
         let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
         let program = compile(cu, CompileOptions::new()).unwrap();

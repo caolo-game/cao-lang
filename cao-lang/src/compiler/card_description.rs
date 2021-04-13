@@ -59,40 +59,40 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Not",
             "Logically negates the value on the top of the stack",
             SubProgramType::Instruction,
-            [Value],
-            [Value],
+            ["Value"],
+            ["Boolean"],
             []
         ),
         Card::And => subprogram_description!(
             "And",
             "Logical And",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
         Card::Or => subprogram_description!(
             "Or",
             "Logical inclusive Or",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
         Card::Xor => subprogram_description!(
             "Xor",
             "Logical exclusive Or",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
         Card::Add => subprogram_description!(
             "Add",
             "Add two scalars",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -100,8 +100,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Sub",
             "Subtract two scalars",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -109,8 +109,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Mul",
             "Multiply two scalars",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -118,8 +118,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Div",
             "Divide two scalars",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -127,16 +127,16 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "CopyLast",
             "Duplicate the last item on the stack",
             SubProgramType::Instruction,
-            [Value],
-            [Value, Value],
+            ["Number"],
+            ["Number", "Number"],
             []
         ),
         Card::Less => subprogram_description!(
             "Less",
             "Return 1 if the first input is less than the second, 0 otherwise",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -144,8 +144,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "LessOrEq",
             "Return 1 if the first input is less than or equal to the second, 0 otherwise",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -153,8 +153,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Equals",
             "Return 1 if the inputs are equal, 0 otherwise",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -163,7 +163,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Push a `Nil` value onto the stack",
             SubProgramType::Instruction,
             [],
-            [Value],
+            ["Number"],
             []
         ),
 
@@ -171,8 +171,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "NotEquals",
             "Return 0 if the inputs are equal, 1 otherwise",
             SubProgramType::Instruction,
-            [Value, Value],
-            [Value],
+            ["Number", "Number"],
+            ["Number"],
             []
         ),
 
@@ -180,7 +180,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Pop",
             "Pops the top elements on the stack and discards it",
             SubProgramType::Instruction,
-            [Value],
+            ["Number"],
             [],
             []
         ),
@@ -200,7 +200,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [],
-            [i32]
+            ["Integer"]
         ),
 
         Card::ScalarInt(_) => subprogram_description!(
@@ -208,8 +208,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make an integer",
             SubProgramType::Instruction,
             [],
-            [Value],
-            [i32]
+            ["Number"],
+            ["Integer"]
         ),
 
         Card::ScalarFloat(_) => subprogram_description!(
@@ -217,8 +217,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make a real number",
             SubProgramType::Instruction,
             [],
-            [Value],
-            [f32]
+            ["Number"],
+            ["Real number"]
         ),
 
         Card::StringLiteral(_) => subprogram_description!(
@@ -226,35 +226,35 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make a text",
             SubProgramType::Instruction,
             [],
-            [Value],
-            [str]
+            ["Number"],
+            ["Text"]
         ),
 
         Card::IfTrue(_) => subprogram_description!(
             "IfTrue",
             "Jump to the input lane if the last value is true else do nothing.",
             SubProgramType::Branch,
-            [Value],
+            ["Number"],
             [],
-            [str]
+            ["Text"]
         ),
 
         Card::IfFalse(_) => subprogram_description!(
             "IfFalse",
             "Jump to the input lane if the last value is false else do nothing.",
             SubProgramType::Branch,
-            [Value],
+            ["Number"],
             [],
-            [str]
+            ["Text"]
         ),
 
         Card::IfElse { .. } => subprogram_description!(
             "IfElse",
             "Jump to the input lane if the last value is true else jump to the second input lane.",
             SubProgramType::Branch,
-            [Value],
+            ["Number"],
             [],
-            [str, str]
+            ["Text", "Text"]
         ),
 
         Card::Jump(_) => subprogram_description!(
@@ -263,24 +263,24 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [],
             [],
-            [str]
+            ["Text"]
         ),
 
         Card::SetGlobalVar(_) => subprogram_description!(
             "SetGlobalVar",
             "Sets the value of a global variable",
             SubProgramType::Instruction,
-            [Pointer],
+            ["Object instance"],
             [],
-            [VarName]
+            ["Variable name"]
         ),
         Card::SetLocalVar(_) => subprogram_description!(
             "SetLocalVar",
             "Sets the value of a local variable. Local variables are only usable in the Lane they were created in.",
             SubProgramType::Instruction,
-            [Pointer],
+            ["Object instance"],
             [],
-            [VarName]
+            ["Variable name"]
         ),
 
         Card::ReadVar(_) => subprogram_description!(
@@ -288,8 +288,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Read the value of a variable",
             SubProgramType::Instruction,
             [],
-            [Pointer],
-            [VarName]
+            ["Object instance"],
+            ["Variable name"]
         ),
 
         Card::Return => subprogram_description!(
@@ -305,9 +305,9 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Repeat",
             "Repeat a lane the input number of times",
             SubProgramType::Branch,
-            [Value],
+            ["Number"],
             [],
-            [str]
+            ["Text"]
         ),
 
         Card::While(_) => subprogram_description!(
@@ -316,7 +316,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [],
             [],
-            [str]
+            ["Text"]
         ),
     }
 }

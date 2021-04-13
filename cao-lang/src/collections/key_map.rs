@@ -29,7 +29,6 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Key(u32);
-impl crate::AutoByteEncodeProperties for Key {}
 
 #[derive(Debug)]
 pub struct KeyMap<T> {

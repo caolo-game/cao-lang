@@ -32,21 +32,16 @@ impl RuntimeData {
         }
     }
 
-    pub fn write_to_memory<T: ByteEncodeProperties>(
-        &mut self,
-        val: T,
-    ) -> Result<Pointer, ExecutionError> {
-        let l = val.layout();
+    /// Types implementing Drop are not supported, thus the `Copy` bound
+    pub fn write_to_memory<T: Sized + Copy>(&mut self, val: T) -> Result<Pointer, ExecutionError> {
+        let l = std::alloc::Layout::new::<T>();
         unsafe {
             let mut ptr = self
                 .memory
                 .alloc(l)
                 .map_err(|_| ExecutionError::OutOfMemory)?;
 
-            val.encode(ptr.as_mut()).map_err(|err| {
-                ExecutionError::invalid_argument(format!("Failed to encode argument {:?}", err))
-            })?;
-
+            std::ptr::write(ptr.as_ptr() as *mut T, val);
             Ok(Pointer(ptr.as_ptr()))
         }
     }

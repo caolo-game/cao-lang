@@ -1,10 +1,12 @@
+use std::alloc::Layout;
+
 use crate::{
+    bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
     collections::key_map::Key,
     procedures::ExecutionError,
     procedures::ExecutionResult,
     program::CaoProgram,
-    traits::DecodeInPlace,
-    traits::{ByteEncodeProperties, MAX_STR_LEN},
+    traits::MAX_STR_LEN,
     value::Value,
     Pointer, VariableId,
 };
@@ -18,8 +20,7 @@ use super::{
 pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
     let p = *instr_ptr;
     let limit = program.len().min(p + MAX_STR_LEN);
-    let (len, s): (_, &'a str) =
-        <str as DecodeInPlace>::decode_in_place(&program[p..limit]).ok()?;
+    let (len, s): (_, &'a str) = decode_str(&program[p..limit])?;
     *instr_ptr += len;
     Some(s)
 }
@@ -29,11 +30,8 @@ pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str>
 /// Assumes that the underlying data is safely decodable to the given type
 ///
 #[inline]
-pub unsafe fn decode_value<'a, T: DecodeInPlace<'a>>(
-    bytes: &'a [u8],
-    instr_ptr: &mut usize,
-) -> &'a T {
-    let (len, val) = T::decode_in_place(&bytes[*instr_ptr..]).expect("Failed to decode");
+pub unsafe fn decode_value<T: TriviallyEncodable>(bytes: &[u8], instr_ptr: &mut usize) -> T {
+    let (len, val) = read_from_bytes(&bytes[*instr_ptr..]).expect("Failed to read data");
     *instr_ptr += len;
     val
 }
@@ -44,16 +42,16 @@ pub fn instr_read_var(
     instr_ptr: &mut usize,
     program: &CaoProgram,
 ) -> ExecutionResult {
-    let VariableId(varid): &VariableId = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let VariableId(varid): VariableId = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let value = runtime_data
         .global_vars
-        .get(*varid as usize)
+        .get(varid as usize)
         .ok_or_else(|| {
             ExecutionError::VarNotFound(
                 program
                     .variables
                     .names
-                    .get(&VariableId(*varid))
+                    .get(&VariableId(varid))
                     .map(|x| x.to_string())
                     .unwrap_or_else(|| "<<<Unknown variable>>>".to_string()),
             )
@@ -87,20 +85,21 @@ pub fn instr_string_literal<T>(
     instr_ptr: &mut usize,
     program: &CaoProgram,
 ) -> ExecutionResult {
-    let handle: &u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
-    let payload = read_str(&mut (*handle as usize), program.data.as_slice())
+    let handle: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let payload = read_str(&mut (handle as usize), program.data.as_slice())
         .ok_or_else(|| ExecutionError::invalid_argument(None))?;
 
-
     unsafe {
+        let layout = Layout::from_size_align(4 + payload.len(), 4).unwrap();
         let mut ptr = vm
             .runtime_data
             .memory
-            .alloc(payload.layout())
+            .alloc(layout)
             .map_err(|_| ExecutionError::OutOfMemory)?;
-        payload
-            .encode(ptr.as_mut())
-            .expect("Failed to encode string");
+
+        let result: *mut u8 = ptr.as_mut();
+        std::ptr::write(result as *mut u32, payload.len() as u32);
+        std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
 
         vm.stack_push(Value::Pointer(Pointer(ptr.as_ptr())))?;
     }
@@ -114,8 +113,8 @@ pub fn instr_jump(
     program: &CaoProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
-    let label: &Key = unsafe { decode_value(&program.bytecode, instr_ptr) };
-    let argcount: &u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let label: Key = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let argcount: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
 
     // remember the location after this jump
     runtime_data
@@ -132,20 +131,19 @@ pub fn instr_jump(
             stack_offset: runtime_data
                 .stack
                 .len()
-                .checked_sub(*argcount as usize)
+                .checked_sub(argcount as usize)
                 .ok_or(ExecutionError::MissingArgument)?,
         })
         .map_err(|_| ExecutionError::CallStackOverflow)?;
 
     // set the instr_ptr to the new lane's beginning
-    *instr_ptr = program.labels.0.get(*label).expect("Label not found").pos as usize;
+    *instr_ptr = program.labels.0.get(label).expect("Label not found").pos as usize;
     Ok(())
 }
 
 #[inline]
 pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -> ExecutionResult {
-    let fun_hash: &Key = unsafe { decode_value(bytecode, instr_ptr) };
-    let fun_hash = *fun_hash;
+    let fun_hash: Key = unsafe { decode_value(bytecode, instr_ptr) };
     let fun = vm
         .callables
         .remove(fun_hash)
@@ -158,7 +156,7 @@ pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -
 
 #[inline]
 pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
-    let handle: &u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let offset = vm
         .runtime_data
         .call_stack
@@ -168,7 +166,7 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     let value = vm.runtime_data.stack.pop_w_offset(offset);
     vm.runtime_data
         .stack
-        .set(*handle as usize, value)
+        .set(handle as usize, value)
         .map_err(|err| {
             ExecutionError::VarNotFound(format!("Failed to set local variable: {}", err))
         })?;
@@ -177,14 +175,14 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
 
 #[inline]
 pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
-    let handle: &u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let value = vm.runtime_data.stack.get(
         vm.runtime_data
             .call_stack
             .last()
             .expect("no call frame found")
             .stack_offset
-            + *handle as usize,
+            + handle as usize,
     );
     vm.stack_push(value)?;
     Ok(())

@@ -8,9 +8,10 @@ pub mod card_description;
 mod tests;
 
 use crate::{
+    bytecode::{encode_str, write_to_vec},
     collections::key_map::{Key, KeyMap},
     program::{CaoProgram, Label},
-    traits::{write_to_vec, ByteEncodeProperties, ByteEncodeble, StringDecodeError},
+    traits::ByteEncodeble,
     InputString, Instruction, VarName,
 };
 use crate::{NodeId, VariableId};
@@ -28,18 +29,6 @@ use std::{
 impl ByteEncodeble for InputString {
     fn displayname() -> &'static str {
         "Text"
-    }
-}
-
-impl ByteEncodeProperties for InputString {
-    type EncodeError = StringDecodeError;
-
-    fn layout(&self) -> std::alloc::Layout {
-        <&str as ByteEncodeProperties>::layout(&self.as_str())
-    }
-
-    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError> {
-        <&str as ByteEncodeProperties>::encode(self.as_str(), out)
     }
 }
 
@@ -352,7 +341,7 @@ impl<'a> Compiler<'a> {
         self.program.bytecode.push(skip_instr as u8);
         let pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
         debug_assert_eq!(std::mem::size_of_val(&pos), 4);
-        write_to_vec(pos, &mut self.program.bytecode).unwrap();
+        write_to_vec(pos, &mut self.program.bytecode);
         self.program.bytecode.push(Instruction::CallLane as u8);
         self.encode_jump(nodeid, lane)?;
         Ok(())
@@ -376,19 +365,16 @@ impl<'a> Compiler<'a> {
                 },
             )?,
         };
-        write_to_vec(to.hash_key, &mut self.program.bytecode).unwrap();
-        write_to_vec(to.arity, &mut self.program.bytecode).unwrap();
+        write_to_vec(to.hash_key, &mut self.program.bytecode);
+        write_to_vec(to.arity, &mut self.program.bytecode);
         Ok(())
     }
 
-    /// push `data` into the `data section` of the program and encode a poiter to it for the current instruction
-    fn push_data<T: ByteEncodeProperties>(&mut self, data: T) -> Result<(), CompilationError> {
+    fn push_str(&mut self, data: &str) -> Result<(), CompilationError> {
         let handle = self.program.data.len();
-        write_to_vec(data, &mut self.program.data).expect("Failed to encode data");
-        let handle: u32 = handle
-            .try_into()
-            .expect("data handle doesn't fit into 32 bits");
-        write_to_vec(handle, &mut self.program.bytecode).unwrap();
+        write_to_vec(handle, &mut self.program.bytecode);
+
+        encode_str(data, &mut self.program.data);
         Ok(())
     }
 
@@ -420,12 +406,12 @@ impl<'a> Compiler<'a> {
             Card::Repeat(repeat) => {
                 // Init, add 1
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                write_to_vec(1i32, &mut self.program.bytecode).expect("Failed to encode 1");
+                write_to_vec(1i64, &mut self.program.bytecode);
                 self.program.bytecode.push(Instruction::Add as u8);
                 // Condition
                 let cond_block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
-                write_to_vec(1i32, &mut self.program.bytecode).expect("Failed to encode 1");
+                write_to_vec(1i64, &mut self.program.bytecode);
                 self.program.bytecode.push(Instruction::Sub as u8);
                 self.program.bytecode.push(Instruction::CopyLast as u8);
                 self.program.bytecode.push(Instruction::GotoIfFalse as u8);
@@ -434,14 +420,12 @@ impl<'a> Compiler<'a> {
                 write_to_vec(
                     self.program.bytecode.len() as i32 + 4 + execute_block_len,
                     &mut self.program.bytecode,
-                )
-                .expect("Failed to encode skip goto");
+                );
                 // Execute
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &repeat)?;
                 self.program.bytecode.push(Instruction::Goto as u8);
-                write_to_vec(cond_block_begin, &mut self.program.bytecode)
-                    .expect("Failed to encode goto");
+                write_to_vec(cond_block_begin, &mut self.program.bytecode);
             }
             Card::ReadVar(variable) => {
                 let scope = self.resolve_var(variable.0.as_str());
@@ -465,19 +449,19 @@ impl<'a> Compiler<'a> {
                         .entry(*id)
                         .or_insert_with(|| variable.0);
                     self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
-                    write_to_vec(*id, &mut self.program.bytecode).unwrap();
+                    write_to_vec(*id, &mut self.program.bytecode);
                 } else {
                     //local
-                    let index = scope as u32;
                     self.program.bytecode.push(Instruction::ReadLocalVar as u8);
-                    write_to_vec(index, &mut self.program.bytecode).unwrap();
+                    let index = scope as u32;
+                    write_to_vec(index, &mut self.program.bytecode);
                 }
             }
             Card::SetLocalVar(var) => {
-                let index = self.locals.len() as u32;
                 self.add_local(var.0)?;
                 self.program.bytecode.push(Instruction::SetLocalVar as u8);
-                write_to_vec(index, &mut self.program.bytecode).unwrap();
+                let index = self.locals.len() as u32;
+                write_to_vec(index, &mut self.program.bytecode);
             }
             Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
@@ -498,7 +482,7 @@ impl<'a> Compiler<'a> {
                     .names
                     .entry(*id)
                     .or_insert_with(move || variable.0);
-                write_to_vec(*id, &mut self.program.bytecode).unwrap();
+                write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse {
                 then: then_lane,
@@ -511,7 +495,7 @@ impl<'a> Compiler<'a> {
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
                 debug_assert_eq!(std::mem::size_of_val(&pos), 4);
-                write_to_vec(pos, &mut self.program.bytecode).unwrap();
+                write_to_vec(pos, &mut self.program.bytecode);
                 // else
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &else_lane)?;
@@ -520,7 +504,7 @@ impl<'a> Compiler<'a> {
                 let pos = instruction_span(Instruction::CallLane)
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
-                write_to_vec(pos, &mut self.program.bytecode).unwrap();
+                write_to_vec(pos, &mut self.program.bytecode);
                 // then
                 self.program.bytecode.push(Instruction::CallLane as u8);
                 self.encode_jump(nodeid, &then_lane)?;
@@ -536,17 +520,17 @@ impl<'a> Compiler<'a> {
             Card::Jump(jmp) => {
                 self.encode_jump(nodeid, &jmp)?;
             }
-            Card::StringLiteral(c) => self.push_data(c.0.as_str())?,
+            Card::StringLiteral(c) => self.push_str(c.0.as_str())?,
             Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
-                write_to_vec(key, &mut self.program.bytecode).unwrap();
+                write_to_vec(key, &mut self.program.bytecode);
             }
             Card::ScalarLabel(s) | Card::ScalarInt(s) => {
-                write_to_vec(s.0, &mut self.program.bytecode).unwrap();
+                write_to_vec(s.0, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
-                write_to_vec(s.0, &mut self.program.bytecode).unwrap();
+                write_to_vec(s.0, &mut self.program.bytecode);
             }
             Card::ScalarNil
             | Card::Return
