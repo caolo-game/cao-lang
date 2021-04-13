@@ -33,13 +33,14 @@
 
 #![recursion_limit = "256"]
 
+mod alloc;
 pub mod collections;
 pub mod compiler;
 pub mod instruction;
 pub mod prelude;
 pub mod procedures;
 pub mod program;
-pub mod scalar;
+pub mod value;
 pub mod traits;
 pub mod vm;
 
@@ -54,7 +55,7 @@ use std::cmp::Ordering;
 use crate::instruction::Instruction;
 use crate::traits::AutoByteEncodeProperties;
 use arrayvec::ArrayString;
-use prelude::{ByteDecodeProperties, ByteEncodeProperties, ByteEncodeble, StringDecodeError};
+use prelude::{ByteEncodeProperties, ByteEncodeble, StringDecodeError};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -98,27 +99,8 @@ impl AutoByteEncodeProperties for NodeId {
 }
 
 /// Memory handles
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Pointer(pub u32);
-
-impl From<Pointer> for u32 {
-    fn from(p: Pointer) -> u32 {
-        p.0
-    }
-}
-
-impl AsRef<u32> for Pointer {
-    fn as_ref(&self) -> &u32 {
-        &self.0
-    }
-}
-
-impl AsMut<u32> for Pointer {
-    fn as_mut(&mut self) -> &mut u32 {
-        &mut self.0
-    }
-}
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Pointer(pub *mut [u8]);
 
 impl AutoByteEncodeProperties for Pointer {
     fn displayname() -> &'static str {
@@ -140,43 +122,12 @@ impl ByteEncodeble for VarName {
 impl ByteEncodeProperties for VarName {
     type EncodeError = StringDecodeError;
 
-    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
-        (self.len() as i32)
-            .encode(out)
-            .expect("failed to encode i32");
-        out.extend(self.as_bytes());
-        Ok(())
-    }
-}
-impl ByteDecodeProperties for VarName {
-    type DecodeError = StringDecodeError;
-
-    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
-        use std::convert::TryFrom;
-
-        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
-        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
-        if len > 64 {
-            return Err(StringDecodeError::LengthError(len as i32));
-        }
-        let val = std::str::from_utf8(&bytes[ll..ll + len])
-            .map_err(StringDecodeError::Utf8DecodeError)?;
-        let val = ArrayString::from(val).expect("failed to convert str to array");
-        Ok((len + ll, val))
+    fn layout(&self) -> std::alloc::Layout {
+        <&str as ByteEncodeProperties>::layout(&self.as_str())
     }
 
-    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
-        let (ll, len) = i32::decode_unsafe(bytes);
-        let len = len as usize;
-        let val = std::str::from_utf8(&bytes[ll..ll + len]).unwrap();
-        let val = ArrayString::from(val).expect("failed to convert str to array");
-        (len + ll, val)
-    }
-}
-
-impl<'a> ByteEncodeble for &'a str {
-    fn displayname() -> &'static str {
-        "Text"
+    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError> {
+        <&str as ByteEncodeProperties>::encode(self.as_str(), out)
     }
 }
 

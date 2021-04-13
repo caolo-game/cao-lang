@@ -1,13 +1,13 @@
 //! Stack containing only cao-lang Scalars
 //! Because Scalars can express `null` values we use them instead of optionals
 //!
-use crate::scalar::Scalar;
+use crate::value::Value;
 use thiserror::Error;
 
 #[derive(Debug)]
-pub struct ScalarStack {
+pub struct ValueStack {
     count: usize,
-    data: Box<[Scalar]>,
+    data: Box<[Value]>,
 }
 
 #[derive(Debug, Error)]
@@ -17,7 +17,7 @@ pub enum StackError {
     #[error("Index out of bounds: capacity: {capacity} index: {index}")]
     OutOfBounds { capacity: usize, index: usize },
 }
-impl std::fmt::Display for ScalarStack {
+impl std::fmt::Display for ValueStack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.count == 0 {
             return write!(f, "[]");
@@ -30,24 +30,24 @@ impl std::fmt::Display for ScalarStack {
     }
 }
 
-impl ScalarStack {
+impl ValueStack {
     pub fn new(size: usize) -> Self {
         assert!(size > 0);
         Self {
             count: 0,
-            data: vec![Scalar::Null; size].into_boxed_slice(),
+            data: vec![Value::Nil; size].into_boxed_slice(),
         }
     }
 
     #[inline]
-    pub fn as_slice(&self) -> &[Scalar] {
+    pub fn as_slice(&self) -> &[Value] {
         &self.data[0..self.count]
     }
 
     #[inline]
-    pub fn push(&mut self, value: Scalar) -> Result<(), StackError> {
+    pub fn push<T: Into<Value>>(&mut self, value: T) -> Result<(), StackError> {
         if self.count + 1 < self.data.len() {
-            self.data[self.count] = value;
+            self.data[self.count] = value.into();
             self.count += 1;
             Ok(())
         } else {
@@ -57,7 +57,7 @@ impl ScalarStack {
 
     pub fn clear(&mut self) {
         self.count = 0;
-        self.data[0] = Scalar::Null; // in case the stack is popped when empty
+        self.data[0] = Value::Nil; // in case the stack is popped when empty
     }
 
     #[inline]
@@ -65,13 +65,13 @@ impl ScalarStack {
         self.count
     }
 
-    /// Returns Scalar::Null if the stack is empty
+    /// Returns Nil if the stack is empty
     #[inline]
-    pub fn pop(&mut self) -> Scalar {
+    pub fn pop(&mut self) -> Value {
         let count = self.count.saturating_sub(1);
         let s = self.data[count];
         self.count = count;
-        self.data[self.count] = Scalar::Null;
+        self.data[self.count] = Value::Nil;
         s
     }
 
@@ -89,9 +89,9 @@ impl ScalarStack {
     /// assert_eq!(res, Scalar::Integer(42));
     /// ```
     ///
-    pub fn pop_w_offset(&mut self, offset: usize) -> Scalar {
+    pub fn pop_w_offset(&mut self, offset: usize) -> Value {
         if self.count <= offset {
-            return Scalar::Null;
+            return Value::Nil;
         }
         self.pop()
     }
@@ -100,7 +100,7 @@ impl ScalarStack {
     /// Only previous values may be set
     ///
     /// Returns the old value
-    pub fn set(&mut self, index: usize, value: Scalar) -> Result<Scalar, StackError> {
+    pub fn set(&mut self, index: usize, value: Value) -> Result<Value, StackError> {
         if index > self.count {
             return Err(StackError::OutOfBounds {
                 capacity: self.count,
@@ -109,26 +109,26 @@ impl ScalarStack {
         }
         if index == self.count {
             self.push(value)?;
-            Ok(Scalar::Null)
+            Ok(Value::Nil)
         } else {
             let old = std::mem::replace(&mut self.data[index], value);
             Ok(old)
         }
     }
 
-    pub fn get(&mut self, index: usize) -> Scalar {
+    pub fn get(&mut self, index: usize) -> Value {
         if index >= self.count {
-            return Scalar::Null;
+            return Value::Nil;
         }
         self.data[index]
     }
 
     /// Returns the very first item
-    pub fn clear_until(&mut self, index: usize) -> Scalar {
+    pub fn clear_until(&mut self, index: usize) -> Value {
         let res = self.last();
         while self.count > index {
             self.count = self.count.saturating_sub(1);
-            self.data[self.count] = Scalar::Null;
+            self.data[self.count] = Value::Nil;
         }
         res
     }
@@ -140,11 +140,11 @@ impl ScalarStack {
 
     /// Returns Null if the stack is empty
     #[inline]
-    pub fn last(&self) -> Scalar {
+    pub fn last(&self) -> Value {
         if self.count > 0 {
             self.data[self.count - 1]
         } else {
-            Scalar::Null
+            Value::Nil
         }
     }
 }

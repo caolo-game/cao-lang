@@ -1,13 +1,25 @@
 use super::*;
-use std::{convert::Infallible, mem};
+use std::{alloc::Layout, convert::Infallible, mem};
 
-impl<'a> DecodeInPlace<'a> for &'a str {
-    type Ref = Self;
+impl<'a> ByteEncodeble for &'a str {
+    fn displayname() -> &'static str {
+        "Text"
+    }
+}
+
+impl ByteEncodeble for str {
+    fn displayname() -> &'static str {
+        "Text"
+    }
+}
+
+impl<'a> DecodeInPlace<'a> for str {
     type DecodeError = StringDecodeError;
 
-    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), StringDecodeError> {
-        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
-        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
+    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, &'a str), StringDecodeError> {
+        let (ll, len) = u32::decode_in_place(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
+        let len = *len as usize;
+        // if bytes.len() -
         let val = std::str::from_utf8(&bytes[ll..ll + len])
             .map_err(StringDecodeError::Utf8DecodeError)?;
         Ok((len + ll, val))
@@ -17,58 +29,20 @@ impl<'a> DecodeInPlace<'a> for &'a str {
 impl<'a> ByteEncodeProperties for &'a str {
     type EncodeError = StringDecodeError;
 
-    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
+    fn layout(&self) -> Layout {
+        Layout::from_size_align(self.len() + std::mem::size_of::<u32>(), 4).unwrap()
+    }
+    fn encode(self, out: &mut [u8]) -> Result<(), Self::EncodeError> {
         if self.len() >= MAX_STR_LEN {
-            return Err(StringDecodeError::LengthError(self.len() as i32));
+            return Err(StringDecodeError::LengthError(self.len()));
         }
-        (self.len() as i32)
+        (self.len() as u32)
             .encode(out)
             .expect("failed to encode i32");
-        out.extend(self.as_bytes());
-        Ok(())
-    }
-}
-
-impl ByteEncodeble for String {
-    fn displayname() -> &'static str {
-        "Text"
-    }
-}
-
-impl ByteEncodeProperties for String {
-    type EncodeError = StringDecodeError;
-
-    fn encode(self, out: &mut Vec<u8>) -> Result<(), Self::EncodeError> {
-        if self.len() >= MAX_STR_LEN {
-            return Err(StringDecodeError::LengthError(self.len() as i32));
+        unsafe {
+            std::ptr::copy(self.as_ptr(), out.as_mut_ptr().add(4), self.len());
         }
-        (self.len() as i32)
-            .encode(out)
-            .expect("failed to encode i32");
-        out.extend(self.as_bytes());
         Ok(())
-    }
-}
-
-impl ByteDecodeProperties for String {
-    type DecodeError = StringDecodeError;
-
-    fn decode(bytes: &[u8]) -> Result<(usize, Self), StringDecodeError> {
-        let (ll, len) = i32::decode(bytes).map_err(|_| StringDecodeError::LengthDecodeError)?;
-        let len = usize::try_from(len).map_err(|_| StringDecodeError::LengthError(len))?;
-        let tail = (ll + len).min(bytes.len());
-        let res = std::str::from_utf8(&bytes[ll..tail])
-            .map_err(StringDecodeError::Utf8DecodeError)
-            .map(|s| s.to_owned())?;
-        Ok((tail, res))
-    }
-
-    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
-        let (ll, len) = i32::decode_unsafe(bytes);
-        let len = len as usize;
-        let tail = (ll + len).min(bytes.len());
-        let res = std::str::from_utf8(&bytes[ll..tail]).expect("Failed to decode utf8 string");
-        (tail, res.to_owned())
     }
 }
 
@@ -81,20 +55,12 @@ impl ByteEncodeble for () {
 impl ByteEncodeProperties for () {
     type EncodeError = Infallible;
 
-    fn encode(self, _out: &mut Vec<u8>) -> Result<(), Infallible> {
+    fn layout(&self) -> Layout {
+        Layout::new::<()>()
+    }
+
+    fn encode(self, _out: &mut [u8]) -> Result<(), Infallible> {
         Ok(())
-    }
-}
-
-impl ByteDecodeProperties for () {
-    type DecodeError = Infallible;
-
-    fn decode(_bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
-        Ok((0, ()))
-    }
-
-    unsafe fn decode_unsafe(_bytes: &[u8]) -> (usize, Self) {
-        (0, ())
     }
 }
 
@@ -170,8 +136,6 @@ impl<
 {
 }
 
-impl<T: std::fmt::Debug> ObjectProperties for T {}
-
 impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteEncodeble for T {
     fn displayname() -> &'static str {
         <Self as AutoByteEncodeProperties>::displayname()
@@ -182,13 +146,16 @@ impl<T: Sized + Clone + Copy + AutoByteEncodeProperties + std::fmt::Debug> ByteE
 impl<T: Sized + Copy + AutoByteEncodeProperties> ByteEncodeProperties for T {
     type EncodeError = Infallible;
 
-    fn encode(self, out: &mut Vec<u8>) -> Result<(), Infallible> {
-        let ss = mem::size_of::<Self>();
-        let handle = out.len();
-        out.resize(handle + ss, 0); // add enough padding for proper alignment
+    fn layout(&self) -> Layout {
+        Layout::new::<Self>()
+    }
 
+    fn encode(self, out: &mut [u8]) -> Result<(), Infallible> {
+        let ss = mem::size_of::<Self>();
+        // TODO: maybe return error??? hmmmmm???
+        assert!(ss <= out.len());
         unsafe {
-            let ptr = out.as_mut_ptr().add(handle) as *const Self;
+            let ptr = out.as_mut_ptr();
             std::ptr::write_unaligned(ptr as *mut Self, self);
         }
         Ok(())
@@ -196,37 +163,13 @@ impl<T: Sized + Copy + AutoByteEncodeProperties> ByteEncodeProperties for T {
 }
 
 // Types can't impl both Copy and Drop so we'll just decode using memcopy
-impl<T: Sized + Copy + AutoByteEncodeProperties> ByteDecodeProperties for T {
-    type DecodeError = ();
-
-    fn decode(bytes: &[u8]) -> Result<(usize, Self), Self::DecodeError> {
-        let ss = mem::size_of::<Self>();
-        if bytes.len() < ss {
-            Err(())
-        } else {
-            unsafe {
-                let ptr = bytes.as_ptr() as *const Self;
-                let result = std::ptr::read_unaligned(ptr);
-                Ok((ss, result))
-            }
-        }
-    }
-
-    unsafe fn decode_unsafe(bytes: &[u8]) -> (usize, Self) {
-        let ss = mem::size_of::<Self>();
-        let result = std::ptr::read_unaligned(bytes.as_ptr() as *const Self);
-        (ss, result)
-    }
-}
 
 impl<'a, T: Sized + Copy + AutoByteEncodeProperties + 'a> DecodeInPlace<'a> for T {
-    type Ref = &'a Self;
-
     type DecodeError = ();
 
-    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, Self::Ref), Self::DecodeError> {
+    fn decode_in_place(bytes: &'a [u8]) -> Result<(usize, &'a T), Self::DecodeError> {
         let ss = mem::size_of::<Self>();
-        if bytes.len() < ss {
+        if bytes.len() <= ss {
             Err(())
         } else {
             unsafe {

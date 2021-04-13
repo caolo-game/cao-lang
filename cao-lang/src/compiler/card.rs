@@ -17,7 +17,6 @@ pub enum Card {
     Sub,
     Mul,
     Div,
-    Exit,
     CopyLast,
     Less,
     LessOrEq,
@@ -30,12 +29,11 @@ pub enum Card {
     Xor,
     Not,
     Return,
-    ScalarNull,
+    ScalarNil,
+    Abort,
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
     ScalarLabel(IntegerNode),
-    ScalarArray(IntegerNode),
-    ExitWithCode(IntegerNode),
     StringLiteral(StringNode),
     CallNative(Box<CallNode>),
     IfTrue(LaneNode),
@@ -58,7 +56,6 @@ impl Card {
             Card::Sub => "Sub",
             Card::Mul => "Mul",
             Card::Div => "Div",
-            Card::Exit => "Exit",
             Card::CopyLast => "CopyLast",
             Card::Not => "Not",
             Card::Less => "Less",
@@ -69,11 +66,10 @@ impl Card {
             Card::And => "And",
             Card::Or => "Either",
             Card::Xor => "Exclusive Or",
-            Card::ExitWithCode(_) => "ExitWithCode",
+            Card::Abort => "Abort",
             Card::ScalarInt(_) => "ScalarInt",
             Card::ScalarFloat(_) => "ScalarFloat",
             Card::ScalarLabel(_) => "ScalarLabel",
-            Card::ScalarArray(_) => "ScalarArray",
             Card::StringLiteral(_) => "StringLiteral",
             Card::CallNative(_) => "Call",
             Card::IfTrue(_) => "IfTrue",
@@ -82,7 +78,7 @@ impl Card {
             Card::SetGlobalVar(_) => "SetGlobalVar",
             Card::ReadVar(_) => "ReadVar",
             Card::ClearStack => "ClearStack",
-            Card::ScalarNull => "ScalarNull",
+            Card::ScalarNil => "ScalarNil",
             Card::Return => "Return",
             Card::Repeat(_) => "Repeat",
             Card::While(_) => "While",
@@ -98,10 +94,10 @@ impl Card {
             | Card::ReadVar(_)
             | Card::SetLocalVar(_)
             | Card::While(_)
-            | Card::Repeat(_)
-            | Card::ExitWithCode(_) => None,
+            | Card::Repeat(_) => None,
 
             Card::And => Some(Instruction::And),
+            Card::Abort => Some(Instruction::Exit),
             Card::Not => Some(Instruction::Not),
             Card::Or => Some(Instruction::Or),
             Card::Xor => Some(Instruction::Xor),
@@ -110,7 +106,6 @@ impl Card {
             Card::Sub => Some(Instruction::Sub),
             Card::Mul => Some(Instruction::Mul),
             Card::Div => Some(Instruction::Div),
-            Card::Exit => Some(Instruction::Exit),
             Card::CopyLast => Some(Instruction::CopyLast),
             Card::Less => Some(Instruction::Less),
             Card::LessOrEq => Some(Instruction::LessOrEq),
@@ -119,7 +114,6 @@ impl Card {
             Card::Pop => Some(Instruction::Pop),
             Card::ScalarInt(_) => Some(Instruction::ScalarInt),
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
-            Card::ScalarArray(_) => Some(Instruction::ScalarArray),
             Card::ScalarLabel(_) => Some(Instruction::ScalarLabel),
             Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
@@ -128,7 +122,7 @@ impl Card {
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
-            Card::ScalarNull => Some(Instruction::ScalarNull),
+            Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return => Some(Instruction::Return),
         }
     }
@@ -153,7 +147,6 @@ impl Card {
             | Instruction::Sub
             | Instruction::Mul
             | Instruction::Div
-            | Instruction::ScalarArray
             | Instruction::ScalarLabel
             | Instruction::ClearStack
             | Instruction::ScalarFloat
@@ -163,7 +156,7 @@ impl Card {
             | Instruction::Xor
             | Instruction::ScalarInt
             | Instruction::Add
-            | Instruction::ScalarNull
+            | Instruction::ScalarNil
             | Instruction::Return
             | Instruction::SwapLast
             | Instruction::ReadLocalVar
