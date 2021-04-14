@@ -459,26 +459,6 @@ fn jump_lane_w_params_test() {
     }
 }
 
-#[test]
-fn test_init_table() {
-    let cu = CompilationUnit {
-        lanes: vec![Lane::default()
-            .with_name("main")
-            .with_card(Card::CreateTable)
-            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))],
-    };
-
-    let program = compile(cu, None).expect("compile");
-
-    let mut vm = Vm::new(()).unwrap();
-    vm.run(&program).expect("run");
-    let foo = vm
-        .read_var_by_name("g_foo", &program.variables)
-        .expect("Failed to read foo variable");
-
-    let p: *mut FieldTable = foo.try_into().expect("Expected an Object");
-    assert!(!p.is_null());
-}
 
 mod fibonacci {
     use cao_lang::prelude::*;

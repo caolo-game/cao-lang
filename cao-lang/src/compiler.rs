@@ -528,6 +528,10 @@ impl<'a> Compiler<'a> {
             Card::ScalarFloat(s) => {
                 write_to_vec(s.0, &mut self.program.bytecode);
             }
+            Card::GetProperty(VarNode(name)) | Card::SetProperty(VarNode(name)) => {
+                let handle = Key::from_str(name.as_str()).unwrap();
+                write_to_vec(handle, &mut self.program.bytecode);
+            }
             Card::ScalarNil
             | Card::Return
             | Card::And
@@ -584,6 +588,8 @@ const fn instruction_span(instr: Instruction) -> i32 {
         //
         Instruction::SetLocalVar
         | Instruction::ReadLocalVar
+        | Instruction::SetProperty
+        | Instruction::GetProperty
         | Instruction::SetGlobalVar
         | Instruction::ReadGlobalVar => 5,
         //

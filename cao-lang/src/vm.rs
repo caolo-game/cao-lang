@@ -128,6 +128,37 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.stack.pop()
     }
 
+    pub fn get_table(&self, value: Value) -> Result<&FieldTable, ExecutionError> {
+        let res = match value {
+            Value::Object(o) => unsafe { &*o },
+            _ => {
+                debug!("Got {:?} instead of object", value);
+                return Err(ExecutionError::invalid_argument(
+                    "GetProperty input must be an Object".to_string(),
+                ))?;
+            }
+        };
+        Ok(res)
+    }
+
+    pub fn get_table_mut(&self, value: Value) -> Result<&mut FieldTable, ExecutionError> {
+        let res = match value {
+            Value::Object(o) => unsafe { &mut *o },
+            _ => {
+                debug!("Got {:?} instead of object", value);
+                return Err(ExecutionError::invalid_argument(
+                    "GetProperty input must be an Object".to_string(),
+                ))?;
+            }
+        };
+        Ok(res)
+    }
+
+    /// Initializes a new FieldTable in this VM instance
+    pub fn init_table(&mut self) -> Result<std::ptr::NonNull<FieldTable>, ExecutionError> {
+        self.runtime_data.init_table()
+    }
+
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is very un-safe
     pub fn run(&mut self, program: &CaoProgram) -> Result<(), ExecutionError> {
@@ -156,8 +187,27 @@ impl<'a, Aux> Vm<'a, Aux> {
             );
             match instr {
                 Instruction::InitTable => {
-                    let res = self.runtime_data.init_table()?;
+                    let res = self.init_table()?;
                     self.stack_push(Value::Object(res.as_ptr()))?;
+                }
+                Instruction::GetProperty => {
+                    let handle: Key =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let instance = self.stack_pop();
+                    let table = self.get_table(instance)?;
+                    let result = table.get(handle).copied().unwrap_or(Value::Nil);
+                    self.stack_push(result)?;
+                }
+                Instruction::SetProperty => {
+                    let handle: Key =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let instance = self.stack_pop();
+                    let value = self.stack_pop();
+                    let table = self.get_table_mut(instance)?;
+                    table.insert(handle, value).map_err(|err| {
+                        debug!("Failed to insert value {:?}", err);
+                        ExecutionError::OutOfMemory
+                    })?;
                 }
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();

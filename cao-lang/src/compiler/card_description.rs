@@ -36,6 +36,9 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
             then: Default::default(),
             r#else: Default::default(),
         }),
+        get_desc(Card::CreateTable),
+        get_desc(Card::SetProperty(Default::default())),
+        get_desc(Card::GetProperty(Default::default())),
     ]
 }
 
@@ -43,6 +46,22 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
         Card::CallNative(_) | Card::ScalarLabel(_)  => unreachable!(),
+        Card::GetProperty(_) => subprogram_description!(
+            "GetProperty",
+            "Gets a named field in the given table. Returns `nil` if the field does not exist",
+            SubProgramType::Instruction,
+            ["Object"],
+            ["Value"],
+            ["Variable name"]
+        ),
+        Card::SetProperty(_) => subprogram_description!(
+            "SetProperty",
+            "Sets a named field in the given table to the input value",
+            SubProgramType::Instruction,
+            ["Value", "Object"],
+            [],
+            ["Variable name"]
+        ),
         Card::CreateTable => subprogram_description!(
             "CreateTable",
             "Initializes a new data table",

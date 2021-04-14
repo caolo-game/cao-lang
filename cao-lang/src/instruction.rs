@@ -77,4 +77,9 @@ pub enum Instruction {
     GotoIfFalse,
     /// Creates a new Cao-Lang Table and pushes it onto the stack
     InitTable,
+    /// Pops an Object instance from the stack, get's its value at the encoded key and pushes it's value to the stack
+    GetProperty,
+    /// Pops an Object instance and a Value from the stack then sets the table value at the encoded
+    /// key
+    SetProperty,
 }

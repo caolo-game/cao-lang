@@ -32,6 +32,8 @@ pub enum Card {
     ScalarNil,
     CreateTable,
     Abort,
+    SetProperty(VarNode),
+    GetProperty(VarNode),
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
     ScalarLabel(IntegerNode),
@@ -85,6 +87,8 @@ impl Card {
             Card::Repeat(_) => "Repeat",
             Card::While(_) => "While",
             Card::IfElse { .. } => "IfElse",
+            Card::GetProperty(_) => "GetProperty",
+            Card::SetProperty(_) => "SetProperty",
         }
     }
 
@@ -98,6 +102,8 @@ impl Card {
             | Card::While(_)
             | Card::Repeat(_) => None,
 
+            Card::GetProperty(_) => Some(Instruction::GetProperty),
+            Card::SetProperty(_) => Some(Instruction::SetProperty),
             Card::CreateTable => Some(Instruction::InitTable),
             Card::And => Some(Instruction::And),
             Card::Abort => Some(Instruction::Exit),
@@ -137,6 +143,8 @@ impl Card {
         match instr {
             Instruction::SetGlobalVar
             | Instruction::ReadGlobalVar
+            | Instruction::GetProperty
+            | Instruction::SetProperty
             | Instruction::Pop
             | Instruction::Less
             | Instruction::LessOrEq
