@@ -1,5 +1,5 @@
-//! Stack containing only cao-lang Scalars
-//! Because Scalars can express `null` values we use them instead of optionals
+//! Stack containing only cao-lang Values
+//! Because Values can express `nil` values we use them instead of optionals
 //!
 use crate::value::Value;
 use thiserror::Error;
@@ -78,15 +78,15 @@ impl ValueStack {
     /// Pop value, treating offset as the 0 position
     ///
     /// ```
-    /// use cao_lang::collections::scalar_stack::ScalarStack;
-    /// use cao_lang::prelude::Scalar;
+    /// use cao_lang::collections::value_stack::ValueStack;
+    /// use cao_lang::prelude::Value;
     ///
-    /// let mut stack = ScalarStack::new(4);
-    /// stack.push(Scalar::Integer(42));
+    /// let mut stack = ValueStack::new(4);
+    /// stack.push(Value::Integer(42));
     /// let res = stack.pop_w_offset(1);
-    /// assert_eq!(res, Scalar::Null);
+    /// assert_eq!(res, Value::Nil);
     /// let res = stack.pop();
-    /// assert_eq!(res, Scalar::Integer(42));
+    /// assert_eq!(res, Value::Integer(42));
     /// ```
     ///
     pub fn pop_w_offset(&mut self, offset: usize) -> Value {

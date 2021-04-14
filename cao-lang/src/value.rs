@@ -6,7 +6,8 @@ use std::ops::{Add, Div, Mul, Sub};
 #[repr(C)]
 pub enum Value {
     Nil,
-    Pointer(Pointer),
+    String(Pointer),
+    Object(Pointer),
     Integer(i64),
     Floating(f64),
 }
@@ -21,7 +22,7 @@ impl Value {
     #[inline]
     pub fn as_bool(self) -> bool {
         match self {
-            Value::Pointer(Pointer(i)) => !i.is_null(),
+            Value::String(Pointer(i)) | Value::Object(Pointer(i)) => !i.is_null(),
             Value::Integer(i) => i != 0,
             Value::Floating(i) => i != 0.0,
             Value::Nil => false,
@@ -34,8 +35,13 @@ impl Value {
     }
 
     #[inline]
-    pub fn is_ptr(self) -> bool {
-        matches!(self, Value::Pointer(_))
+    pub fn is_str(self) -> bool {
+        matches!(self, Value::String(_))
+    }
+
+    #[inline]
+    pub fn is_obj(self) -> bool {
+        matches!(self, Value::Object(_))
     }
 
     #[inline]
@@ -88,7 +94,7 @@ impl TryFrom<Value> for Pointer {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Pointer(p) => Ok(p),
+            Value::String(p) | Value::Object(p) => Ok(p),
             _ => Err(v),
         }
     }
@@ -99,7 +105,7 @@ impl TryFrom<Value> for i64 {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Pointer(Pointer(i)) => Ok(i as i64),
+            Value::Object(Pointer(i)) => Ok(i as i64),
             Value::Integer(i) => Ok(i),
             _ => Err(v),
         }

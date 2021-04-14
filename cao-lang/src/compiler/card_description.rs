@@ -1,8 +1,4 @@
 use super::Card;
-use crate::value::Value;
-use crate::traits::ByteEncodeble;
-use crate::Pointer;
-use crate::VarName;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
 pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {

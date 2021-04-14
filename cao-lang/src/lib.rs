@@ -55,7 +55,7 @@ use std::cmp::Ordering;
 
 use crate::instruction::Instruction;
 use arrayvec::ArrayString;
-use prelude::{ByteEncodeble, StringDecodeError};
+use prelude::ByteEncodeble;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

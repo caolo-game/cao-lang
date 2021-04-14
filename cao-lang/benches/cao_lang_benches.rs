@@ -6,7 +6,7 @@ const FIB_RECURSE_PROG: &str = include_str!("fibonacci_program_recursive.yaml");
 const JUMP_PROG: &str = include_str!("jump_program.yaml");
 
 #[allow(unused)]
-fn fib(n: i32) -> i32 {
+fn fib(n: i64) -> i64 {
     let mut a = 0;
     let mut b = 1;
     for _ in 0..n {
@@ -52,7 +52,7 @@ fn run_fib_recursive(c: &mut Criterion) {
                             .read_var_by_name("result", &program.variables)
                             .expect("Failed to read `b` variable");
                         assert!(b.is_integer());
-                        let b: i32 = b.try_into().unwrap();
+                        let b: i64 = b.try_into().unwrap();
                         assert_eq!(b, fib(iterations));
                     }
                     res
@@ -76,6 +76,7 @@ fn run_fib_iter(c: &mut Criterion) {
                 let program = compile(cu, CompileOptions::new()).unwrap();
 
                 let mut vm = Vm::new(()).with_max_iter(250 * iterations);
+                let iterations = iterations as i64;
                 b.iter(|| {
                     vm.clear();
                     vm.stack_push(iterations).expect("Initial push");
@@ -88,7 +89,7 @@ fn run_fib_iter(c: &mut Criterion) {
                             .read_var_by_name("b", &program.variables)
                             .expect("Failed to read `b` variable");
                         assert!(b.is_integer());
-                        let b: i32 = b.try_into().unwrap();
+                        let b: i64 = b.try_into().unwrap();
                         assert_eq!(b, fib(iterations));
                     }
                     res

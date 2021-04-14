@@ -36,7 +36,7 @@ impl RuntimeData {
     pub fn write_to_memory<T: Sized + Copy>(&mut self, val: T) -> Result<Pointer, ExecutionError> {
         let l = std::alloc::Layout::new::<T>();
         unsafe {
-            let mut ptr = self
+            let ptr = self
                 .memory
                 .alloc(l)
                 .map_err(|_| ExecutionError::OutOfMemory)?;

@@ -1,9 +1,37 @@
+use std::convert::TryInto;
+use test_env_log::test;
+
 use cao_lang::{
     compiler::{CallNode, FloatNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
-use std::convert::TryInto;
 
+#[test]
+fn test_string_w_utf8() {
+    let test_str = "winnie the pooh is 🔥🔥🔥 ";
+    let program = CompilationUnit {
+        lanes: vec![Lane::default()
+            .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
+    };
+
+    let program = compile(program, Some(CompileOptions::new())).expect("compile");
+
+    // Compilation was successful
+
+    let mut vm = Vm::new(()).with_max_iter(1000);
+    vm.run(&program).expect("run");
+
+    let varid = program.variable_id("result").expect("varid");
+    let ptr: Pointer = vm
+        .read_var(varid)
+        .expect("read var")
+        .try_into()
+        .expect("Expected a pointer");
+    let ress = unsafe { vm.get_str(ptr).expect("Failed to read string from vm") };
+
+    assert_eq!(test_str, ress);
+}
 
 #[test]
 fn simple_if_statement() {

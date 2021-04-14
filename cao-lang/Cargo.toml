@@ -15,6 +15,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 arrayvec = { version = "0.6", features = ["serde"] }
 thiserror = "1"
 num_enum = "0.5"
+tracing = { version = "0.1", features = ["release_max_level_info"] }
 
 [build-dependencies]
 toml = "0.4"
@@ -22,6 +23,12 @@ serde = { version = "1", features = ["derive"] }
 semver = "0.11"
 
 [dev-dependencies]
+env_logger = "*"
+tracing-subscriber = { version = "0.2", features = [
+    "env-filter",
+    "fmt"
+], default-features = false }
+test-env-log = { version = "*", features = ["trace"], default-features = false }
 serde_json = "1"
 serde_yaml = "0.8"
 criterion = { version = "0.3", features = ["html_reports"] }

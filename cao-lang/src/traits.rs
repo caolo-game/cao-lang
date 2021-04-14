@@ -11,6 +11,7 @@ use std::convert::TryFrom;
 
 pub const MAX_STR_LEN: usize = 256;
 
+// TODO: give better name? Do we even need it?
 pub trait ByteEncodeble {
     fn displayname() -> &'static str {
         type_name::<Self>()
@@ -51,7 +52,7 @@ pub type VmFunction4<Aux, T1, T2, T3, T4> = fn(&mut Vm<Aux>, T1, T2, T3, T4) -> 
 ///
 /// let mut vm = Vm::new(());
 ///
-/// fn fun(_vm: &mut Vm<()>, _param: i32) -> ExecutionResult {
+/// fn fun(_vm: &mut Vm<()>, _param: i64) -> ExecutionResult {
 ///     Ok(())
 /// }
 ///
