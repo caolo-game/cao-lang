@@ -34,6 +34,42 @@ fn test_string_w_utf8() {
 }
 
 #[test]
+fn test_string_param() {
+    let name = "fooboi";
+    let test_str = "tiggers boi";
+
+    struct State {
+        res: String,
+    }
+
+    let fun = move |vm: &mut Vm<State>, arg: cao_lang::StrPointer| {
+        let vm_str = unsafe { vm.get_str(Pointer(arg.0)).unwrap().to_string() };
+        vm.auxiliary_data.res = vm_str;
+        Ok(())
+    };
+
+    let mut vm = Vm::new(State {
+        res: "".to_string(),
+    });
+    vm.register_function(name, into_f1(fun));
+
+    let cu = CompilationUnit {
+        lanes: vec![Lane::default()
+            .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+            .with_card(Card::CallNative(Box::new(CallNode(
+                InputString::from(name).unwrap(),
+            ))))],
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    vm.run(&program).expect("run");
+    let aux = vm.unwrap_aux();
+
+    assert_eq!(aux.res, test_str);
+}
+
+#[test]
 fn simple_if_statement() {
     let program = CompilationUnit {
         lanes: vec![

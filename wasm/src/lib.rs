@@ -80,10 +80,7 @@ impl Into<caoc::CompileOptions> for CompileOptions {
 
 #[wasm_bindgen]
 #[derive(Debug)]
-pub struct RunResult {
-    #[wasm_bindgen(js_name = "returnCode")]
-    pub return_code: i32,
-}
+pub struct RunResult {}
 
 #[wasm_bindgen]
 impl RunResult {}
@@ -95,9 +92,7 @@ impl RunResult {}
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = Vm::new(());
     let program: CaoProgram = program.into_serde().map_err(err_to_js)?;
-    vm.run(&program)
-        .map_err(err_to_js)
-        .map(|res| RunResult { return_code: res })
+    vm.run(&program).map_err(err_to_js).map(|()| RunResult {})
 }
 
 fn err_to_js(e: impl std::error::Error) -> JsValue {
