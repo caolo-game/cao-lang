@@ -1,5 +1,4 @@
 use super::*;
-use std::{alloc::Layout, convert::Infallible, mem};
 
 impl<'a> ByteEncodeble for &'a str {
     fn displayname() -> &'static str {

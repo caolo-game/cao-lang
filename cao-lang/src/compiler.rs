@@ -21,10 +21,7 @@ pub use compile_options::*;
 use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
-use std::{
-    convert::{Infallible, TryInto},
-    str::FromStr,
-};
+use std::{convert::TryInto, str::FromStr};
 
 impl ByteEncodeble for InputString {
     fn displayname() -> &'static str {
@@ -371,7 +368,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn push_str(&mut self, data: &str) -> Result<(), CompilationError> {
-        let handle = self.program.data.len();
+        let handle = self.program.data.len() as u32;
         write_to_vec(handle, &mut self.program.bytecode);
 
         encode_str(data, &mut self.program.data);
@@ -458,9 +455,9 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::SetLocalVar(var) => {
+                let index = self.locals.len() as u32;
                 self.add_local(var.0)?;
                 self.program.bytecode.push(Instruction::SetLocalVar as u8);
-                let index = self.locals.len() as u32;
                 write_to_vec(index, &mut self.program.bytecode);
             }
             Card::SetGlobalVar(variable) => {

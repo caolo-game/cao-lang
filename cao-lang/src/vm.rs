@@ -22,6 +22,7 @@ use std::mem::transmute;
 use std::str::FromStr;
 
 use self::data::CallFrame;
+use tracing::debug;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConvertError {
@@ -96,6 +97,19 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.auxiliary_data
     }
 
+    /// Returns None if the underlying data is not valid utf8
+    ///
+    /// # SAFETY
+    ///
+    /// Must be called with ptr obtained from a `string_literal` instruction, before the last
+    /// `clear`!
+    #[inline]
+    pub unsafe fn get_str(&self, Pointer(ptr): Pointer) -> Option<&str> {
+        let len = *(ptr as *const u32);
+        let ptr = ptr.add(4);
+        std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
+    }
+
     /// ```
     /// use cao_lang::prelude::*;
     ///
@@ -156,6 +170,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             let instr: u8 = unsafe { *program.bytecode.as_ptr().add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
             instr_ptr += 1;
+            debug!("Executing: {:?} instr_ptr: {} Stack: {}", instr, instr_ptr, self.runtime_data.stack);
             match instr {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();

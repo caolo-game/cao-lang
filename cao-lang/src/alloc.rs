@@ -10,6 +10,7 @@ pub enum AllocError {
     OutOfMemory,
 }
 
+#[derive(Debug)]
 pub struct BumpAllocator {
     data: NonNull<u8>,
     capacity: usize,
@@ -45,19 +46,17 @@ impl BumpAllocator {
     ///
     ///Invalidates all outstanding pointers
     pub unsafe fn reset(&mut self, capacity: usize) {
-        unsafe {
-            dealloc(
-                self.data.as_ptr(),
-                Layout::from_size_align(self.capacity, 8).expect("Failed to produce alignment"),
-            );
+        dealloc(
+            self.data.as_ptr(),
+            Layout::from_size_align(self.capacity, 8).expect("Failed to produce alignment"),
+        );
 
-            self.data = NonNull::new(alloc(
-                Layout::from_size_align(capacity, 8).expect("Failed to produce alignment"),
-            ))
-            .expect("Failed to allocate memory");
-            self.capacity = capacity;
-            *self.head.get_mut() = 0;
-        }
+        self.data = NonNull::new(alloc(
+            Layout::from_size_align(capacity, 8).expect("Failed to produce alignment"),
+        ))
+        .expect("Failed to allocate memory");
+        self.capacity = capacity;
+        *self.head.get_mut() = 0;
     }
 
     ///# SAFETY

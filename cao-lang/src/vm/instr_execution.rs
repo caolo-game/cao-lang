@@ -101,7 +101,7 @@ pub fn instr_string_literal<T>(
         std::ptr::write(result as *mut u32, payload.len() as u32);
         std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
 
-        vm.stack_push(Value::Pointer(Pointer(ptr.as_ptr())))?;
+        vm.stack_push(Value::Object(Pointer(ptr.as_ptr())))?;
     }
 
     Ok(())
@@ -166,7 +166,7 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     let value = vm.runtime_data.stack.pop_w_offset(offset);
     vm.runtime_data
         .stack
-        .set(handle as usize, value)
+        .set(offset + handle as usize, value)
         .map_err(|err| {
             ExecutionError::VarNotFound(format!("Failed to set local variable: {}", err))
         })?;
