@@ -35,7 +35,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
     {
         let mut res = KeyMap::<T>::default();
         while let Some((k, v)) = seq.next_element()? {
-            res.insert(Key(k), v);
+            res.insert(Key(k), v).expect("oom");
         }
         Ok(res)
     }
@@ -58,8 +58,8 @@ mod tests {
 
     #[test]
     fn can_serialize() {
-        let mut map = KeyMap::with_capacity(16);
-        map.insert(Key(123), 69);
+        let mut map = KeyMap::default();
+        map.insert(Key(123), 69).unwrap();
 
         let js = serde_json::to_string(&map).unwrap();
 

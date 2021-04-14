@@ -15,12 +15,17 @@ mod serde;
 #[cfg(test)]
 mod tests;
 
+use crate::alloc::{Allocator, SysAllocator};
+
 #[cfg(feature = "serde")]
 pub use self::serde::*;
 
 use std::{
-    mem::{replace, swap, MaybeUninit},
+    alloc::Layout,
+    intrinsics::transmute,
+    mem::{align_of, size_of, swap, MaybeUninit},
     ops::{Index, IndexMut},
+    ptr::NonNull,
     str::FromStr,
 };
 
@@ -31,12 +36,22 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 pub struct Key(u32);
 
 #[derive(Debug)]
-pub struct KeyMap<T> {
-    keys: Box<[Key]>,
-    values: Box<[MaybeUninit<T>]>,
-
+pub struct KeyMap<T, A = SysAllocator>
+where
+    A: Allocator,
+{
+    keys: NonNull<Key>,
+    values: NonNull<T>,
     count: usize,
     capacity: usize,
+
+    alloc: A,
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum MapError {
+    #[error("Failed to allocate memory {0}")]
+    AllocError(crate::alloc::AllocError),
 }
 
 pub struct Entry<'a, T> {
@@ -114,82 +129,94 @@ impl<'a> From<&'a str> for Key {
     }
 }
 
-impl<T> Default for KeyMap<T> {
-    fn default() -> Self {
-        Self::with_capacity(16)
-    }
-}
-
-impl<T> Clone for KeyMap<T>
+impl<T, A> Default for KeyMap<T, A>
 where
-    T: Clone,
+    A: Allocator + Default,
 {
-    fn clone(&self) -> Self {
-        let mut res = Self::with_capacity(self.capacity);
-        res.count = self.count;
-        for (i, key) in self.keys.iter().enumerate().filter(|(_, Key(k))| *k != 0) {
-            res.keys[i] = *key;
-            res.values[i] = MaybeUninit::new(unsafe { &*self.values[i].as_ptr() }.clone());
-        }
-
-        res
+    fn default() -> Self {
+        Self::with_capacity(16, A::default()).expect("Failed to init map")
     }
 }
 
-impl<T> Drop for KeyMap<T> {
+impl<T, A> Drop for KeyMap<T, A>
+where
+    A: Allocator,
+{
     fn drop(&mut self) {
         self.clear();
+        unsafe {
+            self.alloc.dealloc(
+                transmute(self.keys),
+                Layout::from_size_align(self.capacity * size_of::<Key>(), align_of::<Key>())
+                    .expect("old Key layout"),
+            );
+            self.alloc.dealloc(
+                transmute(self.values),
+                Layout::from_size_align(self.capacity * size_of::<T>(), align_of::<T>())
+                    .expect("old T layout"),
+            );
+        }
     }
 }
 
-impl<T> KeyMap<T> {
-    pub fn with_capacity(capacity: usize) -> Self {
-        let mut res = Self {
-            keys: Box::new([]),
-            values: Box::new([]),
-            count: 0,
-            capacity,
-        };
-        res.adjust_size(capacity);
-        res
+impl<T, A> KeyMap<T, A>
+where
+    A: Allocator,
+{
+    pub fn with_capacity(capacity: usize, allocator: A) -> Result<Self, MapError> {
+        unsafe {
+            let (keys, values) = Self::alloc_storage(&allocator, capacity)?;
+            let res = Self {
+                keys,
+                values,
+                alloc: allocator,
+                count: 0,
+                capacity,
+            };
+            Ok(res)
+        }
     }
 
     pub fn clear(&mut self) {
-        for (i, k) in self
-            .keys
-            .iter_mut()
-            .enumerate()
-            .filter(|(_, Key(x))| *x != 0)
-        {
-            k.0 = 0;
-            if std::mem::needs_drop::<T>() {
-                unsafe {
-                    std::ptr::drop_in_place(self.values[i].as_mut_ptr());
+        unsafe {
+            for (i, k) in (0..self.capacity)
+                .map(|i| (i, &mut *self.keys.as_ptr().add(i)))
+                .filter(|(_, Key(x))| *x != 0)
+            {
+                if std::mem::needs_drop::<T>() {
+                    std::ptr::drop_in_place(self.values.as_ptr().add(i));
                 }
+                k.0 = 0;
             }
+            self.count = 0;
         }
     }
 
     /// Reserve enough space to hold `capacity` additional items
     #[inline]
-    pub fn reserve(&mut self, capacity: usize) {
+    pub fn reserve(&mut self, capacity: usize) -> Result<(), MapError> {
         let new_cap = capacity + self.count;
         if new_cap > self.capacity {
-            self.adjust_size((new_cap as f32 * (1.0 + MAX_LOAD)) as usize);
+            unsafe {
+                self.adjust_size((new_cap as f32 * (1.0 + MAX_LOAD)) as usize)?;
+            }
         }
+        Ok(())
     }
 
     pub fn entry(&mut self, key: Key) -> Entry<T> {
         let ind = self.find_ind(key);
 
-        let pl = if self.keys[ind] != key {
-            EntryPayload::Vacant {
-                key: &mut self.keys[ind],
-                value: &mut self.values[ind],
-                count: &mut self.count,
+        let pl = unsafe {
+            if *self.keys.as_ptr().add(ind) != key {
+                EntryPayload::Vacant {
+                    key: &mut *self.keys.as_ptr().add(ind),
+                    value: &mut *(self.values.as_ptr().add(ind) as *mut MaybeUninit<T>),
+                    count: &mut self.count,
+                }
+            } else {
+                EntryPayload::Occupied(&mut *self.values.as_ptr().add(ind))
             }
-        } else {
-            EntryPayload::Occupied(unsafe { &mut *self.values[ind].as_mut_ptr() })
         };
         Entry { key, pl }
     }
@@ -212,117 +239,169 @@ impl<T> KeyMap<T> {
     #[inline]
     pub fn contains(&self, key: Key) -> bool {
         let ind = self.find_ind(key);
-        self.keys[ind].0 != 0
+        unsafe { (*self.keys.as_ptr().add(ind)).0 != 0 }
     }
 
     pub fn get(&self, key: Key) -> Option<&T> {
         let ind = self.find_ind(key);
-        if self.keys[ind].0 != 0 {
-            unsafe {
-                let r = self.values[ind].as_ptr();
+        unsafe {
+            if (*self.keys.as_ptr().add(ind)).0 != 0 {
+                let r = self.values.as_ptr().add(ind);
                 Some(&*r)
+            } else {
+                None
             }
-        } else {
-            None
         }
     }
 
     pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
         let ind = self.find_ind(key);
-        if self.keys[ind].0 != 0 {
-            unsafe {
-                let r = self.values[ind].as_mut_ptr();
+        unsafe {
+            if (*self.keys.as_ptr().add(ind)).0 != 0 {
+                let r = self.values.as_ptr().add(ind);
                 Some(&mut *r)
+            } else {
+                None
             }
-        } else {
-            None
         }
     }
 
     fn find_ind(&self, key: Key) -> usize {
-        let len = self.keys.len();
+        let len = self.capacity;
         let mut ind = key.0 as usize % len;
         loop {
-            if self.keys[ind] == key || self.keys[ind].0 == 0 {
-                return ind;
+            unsafe {
+                debug_assert!(ind < len);
+                let k = *self.keys.as_ptr().add(ind);
+                if k == key || k.0 == 0 {
+                    return ind;
+                }
+                ind = (ind + 1) % len;
             }
-            ind = (ind + 1) % len;
         }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Key, &'_ T)> + '_ {
-        self.keys
-            .iter()
-            .enumerate()
-            .filter(|(_, Key(k))| *k != 0)
-            .map(move |(i, k)| (*k, unsafe { &*self.values[i].as_ptr() }))
+        let keys = self.keys.as_ptr();
+        let values = self.values.as_ptr();
+        (0..self.capacity).filter_map(move |i| unsafe {
+            let k = *keys.add(i);
+            (k.0 != 0).then(|| (k, &*values.add(i)))
+        })
     }
 
-    fn adjust_size(&mut self, capacity: usize) {
-        let keys = vec![Key(0); capacity];
+    unsafe fn alloc_storage(
+        alloc: &A,
+        capacity: usize,
+    ) -> Result<(NonNull<Key>, NonNull<T>), MapError> {
+        let keyslayout = Layout::from_size_align(capacity * size_of::<Key>(), align_of::<Key>())
+            .expect("Failed to produce keys layout");
+        let keys = alloc.alloc(keyslayout).map_err(MapError::AllocError)?;
 
-        let mut values = Vec::with_capacity(capacity);
-        values.resize_with(capacity, MaybeUninit::uninit);
+        let values = match alloc
+            .alloc(
+                Layout::from_size_align(capacity * size_of::<T>(), align_of::<T>())
+                    .expect("Failed to produce T layout"),
+            )
+            .map_err(MapError::AllocError)
+        {
+            Ok(ptr) => ptr,
+            Err(err) => {
+                alloc.dealloc(keys, keyslayout);
+                return Err(err);
+            }
+        };
+        // zero the keys
+        let keys: NonNull<Key> = transmute(keys);
+        for i in 0..capacity {
+            std::ptr::write(keys.as_ptr().add(i), Key(0));
+        }
+        Ok((keys, transmute(values)))
+    }
 
-        let mut keys = keys.into_boxed_slice();
-        let mut values = values.into_boxed_slice();
+    unsafe fn adjust_size(&mut self, capacity: usize) -> Result<(), MapError> {
+        let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
         swap(&mut self.keys, &mut keys);
         swap(&mut self.values, &mut values);
 
+        let old_cap = self.capacity;
+        // insert the old values
         self.count = 0;
         self.capacity = capacity;
-        for (i, key) in keys.iter().enumerate().filter(|(_, Key(x))| *x != 0) {
-            let value = replace(&mut values[i], MaybeUninit::uninit());
-            unsafe {
-                self._insert(*key, value.assume_init());
-            }
+        for (i, key) in (0..old_cap)
+            .map(|i| (i, *keys.as_ptr().add(i)))
+            .filter(|(_, Key(x))| *x != 0)
+        {
+            let value: T = std::ptr::read(values.as_ptr().add(i));
+            self._insert(key, value);
         }
+
+        // dealloc old buffers
+        self.alloc.dealloc(
+            transmute(keys),
+            Layout::from_size_align(old_cap * size_of::<Key>(), align_of::<Key>())
+                .expect("old Key layout"),
+        );
+        self.alloc.dealloc(
+            transmute(values),
+            Layout::from_size_align(old_cap * size_of::<T>(), align_of::<T>())
+                .expect("old T layout"),
+        );
+
+        Ok(())
     }
 
     #[inline]
-    fn grow(&mut self) {
+    fn grow(&mut self) -> Result<(), MapError> {
         let new_cap = self.capacity.max(2) * 3 / 2;
         debug_assert!(new_cap > self.capacity);
-        self.adjust_size(new_cap);
+        unsafe { self.adjust_size(new_cap) }
     }
 
     /// Returns mutable reference to the just inserted value
-    pub fn insert(&mut self, key: Key, value: T) -> &mut T {
+    pub fn insert(&mut self, key: Key, value: T) -> Result<&mut T, MapError> {
         debug_assert_ne!(key.0, 0, "0 keys mean unintialized entries");
         if (self.count + 1) as f32 > self.capacity as f32 * MAX_LOAD {
-            self.grow();
+            self.grow()?;
         }
-        self._insert(key, value)
+        Ok(self._insert(key, value))
     }
 
     #[inline]
     fn _insert(&mut self, key: Key, value: T) -> &mut T {
         let ind = self.find_ind(key);
-        let is_new_key = self.keys[ind].0 == 0;
+
+        debug_assert!(ind < self.capacity);
+
+        let is_new_key = unsafe { (*self.keys.as_ptr().add(ind)).0 == 0 };
         self.count += is_new_key as usize;
 
         if std::mem::needs_drop::<T>() && !is_new_key {
             unsafe {
-                std::ptr::drop_in_place(self.values[ind].as_mut_ptr());
+                std::ptr::drop_in_place(self.values.as_ptr().add(ind));
             }
         }
 
-        self.keys[ind] = key;
-        self.values[ind] = MaybeUninit::new(value);
-        unsafe { &mut *self.values[ind].as_mut_ptr() }
+        unsafe {
+            std::ptr::write(self.keys.as_ptr().add(ind), key);
+            std::ptr::write(self.values.as_ptr().add(ind), value);
+            &mut *self.values.as_ptr().add(ind)
+        }
     }
 
     /// Removes the element and returns `Some(value)` if it was present, else None
     pub fn remove(&mut self, key: Key) -> Option<T> {
         let ind = self.find_ind(key);
-        if self.keys[ind].0 != 0 {
-            self.count -= 1;
-            self.keys[ind] = Key(0);
-            let val = replace(&mut self.values[ind], MaybeUninit::uninit());
-            unsafe { Some(val.assume_init()) }
-        } else {
-            None
+        unsafe {
+            let kptr = self.keys.as_ptr().add(ind);
+            if (*kptr).0 != 0 {
+                self.count -= 1;
+                *kptr = Key(0);
+                Some(std::ptr::read(self.values.as_ptr().add(ind)))
+            } else {
+                None
+            }
         }
     }
 }
@@ -332,9 +411,11 @@ impl<T> Index<Key> for KeyMap<T> {
 
     fn index(&self, key: Key) -> &Self::Output {
         let ind = self.find_ind(key);
-        assert!(self.keys[ind].0 != 0);
         unsafe {
-            let r = self.values.get_unchecked(ind).as_ptr();
+            assert!((*self.keys.as_ptr().add(ind)).0 != 0);
+        }
+        unsafe {
+            let r = self.values.as_ptr().add(ind);
             &*r
         }
     }
@@ -342,9 +423,11 @@ impl<T> Index<Key> for KeyMap<T> {
 impl<T> IndexMut<Key> for KeyMap<T> {
     fn index_mut(&mut self, key: Key) -> &mut Self::Output {
         let ind = self.find_ind(key);
-        assert!(self.keys[ind].0 != 0);
         unsafe {
-            let r = self.values.get_unchecked_mut(ind).as_mut_ptr();
+            assert!((*self.keys.as_ptr().add(ind)).0 != 0);
+        }
+        unsafe {
+            let r = self.values.as_ptr().add(ind);
             &mut *r
         }
     }

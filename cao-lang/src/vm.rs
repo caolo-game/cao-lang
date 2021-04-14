@@ -121,7 +121,9 @@ impl<'a, Aux> Vm<'a, Aux> {
     {
         let name = name.into();
         let key = Key::from_str(name).unwrap();
-        self.callables.insert(key, Procedure::new(name, f));
+        self.callables
+            .insert(key, Procedure::new(name, f))
+            .expect("failed to insert new function");
     }
 
     #[inline]

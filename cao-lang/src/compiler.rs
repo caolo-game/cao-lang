@@ -196,17 +196,17 @@ impl<'a> Compiler<'a> {
                 hash_key: nodekey,
                 arity: n.arguments.len() as u32,
             };
-            self.jump_table.insert(indexkey, metadata);
+            self.jump_table.insert(indexkey, metadata).unwrap();
             if let Some(ref mut name) = n.name.as_mut() {
                 let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
                 if self.jump_table.contains(namekey) {
                     return Err(CompilationError::DuplicateName(std::mem::take(name)));
                 }
-                self.jump_table.insert(namekey, metadata);
+                self.jump_table.insert(namekey, metadata).unwrap();
             }
         }
 
-        self.program.labels.0.reserve(num_cards);
+        self.program.labels.0.reserve(num_cards).expect("reserve");
         Ok(())
     }
 
@@ -245,7 +245,8 @@ impl<'a> Compiler<'a> {
                 self.program
                     .labels
                     .0
-                    .insert(nodeid_hash, Label::new(handle));
+                    .insert(nodeid_hash, Label::new(handle))
+                    .unwrap();
             }
 
             self.scope_begin()?;
@@ -391,7 +392,8 @@ impl<'a> Compiler<'a> {
         self.program
             .labels
             .0
-            .insert(nodeid_hash, Label::new(handle));
+            .insert(nodeid_hash, Label::new(handle))
+            .unwrap();
 
         if let Some(instr) = card.instruction() {
             // instruction itself

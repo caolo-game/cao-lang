@@ -150,7 +150,7 @@ pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -
         .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
     let res = fun.fun.call(vm);
     //cleanup
-    vm.callables.insert(fun_hash, fun);
+    vm.callables.insert(fun_hash, fun).expect("fun re-insert");
     res
 }
 

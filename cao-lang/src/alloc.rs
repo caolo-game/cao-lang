@@ -19,7 +19,7 @@ pub enum AllocError {
 }
 
 /// Calls system functions
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct SysAllocator;
 
 impl Allocator for SysAllocator {

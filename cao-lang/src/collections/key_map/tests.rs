@@ -2,13 +2,13 @@ use super::*;
 
 #[test]
 fn can_insert() {
-    let mut map = KeyMap::<i32>::with_capacity(16);
+    let mut map = KeyMap::<i32>::default();
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42);
-    map.insert(Key(2), 42);
-    map.insert(Key(5), 31);
+    map.insert(Key(5), 42).expect("insert 0");
+    map.insert(Key(2), 42).expect("insert 1");
+    map.insert(Key(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
@@ -18,13 +18,13 @@ fn can_insert() {
 
 #[test]
 fn can_grow() {
-    let mut map = KeyMap::<i32>::with_capacity(1);
+    let mut map = KeyMap::<i32>::with_capacity(1, SysAllocator::default()).unwrap();
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42);
-    map.insert(Key(2), 42);
-    map.insert(Key(5), 31);
+    map.insert(Key(5), 42).expect("insert 0");
+    map.insert(Key(2), 42).expect("insert 1");
+    map.insert(Key(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
@@ -37,13 +37,13 @@ fn can_grow() {
 
 #[test]
 fn can_mutate_value() {
-    let mut map = KeyMap::<i32>::with_capacity(1);
+    let mut map = KeyMap::<i32>::with_capacity(1, SysAllocator::default()).unwrap();
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42);
-    map.insert(Key(2), 42);
-    map.insert(Key(5), 31);
+    map.insert(Key(5), 42).expect("insert 0");
+    map.insert(Key(2), 42).expect("insert 1");
+    map.insert(Key(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
@@ -70,10 +70,10 @@ fn drops_values() {
     }
 
     {
-        let mut map = KeyMap::with_capacity(1);
-        map.insert(Key(5), Foo(drops.as_mut().get_mut()));
-        map.insert(Key(2), Foo(drops.as_mut().get_mut()));
-        map.insert(Key(5), Foo(drops.as_mut().get_mut()));
+        let mut map = KeyMap::with_capacity(1, SysAllocator::default()).unwrap();
+        map.insert(Key(5), Foo(drops.as_mut().get_mut())).expect("insert 0");
+        map.insert(Key(2), Foo(drops.as_mut().get_mut())).expect("insert 1");
+        map.insert(Key(5), Foo(drops.as_mut().get_mut())).expect("insert 2");
 
         assert_eq!(map.len(), 2);
         assert_eq!(*drops, 1, "Drops the duplicated value");
