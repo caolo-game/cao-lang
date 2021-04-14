@@ -22,8 +22,20 @@ fn jump_lane(c: &mut Criterion) {
         let cu = serde_yaml::from_str(JUMP_PROG).unwrap();
         let program = compile(cu, CompileOptions::new()).unwrap();
 
-        let mut vm = Vm::new(()).with_max_iter(1 << 30);
-        b.iter(|| vm.run(&program).unwrap())
+        let mut vm = Vm::new(());
+        b.iter(|| {
+            vm.clear();
+            vm.run(&program).unwrap()
+        })
+    });
+}
+
+fn vm_clear(c: &mut Criterion) {
+    c.bench_function("vm_clear", |b| {
+        let mut vm = Vm::new(());
+        b.iter(|| {
+            vm.clear();
+        })
     });
 }
 
@@ -100,6 +112,12 @@ fn run_fib_iter(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(loop_benches, run_fib_iter, run_fib_recursive, jump_lane);
+criterion_group!(
+    loop_benches,
+    run_fib_iter,
+    run_fib_recursive,
+    jump_lane,
+    vm_clear
+);
 
 criterion_main!(loop_benches);
