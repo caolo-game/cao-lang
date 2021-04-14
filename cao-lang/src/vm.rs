@@ -1,8 +1,8 @@
 //! Cao-Lang back-end
 //!
 //! Interprets the compiled output produced by the Cao-Lang compiler
-pub mod data;
 mod instr_execution;
+pub mod runtime;
 
 #[cfg(test)]
 mod tests;
@@ -17,15 +17,15 @@ use crate::{
     instruction::Instruction,
     prelude::*,
 };
-use data::RuntimeData;
+use runtime::RuntimeData;
 use std::mem::transmute;
 use std::str::FromStr;
 
-use self::data::CallFrame;
+use self::runtime::CallFrame;
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.
-/// `Aux` is an auxiliary data structure passed to custom functions.
+/// `Aux` is an auxiliary runtime structure passed to custom functions.
 pub struct Vm<'a, Aux = ()>
 where
     Aux: 'a,
@@ -90,7 +90,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.auxiliary_data
     }
 
-    /// Returns None if the underlying data is not valid utf8
+    /// Returns None if the underlying runtime is not valid utf8
     ///
     /// # SAFETY
     ///

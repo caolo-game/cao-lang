@@ -71,9 +71,12 @@ fn drops_values() {
 
     {
         let mut map = KeyMap::with_capacity(1, SysAllocator::default()).unwrap();
-        map.insert(Key(5), Foo(drops.as_mut().get_mut())).expect("insert 0");
-        map.insert(Key(2), Foo(drops.as_mut().get_mut())).expect("insert 1");
-        map.insert(Key(5), Foo(drops.as_mut().get_mut())).expect("insert 2");
+        map.insert(Key(5), Foo(drops.as_mut().get_mut()))
+            .expect("insert 0");
+        map.insert(Key(2), Foo(drops.as_mut().get_mut()))
+            .expect("insert 1");
+        map.insert(Key(5), Foo(drops.as_mut().get_mut()))
+            .expect("insert 2");
 
         assert_eq!(map.len(), 2);
         assert_eq!(*drops, 1, "Drops the duplicated value");

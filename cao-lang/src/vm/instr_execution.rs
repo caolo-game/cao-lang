@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    data::{CallFrame, RuntimeData},
+    runtime::{CallFrame, RuntimeData},
     Vm,
 };
 
