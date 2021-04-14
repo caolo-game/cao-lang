@@ -83,12 +83,13 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.auxiliary_data
     }
 
-    /// Returns None if the underlying runtime is not valid utf8
-    ///
-    /// # SAFETY
+    /// # Safety
     ///
     /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
     ///
+    /// # Return value
+    ///
+    /// Returns None if the underlying string is not valid utf8
     #[inline]
     pub unsafe fn get_str(&self, StrPointer(ptr): StrPointer) -> Option<&str> {
         let len = *(ptr as *const u32);
@@ -96,17 +97,8 @@ impl<'a, Aux> Vm<'a, Aux> {
         std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
     }
 
-    /// ```
-    /// use cao_lang::prelude::*;
+    /// Register a native function for use by Cao-Lang programs
     ///
-    /// fn my_epic_func(vm: &mut Vm<()>, inp: i64) -> Result<(), ExecutionError> {
-    ///     vm.stack_push(inp * 2);
-    ///     Ok(())
-    /// }
-    ///
-    /// let mut vm = Vm::new(()).unwrap();
-    /// vm.register_function("epic", my_epic_func as VmFunction1<_, _>);
-    /// ```
     pub fn register_function<'b, S, C>(&mut self, name: S, f: C)
     where
         S: Into<&'b str>,

@@ -222,13 +222,13 @@ impl<'a> Compiler<'a> {
                 Ok(i) => i,
                 Err(_) => return Err(CompilationError::TooManyCards(il)),
             };
-            self.scope_begin()?;
+            self.scope_begin();
             self.process_lane(il, main_lane, 0)?;
             let nodeid = NodeId {
                 lane: il as u16,
                 pos: len,
             };
-            self.scope_end()?;
+            self.scope_end();
             // insert explicit exit after the first lane
             self.process_card(nodeid, Card::Abort)?;
         }
@@ -249,24 +249,23 @@ impl<'a> Compiler<'a> {
                     .unwrap();
             }
 
-            self.scope_begin()?;
+            self.scope_begin();
 
             // process the lane
             self.process_lane(il, lane, 1)?;
 
-            self.scope_end()?;
+            self.scope_end();
             self.program.bytecode.push(Instruction::Return as u8);
         }
 
         Ok(())
     }
 
-    fn scope_begin(&mut self) -> Result<(), CompilationError> {
+    fn scope_begin(&mut self) {
         self.scope_depth += 1;
-        Ok(())
     }
 
-    fn scope_end(&mut self) -> Result<(), CompilationError> {
+    fn scope_end(&mut self) {
         self.scope_depth -= 1;
         // while the last item's depth is greater than scope_depth
         while self
@@ -278,7 +277,6 @@ impl<'a> Compiler<'a> {
             self.locals.pop();
             self.program.bytecode.push(Instruction::Pop as u8);
         }
-        Ok(())
     }
 
     fn add_local(&mut self, name: VarName) -> Result<(), CompilationError> {
@@ -368,12 +366,11 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn push_str(&mut self, data: &str) -> Result<(), CompilationError> {
+    fn push_str(&mut self, data: &str) {
         let handle = self.program.data.len() as u32;
         write_to_vec(handle, &mut self.program.bytecode);
 
         encode_str(data, &mut self.program.data);
-        Ok(())
     }
 
     fn resolve_var(&self, name: &str) -> isize {
@@ -519,7 +516,7 @@ impl<'a> Compiler<'a> {
             Card::Jump(jmp) => {
                 self.encode_jump(nodeid, &jmp)?;
             }
-            Card::StringLiteral(c) => self.push_str(c.0.as_str())?,
+            Card::StringLiteral(c) => self.push_str(c.0.as_str()),
             Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Key::from_str(name.as_str()).unwrap();
