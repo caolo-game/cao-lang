@@ -24,13 +24,6 @@ use std::str::FromStr;
 use self::data::CallFrame;
 use tracing::debug;
 
-#[derive(Debug, Clone, Copy)]
-pub enum ConvertError {
-    /// Null object was passed to convert
-    NullPtr,
-    BadType,
-}
-
 /// Cao-Lang bytecode interpreter.
 /// `Aux` is an auxiliary data structure passed to custom functions.
 pub struct Vm<'a, Aux = ()>
