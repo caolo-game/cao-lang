@@ -1,4 +1,4 @@
-use crate::Pointer;
+use crate::{vm::runtime::FieldTable, StrPointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -6,8 +6,8 @@ use std::ops::{Add, Div, Mul, Sub};
 #[repr(C)]
 pub enum Value {
     Nil,
-    String(Pointer),
-    Object(Pointer),
+    String(StrPointer),
+    Object(*mut FieldTable),
     Integer(i64),
     Floating(f64),
 }
@@ -22,7 +22,8 @@ impl Value {
     #[inline]
     pub fn as_bool(self) -> bool {
         match self {
-            Value::String(Pointer(i)) | Value::Object(Pointer(i)) => !i.is_null(),
+            Value::String(i) => !i.0.is_null(),
+            Value::Object(i) => !i.is_null(),
             Value::Integer(i) => i != 0,
             Value::Floating(i) => i != 0.0,
             Value::Nil => false,
@@ -83,18 +84,29 @@ impl Value {
     }
 }
 
+impl TryFrom<Value> for StrPointer {
+    type Error = Value;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::String(ptr) => Ok(ptr),
+            _ => Err(value),
+        }
+    }
+}
+
 impl From<Value> for bool {
     fn from(s: Value) -> Self {
         s.as_bool()
     }
 }
 
-impl TryFrom<Value> for Pointer {
+impl TryFrom<Value> for *mut FieldTable {
     type Error = Value;
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::String(p) | Value::Object(p) => Ok(p),
+            Value::Object(p) => Ok(p),
             _ => Err(v),
         }
     }
@@ -105,7 +117,8 @@ impl TryFrom<Value> for i64 {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Object(Pointer(i)) => Ok(i as i64),
+            Value::String(i) => Ok(i.0 as i64),
+            Value::Object(i) => Ok(i as i64),
             Value::Integer(i) => Ok(i),
             _ => Err(v),
         }

@@ -30,6 +30,7 @@ pub enum Card {
     Not,
     Return,
     ScalarNil,
+    CreateTable,
     Abort,
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
@@ -54,6 +55,7 @@ impl Card {
             Card::Pass => "Pass",
             Card::Add => "Add",
             Card::Sub => "Sub",
+            Card::CreateTable => "CreateTable",
             Card::Mul => "Mul",
             Card::Div => "Div",
             Card::CopyLast => "CopyLast",
@@ -96,6 +98,7 @@ impl Card {
             | Card::While(_)
             | Card::Repeat(_) => None,
 
+            Card::CreateTable => Some(Instruction::InitTable),
             Card::And => Some(Instruction::And),
             Card::Abort => Some(Instruction::Exit),
             Card::Not => Some(Instruction::Not),
@@ -140,6 +143,7 @@ impl Card {
             | Instruction::Equals
             | Instruction::NotEquals
             | Instruction::Exit
+            | Instruction::InitTable
             | Instruction::StringLiteral
             | Instruction::CallLane
             | Instruction::CopyLast

@@ -549,6 +549,7 @@ impl<'a> Compiler<'a> {
             | Card::Sub
             | Card::Mul
             | Card::Div
+            | Card::CreateTable
             | Card::ClearStack => { /* These cards translate to a single instruction */ }
         }
         Ok(())
@@ -578,6 +579,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::And
         | Instruction::Or
         | Instruction::Xor
+        | Instruction::InitTable
         | Instruction::Not => 1,
         //
         Instruction::ScalarInt | Instruction::ScalarFloat | Instruction::ScalarLabel => 9,

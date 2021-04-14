@@ -5,5 +5,7 @@ pub use crate::program::*;
 pub use crate::traits::*;
 pub use crate::value::*;
 pub use crate::{
-    subprogram_description, vm::Vm, InputString, NodeId, Pointer, SubProgram, SubProgramType,
+    subprogram_description,
+    vm::{runtime::FieldTable, Vm},
+    InputString, NodeId, StrPointer, SubProgram, SubProgramType,
 };

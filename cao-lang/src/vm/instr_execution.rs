@@ -8,7 +8,7 @@ use crate::{
     program::CaoProgram,
     traits::MAX_STR_LEN,
     value::Value,
-    Pointer, VariableId,
+    StrPointer, VariableId,
 };
 
 use super::{
@@ -101,7 +101,7 @@ pub fn instr_string_literal<T>(
         std::ptr::write(result as *mut u32, payload.len() as u32);
         std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
 
-        vm.stack_push(Value::String(Pointer(ptr.as_ptr())))?;
+        vm.stack_push(Value::String(StrPointer(ptr.as_ptr())))?;
     }
 
     Ok(())

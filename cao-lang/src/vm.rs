@@ -7,7 +7,6 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use crate::value::Value;
 use crate::VariableId;
 use crate::{binary_compare, pop_stack};
 use crate::{
@@ -15,6 +14,7 @@ use crate::{
     instruction::Instruction,
     prelude::*,
 };
+use crate::{value::Value, StrPointer};
 use runtime::RuntimeData;
 use std::mem::transmute;
 use std::str::FromStr;
@@ -90,7 +90,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
     ///
     #[inline]
-    pub unsafe fn get_str(&self, Pointer(ptr): Pointer) -> Option<&str> {
+    pub unsafe fn get_str(&self, StrPointer(ptr): StrPointer) -> Option<&str> {
         let len = *(ptr as *const u32);
         let ptr = ptr.add(4);
         std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
@@ -163,6 +163,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                 instr, instr_ptr, self.runtime_data.stack
             );
             match instr {
+                Instruction::InitTable => {
+                    let res = self.runtime_data.init_table()?;
+                    self.stack_push(Value::Object(res.as_ptr()))?;
+                }
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =

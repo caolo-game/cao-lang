@@ -23,7 +23,7 @@ fn test_string_w_utf8() {
     vm.run(&program).expect("run");
 
     let varid = program.variable_id("result").expect("varid");
-    let ptr: Pointer = vm
+    let ptr = vm
         .read_var(varid)
         .expect("read var")
         .try_into()
@@ -43,7 +43,7 @@ fn test_string_param() {
     }
 
     let fun = move |vm: &mut Vm<State>, arg: cao_lang::StrPointer| {
-        let vm_str = unsafe { vm.get_str(Pointer(arg.0)).unwrap().to_string() };
+        let vm_str = unsafe { vm.get_str(StrPointer(arg.0)).unwrap().to_string() };
         vm.auxiliary_data.res = vm_str;
         Ok(())
     };
@@ -457,6 +457,27 @@ fn jump_lane_w_params_test() {
         Value::Floating(f) => assert!((f - 6.9).abs() < std::f64::EPSILON),
         _ => panic!("Unexpected value set for bar {:?}", bar),
     }
+}
+
+#[test]
+fn test_init_table() {
+    let cu = CompilationUnit {
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::CreateTable)
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))],
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+    let foo = vm
+        .read_var_by_name("g_foo", &program.variables)
+        .expect("Failed to read foo variable");
+
+    let p: *mut FieldTable = foo.try_into().expect("Expected an Object");
+    assert!(!p.is_null());
 }
 
 mod fibonacci {

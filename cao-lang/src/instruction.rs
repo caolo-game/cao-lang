@@ -75,4 +75,6 @@ pub enum Instruction {
     /// Pop a scalar from the stack and `goto` there if the value was
     /// falsy
     GotoIfFalse,
+    /// Creates a new Cao-Lang Table and pushes it onto the stack
+    InitTable,
 }

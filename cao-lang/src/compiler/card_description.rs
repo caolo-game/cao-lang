@@ -43,6 +43,14 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
         Card::CallNative(_) | Card::ScalarLabel(_)  => unreachable!(),
+        Card::CreateTable => subprogram_description!(
+            "CreateTable",
+            "Initializes a new data table",
+            SubProgramType::Instruction,
+            [],
+            [],
+            []
+        ),
         Card::Pass => subprogram_description!(
             "Pass",
             "Do nothing",
