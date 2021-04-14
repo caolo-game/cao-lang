@@ -308,7 +308,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
 
         Card::ReadVar(_) => subprogram_description!(
             "ReadVar",
-            "Read the value of a variable",
+            "Read the value of a variable. If the variable does not exist yet it will attempt to read a global variable with the same name",
             SubProgramType::Instruction,
             [],
             ["Object instance"],
