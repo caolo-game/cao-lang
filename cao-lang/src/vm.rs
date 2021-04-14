@@ -101,8 +101,8 @@ impl<'a, Aux> Vm<'a, Aux> {
     ///
     /// # SAFETY
     ///
-    /// Must be called with ptr obtained from a `string_literal` instruction, before the last
-    /// `clear`!
+    /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
+    ///
     #[inline]
     pub unsafe fn get_str(&self, Pointer(ptr): Pointer) -> Option<&str> {
         let len = *(ptr as *const u32);
@@ -164,13 +164,16 @@ impl<'a, Aux> Vm<'a, Aux> {
         let mut instr_ptr = 0;
         while instr_ptr < len {
             remaining_iters -= 1;
-            if remaining_iters <= 0 {
+            if remaining_iters == 0 {
                 return Err(ExecutionError::Timeout);
             }
             let instr: u8 = unsafe { *program.bytecode.as_ptr().add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
             instr_ptr += 1;
-            debug!("Executing: {:?} instr_ptr: {} Stack: {}", instr, instr_ptr, self.runtime_data.stack);
+            debug!(
+                "Executing: {:?} instr_ptr: {} Stack: {}",
+                instr, instr_ptr, self.runtime_data.stack
+            );
             match instr {
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
