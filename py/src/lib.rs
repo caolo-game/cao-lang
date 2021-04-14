@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use pyo3::{
     exceptions::{PyRuntimeError, PyValueError},
     prelude::*,
@@ -45,19 +47,21 @@ impl CompilationOptions {
 #[pyclass]
 #[derive(Clone)]
 pub struct CaoProgram {
-    inner: cao_lang::prelude::CaoProgram,
+    inner: Arc<cao_lang::prelude::CaoProgram>,
 }
 
 #[pyfunction]
 fn compile(cu: CompilationUnit, options: Option<CompilationOptions>) -> PyResult<CaoProgram> {
     cao_lang::prelude::compile(cu.inner, options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
-        .map(|inner| CaoProgram { inner })
+        .map(|inner| CaoProgram {
+            inner: Arc::new(inner),
+        })
 }
 
 #[pyfunction]
 fn run(prog: CaoProgram) -> PyResult<()> {
-    let mut vm = cao_lang::prelude::Vm::new(());
+    let mut vm = cao_lang::prelude::Vm::new(()).expect("Failed to init vm");
     vm.run(&prog.inner)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
         .map(|_| ())

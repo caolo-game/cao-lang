@@ -463,3 +463,6 @@ impl<T> IndexMut<&[u8]> for KeyMap<T> {
         &mut self[key]
     }
 }
+
+unsafe impl<T, A> Send for KeyMap<T, A> where A: Allocator + Send {}
+unsafe impl<T, A> Sync for KeyMap<T, A> where A: Allocator + Sync {}

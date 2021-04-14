@@ -50,7 +50,7 @@ pub type VmFunction4<Aux, T1, T2, T3, T4> = fn(&mut Vm<Aux>, T1, T2, T3, T4) -> 
 /// ```
 /// use cao_lang::prelude::*;
 ///
-/// let mut vm = Vm::new(());
+/// let mut vm = Vm::new(()).unwrap();
 ///
 /// fn fun(_vm: &mut Vm<()>, _param: i64) -> ExecutionResult {
 ///     Ok(())

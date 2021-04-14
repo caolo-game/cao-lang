@@ -2,8 +2,42 @@ use super::{AllocError, Allocator};
 use std::{
     alloc::{alloc, dealloc, Layout},
     cell::UnsafeCell,
+    ops::Deref,
     ptr::NonNull,
+    rc::Rc,
 };
+
+/// Shared BumpAllocator.
+///
+/// # Safety
+///
+/// Note that BumpAllocator is NOT thread-safe!
+#[derive(Debug, Clone)]
+pub struct BumpProxy {
+    inner: Rc<UnsafeCell<BumpAllocator>>,
+}
+
+impl From<BumpAllocator> for BumpProxy {
+    fn from(inner: BumpAllocator) -> Self {
+        Self {
+            inner: Rc::new(UnsafeCell::new(inner)),
+        }
+    }
+}
+
+impl Deref for BumpProxy {
+    type Target = BumpAllocator;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.inner.get() }
+    }
+}
+
+impl BumpProxy {
+    pub unsafe fn get_inner(&mut self) -> &mut BumpAllocator {
+        &mut *self.inner.get()
+    }
+}
 
 #[derive(Debug)]
 pub struct BumpAllocator {
@@ -90,5 +124,14 @@ impl Allocator for BumpAllocator {
 
     unsafe fn dealloc(&self, p: NonNull<u8>, l: Layout) {
         BumpAllocator::dealloc(self, p, l)
+    }
+}
+impl Allocator for BumpProxy {
+    unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
+        (*self.inner.get()).alloc(l)
+    }
+
+    unsafe fn dealloc(&self, p: NonNull<u8>, l: Layout) {
+        (*self.inner.get()).dealloc(p, l)
     }
 }

@@ -8,10 +8,8 @@ pub mod runtime;
 mod tests;
 
 use crate::value::Value;
+use crate::VariableId;
 use crate::{binary_compare, pop_stack};
-use crate::{
-    collections::bounded_stack::BoundedStack, collections::value_stack::ValueStack, VariableId,
-};
 use crate::{
     collections::key_map::{Key, KeyMap},
     instruction::Instruction,
@@ -41,19 +39,14 @@ where
 }
 
 impl<'a, Aux> Vm<'a, Aux> {
-    pub fn new(auxiliary_data: Aux) -> Self {
-        Self {
+    pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionError> {
+        Ok(Self {
             auxiliary_data,
             callables: KeyMap::default(),
-            runtime_data: RuntimeData {
-                memory: crate::alloc::BumpAllocator::new(40 * 1024),
-                stack: ValueStack::new(256),
-                global_vars: Vec::with_capacity(128),
-                call_stack: BoundedStack::new(256),
-            },
+            runtime_data: RuntimeData::new(400 * 1024, 256, 256)?,
             max_instr: 1000,
             _m: Default::default(),
-        }
+        })
     }
 
     pub fn clear(&mut self) {
@@ -111,7 +104,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     ///     Ok(())
     /// }
     ///
-    /// let mut vm = Vm::new(());
+    /// let mut vm = Vm::new(()).unwrap();
     /// vm.register_function("epic", my_epic_func as VmFunction1<_, _>);
     /// ```
     pub fn register_function<'b, S, C>(&mut self, name: S, f: C)

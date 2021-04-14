@@ -19,7 +19,7 @@ fn test_string_w_utf8() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(1000);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&program).expect("run");
 
     let varid = program.variable_id("result").expect("varid");
@@ -50,7 +50,8 @@ fn test_string_param() {
 
     let mut vm = Vm::new(State {
         res: "".to_string(),
-    });
+    })
+    .unwrap();
     vm.register_function(name, into_f1(fun));
 
     let cu = CompilationUnit {
@@ -87,7 +88,7 @@ fn simple_if_statement() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(1000);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&program).expect("run");
 
     let varid = program.variable_id("result").expect("varid");
@@ -112,7 +113,7 @@ fn simple_if_statement_skips_if_false() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(1000);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&program).unwrap();
 
     let varid = program.variable_id("result").unwrap();
@@ -146,7 +147,7 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(1000);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&program).expect("program run");
 
     let varid = program.variable_id("result").expect("varid");
@@ -200,7 +201,7 @@ fn test_local_variable() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(500);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(500);
     vm.run(&program).unwrap();
 
     let res = vm
@@ -228,7 +229,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(500);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(500);
     let res = vm.run(&program);
     let _name = "foo".to_string();
     assert!(matches!(res, Err(ExecutionError::VarNotFound(_name))));
@@ -299,7 +300,7 @@ fn simple_for_loop() {
 
     // Compilation was successful
 
-    let mut vm = Vm::new(()).with_max_iter(500);
+    let mut vm = Vm::new(()).unwrap().with_max_iter(500);
     vm.run(&program).unwrap();
 
     let res = vm
@@ -330,7 +331,7 @@ fn call_native_test() {
         Ok(())
     };
 
-    let mut vm = Vm::new(State { called: false });
+    let mut vm = Vm::new(State { called: false }).unwrap();
     vm.register_function(name, fun);
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
@@ -376,7 +377,8 @@ fn test_function_registry() {
         call_1: false,
         call_2: false,
         call_3: false,
-    });
+    })
+    .unwrap();
 
     // if this compiles we're good to go
     vm.register_function("func0", myfunc0);
@@ -441,7 +443,7 @@ fn jump_lane_w_params_test() {
 
     let program = compile(cu, CompileOptions::new()).expect("compile");
 
-    let mut vm = Vm::new(());
+    let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
     let foo = vm
         .read_var_by_name("g_foo", &program.variables)
@@ -478,7 +480,7 @@ mod fibonacci {
         let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
         let program = compile(cu, CompileOptions::new()).unwrap();
 
-        let mut vm = Vm::new(());
+        let mut vm = Vm::new(()).unwrap();
         vm.stack_push(Value::Integer(1)).unwrap();
         vm.run(&program).expect("run failed");
 
@@ -494,7 +496,7 @@ mod fibonacci {
         let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
         let program = compile(cu, CompileOptions::new()).unwrap();
 
-        let mut vm = Vm::new(());
+        let mut vm = Vm::new(()).unwrap();
         vm.stack_push(Value::Integer(4)).unwrap();
         vm.run(&program).expect("run failed");
 

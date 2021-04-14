@@ -35,3 +35,6 @@ impl Allocator for SysAllocator {
         dealloc(p.as_ptr(), l);
     }
 }
+
+unsafe impl Send for SysAllocator {}
+unsafe impl Sync for SysAllocator {}

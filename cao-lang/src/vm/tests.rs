@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn test_binary_operatons() {
-    let mut vm = Vm::new(());
+    let mut vm = Vm::new(()).unwrap();
 
     vm.runtime_data.stack.push(Value::Integer(512)).unwrap();
     vm.runtime_data.stack.push(Value::Integer(42)).unwrap();

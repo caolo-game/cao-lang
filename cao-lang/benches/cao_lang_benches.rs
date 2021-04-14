@@ -22,7 +22,7 @@ fn jump_lane(c: &mut Criterion) {
         let cu = serde_yaml::from_str(JUMP_PROG).unwrap();
         let program = compile(cu, CompileOptions::new()).unwrap();
 
-        let mut vm = Vm::new(());
+        let mut vm = Vm::new(()).unwrap();
         b.iter(|| {
             vm.clear();
             vm.run(&program).unwrap()
@@ -32,7 +32,7 @@ fn jump_lane(c: &mut Criterion) {
 
 fn vm_clear(c: &mut Criterion) {
     c.bench_function("vm_clear", |b| {
-        let mut vm = Vm::new(());
+        let mut vm = Vm::new(()).unwrap();
         b.iter(|| {
             vm.clear();
         })
@@ -51,7 +51,7 @@ fn run_fib_recursive(c: &mut Criterion) {
                 let cu = serde_yaml::from_str(FIB_RECURSE_PROG).unwrap();
                 let program = compile(cu, CompileOptions::new()).unwrap();
 
-                let mut vm = Vm::new(()).with_max_iter(1 << 30);
+                let mut vm = Vm::new(()).unwrap().with_max_iter(1 << 30);
                 b.iter(|| {
                     vm.clear();
                     vm.stack_push(iterations).expect("Initial push");
@@ -87,7 +87,7 @@ fn run_fib_iter(c: &mut Criterion) {
                 let cu = serde_yaml::from_str(FIB_PROG).unwrap();
                 let program = compile(cu, CompileOptions::new()).unwrap();
 
-                let mut vm = Vm::new(()).with_max_iter(250 * iterations);
+                let mut vm = Vm::new(()).unwrap().with_max_iter(250 * iterations);
                 let iterations = iterations as i64;
                 b.iter(|| {
                     vm.clear();
