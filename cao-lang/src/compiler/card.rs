@@ -44,7 +44,7 @@ pub enum Card {
     IfElse { then: LaneNode, r#else: LaneNode },
     Jump(LaneNode),
     SetGlobalVar(VarNode),
-    SetLocalVar(VarNode),
+    SetVar(VarNode),
     ReadVar(VarNode),
     Repeat(LaneNode),
     While(LaneNode),
@@ -53,7 +53,7 @@ pub enum Card {
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
-            Card::SetLocalVar(_) => "SetLocalVar",
+            Card::SetVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
             Card::Add => "Add",
             Card::Sub => "Sub",
@@ -98,7 +98,7 @@ impl Card {
         match self {
             Card::IfElse { .. }
             | Card::ReadVar(_)
-            | Card::SetLocalVar(_)
+            | Card::SetVar(_)
             | Card::While(_)
             | Card::Repeat(_) => None,
 

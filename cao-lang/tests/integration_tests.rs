@@ -191,7 +191,7 @@ fn test_local_variable() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
             // set another value in local var
             .with_card(Card::ScalarInt(IntegerNode(123)))
-            .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
             // read the var and set the global variable
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))],
@@ -217,7 +217,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
             Lane::default()
                 .with_name("main")
                 .with_card(Card::ScalarInt(IntegerNode(123)))
-                .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::Jump(LaneNode::LaneId(1))),
             Lane::default()
                 .with_name("bar")

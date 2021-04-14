@@ -297,7 +297,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [],
             ["Variable name"]
         ),
-        Card::SetLocalVar(_) => subprogram_description!(
+        Card::SetVar(_) => subprogram_description!(
             "SetLocalVar",
             "Sets the value of a local variable. Local variables are only usable in the Lane they were created in.",
             SubProgramType::Instruction,

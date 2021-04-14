@@ -453,7 +453,7 @@ impl<'a> Compiler<'a> {
                     write_to_vec(index, &mut self.program.bytecode);
                 }
             }
-            Card::SetLocalVar(var) => {
+            Card::SetVar(var) => {
                 let index = self.locals.len() as u32;
                 self.add_local(var.0)?;
                 self.program.bytecode.push(Instruction::SetLocalVar as u8);

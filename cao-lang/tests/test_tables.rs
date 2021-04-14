@@ -33,7 +33,7 @@ fn test_get_set() {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
-            .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::SetProperty(VarNode::from_str_unchecked("bar"))) // foo.bar
@@ -79,7 +79,7 @@ fn test_native_w_table_input() {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
-            .with_card(Card::SetLocalVar(VarNode::from_str_unchecked("foo")))
+            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::SetProperty(VarNode::from_str_unchecked("boi"))) // foo.bar
