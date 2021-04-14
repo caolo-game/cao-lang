@@ -91,9 +91,23 @@ impl Ord for NodeId {
     }
 }
 
-/// Memory handles
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Pointer(pub *mut u8);
+
+/// Convenience newtype for native functions with string arguments
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct StrPointer(pub *mut u8);
+
+impl std::convert::TryFrom<prelude::Value> for StrPointer {
+    type Error = prelude::Value;
+
+    fn try_from(value: prelude::Value) -> Result<Self, Self::Error> {
+        match value {
+            prelude::Value::String(Pointer(ptr)) => Ok(StrPointer(ptr)),
+            _ => Err(value),
+        }
+    }
+}
 
 pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 255;
 
