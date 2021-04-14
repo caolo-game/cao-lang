@@ -4,7 +4,7 @@ from setuptools_rust import Binding, RustExtension
 
 setup(
     name="cao-lang",
-    version="0.1.5",
+    version="0.1.6",
     rust_extensions=[
         RustExtension("cao_lang.cao_lang_py", "py/Cargo.toml", binding=Binding.PyO3)
     ],
