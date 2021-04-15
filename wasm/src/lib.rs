@@ -9,8 +9,6 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
-/// # Returns an object.
-///
 /// ## Compilation errors:
 ///
 /// The `compile` function will return an object with a `compilationError` if the compilation fails, rather
@@ -29,7 +27,7 @@ pub fn _start() {
 /// - `program`
 /// - `compileError`
 ///
-/// __Compilation unit (input) example:__
+///  ## Compilation unit (input) example:
 ///
 /// ```json
 /// {

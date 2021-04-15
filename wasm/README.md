@@ -2,13 +2,17 @@
 
 ![Run tests](https://github.com/caolo-game/cao-lang/workflows/Run%20tests/badge.svg)
 
-Wrapper on [CaoLang](https://github.com/caolo-game/cao-lang.git) 
+WASM wrapper of [Cao-Lang](https://github.com/caolo-game/cao-lang.git)
 
-## Dependencies
-
-See [here](https://rustwasm.github.io/book/game-of-life/setup.html)
+[Documentation](https://caolo-game.github.io/cao-lang/index.html)
 
 ## Building
+
+### Dependencies
+
+- [wasm-pack](https://github.com/rustwasm/wasm-pack)
+
+### Building
 
 ```
 wasm-pack build
