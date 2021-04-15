@@ -9,6 +9,31 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
+#[wasm_bindgen]
+pub fn version_info() -> VersionInfo {
+    VersionInfo {}
+}
+
+#[wasm_bindgen]
+pub struct VersionInfo {}
+
+#[wasm_bindgen]
+impl VersionInfo {
+    #[wasm_bindgen(method, getter)]
+    pub fn native(&self) -> String {
+        cao_lang::version::VERSION_STR.to_string()
+    }
+}
+
+/// Return the basic cards accepted by this Cao-Lang instance
+#[wasm_bindgen]
+pub fn basic_schema() -> Vec<JsValue> {
+    cao_lang::compiler::card_description::get_instruction_descriptions()
+        .into_iter()
+        .map(|x| JsValue::from_serde(&x).unwrap())
+        .collect()
+}
+
 /// ## Compilation errors:
 ///
 /// The `compile` function will return an object with a `compilationError` if the compilation fails, rather

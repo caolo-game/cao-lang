@@ -1,2 +1,3 @@
 [workspace]
-members = ["cao-lang", "cli", "py", "wasm"]
+members = ["cao-lang", "cli", "py"]
+exclude = ["wasm"]
