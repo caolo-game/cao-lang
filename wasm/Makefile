@@ -10,7 +10,6 @@ test:
 	cargo check
 	wasm-pack test --node
 	wasm-pack test --firefox --headless
-	wasm-pack test --chrome --headless
 
 pack: release
 	wasm-pack pack out/pkg

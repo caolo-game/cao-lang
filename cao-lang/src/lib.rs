@@ -51,7 +51,7 @@ pub mod version {
     include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
 }
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, str::FromStr};
 
 use crate::instruction::Instruction;
 use arrayvec::ArrayString;
@@ -60,6 +60,15 @@ use prelude::ByteEncodeble;
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VariableId(u32);
+
+impl FromStr for VariableId {
+    type Err = <u32 as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let inner = u32::from_str(s)?;
+        Ok(VariableId(inner))
+    }
+}
 
 /// Unique id of each nodes in a single compilation
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]

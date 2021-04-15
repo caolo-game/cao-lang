@@ -21,6 +21,27 @@ fn can_compile_simple_program() {
     assert!(result.is_ok(), "Failed to compile {:?}", result);
 }
 
+/// The comile method will return an object w/ a compilationError if the compilation fails, rather
+/// than throwing an exception
+#[wasm_bindgen_test]
+fn compiler_returns_error_not_exception() {
+    let cu = json!({
+        "lanes": [{
+            "name": "PogChamp",
+            "cards": [ {"ty": "Jump", "val": {"LaneId": 42} } ]
+        }]
+    });
+    let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("Compile returned error");
+    let output: CompileResult = output
+        .into_serde()
+        .expect("Failed to deserialize compiler output");
+
+    match output {
+        CompileResult::Program(_) => panic!("Expected a compile error"),
+        CompileResult::CompileError(_) => {}
+    }
+}
+
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
@@ -28,18 +49,24 @@ fn can_run_simple_program() {
             "name": "Foo",
             "cards": [
             { "ty": "StringLiteral", "val": "Poggers" }
-            , {"ty": "SetGlobalVar", "val": "pogman" }
+            , {"ty": "SetGlobalVar", "val": "g_pogman" }
             ]
         }]
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
 
-    let output: CompileResult = output.into_serde().unwrap();
+    let output: CompileResult = output
+        .into_serde()
+        .expect("Failed to deserialize compiler output");
 
-    assert!(output.compile_error.is_none());
-    assert!(output.program.is_some());
+    let program = match output {
+        CompileResult::Program(p) => p,
+        CompileResult::CompileError(err) => panic!("Failed to compile {:?}", err),
+    };
 
-    run_program(JsValue::from_serde(&output.program).expect("serialize")).expect("Failed to run");
+    let prog_js = JsValue::from_serde(&program).expect("serialize");
+
+    run_program(prog_js).expect("Failed to run");
 }
 
 // TODO

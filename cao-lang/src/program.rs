@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+mod serde_impl;
+
 use std::str::FromStr;
 
 use crate::{
@@ -15,6 +18,7 @@ pub struct Labels(pub KeyMap<Label>);
 pub struct Variables {
     pub ids: KeyMap<VariableId>,
     /// maps the variableIds back to names for debugging purposes
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "serde_impl::de_int_key"))]
     pub names: std::collections::HashMap<VariableId, VarName>,
 }
 

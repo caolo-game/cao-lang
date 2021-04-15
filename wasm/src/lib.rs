@@ -9,16 +9,27 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
-/// Returns an object.
+/// # Returns an object.
+///
+/// ## Compilation errors:
+///
+/// The `compile` function will return an object with a `compilationError` if the compilation fails, rather
+/// than throwing an exception. Exceptions are thrown on contract violation, e.g. passing in an
+/// object that can not be deserialized into a compilable object.
+///
 /// ```json
 /// {
-///     "program": null,
-///     "compileError": "someerror"
+///     "ty": "compileError",
+///     "val": "someerror"
 /// }
 /// ```
-/// Only 1 of the fields will be non-null, depending on the outcome.
 ///
-/// __Compilation unit example:__
+/// `ty` is one of:
+///
+/// - `program`
+/// - `compileError`
+///
+/// __Compilation unit (input) example:__
 ///
 /// ```json
 /// {
@@ -47,14 +58,8 @@ pub fn compile(
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
     let res = match caoc::compile(cu, ops) {
-        Ok(res) => CompileResult {
-            program: Some(res),
-            compile_error: None,
-        },
-        Err(err) => CompileResult {
-            program: None,
-            compile_error: Some(err.to_string()),
-        },
+        Ok(res) => CompileResult::Program(res),
+        Err(err) => CompileResult::CompileError(err.to_string()),
     };
 
     let res = JsValue::from_serde(&res).expect("failed to serialize result");
@@ -62,10 +67,11 @@ pub fn compile(
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct CompileResult {
-    pub program: Option<CaoProgram>,
-    #[serde(rename = "compileError")]
-    pub compile_error: Option<String>,
+#[serde(tag = "ty", content = "val")]
+#[serde(rename_all = "camelCase")]
+pub enum CompileResult {
+    Program(CaoProgram),
+    CompileError(String),
 }
 
 #[wasm_bindgen]
