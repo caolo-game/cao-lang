@@ -112,6 +112,32 @@ impl TryFrom<Value> for *mut FieldTable {
     }
 }
 
+impl TryFrom<Value> for &FieldTable {
+    type Error = Value;
+
+    fn try_from(v: Value) -> Result<Self, Value> {
+        match v {
+            // NOTE:
+            // this is still bad if p is dangling
+            Value::Object(p) if !p.is_null() => Ok(unsafe { &*p }),
+            _ => Err(v),
+        }
+    }
+}
+
+impl TryFrom<Value> for &mut FieldTable {
+    type Error = Value;
+
+    fn try_from(v: Value) -> Result<Self, Value> {
+        match v {
+            // NOTE:
+            // this is still bad if p is dangling
+            Value::Object(p) if !p.is_null() => Ok(unsafe { &mut *p }),
+            _ => Err(v),
+        }
+    }
+}
+
 impl TryFrom<Value> for i64 {
     type Error = Value;
 

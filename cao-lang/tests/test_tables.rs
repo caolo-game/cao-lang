@@ -60,9 +60,8 @@ fn test_native_w_table_input() {
         param: i64,
     }
 
-    let myboi = move |vm: &mut Vm<State>, table: *mut FieldTable| {
+    let myboi = move |vm: &mut Vm<State>, table: &FieldTable| {
         let key = Key::from_str("boi").unwrap();
-        let table = unsafe { &*table };
         let res = table.get(key).copied().unwrap_or_default();
         if let Value::Integer(i) = res {
             vm.get_aux_mut().param = i;
