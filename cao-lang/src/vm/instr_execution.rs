@@ -176,14 +176,13 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
 #[inline]
 pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
-    let value = vm.runtime_data.stack.get(
-        vm.runtime_data
-            .call_stack
-            .last()
-            .expect("no call frame found")
-            .stack_offset
-            + handle as usize,
-    );
+    let offset = vm
+        .runtime_data
+        .call_stack
+        .last()
+        .expect("Call stack is emtpy")
+        .stack_offset;
+    let value = vm.runtime_data.stack.get(offset + handle as usize);
     vm.stack_push(value)?;
     Ok(())
 }

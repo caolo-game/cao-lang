@@ -1,4 +1,4 @@
-pub use crate::compiler::{compile, Card, CompilationError, CaoIr, CompileOptions, Lane};
+pub use crate::compiler::{compile, CaoIr, Card, CompilationError, CompileOptions, Lane};
 pub use crate::instruction::Instruction;
 pub use crate::procedures::*;
 pub use crate::program::*;

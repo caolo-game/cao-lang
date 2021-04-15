@@ -149,10 +149,7 @@ impl<'a> Compiler<'a> {
         self._compile(compilation_unit)
     }
 
-    fn _compile(
-        &mut self,
-        mut compilation_unit: CaoIr,
-    ) -> Result<CaoProgram, CompilationError> {
+    fn _compile(&mut self, mut compilation_unit: CaoIr) -> Result<CaoProgram, CompilationError> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
         }
@@ -167,10 +164,7 @@ impl<'a> Compiler<'a> {
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(
-        &mut self,
-        compilation_unit: &mut CaoIr,
-    ) -> Result<(), CompilationError> {
+    fn compile_stage_1(&mut self, compilation_unit: &mut CaoIr) -> Result<(), CompilationError> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.lanes.len().try_into() {
             Ok(i) => i,
@@ -211,10 +205,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(
-        &mut self,
-        compilation_unit: CaoIr,
-    ) -> Result<(), CompilationError> {
+    fn compile_stage_2(&mut self, compilation_unit: CaoIr) -> Result<(), CompilationError> {
         let mut lanes = compilation_unit.lanes.into_iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
@@ -275,6 +266,9 @@ impl<'a> Compiler<'a> {
             .unwrap_or(false)
         {
             self.locals.pop();
+            // we can clean up a bit.
+            // Note that this might leave garbage values on the stack,
+            // but the VM clears those on Returns.
             self.program.bytecode.push(Instruction::Pop as u8);
         }
     }

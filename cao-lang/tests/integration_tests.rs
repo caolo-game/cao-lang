@@ -459,9 +459,9 @@ fn jump_lane_w_params_test() {
     }
 }
 
-
 mod fibonacci {
     use cao_lang::prelude::*;
+    use test_env_log::test;
 
     const RECURSIVE_FIB: &str = include_str!("../benches/fibonacci_program_recursive.yaml");
 
