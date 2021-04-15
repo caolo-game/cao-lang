@@ -290,14 +290,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|_| ExecutionError::Stackoverflow)?;
                 }
                 Instruction::Pass => {}
-                Instruction::ScalarLabel => {
-                    self.runtime_data
-                        .stack
-                        .push(Value::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
-                        }))
-                        .map_err(|_| ExecutionError::Stackoverflow)?;
-                }
                 Instruction::ScalarInt => {
                     self.runtime_data
                         .stack

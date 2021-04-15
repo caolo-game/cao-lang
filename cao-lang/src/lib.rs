@@ -147,7 +147,6 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SubProgramType {
-    /// Any ol' sub-program
     Undefined,
     /// Most basic nodes, translated to (virtual) machine instructions
     Instruction,
@@ -155,8 +154,8 @@ pub enum SubProgramType {
     Function,
     /// Branching nodes may redirect the flow of the program
     Branch,
-    /// Programs start with a start node
-    Start,
+    /// Cards related to objects
+    Object,
 }
 
 impl Default for SubProgramType {
@@ -172,7 +171,7 @@ impl SubProgramType {
             SubProgramType::Instruction => "Instruction",
             SubProgramType::Function => "Function",
             SubProgramType::Branch => "Branch",
-            SubProgramType::Start => "Start",
+            SubProgramType::Object => "Object",
         }
     }
 }

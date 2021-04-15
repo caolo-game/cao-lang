@@ -36,7 +36,6 @@ pub enum Card {
     GetProperty(VarNode),
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
-    ScalarLabel(IntegerNode),
     StringLiteral(StringNode),
     CallNative(Box<CallNode>),
     IfTrue(LaneNode),
@@ -73,7 +72,6 @@ impl Card {
             Card::Abort => "Abort",
             Card::ScalarInt(_) => "ScalarInt",
             Card::ScalarFloat(_) => "ScalarFloat",
-            Card::ScalarLabel(_) => "ScalarLabel",
             Card::StringLiteral(_) => "StringLiteral",
             Card::CallNative(_) => "Call",
             Card::IfTrue(_) => "IfTrue",
@@ -123,7 +121,6 @@ impl Card {
             Card::Pop => Some(Instruction::Pop),
             Card::ScalarInt(_) => Some(Instruction::ScalarInt),
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
-            Card::ScalarLabel(_) => Some(Instruction::ScalarLabel),
             Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
@@ -159,7 +156,6 @@ impl Card {
             | Instruction::Sub
             | Instruction::Mul
             | Instruction::Div
-            | Instruction::ScalarLabel
             | Instruction::ClearStack
             | Instruction::ScalarFloat
             | Instruction::And

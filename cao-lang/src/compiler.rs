@@ -516,7 +516,7 @@ impl<'a> Compiler<'a> {
                 let key = Key::from_str(name.as_str()).unwrap();
                 write_to_vec(key, &mut self.program.bytecode);
             }
-            Card::ScalarLabel(s) | Card::ScalarInt(s) => {
+            Card::ScalarInt(s) => {
                 write_to_vec(s.0, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
@@ -577,7 +577,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::InitTable
         | Instruction::Not => 1,
         //
-        Instruction::ScalarInt | Instruction::ScalarFloat | Instruction::ScalarLabel => 9,
+        Instruction::ScalarInt | Instruction::ScalarFloat => 9,
         Instruction::StringLiteral => 5,
         //
         Instruction::SetLocalVar

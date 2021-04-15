@@ -18,8 +18,6 @@ pub enum Instruction {
     ScalarInt,
     /// Push a float onto the stack
     ScalarFloat,
-    /// Push a label onto the stack
-    ScalarLabel,
     /// Push a `nil` value onto the stack
     ScalarNil,
     /// Writes the strings followed by the instruction to memory and pushes the pointer pointing to
