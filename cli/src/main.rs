@@ -12,7 +12,7 @@ fn main() {
 
     let options = CompileOptions {};
 
-    let cu: CompilationUnit = match serde_json::from_reader(std::io::stdin()) {
+    let cu: CaoIr = match serde_json::from_reader(std::io::stdin()) {
         Ok(cu) => cu,
         Err(err) => {
             eprintln!("Failed to parse compilation unit: {}", err);

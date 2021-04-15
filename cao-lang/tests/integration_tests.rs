@@ -9,7 +9,7 @@ use cao_lang::{
 #[test]
 fn test_string_w_utf8() {
     let test_str = "winnie the pooh is 🔥🔥🔥 ";
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![Lane::default()
             .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
@@ -54,7 +54,7 @@ fn test_string_param() {
     .unwrap();
     vm.register_function(name, into_f1(fun));
 
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
             .with_card(Card::CallNative(Box::new(CallNode(
@@ -72,7 +72,7 @@ fn test_string_param() {
 
 #[test]
 fn simple_if_statement() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("Main".to_owned())
@@ -97,7 +97,7 @@ fn simple_if_statement() {
 
 #[test]
 fn simple_if_statement_skips_if_false() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("Main".to_owned())
@@ -122,7 +122,7 @@ fn simple_if_statement_skips_if_false() {
 }
 
 fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Value) {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("Main".to_owned())
@@ -183,7 +183,7 @@ fn simple_if_else_statement_test_else() {
 
 #[test]
 fn test_local_variable() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![Lane::default()
             .with_name("main")
             // init the global variable
@@ -212,7 +212,7 @@ fn test_local_variable() {
 
 #[test]
 fn local_variable_doesnt_leak_out_of_scope() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("main")
@@ -237,7 +237,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
 
 #[test]
 fn simple_while_loop() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("Main".to_owned())
@@ -277,7 +277,7 @@ fn simple_while_loop() {
 
 #[test]
 fn simple_for_loop() {
-    let program = CompilationUnit {
+    let program = CaoIr {
         lanes: vec![
             Lane::default().with_name("Main").with_cards(vec![
                 // init the result variable
@@ -312,7 +312,7 @@ fn simple_for_loop() {
 #[test]
 fn call_native_test() {
     let name = "foo";
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_name("Main")
             .with_cards(vec![Card::CallNative(Box::new(CallNode(
@@ -424,7 +424,7 @@ lanes:
 
 #[test]
 fn jump_lane_w_params_test() {
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![
             Lane::default()
                 .with_name("main")

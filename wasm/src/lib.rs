@@ -42,7 +42,7 @@ pub fn compile(
     compile_options: Option<CompileOptions>,
 ) -> Result<JsValue, JsValue> {
     let cu = compilation_unit
-        .into_serde::<caoc::CompilationUnit>()
+        .into_serde::<caoc::CaoIr>()
         .map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 

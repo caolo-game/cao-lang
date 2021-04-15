@@ -135,7 +135,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 debug!("Got {:?} instead of object", value);
                 return Err(ExecutionError::invalid_argument(
                     "GetProperty input must be an Object".to_string(),
-                ))?;
+                ));
             }
         };
         Ok(res)
@@ -148,7 +148,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 debug!("Got {:?} instead of object", value);
                 return Err(ExecutionError::invalid_argument(
                     "GetProperty input must be an Object".to_string(),
-                ))?;
+                ));
             }
         };
         Ok(res)

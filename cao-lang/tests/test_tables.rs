@@ -8,7 +8,7 @@ use cao_lang::{
 
 #[test]
 fn test_init_table() {
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
@@ -29,7 +29,7 @@ fn test_init_table() {
 
 #[test]
 fn test_get_set() {
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
@@ -74,7 +74,7 @@ fn test_native_w_table_input() {
     let mut vm = Vm::new(State { param: 0 }).unwrap();
     vm.register_function("boii", into_f1(myboi));
 
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
@@ -109,7 +109,7 @@ fn test_native_w_table_output() {
     let mut vm = Vm::new(()).unwrap();
     vm.register_function("boii", myboi);
 
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CallNative(Box::new(CallNode(

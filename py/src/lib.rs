@@ -9,7 +9,7 @@ use pyo3::{
 #[pyclass]
 #[derive(Clone)]
 pub struct CompilationUnit {
-    inner: cao_lang::prelude::CompilationUnit,
+    inner: cao_lang::prelude::CaoIr,
 }
 
 #[pyclass]

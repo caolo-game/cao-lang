@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn lane_names_must_be_unique() {
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![
             Lane::default().with_name("Foo").with_cards(vec![]),
             Lane::default().with_name("Foo").with_cards(vec![]),
@@ -15,7 +15,7 @@ fn lane_names_must_be_unique() {
 
 #[test]
 fn can_json_de_serialize_output() {
-    let cu = CompilationUnit {
+    let cu = CaoIr {
         lanes: vec![Lane::default().with_name("Foo").with_cards(vec![
             Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
             Card::Pass,

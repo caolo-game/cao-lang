@@ -73,12 +73,12 @@ impl Lane {
     }
 }
 
-/// Single unit of compilation, representing a single program
+/// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CompilationUnit {
+pub struct CaoIr {
     pub lanes: Vec<Lane>,
 }
 
@@ -112,7 +112,7 @@ pub struct Local<'a> {
 }
 
 pub fn compile(
-    compilation_unit: CompilationUnit,
+    compilation_unit: CaoIr,
     compile_options: impl Into<Option<CompileOptions>>,
 ) -> Result<CaoProgram, CompilationError> {
     let mut compiler = Compiler::new();
@@ -141,7 +141,7 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(
         &mut self,
-        compilation_unit: CompilationUnit,
+        compilation_unit: CaoIr,
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> Result<CaoProgram, CompilationError> {
         self.options = compile_options.into().unwrap_or_default();
@@ -151,7 +151,7 @@ impl<'a> Compiler<'a> {
 
     fn _compile(
         &mut self,
-        mut compilation_unit: CompilationUnit,
+        mut compilation_unit: CaoIr,
     ) -> Result<CaoProgram, CompilationError> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::EmptyProgram);
@@ -169,7 +169,7 @@ impl<'a> Compiler<'a> {
     /// also reserve memory for the program labels
     fn compile_stage_1(
         &mut self,
-        compilation_unit: &mut CompilationUnit,
+        compilation_unit: &mut CaoIr,
     ) -> Result<(), CompilationError> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.lanes.len().try_into() {
@@ -213,7 +213,7 @@ impl<'a> Compiler<'a> {
     /// consume lane cards and build the bytecode
     fn compile_stage_2(
         &mut self,
-        compilation_unit: CompilationUnit,
+        compilation_unit: CaoIr,
     ) -> Result<(), CompilationError> {
         let mut lanes = compilation_unit.lanes.into_iter().enumerate();
 
