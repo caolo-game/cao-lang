@@ -1,6 +1,47 @@
 use super::Card;
 use crate::{subprogram_description, SubProgram, SubProgramType};
 
+#[derive(Debug, Clone, Copy)]
+pub enum PropertyName {
+    Integer,
+    Float,
+    Number,
+    Value,
+    Text,
+    Variable,
+    Object,
+    Boolean,
+}
+
+impl PropertyName {
+    /// return a list of all available properties
+    pub fn all_props() -> &'static [PropertyName] {
+        &[
+            PropertyName::Integer,
+            PropertyName::Float,
+            PropertyName::Number,
+            PropertyName::Value,
+            PropertyName::Text,
+            PropertyName::Variable,
+            PropertyName::Object,
+            PropertyName::Boolean,
+        ]
+    }
+
+    pub fn to_str(self) -> &'static str {
+        match self {
+            PropertyName::Integer => "Integer",
+            PropertyName::Float => "Float",
+            PropertyName::Number => "Number",
+            PropertyName::Value => "Value",
+            PropertyName::Text => "Text",
+            PropertyName::Variable => "Variable",
+            PropertyName::Object => "Object",
+            PropertyName::Boolean => "Boolean",
+        }
+    }
+}
+
 pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
     vec![
         get_desc(Card::Pass),
@@ -50,17 +91,17 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "GetProperty",
             "Gets a named field in the given table. Returns `nil` if the field does not exist",
             SubProgramType::Object,
-            ["Object"],
-            ["Value"],
-            ["Variable name"]
+            [PropertyName::Object.to_str()],
+            [PropertyName::Value.to_str()],
+            [PropertyName::Variable.to_str()]
         ),
         Card::SetProperty(_) => subprogram_description!(
             "SetProperty",
             "Sets a named field in the given table to the input value",
             SubProgramType::Object,
-            ["Value", "Object"],
+            [PropertyName::Value.to_str(), PropertyName::Object.to_str()],
             [],
-            ["Variable name"]
+            [PropertyName::Variable.to_str()]
         ),
         Card::CreateTable => subprogram_description!(
             "CreateTable",
@@ -82,40 +123,40 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Not",
             "Logically negates the value on the top of the stack",
             SubProgramType::Instruction,
-            ["Value"],
-            ["Boolean"],
+            [PropertyName::Value.to_str()],
+            [PropertyName::Boolean.to_str()],
             []
         ),
         Card::And => subprogram_description!(
             "And",
             "Logical And",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Boolean.to_str()],
             []
         ),
         Card::Or => subprogram_description!(
             "Or",
             "Logical inclusive Or",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Boolean.to_str()],
             []
         ),
         Card::Xor => subprogram_description!(
             "Xor",
             "Logical exclusive Or",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Boolean.to_str()],
             []
         ),
         Card::Add => subprogram_description!(
             "Add",
             "Add two scalars",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -123,8 +164,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Sub",
             "Subtract two scalars",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -132,8 +173,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Mul",
             "Multiply two scalars",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -141,8 +182,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Div",
             "Divide two scalars",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -150,16 +191,16 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "CopyLast",
             "Duplicate the last item on the stack",
             SubProgramType::Instruction,
-            ["Number"],
-            ["Number", "Number"],
+            [PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
             []
         ),
         Card::Less => subprogram_description!(
             "Less",
             "Return 1 if the first input is less than the second, 0 otherwise",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -167,8 +208,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "LessOrEq",
             "Return 1 if the first input is less than or equal to the second, 0 otherwise",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -176,8 +217,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Equals",
             "Return 1 if the inputs are equal, 0 otherwise",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -186,7 +227,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Push a `Nil` value onto the stack",
             SubProgramType::Instruction,
             [],
-            ["Number"],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -194,8 +235,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "NotEquals",
             "Return 0 if the inputs are equal, 1 otherwise",
             SubProgramType::Instruction,
-            ["Number", "Number"],
-            ["Number"],
+            [PropertyName::Number.to_str(), PropertyName::Number.to_str()],
+            [PropertyName::Number.to_str()],
             []
         ),
 
@@ -203,7 +244,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Pop",
             "Pops the top elements on the stack and discards it",
             SubProgramType::Instruction,
-            ["Number"],
+            [PropertyName::Number.to_str()],
             [],
             []
         ),
@@ -223,7 +264,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [],
-            ["Integer"]
+            [PropertyName::Integer.to_str()]
         ),
 
         Card::ScalarInt(_) => subprogram_description!(
@@ -231,8 +272,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make an integer",
             SubProgramType::Instruction,
             [],
-            ["Number"],
-            ["Integer"]
+            [PropertyName::Number.to_str()],
+            [PropertyName::Integer.to_str()]
         ),
 
         Card::ScalarFloat(_) => subprogram_description!(
@@ -240,7 +281,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make a real number",
             SubProgramType::Instruction,
             [],
-            ["Number"],
+            [PropertyName::Number.to_str()],
             ["Real number"]
         ),
 
@@ -249,35 +290,35 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Make a text",
             SubProgramType::Instruction,
             [],
-            ["Number"],
-            ["Text"]
+            [PropertyName::Number.to_str()],
+            [PropertyName::Text.to_str()]
         ),
 
         Card::IfTrue(_) => subprogram_description!(
             "IfTrue",
             "Jump to the input lane if the last value is true else do nothing.",
             SubProgramType::Branch,
-            ["Number"],
+            [PropertyName::Number.to_str()],
             [],
-            ["Text"]
+            [PropertyName::Text.to_str()]
         ),
 
         Card::IfFalse(_) => subprogram_description!(
             "IfFalse",
             "Jump to the input lane if the last value is false else do nothing.",
             SubProgramType::Branch,
-            ["Number"],
+            [PropertyName::Number.to_str()],
             [],
-            ["Text"]
+            [PropertyName::Text.to_str()]
         ),
 
         Card::IfElse { .. } => subprogram_description!(
             "IfElse",
             "Jump to the input lane if the last value is true else jump to the second input lane.",
             SubProgramType::Branch,
-            ["Number"],
+            [PropertyName::Number.to_str()],
             [],
-            ["Text", "Text"]
+            [PropertyName::Text.to_str(), PropertyName::Text.to_str()]
         ),
 
         Card::Jump(_) => subprogram_description!(
@@ -286,24 +327,24 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [],
             [],
-            ["Text"]
+            [PropertyName::Text.to_str()]
         ),
 
         Card::SetGlobalVar(_) => subprogram_description!(
             "SetGlobalVar",
             "Sets the value of a global variable",
             SubProgramType::Instruction,
-            ["Object instance"],
+            [PropertyName::Object.to_str()],
             [],
-            ["Variable name"]
+            [PropertyName::Variable.to_str()]
         ),
         Card::SetVar(_) => subprogram_description!(
             "SetLocalVar",
             "Sets the value of a local variable. Local variables are only usable in the Lane they were created in.",
             SubProgramType::Instruction,
-            ["Object instance"],
+            [PropertyName::Object.to_str()],
             [],
-            ["Variable name"]
+            [PropertyName::Variable.to_str()]
         ),
 
         Card::ReadVar(_) => subprogram_description!(
@@ -311,8 +352,8 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Read the value of a variable. If the variable does not exist yet it will attempt to read a global variable with the same name",
             SubProgramType::Instruction,
             [],
-            ["Object instance"],
-            ["Variable name"]
+            [PropertyName::Object.to_str()],
+            [PropertyName::Variable.to_str()]
         ),
 
         Card::Return => subprogram_description!(
@@ -328,9 +369,9 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             "Repeat",
             "Repeat a lane the input number of times",
             SubProgramType::Branch,
-            ["Number"],
+            [PropertyName::Number.to_str()],
             [],
-            ["Text"]
+            [PropertyName::Text.to_str()]
         ),
 
         Card::While(_) => subprogram_description!(
@@ -339,7 +380,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Branch,
             [],
             [],
-            ["Text"]
+            [PropertyName::Text.to_str()]
         ),
     }
 }

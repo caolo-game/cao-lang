@@ -129,8 +129,8 @@ pub struct SubProgram<'a> {
     pub output: Box<[&'a str]>,
     /// Human readable descriptions of inputs
     pub input: Box<[&'a str]>,
-    /// Human readable descriptions of parameters
-    pub constants: Box<[&'a str]>,
+    /// Human readable descriptions of properties
+    pub properties: Box<[&'a str]>,
 }
 
 impl<'a> std::fmt::Debug for SubProgram<'a> {
@@ -139,7 +139,7 @@ impl<'a> std::fmt::Debug for SubProgram<'a> {
             .field("name", &self.name)
             .field("input", &self.input)
             .field("output", &self.output)
-            .field("constants", &self.constants)
+            .field("properties", &self.properties)
             .finish()
     }
 }
@@ -178,14 +178,14 @@ impl SubProgramType {
 
 #[macro_export]
 macro_rules! subprogram_description {
-    ($name: expr, $description: expr, $ty: expr, [$($inputs: expr),*], [$($outputs: expr),*], [$($constants: expr),*]) => {
+    ($name: expr, $description: expr, $ty: expr, [$($inputs: expr),*], [$($outputs: expr),*], [$($properties: expr),*]) => {
         SubProgram {
             name: $name,
             description: $description,
             ty: $ty,
             input: subprogram_description!(@input $($inputs),*) ,
             output: subprogram_description!(@input $($outputs),*),
-            constants: subprogram_description!(@input $($constants),*),
+            properties: subprogram_description!(@input $($properties),*),
         }
     };
 

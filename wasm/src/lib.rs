@@ -9,7 +9,19 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
-#[wasm_bindgen]
+/// Return a list of 'native' types present on card descriptions.
+/// Note that clients may expand on these, so the list may be incomplete.
+#[wasm_bindgen(js_name = "caoLangPropertyTypes")]
+pub fn cao_lang_prop_types() -> Box<[JsValue]> {
+    caoc::card_description::PropertyName::all_props()
+        .iter()
+        .map(|name| name.to_str())
+        .map(|name|JsValue::from_str(name))
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+}
+
+#[wasm_bindgen(js_name = "versionInfo")]
 pub fn version_info() -> VersionInfo {
     VersionInfo {}
 }
@@ -26,7 +38,7 @@ impl VersionInfo {
 }
 
 /// Return the basic cards accepted by this Cao-Lang instance
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = "basicSchema")]
 pub fn basic_schema() -> Vec<JsValue> {
     cao_lang::compiler::card_description::get_instruction_descriptions()
         .into_iter()
