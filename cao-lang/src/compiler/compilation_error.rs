@@ -8,8 +8,6 @@ pub enum CompilationError {
 
     #[error("Program was empty")]
     EmptyProgram,
-    #[error("No start node was found")]
-    NoStart,
 
     #[error("Number of lanes may not be larger than 2^16 - 1 = 65535")]
     TooManyLanes,
