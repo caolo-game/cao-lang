@@ -282,7 +282,7 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             SubProgramType::Instruction,
             [],
             [PropertyName::Number.to_str()],
-            ["Real number"]
+            [PropertyName::Float.to_str()]
         ),
 
         Card::StringLiteral(_) => subprogram_description!(

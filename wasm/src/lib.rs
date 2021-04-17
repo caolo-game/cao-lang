@@ -9,8 +9,7 @@ pub fn _start() {
     wasm_logger::init(wasm_logger::Config::default());
 }
 
-/// Return a list of 'native' types present on card descriptions.
-/// Note that clients may expand on these, so the list may be incomplete.
+/// Return a list of types that can appear on Property descriptions
 #[wasm_bindgen(js_name = "caoLangPropertyTypes")]
 pub fn cao_lang_prop_types() -> Box<[JsValue]> {
     caoc::card_description::PropertyName::all_props()

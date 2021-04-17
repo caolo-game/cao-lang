@@ -73,8 +73,7 @@ fn native_version() -> PyResult<String> {
     Ok(cao_lang::version::VERSION_STR.to_string())
 }
 
-/// Return a list of 'native' types present on card descriptions.
-/// Note that clients may expand on these, so the list may be incomplete.
+/// Return a list of types that can appear on Property descriptions
 #[pyfunction]
 fn cao_lang_prop_types() -> Vec<String> {
     cao_lang::compiler::card_description::PropertyName::all_props()
