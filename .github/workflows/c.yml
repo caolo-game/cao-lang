@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [master]
 
-defaults:
-  run:
-    shell: bash
-    working-directory: c
-
 jobs:
   test:
     strategy:
@@ -33,7 +28,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.8
         with:
-          cmake-version: '3.18.x'
+          cmake-version: "3.18.x"
 
       - name: Build project
         run: |
