@@ -14,7 +14,8 @@ fn main() {
 
     #[cfg(target_os = "windows")]
     {
-        const WINDOWS_LIBS: &str = r#"#pragma comment(lib, "ws2_32.lib")
+        const WINDOWS_LIBS: &str = r#"
+#pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "userenv.lib")
 #pragma comment(lib, "advapi32.lib")"#;
         builder = builder.with_after_include(WINDOWS_LIBS);
