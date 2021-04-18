@@ -15,7 +15,7 @@ The node based "language" that governs the actors in the game CaoLo
 
 ```
  |+ cao-lang/           # core library
- |+ cli/                # command line interface
+ |+ c/                  # C interface
  |+ py/                 # Python interface
  |+ wasm/               # WASM interface
  |  MANIFEST.in         # Python build dependency
