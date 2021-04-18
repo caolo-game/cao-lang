@@ -11,5 +11,5 @@ target_link_libraries(cao_lang_tests cao_lang gtest gtest_main)
 
 gtest_discover_tests(cao_lang_tests)
 
-target_link_options(cao_lang_tests PRIVATE
-                    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-pthread>)
+target_link_options(
+    cao_lang_tests PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:"-pthread -Wl,--no-as-needed -ldl">)
