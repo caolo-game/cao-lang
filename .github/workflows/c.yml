@@ -30,15 +30,16 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build project
-        uses: nicledomaS/cmake_build_action@v1.3
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.8
         with:
-          config: Debug
-          submodule_update: OFF
-          run_tests: OFF
-          unit_test_build:
-          cmake_args: -DCAOLO_ENABLE_TESTING=ON
-          create_package: OFF
+          cmake-version: '3.18.x'
+
+      - name: Build project
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCAOLO_ENABLE_TESTING=ON
 
       - name: Run tests
         run: |
