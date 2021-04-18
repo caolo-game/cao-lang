@@ -15,7 +15,20 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          os: ubuntu-latest
+          cc: clang
+          cxx: clang++
+        include:
+          os: windows-latest
+          cc: clang
+          cxx: clang++
+        include:
+          os: macos-latest
+          cc: clang
+          cxx: clang++
+
     name: Test C binding builds
     runs-on: ${{ matrix.os }}
     steps:
@@ -29,18 +42,16 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install clang
+      - name: Build with cmake
+        uses: ashutoshvarma/action-cmake-build@master
+        with:
+          build-dir: ${{ runner.workspace }}/build
+          cc: ${{ matrix.config.cc }}
+          cxx: ${{ matrix.config.cxx }}
+          configure-options: -GNinja -DCAOLO_ENABLE_TESTING=ON
+          build-type: Debug
+
+      - name: Run tests
         run: |
-          sudo apt-get update
-          sudo apt-get install clang lib++-dev libc++1 lld
-
-      - name: Run cargo build
-        run: cargo build
-
-      - name: Run clang build
-        run: clang test.c -l ../target/debug/cao_lang_c
-
-      - name: Run compiled output
-        run: ./a
-        env:
-          RUST_BACKTRACE: 1
+         cd build
+         ctest --output-on-failure

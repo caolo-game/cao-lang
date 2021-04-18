@@ -22,5 +22,5 @@ fn main() {
     builder
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file("cao-lang.h");
+        .write_to_file("include/cao-lang.h");
 }
