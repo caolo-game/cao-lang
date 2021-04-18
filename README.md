@@ -2,9 +2,10 @@
 
 <!-- [![Coverage Status](https://coveralls.io/repos/github/caolo-game/cao-lang/badge.svg?branch=master)](https://coveralls.io/github/caolo-game/cao-lang?branch=master) -->
 
-![Cao-Lang tests](https://github.com/caolo-game/cao-lang/workflows/Run%20Cao-Lang%20tests/badge.svg)
-![WASM tests](https://github.com/caolo-game/cao-lang/workflows/Run%20WASM%20tests/badge.svg)
+[![Cao-Lang core tests](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml)
+[![C bindings tests](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml)
 [![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml)
+[![WASM tests](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml)
 
 The node based "language" that governs the actors in the game CaoLo
 
