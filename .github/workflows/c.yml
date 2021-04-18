@@ -16,16 +16,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            cc: clang
-            cxx: clang++
-          - os: windows-latest
-            cc: clang
-            cxx: clang++
-          - os: macos-latest
-            cc: clang
-            cxx: clang++
 
     name: Test C binding builds
     runs-on: ${{ matrix.os }}
@@ -40,16 +30,17 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build with cmake
-        uses: ashutoshvarma/action-cmake-build@master
+      - name: Build project
+        uses: nicledomaS/cmake_build_action@v1.3
         with:
-          build-dir: ${{ runner.workspace }}/build
-          cc: ${{ matrix.config.cc }}
-          cxx: ${{ matrix.config.cxx }}
-          configure-options: -GNinja -DCAOLO_ENABLE_TESTING=ON
-          build-type: Debug
+          config: Debug
+          submodule_update: OFF
+          run_tests: OFF
+          unit_test_build:
+          cmake_args: -DCAOLO_ENABLE_TESTING=ON
+          create_package: OFF
 
       - name: Run tests
         run: |
-         cd build
-         ctest --output-on-failure
+          cd build
+          ctest --output-on-failure
