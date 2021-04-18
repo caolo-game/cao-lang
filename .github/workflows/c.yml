@@ -17,17 +17,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
-          os: ubuntu-latest
-          cc: clang
-          cxx: clang++
-        include:
-          os: windows-latest
-          cc: clang
-          cxx: clang++
-        include:
-          os: macos-latest
-          cc: clang
-          cxx: clang++
+          - os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            cc: clang
+            cxx: clang++
+          - os: macos-latest
+            cc: clang
+            cxx: clang++
 
     name: Test C binding builds
     runs-on: ${{ matrix.os }}
