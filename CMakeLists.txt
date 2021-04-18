@@ -10,19 +10,19 @@ include(ExternalProject)
 option(CAOLO_ENABLE_TESTING "Enable testing" OFF)
 
 add_library(cao_lang INTERFACE)
-target_include_directories(cao_lang INTERFACE ${CMAKE_SOURCE_DIR}/c/include)
+target_include_directories(cao_lang INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/c/include)
 if(WIN32)
     target_link_libraries(
         cao_lang
-        INTERFACE debug "${CMAKE_SOURCE_DIR}/target/debug/cao_lang_c.lib"
+        INTERFACE debug "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/cao_lang_c.lib"
                   optimized
-                  "${CMAKE_SOURCE_DIR}/target/release/cao_lang_c.lib")
+                  "${CMAKE_CURRENT_SOURCE_DIR}/target/release/cao_lang_c.lib")
 else()
     target_link_libraries(
         cao_lang
-        INTERFACE debug "${CMAKE_SOURCE_DIR}/target/debug/libcao_lang_c.a"
+        INTERFACE debug "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/libcao_lang_c.a"
                   optimized
-                  "${CMAKE_SOURCE_DIR}/target/release/libcao_lang_c.a")
+                  "${CMAKE_CURRENT_SOURCE_DIR}/target/release/libcao_lang_c.a")
 endif()
 
 ExternalProject_Add(
@@ -32,7 +32,7 @@ ExternalProject_Add(
     BUILD_ALWAYS ON
     BUILD_COMMAND cargo build
     COMMAND cargo build --release
-    BINARY_DIR "${CMAKE_SOURCE_DIR}"
+    BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     INSTALL_COMMAND ""
     LOG_BUILD ON)
 
