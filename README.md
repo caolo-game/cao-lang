@@ -19,6 +19,7 @@ The node based "language" that governs the actors in the game CaoLo
  |+ c/                  # C interface
  |+ py/                 # Python interface
  |+ wasm/               # WASM interface
+ |  CMakeLists.txt      # Root cmake file
  |  MANIFEST.in         # Python build dependency
  |  pyproject.toml      # Python build dependency
  |  README.md

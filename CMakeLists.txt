@@ -10,25 +10,26 @@ include(ExternalProject)
 option(CAOLO_ENABLE_TESTING "Enable testing" OFF)
 
 add_library(cao_lang INTERFACE)
-target_include_directories(cao_lang INTERFACE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(cao_lang INTERFACE ${CMAKE_SOURCE_DIR}/c/include)
 if(WIN32)
     target_link_libraries(
         cao_lang
-        INTERFACE debug "${CMAKE_SOURCE_DIR}/../target/debug/cao_lang_c.lib"
+        INTERFACE debug "${CMAKE_SOURCE_DIR}/target/debug/cao_lang_c.lib"
                   optimized
-                  "${CMAKE_SOURCE_DIR}/../target/release/cao_lang_c.lib")
+                  "${CMAKE_SOURCE_DIR}/target/release/cao_lang_c.lib")
 else()
     target_link_libraries(
         cao_lang
-        INTERFACE debug "${CMAKE_SOURCE_DIR}/../target/debug/libcao_lang_c.a"
+        INTERFACE debug "${CMAKE_SOURCE_DIR}/target/debug/libcao_lang_c.a"
                   optimized
-                  "${CMAKE_SOURCE_DIR}/../target/release/libcao_lang_c.a")
+                  "${CMAKE_SOURCE_DIR}/target/release/libcao_lang_c.a")
 endif()
 
 ExternalProject_Add(
     cao_lang_rs
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ""
+    BUILD_ALWAYS ON
     BUILD_COMMAND cargo build
     COMMAND cargo build --release
     BINARY_DIR "${CMAKE_SOURCE_DIR}"
@@ -39,8 +40,8 @@ add_dependencies(cao_lang cao_lang_rs)
 
 if(CAOLO_ENABLE_TESTING)
     enable_testing()
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/c/cmake)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-    add_subdirectory(test)
+    add_subdirectory(c/test)
 endif()

@@ -2,7 +2,7 @@
 
 test:
 	@${MAKE} -C cao-lang test
-	cd c/build && cargo build && ninja && ctest
+	cd build && cargo build && ninja && ctest
 	cd py && cargo test
 	@${MAKE} -C wasm test
 	tox -e py39
