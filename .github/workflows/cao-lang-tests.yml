@@ -1,4 +1,4 @@
-name: Run Cao-Lang tests
+name: Cao-Lang core tests
 
 on:
   push:

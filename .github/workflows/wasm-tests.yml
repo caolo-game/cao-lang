@@ -1,4 +1,4 @@
-name: Run WASM tests
+name: WASM tests
 
 on:
   push:

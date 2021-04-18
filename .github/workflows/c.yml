@@ -1,4 +1,4 @@
-name: Run Cao-Lang C binding tests
+name: C bindings tests
 
 on:
   push:
