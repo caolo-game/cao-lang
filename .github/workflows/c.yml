@@ -1,0 +1,45 @@
+name: Run Cao-Lang C binding tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: c
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Test C binding builds
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: stable
+          override: true
+
+      - name: Install clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install clang lib++-dev libc++1 lld
+
+      - name: Run cargo build
+        run: cargo build
+
+      - name: Run clang build
+        run: clang test.c -l ../target/debug/cao_lang_c
+
+      - name: Run compiled output
+        run: ./a
+        env:
+          RUST_BACKTRACE: 1

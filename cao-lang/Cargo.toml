@@ -15,7 +15,9 @@ serde = { version = "1", features = ["derive"], optional = true }
 arrayvec = { version = "0.6", features = ["serde"] }
 thiserror = "1"
 num_enum = "0.5"
-tracing = { version = "0.1", features = ["release_max_level_info"] }
+tracing = { version = "0.1", features = [
+    "release_max_level_info"
+], default-features = false }
 
 [build-dependencies]
 toml = "0.4"
