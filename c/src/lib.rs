@@ -1,5 +1,12 @@
-use std::ffi::c_void;
+use std::{alloc, ffi::c_void};
 
+use alloc::Layout;
+use cao_lang::{
+    compiler::{compile, CaoIr, CompilationError},
+    program::CaoProgram,
+};
+
+/// Opaque CompiledProgram wrapper.
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct CompiledProgram {
@@ -24,19 +31,20 @@ pub enum CompileResult {
     cao_CompileResult_BadVariableName,
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn cao_new_compiled_program() -> CompiledProgram {
+    CompiledProgram {
+        _inner: std::ptr::null_mut(),
+    }
+}
+
 /// # SAFETY
 ///
 /// Must be called once per CompiledProgram
 #[no_mangle]
 pub unsafe extern "C" fn cao_free_compiled_program(program: CompiledProgram) {
-    let inner = program._inner as *mut cao_lang::prelude::CaoProgram;
-    let _inner = Box::from_raw(inner);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn cao_new_compiled_program() -> CompiledProgram {
-    CompiledProgram {
-        _inner: std::ptr::null_mut(),
+    if !program._inner.is_null() {
+        alloc::dealloc(program._inner as *mut u8, Layout::new::<CaoProgram>());
     }
 }
 
@@ -61,54 +69,50 @@ pub unsafe extern "C" fn cao_compile_json(
 
     let cao_ir = std::slice::from_raw_parts(cao_ir, cao_ir_len as usize);
 
-    let ir: cao_lang::prelude::CaoIr = match serde_json::from_slice(cao_ir) {
+    let ir: CaoIr = match serde_json::from_slice(cao_ir) {
         Ok(ir) => ir,
         Err(_) => return CompileResult::cao_CompileResult_BadJson,
     };
 
-    let program = match cao_lang::prelude::compile(ir, None) {
+    let program = match compile(ir, None) {
         Ok(p) => p,
         Err(err) => match err {
-            cao_lang::compiler::CompilationError::Unimplemented(_) => {
+            CompilationError::Unimplemented(_) => {
                 return CompileResult::cao_CompileResult_Unimplmeneted
             }
-            cao_lang::compiler::CompilationError::EmptyProgram => {
-                return CompileResult::cao_CompileResult_EmptyProgram
-            }
-            cao_lang::compiler::CompilationError::TooManyLanes => {
-                return CompileResult::cao_CompileResult_TooManyLanes
-            }
-            cao_lang::compiler::CompilationError::TooManyCards(_) => {
+            CompilationError::EmptyProgram => return CompileResult::cao_CompileResult_EmptyProgram,
+            CompilationError::TooManyLanes => return CompileResult::cao_CompileResult_TooManyLanes,
+            CompilationError::TooManyCards(_) => {
                 return CompileResult::cao_CompileResult_TooManyCards
             }
-            cao_lang::compiler::CompilationError::DuplicateName(_) => {
+            CompilationError::DuplicateName(_) => {
                 return CompileResult::cao_CompileResult_DuplicateName
             }
-            cao_lang::compiler::CompilationError::MissingSubProgram(_) => {
+            CompilationError::MissingSubProgram(_) => {
                 return CompileResult::cao_CompileResult_MissingSubProgram
             }
-            cao_lang::compiler::CompilationError::MissingNode(_) => {
+            CompilationError::MissingNode(_) => {
                 return CompileResult::cao_CompileResult_MissingNode
             }
-            cao_lang::compiler::CompilationError::InvalidJump { .. } => {
+            CompilationError::InvalidJump { .. } => {
                 return CompileResult::cao_CompileResult_InvalidJump
             }
-            cao_lang::compiler::CompilationError::InternalError => {
+            CompilationError::InternalError => {
                 return CompileResult::cao_CompileResult_InternalError
             }
-            cao_lang::compiler::CompilationError::TooManyLocals => {
+            CompilationError::TooManyLocals => {
                 return CompileResult::cao_CompileResult_TooManyLocals
             }
-            cao_lang::compiler::CompilationError::BadVariableName(_) => {
+            CompilationError::BadVariableName(_) => {
                 return CompileResult::cao_CompileResult_BadVariableName
             }
         },
     };
-    let program = Box::new(program);
-    let program = Box::leak(program);
+    let program_ptr = alloc::alloc(Layout::new::<CaoProgram>());
+    std::ptr::write(program_ptr as *mut CaoProgram, program);
 
     let program = CompiledProgram {
-        _inner: program as *mut _ as *mut c_void,
+        _inner: program_ptr as *mut c_void,
     };
 
     std::ptr::write(result, program);
