@@ -12,7 +12,7 @@ default = ["serde"]
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
 # TODO: only use serde feature if our serde feature is enabled...
-arrayvec = { version = "0.6", features = ["serde"] }
+arrayvec = { version = "0.7", features = ["serde"] }
 thiserror = "1"
 num_enum = "0.5"
 tracing = { version = "0.1", features = [
@@ -20,9 +20,9 @@ tracing = { version = "0.1", features = [
 ], default-features = false }
 
 [build-dependencies]
-toml = "0.4"
+toml = "0.5"
 serde = { version = "1", features = ["derive"] }
-semver = "0.11"
+semver = "1"
 
 [dev-dependencies]
 env_logger = "*"
