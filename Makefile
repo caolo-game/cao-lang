@@ -7,5 +7,9 @@ test:
 	@${MAKE} -C wasm test
 	tox -e py39
 
+update:
+	cargo update
+	cd wasm && cargo update
+
 build:
 	@${MAKE} -C wasm build
