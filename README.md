@@ -4,7 +4,7 @@
 
 [![Cao-Lang core tests](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml)
 [![C bindings tests](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml)
-[![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python.yml)
+[![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python-test.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python-test.yml)
 [![WASM tests](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml)
 
 The node based "language" that governs the actors in the game CaoLo
