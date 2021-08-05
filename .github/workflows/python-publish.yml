@@ -1,0 +1,60 @@
+name: Python publish
+
+on:
+  push:
+    branches: [master, main]
+    tags: [v*]
+
+jobs:
+  distribute-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Setup Python"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.9
+
+      - name: "Install deps"
+        run: |
+          python -m pip install --upgrade pip twine
+          docker pull quay.io/pypa/manylinux2014_x86_64
+
+      - name: "Build distributions"
+        run: |
+          docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
+          ls -al dist/
+
+      - name: "Upload"
+        run: twine upload --skip-existing --verbose dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_NON_INTERACTIVE: 1
+
+  distribute:
+    strategy:
+      matrix:
+        python: ["3.10", "3.9", "3.8", "3.7", "3.6"]
+        os: ["windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Setup Python ${{matrix.python}}"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: ${{matrix.python}}
+
+      - name: "Install build dependencies"
+        run: pip install build twine
+
+      - name: "Build distributions"
+        run: |
+          python -m build --sdist --wheel
+
+      - name: "Upload"
+        run: twine upload --skip-existing --verbose dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_NON_INTERACTIVE: 1

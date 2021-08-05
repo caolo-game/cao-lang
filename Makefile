@@ -1,4 +1,4 @@
-.PHONY: test build
+.PHONY: test build update
 
 test:
 	@${MAKE} -C cao-lang test
@@ -13,3 +13,4 @@ update:
 
 build:
 	@${MAKE} -C wasm build
+	python -m build --wheel

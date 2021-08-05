@@ -2,13 +2,13 @@ name: Python tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
     tags: [v*]
   pull_request:
-    branches: [master]
+    branches: [master, main]
 
 jobs:
-  build:
+  run-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

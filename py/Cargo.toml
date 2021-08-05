@@ -10,7 +10,9 @@ crate-type = ["cdylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-cao-lang = { path = "../cao-lang", default-features = false, features = ["serde"] }
+cao-lang = { path = "../cao-lang", default-features = false, features = [
+    "serde"
+] }
 pyo3 = { version = "0.14", features = ["extension-module"] }
 serde_json = "*"
 serde_yaml = "*"

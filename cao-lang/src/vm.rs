@@ -266,7 +266,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_read_var(
                         &mut self.runtime_data,
                         &mut instr_ptr,
-                        &program,
+                        program,
                     )?;
                 }
                 Instruction::Pop => {
@@ -328,7 +328,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Less => binary_compare!(self, <, false),
                 Instruction::LessOrEq => binary_compare!(self, <=, false),
                 Instruction::StringLiteral => {
-                    instr_execution::instr_string_literal(self, &mut instr_ptr, &program)?
+                    instr_execution::instr_string_literal(self, &mut instr_ptr, program)?
                 }
                 Instruction::Call => {
                     instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode)?
