@@ -10,15 +10,12 @@ on:
 jobs:
   distribute-linux:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: ["3.9"] #, "3.8", "3.7", "3.6", "pypy3"]
     steps:
       - uses: actions/checkout@v2
       - name: "Setup Python"
         uses: actions/setup-python@v2.2.1
         with:
-          python-version: ${{matrix.python}}
+          python-version: 3.9
 
       - name: "Install deps"
         run: |
@@ -28,6 +25,7 @@ jobs:
       - name: "Build distributions"
         run: |
           docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
+          ll dist/
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
@@ -39,7 +37,7 @@ jobs:
   distribute:
     strategy:
       matrix:
-        python: ["3.9"] #, "3.8", "3.7", "3.6", "pypy3"]
+        python: ["3.9"] #, "3.8", "3.7", "3.6"]
         os: ["windows-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
