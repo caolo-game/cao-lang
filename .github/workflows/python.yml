@@ -37,3 +37,23 @@ jobs:
 
       - run: pip install tox
       - run: tox -q -p auto
+  distribute:
+    strategy:
+      matrix:
+        python: ["3.9", "3.8", "3.6"]
+        os: ["ubuntu-latest", "windows-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: "Setup Python ${{matrix.python}}"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: ${{matrix.python}}
+      - name: "Install build dependencies"
+        run: pip install build twine
+      - name: "Build distributions"
+        run: python -m build --sdist --wheel
+      - name: "Upload"
+        run: twine upload --skip-existing
+        env:
+          TWINE_USERNAME: snorrwe
+          TWINE_NON_INTERACTIVE: 1

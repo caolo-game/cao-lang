@@ -3,3 +3,5 @@ global-exclude *.tox
 
 recursive-include ./py *.rs *.py Cargo.toml
 recursive-include ./cao-lang *.rs Cargo.toml
+include README.md
+include LICENSE
