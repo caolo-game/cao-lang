@@ -20,10 +20,20 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: "Setup Python"
+      - name: "Setup Python 39"
         uses: actions/setup-python@v2.2.1
         with:
-          python-versions: ["3.9", "3.8", "3.7", "3.6"]
+          python-version: 3.9
+
+      - name: "Setup Python 38"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.8
+
+      - name: "Setup Python 36"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.6
 
       - run: pip install tox
       - run: tox -q -p auto
