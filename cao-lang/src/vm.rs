@@ -7,19 +7,18 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use crate::VariableId;
-use crate::{binary_compare, pop_stack};
+use self::runtime::CallFrame;
 use crate::{
+    binary_compare,
     collections::key_map::{Key, KeyMap},
     instruction::Instruction,
+    pop_stack,
     prelude::*,
+    value::Value,
+    StrPointer, VariableId,
 };
-use crate::{value::Value, StrPointer};
 use runtime::RuntimeData;
-use std::mem::transmute;
-use std::str::FromStr;
-
-use self::runtime::CallFrame;
+use std::{mem::transmute, str::FromStr};
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.

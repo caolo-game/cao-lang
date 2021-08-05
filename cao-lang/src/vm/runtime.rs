@@ -1,16 +1,12 @@
 use std::{alloc::Layout, ptr::NonNull};
 
+use crate::{
+    alloc::{Allocator, BumpAllocator, BumpProxy},
+    collections::{bounded_stack::BoundedStack, key_map::KeyMap, value_stack::ValueStack},
+    prelude::*,
+    value::Value,
+};
 use tracing::debug;
-
-use crate::{
-    alloc::BumpProxy,
-    collections::{bounded_stack::BoundedStack, value_stack::ValueStack},
-};
-use crate::{
-    alloc::{Allocator, BumpAllocator},
-    collections::key_map::KeyMap,
-};
-use crate::{prelude::*, value::Value};
 
 pub type FieldTable = KeyMap<Value, BumpProxy>;
 
