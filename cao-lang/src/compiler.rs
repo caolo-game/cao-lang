@@ -11,8 +11,7 @@ use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::key_map::{Key, KeyMap},
     program::{CaoProgram, Label},
-    traits::ByteEncodeble,
-    InputString, Instruction, VarName,
+    Instruction, VarName,
 };
 use crate::{NodeId, VariableId};
 pub use card::*;
@@ -22,12 +21,6 @@ use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
-
-impl ByteEncodeble for InputString {
-    fn displayname() -> &'static str {
-        "Text"
-    }
-}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

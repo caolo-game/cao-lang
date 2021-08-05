@@ -1,22 +1,11 @@
-mod impls;
-
-pub use self::impls::*;
 use crate::{
     procedures::{ExecutionError, ExecutionResult},
     value::Value,
     vm::Vm,
 };
-use std::any::type_name;
 use std::convert::TryFrom;
 
 pub const MAX_STR_LEN: usize = 256;
-
-// TODO: give better name? Do we even need it?
-pub trait ByteEncodeble {
-    fn displayname() -> &'static str {
-        type_name::<Self>()
-    }
-}
 
 #[derive(Debug)]
 pub enum StringDecodeError {
