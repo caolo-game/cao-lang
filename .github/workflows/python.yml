@@ -59,7 +59,7 @@ jobs:
         run: |
           pip install auditwheel
           for whl in dist/*.whl; do
-              auditwheel repair "$whl" -w dist/
+              auditwheel -V repair "$whl" -w dist/
           done
         continue-on-error: true
 
