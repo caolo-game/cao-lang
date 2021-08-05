@@ -4,8 +4,6 @@ on:
   push:
     branches: [master, main]
     tags: [v*]
-  pull_request:
-    branches: [master, main]
 
 jobs:
   distribute-linux:
@@ -25,7 +23,7 @@ jobs:
       - name: "Build distributions"
         run: |
           docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
-          ll dist/
+          ls -al dist/
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
