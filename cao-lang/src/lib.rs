@@ -118,7 +118,7 @@ impl ByteEncodeble for VarName {
 
 /// Metadata about a subprogram in the program.
 /// Subprograms consume their inputs and produce outputs.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubProgram<'a> {
     pub name: &'a str,
