@@ -54,7 +54,7 @@ jobs:
       - name: "Build distributions"
         run: python -m build --sdist --wheel
       - name: "Upload"
-        run: twine upload --skip-existing
+        run: twine upload --skip-existing dist/*
         env:
           TWINE_USERNAME: snorrwe
           TWINE_NON_INTERACTIVE: 1
