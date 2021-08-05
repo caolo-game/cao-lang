@@ -42,7 +42,7 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
           TWINE_NON_INTERACTIVE: 1
 
-  distribute-win-mac:
+  distribute:
     strategy:
       matrix:
         python: ["3.9"] #, "3.8", "3.7", "3.6", "pypy3"]
