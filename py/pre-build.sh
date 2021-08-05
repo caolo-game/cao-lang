@@ -1,4 +1,4 @@
 #!/usr/bin/sh
 
-curl -sSf https://sh.rustup.rs | sh -s -- -y
+curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 source $HOME/.cargo/env
