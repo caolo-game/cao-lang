@@ -49,6 +49,7 @@ jobs:
         uses: actions/setup-python@v2.2.1
         with:
           python-version: ${{matrix.python}}
+
       - name: "Install build dependencies"
         run: pip install build twine
       - name: "Build distributions"
@@ -59,7 +60,7 @@ jobs:
         run: |
           pip install auditwheel
           for whl in dist/*.whl; do
-              auditwheel show "$whl" -w dist/
+              auditwheel show "$whl"
               auditwheel repair "$whl" -w dist/
           done
         continue-on-error: true
