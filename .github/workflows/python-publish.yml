@@ -30,14 +30,7 @@ jobs:
 
       - name: "Build distributions"
         run: |
-          python -m build --sdist --wheel
-
-      - name: "Repair"
-        run: |
-          pip install auditwheel
-          for whl in dist/*whl; do
-            auditwheel repair $whl -w dist/
-          done
+          bash ./ci/build-wheels.sh
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
