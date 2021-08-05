@@ -267,6 +267,9 @@ impl<'a> Compiler<'a> {
     }
 
     fn add_local(&mut self, name: VarName) -> Result<(), CompilationError> {
+        if name.is_empty() {
+            return Err(CompilationError::EmptyVariable);
+        }
         self.locals
             .try_push(Local {
                 name,
@@ -360,13 +363,16 @@ impl<'a> Compiler<'a> {
         encode_str(data, &mut self.program.data);
     }
 
-    fn resolve_var(&self, name: &str) -> isize {
+    fn resolve_var(&self, name: &str) -> Result<isize, CompilationError> {
+        if name.is_empty() {
+            return Err(CompilationError::EmptyVariable);
+        }
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name.as_str() == name {
-                return i as isize;
+                return Ok(i as isize);
             }
         }
-        -1
+        Ok(-1)
     }
 
     pub fn process_card(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
@@ -411,7 +417,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(cond_block_begin, &mut self.program.bytecode);
             }
             Card::ReadVar(variable) => {
-                let scope = self.resolve_var(variable.0.as_str());
+                let scope = self.resolve_var(variable.0.as_str())?;
                 if scope < 0 {
                     // global
                     let mut next_var = self.next_var.borrow_mut();
@@ -448,6 +454,9 @@ impl<'a> Compiler<'a> {
             }
             Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
+                if variable.0.is_empty() {
+                    return Err(CompilationError::EmptyVariable);
+                }
                 let varhash = Key::from_bytes(variable.0.as_bytes());
 
                 let id = self

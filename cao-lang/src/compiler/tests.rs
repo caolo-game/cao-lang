@@ -29,3 +29,16 @@ fn can_json_de_serialize_output() {
 
     let _prog: CaoProgram = serde_json::from_str(&ser).unwrap();
 }
+
+#[test]
+fn empty_varname_is_error() {
+    let cu = CaoIr {
+        lanes: vec![
+            Lane::default().with_cards(vec![Card::SetGlobalVar(VarNode::from_str_unchecked(""))])
+        ],
+    };
+
+    let err = compile(cu, CompileOptions::new()).unwrap_err();
+
+    assert!(matches!(err, CompilationError::EmptyVariable));
+}

@@ -29,6 +29,7 @@ pub enum CompileResult {
     cao_CompileResult_InternalError,
     cao_CompileResult_TooManyLocals,
     cao_CompileResult_BadVariableName,
+    cao_CompileResult_EmptyVariable,
 }
 
 #[no_mangle]
@@ -110,6 +111,9 @@ pub unsafe extern "C" fn cao_compile_json(
             }
             CompilationError::BadVariableName(_) => {
                 return CompileResult::cao_CompileResult_BadVariableName
+            }
+            CompilationError::EmptyVariable => {
+                return CompileResult::cao_CompileResult_EmptyVariable
             }
         },
     };

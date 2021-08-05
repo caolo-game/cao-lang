@@ -1,6 +1,6 @@
 [package]
 name = "cao-lang"
-version = "0.1.27"
+version = "0.1.28"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 build = "build.rs"

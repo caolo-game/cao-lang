@@ -38,4 +38,7 @@ pub enum CompilationError {
 
     #[error("Variable name {0} can not be used")]
     BadVariableName(String),
+
+    #[error("Variable name can't be empty")]
+    EmptyVariable,
 }
