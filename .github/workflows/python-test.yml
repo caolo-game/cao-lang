@@ -1,0 +1,39 @@
+name: Python tests
+
+on:
+  push:
+    branches: [master, main]
+    tags: [v*]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: stable
+          override: true
+
+      - name: "Setup Python 39"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.9
+
+      - name: "Setup Python 38"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.8
+
+      - name: "Setup Python 36"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.6
+
+      - run: pip install tox
+      - run: tox -q -p auto
