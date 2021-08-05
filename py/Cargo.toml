@@ -13,6 +13,6 @@ crate-type = ["cdylib"]
 cao-lang = { path = "../cao-lang", default-features = false, features = [
     "serde"
 ] }
-pyo3 = { version = "0.14", features = ["extension-module", "abi3"] }
+pyo3 = { version = "0.14", features = ["extension-module"] }
 serde_json = "*"
 serde_yaml = "*"
