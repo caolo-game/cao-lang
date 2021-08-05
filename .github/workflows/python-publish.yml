@@ -22,18 +22,13 @@ jobs:
 
       - name: "Install deps"
         run: |
-          python -m pip install --upgrade pip
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: default
-          toolchain: stable
-          override: true
+          python -m pip install --upgrade pip twine
 
       - name: "Build distributions"
         run: |
-          bash ./ci/build-wheels.sh
+          docker pull quay.io/pypa/manylinux2014_x86_64
+          docker run --rm -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 bash /io/build-wheels.sh
+          rm -rf dist/*-linux_x86*.whl
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
