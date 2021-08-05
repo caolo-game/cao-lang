@@ -13,7 +13,7 @@ TEST(Compile, TestEmpty)
 
     EXPECT_EQ(result, cao_CompileResult_Ok);
 
-    cao_free_compiled_program(program);
+    cao_free_compiled_program(&program);
 }
 
 TEST(Compile, MultiLaneProgram)
@@ -154,5 +154,5 @@ TEST(Compile, MultiLaneProgram)
 
     EXPECT_EQ(result, cao_CompileResult_Ok);
 
-    cao_free_compiled_program(program);
+    cao_free_compiled_program(&program);
 }

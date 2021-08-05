@@ -42,10 +42,15 @@ pub unsafe extern "C" fn cao_new_compiled_program() -> CompiledProgram {
 ///
 /// Must be called once per CompiledProgram
 #[no_mangle]
-pub unsafe extern "C" fn cao_free_compiled_program(program: CompiledProgram) {
+pub unsafe extern "C" fn cao_free_compiled_program(program: *mut CompiledProgram) {
+    if program.is_null() {
+        return;
+    }
+    let program = &mut *program;
     if !program._inner.is_null() {
         alloc::dealloc(program._inner as *mut u8, Layout::new::<CaoProgram>());
     }
+    program._inner = std::ptr::null_mut();
 }
 
 /// Compile a json serialized CaoIR
