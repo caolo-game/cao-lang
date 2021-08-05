@@ -28,10 +28,16 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: "Build wheels"
-        uses: RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
-        with:
-          python-versions: "cp36-cp36m cp37-cp37m cp39-cp39m"
+      - name: "Build distributions"
+        run: |
+          python -m build --sdist --wheel
+
+      - name: "Repair"
+        run: |
+          pip install auditwheel
+          for whl in dist/*whl; do
+            auditwheel repair $whl -w dist/
+          done
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
