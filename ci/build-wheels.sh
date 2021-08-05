@@ -8,7 +8,7 @@ cd /cao-lang
 
 ls -al /opt/python
 
-for PYBIN in /opt/python/cp{35,36,37,38,39}*/bin; do
+for PYBIN in /opt/python/cp{36,37,38,39}*/bin; do
     "${PYBIN}/pip" install -U auditwheel build
     "${PYBIN}/python" -m build --wheel
 done
