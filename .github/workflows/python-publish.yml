@@ -15,7 +15,7 @@ jobs:
       - name: "Setup Python"
         uses: actions/setup-python@v2.2.1
         with:
-          python-version: 3.9
+          python-version: [3.9, 3.8, 3.7, 3.6]
 
       - name: "Install deps"
         run: |
@@ -42,7 +42,7 @@ jobs:
   distribute-win-mac:
     strategy:
       matrix:
-        python: ["3.9"] #, "3.8", "3.6", "pypy"]
+        python: ["3.9"] #, "3.8", "3.7", "3.6", "pypy3"]
         os: ["windows-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
