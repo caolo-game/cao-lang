@@ -28,7 +28,6 @@ jobs:
         run: |
           docker pull quay.io/pypa/manylinux2014_x86_64
           docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
-          rm -rf dist/*-linux_x86*.whl
 
       - name: "Upload"
         run: twine upload --skip-existing --verbose dist/*
