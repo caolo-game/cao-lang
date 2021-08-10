@@ -267,9 +267,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn add_local(&mut self, name: VarName) -> Result<(), CompilationError> {
-        if name.is_empty() {
-            return Err(CompilationError::EmptyVariable);
-        }
+        validate_var_name(&name)?;
         self.locals
             .try_push(Local {
                 name,
@@ -364,9 +362,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn resolve_var(&self, name: &str) -> Result<isize, CompilationError> {
-        if name.is_empty() {
-            return Err(CompilationError::EmptyVariable);
-        }
+        validate_var_name(name)?;
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name.as_str() == name {
                 return Ok(i as isize);
@@ -525,6 +521,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(s.0, &mut self.program.bytecode);
             }
             Card::GetProperty(VarNode(name)) | Card::SetProperty(VarNode(name)) => {
+                validate_var_name(name.as_str())?;
                 let handle = Key::from_str(name.as_str()).unwrap();
                 write_to_vec(handle, &mut self.program.bytecode);
             }
@@ -592,4 +589,11 @@ const fn instruction_span(instr: Instruction) -> i32 {
         Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
         Instruction::CallLane => 9,
     }
+}
+
+fn validate_var_name(name: &str) -> Result<(), CompilationError> {
+    if name.is_empty() {
+        return Err(CompilationError::EmptyVariable);
+    }
+    Ok(())
 }
