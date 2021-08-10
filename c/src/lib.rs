@@ -2,7 +2,7 @@ use std::{alloc, ffi::c_void};
 
 use alloc::Layout;
 use cao_lang::{
-    compiler::{compile, CaoIr, CompilationError},
+    compiler::{compile, CaoIr, CompilationErrorPayload},
     program::CaoProgram,
 };
 
@@ -82,37 +82,37 @@ pub unsafe extern "C" fn cao_compile_json(
 
     let program = match compile(ir, None) {
         Ok(p) => p,
-        Err(err) => match err {
-            CompilationError::Unimplemented(_) => {
+        Err(err) => match err.payload {
+            CompilationErrorPayload::Unimplemented(_) => {
                 return CompileResult::cao_CompileResult_Unimplmeneted
             }
-            CompilationError::EmptyProgram => return CompileResult::cao_CompileResult_EmptyProgram,
-            CompilationError::TooManyLanes => return CompileResult::cao_CompileResult_TooManyLanes,
-            CompilationError::TooManyCards(_) => {
+            CompilationErrorPayload::EmptyProgram => return CompileResult::cao_CompileResult_EmptyProgram,
+            CompilationErrorPayload::TooManyLanes => return CompileResult::cao_CompileResult_TooManyLanes,
+            CompilationErrorPayload::TooManyCards(_) => {
                 return CompileResult::cao_CompileResult_TooManyCards
             }
-            CompilationError::DuplicateName(_) => {
+            CompilationErrorPayload::DuplicateName(_) => {
                 return CompileResult::cao_CompileResult_DuplicateName
             }
-            CompilationError::MissingSubProgram(_) => {
+            CompilationErrorPayload::MissingSubProgram(_) => {
                 return CompileResult::cao_CompileResult_MissingSubProgram
             }
-            CompilationError::MissingNode(_) => {
+            CompilationErrorPayload::MissingNode(_) => {
                 return CompileResult::cao_CompileResult_MissingNode
             }
-            CompilationError::InvalidJump { .. } => {
+            CompilationErrorPayload::InvalidJump { .. } => {
                 return CompileResult::cao_CompileResult_InvalidJump
             }
-            CompilationError::InternalError => {
+            CompilationErrorPayload::InternalError => {
                 return CompileResult::cao_CompileResult_InternalError
             }
-            CompilationError::TooManyLocals => {
+            CompilationErrorPayload::TooManyLocals => {
                 return CompileResult::cao_CompileResult_TooManyLocals
             }
-            CompilationError::BadVariableName(_) => {
+            CompilationErrorPayload::BadVariableName(_) => {
                 return CompileResult::cao_CompileResult_BadVariableName
             }
-            CompilationError::EmptyVariable => {
+            CompilationErrorPayload::EmptyVariable => {
                 return CompileResult::cao_CompileResult_EmptyVariable
             }
         },

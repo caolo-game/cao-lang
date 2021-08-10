@@ -10,7 +10,10 @@ fn lane_names_must_be_unique() {
     };
 
     let err = compile(cu, CompileOptions::new()).unwrap_err();
-    assert!(matches!(err, CompilationError::DuplicateName(_)));
+    assert!(matches!(
+        err.payload,
+        CompilationErrorPayload::DuplicateName(_)
+    ));
 }
 
 #[test]
@@ -40,7 +43,10 @@ fn empty_varname_is_error() {
 
     let err = compile(cu, CompileOptions::new()).unwrap_err();
 
-    assert!(matches!(err, CompilationError::EmptyVariable));
+    assert!(matches!(
+        err.payload,
+        CompilationErrorPayload::EmptyVariable
+    ));
 }
 
 #[test]
@@ -53,5 +59,8 @@ fn empty_property_name_is_error() {
 
     let err = compile(cu, CompileOptions::new()).unwrap_err();
 
-    assert!(matches!(err, CompilationError::EmptyVariable));
+    assert!(matches!(
+        err.payload,
+        CompilationErrorPayload::EmptyVariable
+    ));
 }

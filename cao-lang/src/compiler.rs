@@ -22,6 +22,8 @@ use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
 
+pub type CompilationResult<T> = Result<T, CompilationError>;
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
@@ -85,6 +87,8 @@ pub struct Compiler<'a> {
 
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
+    current_card: i32,
+    current_lane: LaneNode,
 
     _m: std::marker::PhantomData<&'a ()>,
 }
@@ -107,7 +111,7 @@ pub struct Local<'a> {
 pub fn compile(
     compilation_unit: CaoIr,
     compile_options: impl Into<Option<CompileOptions>>,
-) -> Result<CaoProgram, CompilationError> {
+) -> CompilationResult<CaoProgram> {
     let mut compiler = Compiler::new();
     compiler.compile(compilation_unit, compile_options)
 }
@@ -128,6 +132,8 @@ impl<'a> Compiler<'a> {
             next_var: RefCell::new(VariableId(0)),
             locals: Default::default(),
             scope_depth: 0,
+            current_lane: LaneNode::LaneId(0),
+            current_card: -1,
             _m: Default::default(),
         }
     }
@@ -136,15 +142,19 @@ impl<'a> Compiler<'a> {
         &mut self,
         compilation_unit: CaoIr,
         compile_options: impl Into<Option<CompileOptions>>,
-    ) -> Result<CaoProgram, CompilationError> {
+    ) -> CompilationResult<CaoProgram> {
         self.options = compile_options.into().unwrap_or_default();
         // minimize the surface of the generic function
         self._compile(compilation_unit)
     }
 
-    fn _compile(&mut self, mut compilation_unit: CaoIr) -> Result<CaoProgram, CompilationError> {
+    fn _compile(&mut self, mut compilation_unit: CaoIr) -> CompilationResult<CaoProgram> {
         if compilation_unit.lanes.is_empty() {
-            return Err(CompilationError::EmptyProgram);
+            return Err(CompilationError::with_loc(
+                CompilationErrorPayload::EmptyProgram,
+                LaneNode::LaneId(0),
+                0,
+            ));
         }
         // initialize
         self.program = CaoProgram::default();
@@ -155,13 +165,17 @@ impl<'a> Compiler<'a> {
         Ok(mem::take(&mut self.program))
     }
 
+    fn error(&self, pl: CompilationErrorPayload) -> CompilationError {
+        CompilationError::with_loc(pl, self.current_lane.clone(), self.current_card)
+    }
+
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(&mut self, compilation_unit: &mut CaoIr) -> Result<(), CompilationError> {
+    fn compile_stage_1(&mut self, compilation_unit: &mut CaoIr) -> CompilationResult<()> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.lanes.len().try_into() {
             Ok(i) => i,
-            Err(_) => return Err(CompilationError::TooManyLanes),
+            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyLanes)),
         };
 
         let mut num_cards = 0usize;
@@ -187,7 +201,9 @@ impl<'a> Compiler<'a> {
             if let Some(ref mut name) = n.name.as_mut() {
                 let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
                 if self.jump_table.contains(namekey) {
-                    return Err(CompilationError::DuplicateName(std::mem::take(name)));
+                    return Err(
+                        self.error(CompilationErrorPayload::DuplicateName(std::mem::take(name)))
+                    );
                 }
                 self.jump_table.insert(namekey, metadata).unwrap();
             }
@@ -198,13 +214,13 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: CaoIr) -> Result<(), CompilationError> {
+    fn compile_stage_2(&mut self, compilation_unit: CaoIr) -> CompilationResult<()> {
         let mut lanes = compilation_unit.lanes.into_iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
             let len: u16 = match main_lane.cards.len().try_into() {
                 Ok(i) => i,
-                Err(_) => return Err(CompilationError::TooManyCards(il)),
+                Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
             };
             self.scope_begin();
             self.process_lane(il, main_lane, 0)?;
@@ -266,15 +282,15 @@ impl<'a> Compiler<'a> {
         }
     }
 
-    fn add_local(&mut self, name: VarName) -> Result<(), CompilationError> {
-        validate_var_name(&name)?;
+    fn add_local(&mut self, name: VarName) -> CompilationResult<()> {
+        self.validate_var_name(&name)?;
         self.locals
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
                 _m: Default::default(),
             })
-            .map_err(|_| CompilationError::TooManyLocals)?;
+            .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))?;
         Ok(())
     }
 
@@ -286,18 +302,17 @@ impl<'a> Compiler<'a> {
         }: Lane,
         // cards: Vec<Card>,
         instruction_offset: i32,
-    ) -> Result<(), CompilationError> {
+    ) -> CompilationResult<()> {
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {
             Ok(i) => i,
-            Err(_) => return Err(CompilationError::TooManyCards(il)),
+            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
         };
         // at runtime: pop arguments in the same order as the variables were declared
         for param in arguments.iter() {
-            self.add_local(
-                VarName::from_str(param.as_str())
-                    .map_err(|_| CompilationError::BadVariableName(param.to_string()))?,
-            )?;
+            self.add_local(VarName::from_str(param.as_str()).map_err(|_| {
+                self.error(CompilationErrorPayload::BadVariableName(param.to_string()))
+            })?)?;
         }
         for (ic, card) in cards.into_iter().enumerate() {
             let nodeid = NodeId {
@@ -314,7 +329,7 @@ impl<'a> Compiler<'a> {
         skip_instr: Instruction,
         nodeid: NodeId,
         lane: &LaneNode,
-    ) -> Result<(), CompilationError> {
+    ) -> CompilationResult<()> {
         assert!(
             matches!(
                 skip_instr,
@@ -331,23 +346,29 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> Result<(), CompilationError> {
+    fn encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> CompilationResult<()> {
         let to = match lane {
             LaneNode::LaneName(lane) => self
                 .jump_table
                 .get(Key::from_str(lane).expect("Failed to hash jump target name"))
-                .ok_or(CompilationError::InvalidJump {
-                    src: nodeid,
-                    dst: lane.to_string(),
-                    msg: None,
+                .ok_or_else(|| {
+                    self.error(CompilationErrorPayload::InvalidJump {
+                        src: nodeid,
+                        dst: lane.to_string(),
+                        msg: None,
+                    })
                 })?,
-            LaneNode::LaneId(id) => self.jump_table.get(Key::from_u32(*id as u32)).ok_or(
-                CompilationError::InvalidJump {
-                    src: nodeid,
-                    dst: format!("Lane id {}", id),
-                    msg: None,
-                },
-            )?,
+            LaneNode::LaneId(id) => {
+                self.jump_table
+                    .get(Key::from_u32(*id as u32))
+                    .ok_or_else(|| {
+                        self.error(CompilationErrorPayload::InvalidJump {
+                            src: nodeid,
+                            dst: format!("Lane id {}", id),
+                            msg: None,
+                        })
+                    })?
+            }
         };
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
@@ -361,8 +382,8 @@ impl<'a> Compiler<'a> {
         encode_str(data, &mut self.program.data);
     }
 
-    fn resolve_var(&self, name: &str) -> Result<isize, CompilationError> {
-        validate_var_name(name)?;
+    fn resolve_var(&self, name: &str) -> CompilationResult<isize> {
+        self.validate_var_name(name)?;
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name.as_str() == name {
                 return Ok(i as isize);
@@ -371,7 +392,7 @@ impl<'a> Compiler<'a> {
         Ok(-1)
     }
 
-    pub fn process_card(&mut self, nodeid: NodeId, card: Card) -> Result<(), CompilationError> {
+    pub fn process_card(&mut self, nodeid: NodeId, card: Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_u32(nodeid.into());
@@ -387,7 +408,7 @@ impl<'a> Compiler<'a> {
         }
         match card {
             // TODO: blocked by lane ABI
-            Card::While(_) => return Err(CompilationError::Unimplemented("While cards")),
+            Card::While(_) => return Err(self.error(CompilationErrorPayload::Unimplemented("While cards"))),
             Card::Repeat(repeat) => {
                 // Init, add 1
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
@@ -451,7 +472,7 @@ impl<'a> Compiler<'a> {
             Card::SetGlobalVar(variable) => {
                 let mut next_var = self.next_var.borrow_mut();
                 if variable.0.is_empty() {
-                    return Err(CompilationError::EmptyVariable);
+                    return Err(self.error(CompilationErrorPayload::EmptyVariable));
                 }
                 let varhash = Key::from_bytes(variable.0.as_bytes());
 
@@ -521,7 +542,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(s.0, &mut self.program.bytecode);
             }
             Card::GetProperty(VarNode(name)) | Card::SetProperty(VarNode(name)) => {
-                validate_var_name(name.as_str())?;
+                self.validate_var_name(name.as_str())?;
                 let handle = Key::from_str(name.as_str()).unwrap();
                 write_to_vec(handle, &mut self.program.bytecode);
             }
@@ -545,6 +566,13 @@ impl<'a> Compiler<'a> {
             | Card::Div
             | Card::CreateTable
             | Card::ClearStack => { /* These cards translate to a single instruction */ }
+        }
+        Ok(())
+    }
+
+    fn validate_var_name(&self, name: &str) -> CompilationResult<()> {
+        if name.is_empty() {
+            return Err(self.error(CompilationErrorPayload::EmptyVariable));
         }
         Ok(())
     }
@@ -589,11 +617,4 @@ const fn instruction_span(instr: Instruction) -> i32 {
         Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
         Instruction::CallLane => 9,
     }
-}
-
-fn validate_var_name(name: &str) -> Result<(), CompilationError> {
-    if name.is_empty() {
-        return Err(CompilationError::EmptyVariable);
-    }
-    Ok(())
 }

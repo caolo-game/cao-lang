@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::*;
 use crate::InputString;
 use crate::VarName;
@@ -213,6 +215,15 @@ impl VarNode {
 pub enum LaneNode {
     LaneName(String),
     LaneId(usize),
+}
+
+impl Display for LaneNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LaneNode::LaneName(n) => write!(f, "{}", n),
+            LaneNode::LaneId(n) => write!(f, "#{}", n),
+        }
+    }
 }
 
 impl Default for LaneNode {

@@ -255,17 +255,18 @@ fn simple_while_loop() {
         ],
     };
     /*let program =*/
-    match compile(program, Some(CompileOptions::new())) {
+    match compile(program, Some(CompileOptions::new())).map_err(|e| e.payload) {
         Ok(_) => {
             panic!("Expected error, update this test pls")
         }
-        Err(CompilationError::Unimplemented(_)) => {}
+        Err(CompilationErrorPayload::Unimplemented(_)) => {}
         Err(err) => {
             panic!("Expected unimplemented error, instead got: {}", err)
         }
     }
 
     // Compilation was successful
+    // TODO: once while is implemented
 
     // let mut vm = Vm::new(()).with_max_iter(10000);
     // let exit_code = vm.run(&program).unwrap();
