@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="cao-lang",
-    version="0.1.15",
+    version="0.1.16",
     description="The node based 'language' that governs the actors of the game Cao-Lo",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -179,7 +179,10 @@ impl<'a> Compiler<'a> {
         };
 
         let mut num_cards = 0usize;
+        self.current_card = -1;
         for (i, n) in compilation_unit.lanes.iter_mut().enumerate() {
+            self.current_lane = LaneNode::LaneId(i);
+
             let indexkey = Key::from_u32(i as u32);
             assert!(!self.jump_table.contains(indexkey));
             num_cards += n.cards.len();
@@ -303,6 +306,9 @@ impl<'a> Compiler<'a> {
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
+        self.current_lane = LaneNode::LaneId(il);
+        self.current_card = -1;
+
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {
             Ok(i) => i,
@@ -315,6 +321,7 @@ impl<'a> Compiler<'a> {
             })?)?;
         }
         for (ic, card) in cards.into_iter().enumerate() {
+            self.current_card = ic as i32;
             let nodeid = NodeId {
                 lane: il as u16,
                 pos: (ic as i32 + instruction_offset) as u16,
@@ -408,7 +415,9 @@ impl<'a> Compiler<'a> {
         }
         match card {
             // TODO: blocked by lane ABI
-            Card::While(_) => return Err(self.error(CompilationErrorPayload::Unimplemented("While cards"))),
+            Card::While(_) => {
+                return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
+            }
             Card::Repeat(repeat) => {
                 // Init, add 1
                 self.program.bytecode.push(Instruction::ScalarInt as u8);
