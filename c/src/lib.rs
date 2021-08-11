@@ -86,8 +86,12 @@ pub unsafe extern "C" fn cao_compile_json(
             CompilationErrorPayload::Unimplemented(_) => {
                 return CompileResult::cao_CompileResult_Unimplmeneted
             }
-            CompilationErrorPayload::EmptyProgram => return CompileResult::cao_CompileResult_EmptyProgram,
-            CompilationErrorPayload::TooManyLanes => return CompileResult::cao_CompileResult_TooManyLanes,
+            CompilationErrorPayload::EmptyProgram => {
+                return CompileResult::cao_CompileResult_EmptyProgram
+            }
+            CompilationErrorPayload::TooManyLanes => {
+                return CompileResult::cao_CompileResult_TooManyLanes
+            }
             CompilationErrorPayload::TooManyCards(_) => {
                 return CompileResult::cao_CompileResult_TooManyCards
             }
