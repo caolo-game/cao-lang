@@ -5,7 +5,7 @@ test-core:
 
 test-c:
 	-mkdir build
-	cd build && cmake .. -DCAOLO_ENABLE_TESTING=ON && cmake --build . && ctest
+	cd build && cmake .. -DCAOLO_ENABLE_TESTING=ON && cmake --build . && ctest --output-on-failure
 
 test-py:
 	cd py && cargo test
