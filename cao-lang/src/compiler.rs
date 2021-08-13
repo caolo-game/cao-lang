@@ -20,10 +20,10 @@ use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
 
-pub use lane::*;
 pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
+pub use lane::*;
 
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
@@ -37,8 +37,8 @@ pub struct CaoIr {
 }
 
 pub struct Compiler<'a> {
-    pub options: CompileOptions,
-    pub program: CaoProgram,
+    pub(crate) options: CompileOptions,
+    pub(crate) program: CaoProgram,
     next_var: RefCell<VariableId>,
 
     /// maps lanes to their pre-hash-map keys
@@ -82,7 +82,6 @@ impl<'a> Default for Compiler<'a> {
 }
 
 impl<'a> Compiler<'a> {
-    /// If no `logger` is provided, falls back to the 'standard' log crate.
     pub fn new() -> Self {
         Compiler {
             program: CaoProgram::default(),
@@ -358,7 +357,7 @@ impl<'a> Compiler<'a> {
         Ok(-1)
     }
 
-    pub fn process_card(&mut self, nodeid: NodeId, card: Card) -> CompilationResult<()> {
+    fn process_card(&mut self, nodeid: NodeId, card: Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_u32(nodeid.into());
