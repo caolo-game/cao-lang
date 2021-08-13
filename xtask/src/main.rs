@@ -74,12 +74,12 @@ fn execute_subcommand(
         all_cmd()?;
     } else {
         for t in targets {
-            let cmd = TEST_CMD_NAMES
+            let cmd = command_names
                 .iter()
                 .enumerate()
                 .find_map(|(i, x)| (*x == t).then(|| i))
                 .unwrap();
-            TEST_CMDS[cmd]()?;
+            commands[cmd]()?;
         }
     }
     Ok(())

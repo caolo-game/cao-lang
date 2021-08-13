@@ -4,8 +4,8 @@ use anyhow::{anyhow, Context};
 
 use crate::{project_root, Cmd, CmdResult};
 
-pub static TEST_CMD_NAMES: &[&str] = &["py", "core", "all"];
-pub static TEST_CMDS: &[Cmd] = &[cmd_test_py, cmd_test_core, cmd_test_all];
+pub static TEST_CMD_NAMES: &[&str] = &["py", "core", "c", "all"];
+pub static TEST_CMDS: &[Cmd] = &[cmd_test_py, cmd_test_core, cmd_test_c, cmd_test_all];
 
 pub fn cmd_test_all() -> CmdResult<()> {
     cmd_test_core().with_context(|| "Testing core failed")?;
@@ -63,5 +63,63 @@ pub fn cmd_test_py() -> CmdResult<()> {
         return Err(anyhow!("Failed to build the python wrapper"));
     }
 
+    Ok(())
+}
+
+pub fn cmd_test_c() -> CmdResult<()> {
+    std::fs::create_dir(project_root().join("build")).unwrap_or_default();
+
+    // configure
+    //
+    let task = Command::new("cmake")
+        .args(&["..", "-DCAOLO_ENABLE_TESTING=ON"])
+        .current_dir(project_root().join("build"))
+        .spawn();
+
+    let task = match task {
+        Ok(o) => o,
+        Err(err) => match err.kind() {
+            io::ErrorKind::NotFound => return Err(anyhow!("`cmake` command can not be found!")),
+            _ => {
+                return Err(err).with_context(|| "cmake configure failed");
+            }
+        },
+    };
+    let output = task
+        .wait_with_output()
+        .expect("Failed to wait for the `cmake` command");
+    if !output.status.success() {
+        return Err(anyhow!("CMake configure failed"));
+    }
+
+    // build
+    //
+    let task = Command::new("cmake")
+        .args(&["--build", ".", "--clean-first"])
+        .current_dir(project_root().join("build"))
+        .spawn()
+        .with_context(|| "Spawning the cmake build task failed")?;
+
+    let output = task
+        .wait_with_output()
+        .expect("Failed to wait for the `cmake` command");
+    if !output.status.success() {
+        return Err(anyhow!("CMake build failed"));
+    }
+
+    // run the tests
+    //
+    let task = Command::new("ctest")
+        .args(&["--output-on-failure"])
+        .current_dir(project_root().join("build"))
+        .spawn()
+        .with_context(|| "Spawning the ctest task failed")?;
+
+    let output = task
+        .wait_with_output()
+        .expect("Failed to wait for the `ctest` command");
+    if !output.status.success() {
+        return Err(anyhow!("CTest failed"));
+    }
     Ok(())
 }

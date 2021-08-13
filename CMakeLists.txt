@@ -32,8 +32,7 @@ ExternalProject_Add(
     cao_lang_rs
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ""
-    BUILD_COMMAND cargo build
-    COMMAND cargo build --release
+    BUILD_COMMAND $<IF:$<CONFIG:Debug>,cargo build --package ccao-lang,cargo build --package ccao-lang --release >
     BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     INSTALL_COMMAND ""
     LOG_BUILD ON
