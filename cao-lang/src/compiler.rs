@@ -1,6 +1,7 @@
 mod card;
 mod compilation_error;
 mod compile_options;
+mod lane;
 
 pub mod card_description;
 
@@ -14,59 +15,17 @@ use crate::{
     Instruction, VarName,
 };
 use crate::{NodeId, VariableId};
-pub use card::*;
-pub use compilation_error::*;
-pub use compile_options::*;
 use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
 
+pub use lane::*;
+pub use card::*;
+pub use compilation_error::*;
+pub use compile_options::*;
+
 pub type CompilationResult<T> = Result<T, CompilationError>;
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Lane {
-    pub name: Option<String>,
-    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
-    pub arguments: Vec<VarName>,
-    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
-    pub cards: Vec<Card>,
-}
-
-impl Default for Lane {
-    fn default() -> Self {
-        Self {
-            name: None,
-            arguments: Vec::new(),
-            cards: Vec::new(),
-        }
-    }
-}
-
-impl Lane {
-    pub fn with_name<S: Into<String>>(mut self, name: S) -> Self {
-        self.name = Some(name.into());
-        self
-    }
-
-    pub fn with_arg(mut self, name: &str) -> Self {
-        let name = VarName::from_str(name).expect("Bad variable name");
-        self.arguments.push(name);
-        self
-    }
-
-    pub fn with_card(mut self, card: Card) -> Self {
-        self.cards.push(card);
-        self
-    }
-
-    /// overrides the existing cards
-    pub fn with_cards<C: Into<Vec<Card>>>(mut self, cards: C) -> Self {
-        self.cards = cards.into();
-        self
-    }
-}
 
 /// Intermediate representation of a Cao-Lang program.
 ///
