@@ -22,3 +22,4 @@ update:
 build:
 	@${MAKE} -C wasm build
 	python -m build --wheel
+

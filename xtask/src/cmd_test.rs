@@ -5,7 +5,7 @@ use std::process::Command;
 use anyhow::{anyhow, Context};
 
 use crate::{
-    build_commands::{build_c_interface, configure_c_interface},
+    cmd_build::{build_c_interface, configure_c_interface},
     project_root, CmdResult,
 };
 

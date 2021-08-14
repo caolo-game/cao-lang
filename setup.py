@@ -1,12 +1,24 @@
 from setuptools import setup
 from setuptools_rust import Binding, RustExtension
+import toml
+
+from pathlib import Path
+
+HERE = Path(__file__).parent
+
+with open(HERE / "py" / "Cargo.toml") as f:
+    manifest = toml.load(f)
+    version = manifest["package"]["version"]
+
+    assert version is not None
+    assert version
 
 with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
     name="cao-lang",
-    version="0.1.16",
+    version=version,
     description="The node based 'language' that governs the actors of the game Cao-Lo",
     long_description=long_description,
     long_description_content_type="text/markdown",

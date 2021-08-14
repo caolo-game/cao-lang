@@ -1,5 +1,6 @@
-mod build_commands;
-mod test_commands;
+mod cmd_build;
+mod cmd_test;
+mod cmd_version;
 
 use std::path::{Path, PathBuf};
 
@@ -11,10 +12,21 @@ type Cmd = fn() -> CmdResult<()>;
 fn main() {
     let app = App::new("Cao-Lang tasks")
         .subcommand(
+            SubCommand::with_name("version-bump")
+            .after_help("This command bumps the versions of all modules in the repository and generates a new changelog.")
+            .arg(
+                Arg::with_name("target")
+                    .takes_value(true)
+                    .possible_values(&["major", "minor", "patch"])
+                    .multiple(false),
+            ),
+        )
+        .subcommand(
             SubCommand::with_name("build").arg(
                 Arg::with_name("target")
                     .takes_value(true)
                     .possible_values(&["c"])
+                    .min_values(1)
                     .multiple(true),
             ),
         )
@@ -23,16 +35,25 @@ fn main() {
                 Arg::with_name("target")
                     .takes_value(true)
                     .possible_values(&["c"])
+                    .min_values(1)
                     .multiple(true),
             ),
         );
     let args = app.get_matches();
 
+    if let Some(target) = args
+        .subcommand_matches("version-bump")
+        .and_then(|b| b.value_of("target"))
+    {
+        if let Err(e) = cmd_version::cmd_bump_version(target) {
+            eprintln!("Version bump failed: {}", e);
+        }
+    }
     if let Some(targets) = args
         .subcommand_matches("build")
         .and_then(|b| b.values_of("target"))
     {
-        if let Err(e) = execute_subcommand(targets, &["c"], &[build_commands::cmd_build_c]) {
+        if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_build::cmd_build_c]) {
             eprintln!("Build command failed: {}", e);
         }
     }
@@ -40,7 +61,7 @@ fn main() {
         .subcommand_matches("test")
         .and_then(|b| b.values_of("target"))
     {
-        if let Err(e) = execute_subcommand(targets, &["c"], &[test_commands::cmd_test_c]) {
+        if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_test::cmd_test_c]) {
             eprintln!("Test command failed: {}", e);
         }
     }
