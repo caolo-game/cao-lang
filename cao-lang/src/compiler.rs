@@ -8,13 +8,7 @@ pub mod card_description;
 #[cfg(test)]
 mod tests;
 
-use crate::{
-    bytecode::{encode_str, write_to_vec},
-    collections::key_map::{Key, KeyMap},
-    program::{CaoProgram, Label},
-    Instruction, VarName,
-};
-use crate::{NodeId, VariableId};
+use crate::{Instruction, NodeId, VarName, VariableId, bytecode::{encode_str, write_to_vec}, collections::key_map::{Key, KeyMap}, instruction::instruction_span, program::{CaoProgram, Label}};
 use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
@@ -373,7 +367,15 @@ impl<'a> Compiler<'a> {
         }
         match card {
             Card::ForEach { variable, lane } => {
-                todo!()
+                // TODO: assert that target lane has two arguments!
+                self.read_var_card(variable)?;
+                self.program.bytecode.push(Instruction::BeginForEach as u8);
+                let block_begin = self.program.bytecode.len() as i32;
+                self.program.bytecode.push(Instruction::ForEach as u8);
+                self.encode_jump(nodeid, &lane)?;
+                // return to the repeat instruction
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                write_to_vec(block_begin, &mut self.program.bytecode);
             }
             // TODO: blocked by lane ABI
             Card::While(_) => {
@@ -389,34 +391,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(block_begin, &mut self.program.bytecode);
             }
             Card::ReadVar(variable) => {
-                let scope = self.resolve_var(variable.0.as_str())?;
-                if scope < 0 {
-                    // global
-                    let mut next_var = self.next_var.borrow_mut();
-                    let varhash = Key::from_bytes(variable.0.as_bytes());
-                    let id = self
-                        .program
-                        .variables
-                        .ids
-                        .entry(varhash)
-                        .or_insert_with(move || {
-                            let id = *next_var;
-                            *next_var = VariableId(id.0 + 1);
-                            id
-                        });
-                    self.program
-                        .variables
-                        .names
-                        .entry(*id)
-                        .or_insert_with(|| variable.0);
-                    self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
-                    write_to_vec(*id, &mut self.program.bytecode);
-                } else {
-                    //local
-                    self.program.bytecode.push(Instruction::ReadLocalVar as u8);
-                    let index = scope as u32;
-                    write_to_vec(index, &mut self.program.bytecode);
-                }
+                self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
                 let index = self.locals.len() as u32;
@@ -523,6 +498,38 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
+    fn read_var_card(&mut self, variable: VarNode) -> CompilationResult<()> {
+        let scope = self.resolve_var(variable.0.as_str())?;
+        if scope < 0 {
+            // global
+            let mut next_var = self.next_var.borrow_mut();
+            let varhash = Key::from_bytes(variable.0.as_bytes());
+            let id = self
+                .program
+                .variables
+                .ids
+                .entry(varhash)
+                .or_insert_with(move || {
+                    let id = *next_var;
+                    *next_var = VariableId(id.0 + 1);
+                    id
+                });
+            self.program
+                .variables
+                .names
+                .entry(*id)
+                .or_insert_with(|| variable.0);
+            self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
+            write_to_vec(*id, &mut self.program.bytecode);
+        } else {
+            //local
+            self.program.bytecode.push(Instruction::ReadLocalVar as u8);
+            let index = scope as u32;
+            write_to_vec(index, &mut self.program.bytecode);
+        }
+        Ok(())
+    }
+
     fn validate_var_name(&self, name: &str) -> CompilationResult<()> {
         if name.is_empty() {
             return Err(self.error(CompilationErrorPayload::EmptyVariable));
@@ -531,45 +538,3 @@ impl<'a> Compiler<'a> {
     }
 }
 
-/// return the number of bytes this instruction spans in the bytecode
-const fn instruction_span(instr: Instruction) -> i32 {
-    match instr {
-        Instruction::Add
-        | Instruction::Sub
-        | Instruction::Exit
-        | Instruction::Mul
-        | Instruction::Div
-        | Instruction::Call
-        | Instruction::Equals
-        | Instruction::NotEquals
-        | Instruction::Less
-        | Instruction::LessOrEq
-        | Instruction::Pop
-        | Instruction::Pass
-        | Instruction::ScalarNil
-        | Instruction::ClearStack
-        | Instruction::CopyLast
-        | Instruction::Return
-        | Instruction::SwapLast
-        | Instruction::And
-        | Instruction::Or
-        | Instruction::Xor
-        | Instruction::InitTable
-        | Instruction::Len
-        | Instruction::BeginRepeat
-        | Instruction::Not => 1,
-        //
-        Instruction::ScalarInt | Instruction::ScalarFloat => 9,
-        Instruction::StringLiteral => 5,
-        //
-        Instruction::SetLocalVar
-        | Instruction::ReadLocalVar
-        | Instruction::SetProperty
-        | Instruction::GetProperty
-        | Instruction::SetGlobalVar
-        | Instruction::ReadGlobalVar => 5,
-        //
-        Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
-        Instruction::Repeat | Instruction::CallLane => 9,
-    }
-}

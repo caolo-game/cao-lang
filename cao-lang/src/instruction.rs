@@ -84,6 +84,54 @@ pub enum Instruction {
     /// Errors if the top Value is not a Table
     Len,
 
+    /// Must be called before the first call to Repeat in a loop
     BeginRepeat,
     Repeat,
+
+    BeginForEach,
+    ForEach,
+}
+
+/// return the number of bytes this instruction spans in the bytecode
+pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
+    match instr {
+        Instruction::Add
+        | Instruction::Sub
+        | Instruction::Exit
+        | Instruction::Mul
+        | Instruction::Div
+        | Instruction::Call
+        | Instruction::Equals
+        | Instruction::NotEquals
+        | Instruction::Less
+        | Instruction::LessOrEq
+        | Instruction::Pop
+        | Instruction::Pass
+        | Instruction::ScalarNil
+        | Instruction::ClearStack
+        | Instruction::CopyLast
+        | Instruction::Return
+        | Instruction::SwapLast
+        | Instruction::And
+        | Instruction::Or
+        | Instruction::Xor
+        | Instruction::InitTable
+        | Instruction::Len
+        | Instruction::BeginRepeat
+        | Instruction::BeginForEach
+        | Instruction::Not => 1,
+        //
+        Instruction::ScalarInt | Instruction::ScalarFloat => 9,
+        Instruction::StringLiteral => 5,
+        //
+        Instruction::SetLocalVar
+        | Instruction::ReadLocalVar
+        | Instruction::SetProperty
+        | Instruction::GetProperty
+        | Instruction::SetGlobalVar
+        | Instruction::ReadGlobalVar => 5,
+        //
+        Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
+        Instruction::ForEach | Instruction::Repeat | Instruction::CallLane => 9,
+    }
 }

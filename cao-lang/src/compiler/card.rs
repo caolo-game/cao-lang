@@ -185,6 +185,8 @@ impl Card {
             | Instruction::GotoIfFalse
             | Instruction::Repeat
             | Instruction::BeginRepeat
+            | Instruction::ForEach
+            | Instruction::BeginForEach
             | Instruction::Pass => {}
         };
     }

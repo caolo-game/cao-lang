@@ -9,6 +9,7 @@ mod tests;
 
 use self::runtime::CallFrame;
 use crate::{
+    instruction::instruction_span,
     binary_compare,
     collections::key_map::{Key, KeyMap},
     instruction::Instruction,
@@ -194,15 +195,15 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let handle = self.pop_key()?;
                     let instance = self.stack_pop();
                     let table = self.get_table(instance)?;
-                    let result = table.get(handle).copied().unwrap_or(Value::Nil);
+                    let result = table.get_value(handle).copied().unwrap_or(Value::Nil);
                     self.stack_push(result)?;
                 }
                 Instruction::SetProperty => {
                     let value = self.stack_pop();
-                    let handle = self.pop_key()?;
+                    let key = self.stack_pop();
                     let instance = self.stack_pop();
                     let table = self.get_table_mut(instance)?;
-                    table.insert(handle, value).map_err(|err| {
+                    table.insert(key, value, self).map_err(|err| {
                         debug!("Failed to insert value {:?}", err);
                         ExecutionError::OutOfMemory
                     })?;
@@ -210,16 +211,31 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::BeginRepeat => {
                     instr_execution::begin_repeat(self)?;
                 }
-                Instruction::Repeat => match instr_execution::repeat(self)? {
-                    n if n < 0 => { /* done */ }
-                    _n => {
+                Instruction::Repeat => {
+                    if instr_execution::repeat(self)? >= 0 {
                         instr_execution::instr_jump(
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
                         )?;
+                    } else {
+                        instr_ptr += instruction_span(Instruction::CallLane) as usize-1;
                     }
-                },
+                }
+                Instruction::BeginForEach => {
+                    instr_execution::begin_for_each(self)?;
+                }
+                Instruction::ForEach => {
+                    if instr_execution::for_each(self)? {
+                        instr_execution::instr_jump(
+                            &mut instr_ptr,
+                            program,
+                            &mut self.runtime_data,
+                        )?;
+                    } else {
+                        instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
+                    }
+                }
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =

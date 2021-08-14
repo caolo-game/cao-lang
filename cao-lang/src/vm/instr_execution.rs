@@ -240,6 +240,7 @@ pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
             "Repeat input must be non-negative".to_string(),
         ));
     }
+    // restore the counter if it's valid, to be used by Repeat
     vm.stack_push(n)?;
     Ok(())
 }
@@ -267,4 +268,60 @@ pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
         .map_err(|_| ExecutionError::Stackoverflow)?;
 
     Ok(())
+}
+
+/// push N and I onto the stack
+/// I shall be counted down (N-1..0)
+pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let item = vm.runtime_data.stack.last();
+    if !item.is_obj() {
+        return Err(ExecutionError::invalid_argument(
+            "ForEach is only valid for tables".to_string(),
+        ));
+    }
+
+    let item = vm.get_table(item)?;
+    let n = item.len() as i64;
+
+    vm.stack_push(n)?;
+    vm.stack_push(0)?;
+
+    Ok(())
+}
+
+pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
+    let i = vm.stack_pop();
+    let n = vm.runtime_data.stack.peek_last(0);
+    let obj_val = vm.runtime_data.stack.peek_last(1);
+
+    let mut i = i64::try_from(i).expect("Repeat input #0 must be an integer");
+    let n = i64::try_from(n).expect("Repeat input #1 must be an integer");
+    let obj = vm
+        .get_table(obj_val)
+        .expect("Repeat input #2 must be a table");
+
+    debug_assert!(0 <= i);
+
+    let should_continue = i < n;
+    if should_continue {
+        let key = obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
+            ExecutionError::invalid_argument(format!(
+                "ForEach can not be completed. i: {} n: {}",
+                i, n
+            ))
+        })?;
+        i += 1;
+
+        // restore the variable
+        vm.stack_push(i)?;
+        // push lane arguments
+        vm.stack_push(key)?;
+        vm.stack_push(obj_val)?;
+    }else {
+        vm.stack_pop(); // clean up N
+        vm.stack_pop(); // clean up the object
+        vm.stack_push(false)?; // for the next GotoIfTrue
+    }
+
+    Ok(should_continue)
 }

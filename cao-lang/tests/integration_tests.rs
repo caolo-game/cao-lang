@@ -527,8 +527,6 @@ fn len_test_happy() {
 
 #[test]
 fn for_each_1() {
-    return; // TODO
-
     let cu: CaoIr = serde_yaml::from_str(
         r#"
 lanes: 
@@ -570,7 +568,7 @@ lanes:
             variable: t
 
 
-    - pog:
+    - name: pog
       arguments:
         - "key"
         - "table"

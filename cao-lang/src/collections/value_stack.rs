@@ -147,4 +147,14 @@ impl ValueStack {
             Value::Nil
         }
     }
+
+    /// Returns Null if the index is out of bounds
+    #[inline]
+    pub fn peek_last(&self, n: usize) -> Value {
+        if self.count > n {
+            self.data[self.count - n - 1]
+        } else {
+            Value::Nil
+        }
+    }
 }
