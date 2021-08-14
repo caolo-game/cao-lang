@@ -1,40 +1,58 @@
-[package]
-name = "cao-lang"
-version = "0.1.31"
-authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
-edition = "2018"
-build = "build.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[features]
-default = ["serde"]
-
-[dependencies]
-serde = { version = "1", features = ["derive"], optional = true }
-# TODO: only use serde feature if our serde feature is enabled...
-arrayvec = { version = "0.7", features = ["serde"] }
-thiserror = "1"
-num_enum = "0.5"
-tracing = { version = "0.1", features = [
-    "release_max_level_info"
-], default-features = false }
+[[bench]]
+harness = false
+name = "cao_lang_benches"
 
 [build-dependencies]
-toml = "0.5"
-serde = { version = "1", features = ["derive"] }
 semver = "1"
+toml = "0.5"
+
+[build-dependencies.serde]
+features = ["derive"]
+version = "1"
+
+[dependencies]
+num_enum = "0.5"
+thiserror = "1"
+
+[dependencies.arrayvec]
+features = ["serde"]
+version = "0.7"
+
+[dependencies.serde]
+features = ["derive"]
+optional = true
+version = "1"
+
+[dependencies.tracing]
+default-features = false
+features = ["release_max_level_info"]
+version = "0.1"
 
 [dev-dependencies]
 env_logger = "*"
-tracing-subscriber = { version = "0.2", features = [
-    "env-filter",
-    "fmt"
-], default-features = false }
-test-env-log = { version = "*", features = ["trace"], default-features = false }
 serde_json = "1"
 serde_yaml = "0.8"
-criterion = { version = "0.3", features = ["html_reports"] }
 
-[[bench]]
-name = "cao_lang_benches"
-harness = false
+[dev-dependencies.criterion]
+features = ["html_reports"]
+version = "0.3"
+
+[dev-dependencies.test-env-log]
+default-features = false
+features = ["trace"]
+version = "*"
+
+[dev-dependencies.tracing-subscriber]
+default-features = false
+features = ["env-filter", "fmt"]
+version = "0.2"
+
+[features]
+default = ["serde"]
+
+[package]
+authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
+build = "build.rs"
+edition = "2018"
+name = "cao-lang"
+version = "0.1.32"

@@ -1,40 +1,45 @@
-[package]
-name = "cao-lang-wasm"
-version = "0.1.39"
-authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
-edition = "2018"
-description = "Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
-license = "MIT"
-repository = "https://github.com/caolo-game/cao-lang"
+[dependencies]
+js-sys = "0.3"
+serde = "1"
+serde_derive = "1"
+wasm-bindgen-futures = "0.4"
+wasm-logger = "0.2"
 
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-Oz", "--enable-mutable-globals"]
+[dependencies.cao-lang]
+features = ["serde"]
+path = "../cao-lang"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[dependencies.console_error_panic_hook]
+optional = true
+version = "0.1.1"
+
+[dependencies.wasm-bindgen]
+features = ["serde-serialize"]
+version = "0.2"
+
+[dev-dependencies]
+serde_json = "1"
+wasm-bindgen-test = "0.3"
 
 [features]
 default = []
 
-[dependencies]
-cao-lang = { path = "../cao-lang", features = ["serde"] }
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
-wasm-bindgen-futures = "0.4"
-serde = "1"
-serde_derive = "1"
-js-sys = "0.3"
-wasm-logger = "0.2"
-console_error_panic_hook = { version = "0.1.1", optional = true }
+[lib]
+crate-type = ["cdylib", "rlib"]
 
-[dev-dependencies]
-wasm-bindgen-test = "0.3"
-serde_json = "1"
-
-# wasm panics without this so there we go
-# see: https://ritik-mishra.medium.com/resolving-the-wasm-pack-error-locals-exceed-maximum-ec3a9d96685b
+[package]
+authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
+description = "Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
+edition = "2018"
+license = "MIT"
+name = "cao-lang-wasm"
+repository = "https://github.com/caolo-game/cao-lang"
+version = "0.1.40"
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
 [profile.dev]
-opt-level = 1
 incremental = true
+opt-level = 1
 
 [profile.release]
 opt-level = "z"
