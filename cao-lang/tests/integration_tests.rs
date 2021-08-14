@@ -460,6 +460,65 @@ fn jump_lane_w_params_test() {
     }
 }
 
+#[test]
+fn len_test_empty() {
+    // happy path
+    let cu = CaoIr {
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::CreateTable)
+            .with_card(Card::Len)
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let len = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read foo variable");
+
+    assert_eq!(len, Value::Integer(0));
+}
+
+#[test]
+fn len_test_happy() {
+    // happy path
+    let t = VarNode::from_str_unchecked("t");
+    let cu = CaoIr {
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::CreateTable)
+            .with_card(Card::SetVar(t.clone()))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::ReadVar(t))
+            .with_card(Card::SetProperty(VarNode::from_str_unchecked("asd")))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::ReadVar(t))
+            // same property as above
+            .with_card(Card::SetProperty(VarNode::from_str_unchecked("asd")))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::ReadVar(t))
+            // new property
+            .with_card(Card::SetProperty(VarNode::from_str_unchecked("basdasd")))
+            .with_card(Card::Len)
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let len = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read foo variable");
+
+    assert_eq!(len, Value::Integer(2));
+}
+
 mod fibonacci {
     use cao_lang::prelude::*;
     use test_env_log::test;

@@ -16,7 +16,6 @@ use super::{
     Vm,
 };
 
-#[inline]
 pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str> {
     let p = *instr_ptr;
     let limit = program.len().min(p + MAX_STR_LEN);
@@ -29,14 +28,12 @@ pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str>
 ///
 /// Assumes that the underlying data is safely decodable to the given type
 ///
-#[inline]
 pub unsafe fn decode_value<T: TriviallyEncodable>(bytes: &[u8], instr_ptr: &mut usize) -> T {
     let (len, val) = read_from_bytes(&bytes[*instr_ptr..]).expect("Failed to read data");
     *instr_ptr += len;
     val
 }
 
-#[inline]
 pub fn instr_read_var(
     runtime_data: &mut RuntimeData,
     instr_ptr: &mut usize,
@@ -63,7 +60,6 @@ pub fn instr_read_var(
     Ok(())
 }
 
-#[inline]
 pub fn instr_set_var(
     runtime_data: &mut RuntimeData,
     bytecode: &[u8],
@@ -79,7 +75,28 @@ pub fn instr_set_var(
     Ok(())
 }
 
-#[inline]
+pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let val = vm.stack_pop();
+    let len = match val {
+        Value::Nil => 0,
+        Value::Integer(_) | Value::Floating(_) => 1,
+        Value::String(s) => {
+            let st = unsafe {
+                vm.get_str(s).ok_or_else(|| {
+                    ExecutionError::invalid_argument("String not found".to_string())
+                })?
+            };
+            st.len() as i64
+        }
+        Value::Object(t) => {
+            let t = unsafe { &*t };
+            t.len() as i64
+        }
+    };
+    vm.stack_push(len)?;
+    Ok(())
+}
+
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     instr_ptr: &mut usize,
@@ -107,7 +124,6 @@ pub fn instr_string_literal<T>(
     Ok(())
 }
 
-#[inline]
 pub fn instr_jump(
     instr_ptr: &mut usize,
     program: &CaoProgram,
@@ -141,20 +157,20 @@ pub fn instr_jump(
     Ok(())
 }
 
-#[inline]
 pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -> ExecutionResult {
     let fun_hash: Key = unsafe { decode_value(bytecode, instr_ptr) };
-    let fun = vm
+    let procedure = vm
         .callables
         .remove(fun_hash)
         .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
-    let res = fun.fun.call(vm);
+    let res = procedure.fun.call(vm);
     //cleanup
-    vm.callables.insert(fun_hash, fun).expect("fun re-insert");
+    vm.callables
+        .insert(fun_hash, procedure)
+        .expect("fun re-insert");
     res
 }
 
-#[inline]
 pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let offset = vm
@@ -173,7 +189,6 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     Ok(())
 }
 
-#[inline]
 pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let offset = vm
@@ -187,7 +202,6 @@ pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     Ok(())
 }
 
-#[inline]
 pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult {
     // pop the current stack frame
     let value = match vm.runtime_data.call_stack.pop() {

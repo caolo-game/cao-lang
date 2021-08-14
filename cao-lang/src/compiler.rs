@@ -372,6 +372,7 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
+            Card::ForEach { variable, lane } => todo!(),
             // TODO: blocked by lane ABI
             Card::While(_) => {
                 return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
@@ -532,6 +533,7 @@ impl<'a> Compiler<'a> {
             | Card::Mul
             | Card::Div
             | Card::CreateTable
+            | Card::Len
             | Card::ClearStack => { /* These cards translate to a single instruction */ }
         }
         Ok(())
@@ -569,6 +571,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Or
         | Instruction::Xor
         | Instruction::InitTable
+        | Instruction::Len
         | Instruction::Not => 1,
         //
         Instruction::ScalarInt | Instruction::ScalarFloat => 9,

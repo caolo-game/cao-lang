@@ -334,13 +334,13 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Call => {
                     instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode)?
                 }
+                Instruction::Len => instr_execution::instr_len(self)?,
             }
         }
 
         Err(ExecutionError::UnexpectedEndOfInput)
     }
 
-    #[inline]
     fn binary_op<F>(&mut self, op: F) -> Result<(), ExecutionError>
     where
         F: Fn(Value, Value) -> Value,

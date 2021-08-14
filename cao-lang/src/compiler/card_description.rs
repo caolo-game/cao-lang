@@ -382,5 +382,23 @@ fn get_desc(node: Card) -> SubProgram<'static> {
             [],
             [PropertyName::Text.to_str()]
         ),
+
+        Card::ForEach {..} => subprogram_description!(
+            "ForEach",
+            "Repeat a lane for each key in the given table, passing the key to the lane as an argument",
+            SubProgramType::Branch,
+            [],
+            [],
+            [PropertyName::Text.to_str(), PropertyName::Text.to_str()]
+        ),
+
+        Card::Len => subprogram_description!(
+            "Len",
+            "Pushes the length of a table (number of keys) onto the stack",
+            SubProgramType::Branch,
+            [PropertyName::Object.to_str()],
+            [PropertyName::Number.to_str()],
+            []
+        ),
     }
 }

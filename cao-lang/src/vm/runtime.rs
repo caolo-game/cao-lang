@@ -17,7 +17,7 @@ pub struct RuntimeData {
     pub(crate) memory: BumpProxy,
 }
 
-pub struct CallFrame {
+pub(crate) struct CallFrame {
     /// Store return addresses of Lane calls
     pub instr_ptr: usize,
     /// beginning of the local stack

@@ -80,4 +80,7 @@ pub enum Instruction {
     /// Pops an Object instance and a Value from the stack then sets the table value at the encoded
     /// key
     SetProperty,
+    /// Pushes the length of the topmost table to the stack
+    /// Errors if the top Value is not a Table
+    Len,
 }

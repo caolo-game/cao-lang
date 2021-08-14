@@ -34,6 +34,7 @@ pub enum Card {
     ScalarNil,
     CreateTable,
     Abort,
+    Len,
     SetProperty(VarNode),
     GetProperty(VarNode),
     ScalarInt(IntegerNode),
@@ -49,6 +50,7 @@ pub enum Card {
     ReadVar(VarNode),
     Repeat(LaneNode),
     While(LaneNode),
+    ForEach { variable: VarNode, lane: LaneNode },
 }
 
 impl Card {
@@ -72,6 +74,7 @@ impl Card {
             Card::Or => "Either",
             Card::Xor => "Exclusive Or",
             Card::Abort => "Abort",
+            Card::Len => "Len",
             Card::ScalarInt(_) => "ScalarInt",
             Card::ScalarFloat(_) => "ScalarFloat",
             Card::StringLiteral(_) => "StringLiteral",
@@ -89,6 +92,7 @@ impl Card {
             Card::IfElse { .. } => "IfElse",
             Card::GetProperty(_) => "GetProperty",
             Card::SetProperty(_) => "SetProperty",
+            Card::ForEach { .. } => "ForEach",
         }
     }
 
@@ -100,7 +104,8 @@ impl Card {
             | Card::ReadVar(_)
             | Card::SetVar(_)
             | Card::While(_)
-            | Card::Repeat(_) => None,
+            | Card::Repeat(_)
+            | Card::ForEach { .. } => None,
 
             Card::GetProperty(_) => Some(Instruction::GetProperty),
             Card::SetProperty(_) => Some(Instruction::SetProperty),
@@ -132,6 +137,7 @@ impl Card {
             Card::ClearStack => Some(Instruction::ClearStack),
             Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return => Some(Instruction::Return),
+            Card::Len => Some(Instruction::Len),
         }
     }
 
@@ -141,6 +147,7 @@ impl Card {
     fn __instruction_to_node(instr: Instruction) {
         match instr {
             Instruction::SetGlobalVar
+            | Instruction::Len
             | Instruction::ReadGlobalVar
             | Instruction::GetProperty
             | Instruction::SetProperty
