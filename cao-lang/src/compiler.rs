@@ -8,7 +8,13 @@ pub mod card_description;
 #[cfg(test)]
 mod tests;
 
-use crate::{Instruction, NodeId, VarName, VariableId, bytecode::{encode_str, write_to_vec}, collections::key_map::{Key, KeyMap}, instruction::instruction_span, program::{CaoProgram, Label}};
+use crate::{
+    bytecode::{encode_str, write_to_vec},
+    collections::key_map::{Key, KeyMap},
+    instruction::instruction_span,
+    program::{CaoProgram, Label},
+    Instruction, NodeId, VarName, VariableId,
+};
 use std::fmt::Debug;
 use std::mem;
 use std::{cell::RefCell, convert::TryFrom};
@@ -537,4 +543,3 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 }
-

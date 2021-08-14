@@ -317,7 +317,7 @@ pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
         // push lane arguments
         vm.stack_push(key)?;
         vm.stack_push(obj_val)?;
-    }else {
+    } else {
         vm.stack_pop(); // clean up N
         vm.stack_pop(); // clean up the object
         vm.stack_push(false)?; // for the next GotoIfTrue

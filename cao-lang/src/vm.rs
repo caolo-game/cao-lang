@@ -9,9 +9,9 @@ mod tests;
 
 use self::runtime::CallFrame;
 use crate::{
-    instruction::instruction_span,
     binary_compare,
     collections::key_map::{Key, KeyMap},
+    instruction::instruction_span,
     instruction::Instruction,
     pop_stack,
     prelude::*,
@@ -219,7 +219,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                             &mut self.runtime_data,
                         )?;
                     } else {
-                        instr_ptr += instruction_span(Instruction::CallLane) as usize-1;
+                        instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }
                 Instruction::BeginForEach => {

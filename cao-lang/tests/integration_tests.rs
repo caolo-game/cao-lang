@@ -532,6 +532,7 @@ fn for_each_1() {
 lanes: 
     - name: main
       cards:
+        # --- init the example table ---
         - ty: CreateTable
         - ty: SetVar
           val: t
