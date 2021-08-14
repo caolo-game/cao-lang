@@ -22,7 +22,7 @@ pub fn cmd_bump_version(target: &str) -> CmdResult<()> {
 
 fn make_changelog(tag: &str) -> CmdResult<()> {
     let task = Command::new("git-cliff")
-        .args(&["-o", "CHANGELOG.md", "--unreleased", "--tag", tag])
+        .args(&["-o", "CHANGELOG.md", "--tag", tag])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git cliff")?;
