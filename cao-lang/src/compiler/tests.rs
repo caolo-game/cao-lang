@@ -48,19 +48,3 @@ fn empty_varname_is_error() {
         CompilationErrorPayload::EmptyVariable
     ));
 }
-
-#[test]
-fn empty_property_name_is_error() {
-    let cu = CaoIr {
-        lanes: vec![
-            Lane::default().with_cards(vec![Card::SetProperty(VarNode::from_str_unchecked(""))])
-        ],
-    };
-
-    let err = compile(cu, CompileOptions::new()).unwrap_err();
-
-    assert!(matches!(
-        err.payload,
-        CompilationErrorPayload::EmptyVariable
-    ));
-}

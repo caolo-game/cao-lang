@@ -35,8 +35,8 @@ pub enum Card {
     CreateTable,
     Abort,
     Len,
-    SetProperty(VarNode),
-    GetProperty(VarNode),
+    SetProperty,
+    GetProperty,
     ScalarInt(IntegerNode),
     ScalarFloat(FloatNode),
     StringLiteral(StringNode),
@@ -56,6 +56,8 @@ pub enum Card {
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
+            // Card::GetByKey => "GetByKey",
+            // Card::SetByKey => "SetByKey",
             Card::SetVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
             Card::Add => "Add",
@@ -90,8 +92,8 @@ impl Card {
             Card::Repeat(_) => "Repeat",
             Card::While(_) => "While",
             Card::IfElse { .. } => "IfElse",
-            Card::GetProperty(_) => "GetProperty",
-            Card::SetProperty(_) => "SetProperty",
+            Card::GetProperty => "GetProperty",
+            Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
         }
     }
@@ -107,8 +109,8 @@ impl Card {
             | Card::Repeat(_)
             | Card::ForEach { .. } => None,
 
-            Card::GetProperty(_) => Some(Instruction::GetProperty),
-            Card::SetProperty(_) => Some(Instruction::SetProperty),
+            Card::GetProperty => Some(Instruction::GetProperty),
+            Card::SetProperty => Some(Instruction::SetProperty),
             Card::CreateTable => Some(Instruction::InitTable),
             Card::And => Some(Instruction::And),
             Card::Abort => Some(Instruction::Exit),

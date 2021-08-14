@@ -372,7 +372,7 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
-            Card::ForEach { variable, lane } => todo!(),
+            Card::ForEach { variable, lane } => {}
             // TODO: blocked by lane ABI
             Card::While(_) => {
                 return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
@@ -509,11 +509,6 @@ impl<'a> Compiler<'a> {
             Card::ScalarFloat(s) => {
                 write_to_vec(s.0, &mut self.program.bytecode);
             }
-            Card::GetProperty(VarNode(name)) | Card::SetProperty(VarNode(name)) => {
-                self.validate_var_name(name.as_str())?;
-                let handle = Key::from_str(name.as_str()).unwrap();
-                write_to_vec(handle, &mut self.program.bytecode);
-            }
             Card::ScalarNil
             | Card::Return
             | Card::And
@@ -534,6 +529,8 @@ impl<'a> Compiler<'a> {
             | Card::Div
             | Card::CreateTable
             | Card::Len
+            | Card::GetProperty
+            | Card::SetProperty
             | Card::ClearStack => { /* These cards translate to a single instruction */ }
         }
         Ok(())

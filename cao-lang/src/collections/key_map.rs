@@ -115,6 +115,23 @@ impl Key {
         debug_assert!(key != 0);
         Self(key as u32)
     }
+
+    pub fn from_i64(key: i64) -> Self {
+        const MASK: u64 = u32::MAX as u64;
+
+        let mut key = key as u64 + 125; // add some padding to ensure non-zero keys
+        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
+        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
+        key = ((key >> 16) ^ key) & MASK;
+        debug_assert!(key != 0);
+        Self(key as u32)
+    }
+}
+
+impl From<i64> for Key {
+    fn from(key: i64) -> Self {
+        Self::from_i64(key)
+    }
 }
 
 impl From<u32> for Key {

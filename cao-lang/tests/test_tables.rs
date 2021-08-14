@@ -2,7 +2,7 @@ use std::{convert::TryInto, str::FromStr};
 use test_env_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, VarNode},
+    compiler::{CallNode, IntegerNode, StringNode, VarNode},
     prelude::*,
 };
 
@@ -36,9 +36,11 @@ fn test_get_set() {
             .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::SetProperty(VarNode::from_str_unchecked("bar"))) // foo.bar
+            .with_card(Card::StringLiteral(StringNode("bar".to_string())))
+            .with_card(Card::SetProperty) // foo.bar
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::GetProperty(VarNode::from_str_unchecked("bar")))
+            .with_card(Card::StringLiteral(StringNode("bar".to_string())))
+            .with_card(Card::GetProperty)
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie")))],
     };
 
@@ -81,7 +83,8 @@ fn test_native_w_table_input() {
             .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::SetProperty(VarNode::from_str_unchecked("boi"))) // foo.bar
+            .with_card(Card::StringLiteral(StringNode("boi".to_string())))
+            .with_card(Card::SetProperty) // foo.bar
             .with_card(Card::CallNative(Box::new(CallNode(
                 InputString::from("boii").unwrap(),
             ))))],
@@ -115,7 +118,8 @@ fn test_native_w_table_output() {
             .with_card(Card::CallNative(Box::new(CallNode(
                 InputString::from("boii").unwrap(),
             ))))
-            .with_card(Card::GetProperty(VarNode::from_str_unchecked("bar")))
+            .with_card(Card::StringLiteral(StringNode("bar".to_string())))
+            .with_card(Card::GetProperty)
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie")))],
     };
 

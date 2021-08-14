@@ -37,6 +37,8 @@ pub enum ExecutionError {
     Stackoverflow,
     #[error("Failed to return from a lane {reason}")]
     BadReturn { reason: String },
+    #[error("Trying to hash an unhashable object")]
+    Unhashable,
 }
 
 impl ExecutionError {

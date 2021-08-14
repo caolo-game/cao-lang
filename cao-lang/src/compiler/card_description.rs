@@ -78,8 +78,8 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
             r#else: Default::default(),
         }),
         get_desc(Card::CreateTable),
-        get_desc(Card::SetProperty(Default::default())),
-        get_desc(Card::GetProperty(Default::default())),
+        get_desc(Card::SetProperty),
+        get_desc(Card::GetProperty),
     ]
 }
 
@@ -87,21 +87,21 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
         Card::CallNative(_)    => unreachable!(),
-        Card::GetProperty(_) => subprogram_description!(
+        Card::GetProperty => subprogram_description!(
             "GetProperty",
             "Gets a named field in the given table. Returns `nil` if the field does not exist",
             SubProgramType::Object,
-            [PropertyName::Object.to_str()],
+            [PropertyName::Object.to_str(), PropertyName::Variable.to_str()],
             [PropertyName::Value.to_str()],
-            [PropertyName::Variable.to_str()]
+            []
         ),
-        Card::SetProperty(_) => subprogram_description!(
+        Card::SetProperty => subprogram_description!(
             "SetProperty",
             "Sets a named field in the given table to the input value",
             SubProgramType::Object,
-            [PropertyName::Value.to_str(), PropertyName::Object.to_str()],
+            [PropertyName::Value.to_str(), PropertyName::Object.to_str(), PropertyName::Variable.to_str()],
             [],
-            [PropertyName::Variable.to_str()]
+            []
         ),
         Card::CreateTable => subprogram_description!(
             "CreateTable",

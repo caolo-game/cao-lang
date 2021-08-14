@@ -494,15 +494,18 @@ fn len_test_happy() {
             .with_card(Card::SetVar(t.clone()))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(t))
-            .with_card(Card::SetProperty(VarNode::from_str_unchecked("asd")))
+            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+            .with_card(Card::SetProperty)
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(t))
             // same property as above
-            .with_card(Card::SetProperty(VarNode::from_str_unchecked("asd")))
+            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+            .with_card(Card::SetProperty)
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(t))
             // new property
-            .with_card(Card::SetProperty(VarNode::from_str_unchecked("basdasd")))
+            .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
+            .with_card(Card::SetProperty)
             .with_card(Card::Len)
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
     };
@@ -517,6 +520,63 @@ fn len_test_happy() {
         .expect("Failed to read foo variable");
 
     assert_eq!(len, Value::Integer(2));
+}
+
+#[test]
+fn for_each_1() {
+    let cu: CaoIr = serde_yaml::from_str(
+        r#"
+lanes: 
+    - name: main
+      cards:
+        - ty: CreateTable
+        - ty: SetVar
+          val: t
+        - ty: ScalarInt
+          val: 1
+        - ty: ReadVar
+          val: t
+        - ty: StringLiteral
+          val: f1
+        - ty: SetProperty
+        - ty: ScalarInt
+          val: 2
+        - ty: ReadVar
+          val: t
+        # same property as above
+        - ty: StringLiteral
+          val: f2
+        - ty: SetProperty
+        - ty: ScalarInt
+          val: 3
+        - ty: ReadVar
+          val: t
+        # new property
+        - ty: StringLiteral
+          val: f3
+        - ty: SetProperty
+        - ty: Len
+        - ty: SetGlobalVar
+          val: g_result
+
+    - pog:
+      arguments:
+        - "key"
+        - "table"
+      cards:
+        - ty: ReadVar
+          val: table
+        - ty: ReadVar
+          val: key
+        - ty: GetProperty
+        "#,
+    )
+    .unwrap();
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
 }
 
 mod fibonacci {

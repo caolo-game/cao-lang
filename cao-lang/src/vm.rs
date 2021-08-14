@@ -191,16 +191,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(Value::Object(res.as_ptr()))?;
                 }
                 Instruction::GetProperty => {
-                    let handle: Key =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let handle = self.pop_key()?;
                     let instance = self.stack_pop();
                     let table = self.get_table(instance)?;
                     let result = table.get(handle).copied().unwrap_or(Value::Nil);
                     self.stack_push(result)?;
                 }
                 Instruction::SetProperty => {
-                    let handle: Key =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let handle = self.pop_key()?;
                     let instance = self.stack_pop();
                     let value = self.stack_pop();
                     let table = self.get_table_mut(instance)?;
@@ -353,5 +351,23 @@ impl<'a, Aux> Vm<'a, Aux> {
             .push(op(a, b))
             .map_err(|_| ExecutionError::Stackoverflow)?;
         Ok(())
+    }
+
+    fn pop_key(&mut self) -> Result<Key, ExecutionError> {
+        let handle = self.stack_pop();
+        let handle = match handle {
+            Value::Nil => Key::default(),
+            Value::String(s) => {
+                let s = unsafe {
+                    self.get_str(s).ok_or_else(|| {
+                        ExecutionError::invalid_argument("String not found".to_string())
+                    })?
+                };
+                Key::from_str(s).unwrap()
+            }
+            Value::Integer(i) => Key::from(i),
+            Value::Floating(_) | Value::Object(_) => return Err(ExecutionError::Unhashable),
+        };
+        Ok(handle)
     }
 }
