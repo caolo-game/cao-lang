@@ -12,15 +12,17 @@ pub fn cmd_bump_version(target: &str) -> CmdResult<()> {
         .with_context(|| "Failed to bump wasm version")?;
     bump_cargo_manifest_version(project_root().join("py").join("Cargo.toml"), target)
         .with_context(|| "Failed to bump python version")?;
-    make_changelog()?;
+
+    let new_version = format!("v{}", new_version);
+    make_changelog(&new_version)?;
 
     println!("New core version: {}", new_version);
     Ok(())
 }
 
-fn make_changelog() -> CmdResult<()> {
+fn make_changelog(tag: &str) -> CmdResult<()> {
     let task = Command::new("git-cliff")
-        .args(&["-o", "Changelog.md"])
+        .args(&["-o", "Changelog.md", "--unreleased", "--tag", tag])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git cliff")?;
