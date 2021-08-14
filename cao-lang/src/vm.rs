@@ -207,6 +207,19 @@ impl<'a, Aux> Vm<'a, Aux> {
                         ExecutionError::OutOfMemory
                     })?;
                 }
+                Instruction::BeginRepeat => {
+                    instr_execution::begin_repeat(self)?;
+                }
+                Instruction::Repeat => match instr_execution::repeat(self)? {
+                    n if n < 0 => { /* done */ }
+                    _n => {
+                        instr_execution::instr_jump(
+                            &mut instr_ptr,
+                            program,
+                            &mut self.runtime_data,
+                        )?;
+                    }
+                },
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.stack.pop();
                     let pos: i32 =
@@ -281,11 +294,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Exit => return Ok(()),
                 Instruction::CopyLast => {
-                    let val = self.runtime_data.stack.last();
-                    self.runtime_data
-                        .stack
-                        .push(val)
-                        .map_err(|_| ExecutionError::Stackoverflow)?;
+                    instr_execution::instr_copy_last(self)?;
                 }
                 Instruction::Pass => {}
                 Instruction::ScalarInt => {

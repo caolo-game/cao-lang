@@ -1,3 +1,5 @@
+mod fibonacci;
+
 use std::convert::TryInto;
 use test_env_log::test;
 
@@ -525,6 +527,8 @@ fn len_test_happy() {
 
 #[test]
 fn for_each_1() {
+    return; // TODO
+
     let cu: CaoIr = serde_yaml::from_str(
         r#"
 lanes: 
@@ -558,6 +562,13 @@ lanes:
           val: 0
         - ty: SetGlobalVar
           val: g_result
+        # --- init done ---
+        - ty: ForEach
+          val:
+            lane: 
+              LaneName: pog
+            variable: t
+
 
     - pog:
       arguments:
@@ -582,54 +593,10 @@ lanes:
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
-}
 
-mod fibonacci {
-    use cao_lang::prelude::*;
-    use test_env_log::test;
+    let res = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read result variable");
 
-    const RECURSIVE_FIB: &str = include_str!("../benches/fibonacci_program_recursive.yaml");
-
-    fn fib(n: i64) -> i64 {
-        let mut a = 0;
-        let mut b = 1;
-        for _ in 0..n {
-            let t = a + b;
-            a = b;
-            b = t;
-        }
-        b
-    }
-
-    #[test]
-    fn fibonacci_1() {
-        let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
-        let program = compile(cu, CompileOptions::new()).unwrap();
-
-        let mut vm = Vm::new(()).unwrap();
-        vm.stack_push(Value::Integer(1)).unwrap();
-        vm.run(&program).expect("run failed");
-
-        let result = vm
-            .read_var_by_name("result", &program.variables)
-            .expect("Failed to read result variable");
-
-        assert_eq!(result, Value::Integer(1));
-    }
-
-    #[test]
-    fn fibonacci_4() {
-        let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
-        let program = compile(cu, CompileOptions::new()).unwrap();
-
-        let mut vm = Vm::new(()).unwrap();
-        vm.stack_push(Value::Integer(4)).unwrap();
-        vm.run(&program).expect("run failed");
-
-        let result = vm
-            .read_var_by_name("result", &program.variables)
-            .expect("Failed to read result variable");
-
-        assert_eq!(result, Value::Integer(fib(4)));
-    }
+    assert_eq!(res, Value::Integer(6));
 }

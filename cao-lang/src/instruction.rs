@@ -83,4 +83,7 @@ pub enum Instruction {
     /// Pushes the length of the topmost table to the stack
     /// Errors if the top Value is not a Table
     Len,
+
+    BeginRepeat,
+    Repeat,
 }

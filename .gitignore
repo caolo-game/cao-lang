@@ -17,3 +17,4 @@ docs/_build
 *.pyd
 /cao-lang-*/
 /c/cao_lang_c.dll
+/out.txt

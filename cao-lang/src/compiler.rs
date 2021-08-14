@@ -372,34 +372,21 @@ impl<'a> Compiler<'a> {
             self.program.bytecode.push(instr as u8);
         }
         match card {
-            Card::ForEach { variable, lane } => {}
+            Card::ForEach { variable, lane } => {
+                todo!()
+            }
             // TODO: blocked by lane ABI
             Card::While(_) => {
                 return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
             }
             Card::Repeat(repeat) => {
-                // Init, add 1
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                write_to_vec(1i64, &mut self.program.bytecode);
-                self.program.bytecode.push(Instruction::Add as u8);
-                // Condition
-                let cond_block_begin = self.program.bytecode.len() as i32;
-                self.program.bytecode.push(Instruction::ScalarInt as u8);
-                write_to_vec(1i64, &mut self.program.bytecode);
-                self.program.bytecode.push(Instruction::Sub as u8);
-                self.program.bytecode.push(Instruction::CopyLast as u8);
-                self.program.bytecode.push(Instruction::GotoIfFalse as u8);
-                let execute_block_len =
-                    instruction_span(Instruction::CallLane) + instruction_span(Instruction::Goto);
-                write_to_vec(
-                    self.program.bytecode.len() as i32 + 4 + execute_block_len,
-                    &mut self.program.bytecode,
-                );
-                // Execute
-                self.program.bytecode.push(Instruction::CallLane as u8);
+                self.program.bytecode.push(Instruction::BeginRepeat as u8);
+                let block_begin = self.program.bytecode.len() as i32;
+                self.program.bytecode.push(Instruction::Repeat as u8);
                 self.encode_jump(nodeid, &repeat)?;
-                self.program.bytecode.push(Instruction::Goto as u8);
-                write_to_vec(cond_block_begin, &mut self.program.bytecode);
+                // return to the repeat instruction
+                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                write_to_vec(block_begin, &mut self.program.bytecode);
             }
             Card::ReadVar(variable) => {
                 let scope = self.resolve_var(variable.0.as_str())?;
@@ -569,6 +556,7 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Xor
         | Instruction::InitTable
         | Instruction::Len
+        | Instruction::BeginRepeat
         | Instruction::Not => 1,
         //
         Instruction::ScalarInt | Instruction::ScalarFloat => 9,
@@ -582,6 +570,6 @@ const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::ReadGlobalVar => 5,
         //
         Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
-        Instruction::CallLane => 9,
+        Instruction::Repeat | Instruction::CallLane => 9,
     }
 }

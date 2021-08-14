@@ -183,6 +183,8 @@ impl Card {
             | Instruction::Goto
             | Instruction::GotoIfTrue
             | Instruction::GotoIfFalse
+            | Instruction::Repeat
+            | Instruction::BeginRepeat
             | Instruction::Pass => {}
         };
     }

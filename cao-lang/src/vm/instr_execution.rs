@@ -1,4 +1,5 @@
 use std::alloc::Layout;
+use std::convert::TryFrom;
 
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
@@ -226,5 +227,44 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     }
     // push the return value
     vm.stack_push(value)?;
+    Ok(())
+}
+
+pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let n = vm.runtime_data.stack.pop();
+    let n = i64::try_from(n).map_err(|_| {
+        ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
+    })?;
+    if n < 0 {
+        return Err(ExecutionError::invalid_argument(
+            "Repeat input must be non-negative".to_string(),
+        ));
+    }
+    vm.stack_push(n)?;
+    Ok(())
+}
+
+/// return i
+pub fn repeat<T>(vm: &mut Vm<T>) -> Result<i64, ExecutionError> {
+    let i = vm.runtime_data.stack.pop();
+    let mut i = i64::try_from(i).map_err(|_| {
+        ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
+    })?;
+    i -= 1;
+    if i >= 0 {
+        // restore the variable
+        vm.stack_push(i)?;
+    }
+
+    Ok(i)
+}
+
+pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let val = vm.runtime_data.stack.last();
+    vm.runtime_data
+        .stack
+        .push(val)
+        .map_err(|_| ExecutionError::Stackoverflow)?;
+
     Ok(())
 }
