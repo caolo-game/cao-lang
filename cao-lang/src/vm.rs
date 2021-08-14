@@ -154,6 +154,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     /// Initializes a new FieldTable in this VM instance
+    #[inline]
     pub fn init_table(&mut self) -> Result<std::ptr::NonNull<FieldTable>, ExecutionError> {
         self.runtime_data.init_table()
     }

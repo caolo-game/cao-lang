@@ -94,7 +94,7 @@ impl Card {
 
     /// Translate this Card into an Instruction, if possible.
     /// Some cards expand to multiple instructions, these are handled separately
-    pub fn instruction(&self) -> Option<Instruction> {
+    pub(crate) fn instruction(&self) -> Option<Instruction> {
         match self {
             Card::IfElse { .. }
             | Card::ReadVar(_)
