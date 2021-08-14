@@ -112,8 +112,8 @@ pub enum CompileResult {
 #[derive(Debug, Default)]
 pub struct CompileOptions {}
 
-impl Into<caoc::CompileOptions> for CompileOptions {
-    fn into(self) -> caoc::CompileOptions {
+impl From<CompileOptions > for caoc::CompileOptions{
+    fn from(_: CompileOptions) -> Self {
         caoc::CompileOptions::new()
     }
 }

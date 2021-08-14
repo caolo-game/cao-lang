@@ -78,7 +78,7 @@ checksum = "9c59e7af012c713f529e7a3ee57ce9b31ddd858d4b512923602f74608b009631"
 
 [[package]]
 name = "cao-lang"
-version = "0.1.32"
+version = "0.1.33"
 dependencies = [
  "arrayvec",
  "criterion",
@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-py"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "cao-lang",
  "pyo3",
