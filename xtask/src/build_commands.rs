@@ -1,49 +1,63 @@
-use std::{env, process::Command};
+//! Custom build commands
+//!
+use std::{ffi::OsStr, io, process::Command};
 
 use anyhow::{anyhow, Context};
 
-use crate::{Cmd, CmdResult, project_root};
+use crate::{project_root, CmdResult};
 
-pub static BUILD_CMD_NAMES: &[&str] = &["core", "wasm", "py", "c", "all"];
-pub static BUILD_CMDS: &[Cmd] = &[
-    cmd_build_core,
-    cmd_build_wasm,
-    cmd_build_py,
-    cmd_build_c,
-    cmd_build_all,
-];
-
-pub fn cmd_build_all() -> CmdResult<()> {
-    cmd_build_core().with_context(|| "Building core failed")?;
-    cmd_build_py().with_context(|| "Building py failed")?;
-    cmd_build_c().with_context(|| "Building c? failed")?;
-    cmd_build_wasm().with_context(|| "Building wasm failed")?;
+pub fn cmd_build_c() -> CmdResult<()> {
+    let args: &[&str] = &[];
+    configure_c_interface(args)?;
+    build_c_interface()?;
     Ok(())
 }
 
-pub fn cmd_build_core() -> CmdResult<()> {
-    let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    let task = Command::new(cargo)
-        .current_dir(project_root().join("cao-lang"))
-        .args(&["build", "--release"])
-        .spawn()
-        .expect("Failed to spawn cargo task");
+pub fn configure_c_interface<'a, T>(args: impl IntoIterator<Item = T>) -> CmdResult<()>
+where
+    T: AsRef<OsStr>,
+{
+    std::fs::create_dir(project_root().join("build")).unwrap_or_default();
+    let task = Command::new("cmake")
+        .arg("..")
+        .args(args)
+        .current_dir(project_root().join("build"))
+        .spawn();
 
-    let output = task.wait_with_output().unwrap();
-    if !output.status.success() {
-        return Err(anyhow!("Failed to build core"));
+    let task = match task {
+        Ok(o) => o,
+        Err(err) => match err.kind() {
+            io::ErrorKind::NotFound => return Err(anyhow!("`cmake` command can not be found!")),
+            _ => {
+                return Err(err).with_context(|| "cmake configure failed");
+            }
+        },
+    };
+    if !task
+        .wait_with_output()
+        .expect("Failed to wait for the `cmake` command")
+        .status
+        .success()
+    {
+        return Err(anyhow!("CMake configure failed"));
     }
     Ok(())
 }
 
-pub fn cmd_build_py() -> CmdResult<()> {
-    todo!()
-}
+pub fn build_c_interface() -> CmdResult<()> {
+    let task = Command::new("cmake")
+        .args(&["--build", ".", "--clean-first"])
+        .current_dir(project_root().join("build"))
+        .spawn()
+        .with_context(|| "Spawning the cmake build task failed")?;
 
-pub fn cmd_build_c() -> CmdResult<()> {
-    todo!()
-}
-
-pub fn cmd_build_wasm() -> CmdResult<()> {
-    todo!()
+    if !task
+        .wait_with_output()
+        .expect("Failed to wait for the `cmake` command")
+        .status
+        .success()
+    {
+        return Err(anyhow!("CMake build failed"));
+    }
+    Ok(())
 }

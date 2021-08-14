@@ -4,8 +4,7 @@ test-core:
 	@${MAKE} -C cao-lang test
 
 test-c:
-	-mkdir build
-	cd build && cmake .. -DCAOLO_ENABLE_TESTING=ON && cmake --build . && ctest --output-on-failure
+	cargo xtask test c
 
 test-py:
 	cd py && cargo test
