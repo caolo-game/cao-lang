@@ -198,9 +198,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(result)?;
                 }
                 Instruction::SetProperty => {
+                    let value = self.stack_pop();
                     let handle = self.pop_key()?;
                     let instance = self.stack_pop();
-                    let value = self.stack_pop();
                     let table = self.get_table_mut(instance)?;
                     table.insert(handle, value).map_err(|err| {
                         debug!("Failed to insert value {:?}", err);

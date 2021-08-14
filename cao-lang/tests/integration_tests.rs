@@ -491,20 +491,21 @@ fn len_test_happy() {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
-            .with_card(Card::SetVar(t.clone()))
-            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::SetVar(t))
+            // first property
             .with_card(Card::ReadVar(t))
             .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-            .with_card(Card::SetProperty)
             .with_card(Card::ScalarInt(IntegerNode(42)))
-            .with_card(Card::ReadVar(t))
+            .with_card(Card::SetProperty)
             // same property as above
-            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-            .with_card(Card::SetProperty)
-            .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::ReadVar(t))
+            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::SetProperty)
             // new property
+            .with_card(Card::ReadVar(t))
             .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::SetProperty)
             .with_card(Card::Len)
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
@@ -532,30 +533,29 @@ lanes:
         - ty: CreateTable
         - ty: SetVar
           val: t
-        - ty: ScalarInt
-          val: 1
         - ty: ReadVar
           val: t
         - ty: StringLiteral
           val: f1
-        - ty: SetProperty
         - ty: ScalarInt
-          val: 2
+          val: 1
+        - ty: SetProperty
         - ty: ReadVar
           val: t
-        # same property as above
         - ty: StringLiteral
           val: f2
-        - ty: SetProperty
         - ty: ScalarInt
-          val: 3
+          val: 2
+        - ty: SetProperty
         - ty: ReadVar
           val: t
-        # new property
         - ty: StringLiteral
           val: f3
+        - ty: ScalarInt
+          val: 3
         - ty: SetProperty
-        - ty: Len
+        - ty: ScalarInt
+          val: 0
         - ty: SetGlobalVar
           val: g_result
 
@@ -569,6 +569,11 @@ lanes:
         - ty: ReadVar
           val: key
         - ty: GetProperty
+        - ty: ReadVar
+          val: g_result
+        - ty: Add
+        - ty: SetGlobalVar
+          val: g_result
         "#,
     )
     .unwrap();

@@ -97,9 +97,10 @@ fn get_desc(node: Card) -> SubProgram<'static> {
         ),
         Card::SetProperty => subprogram_description!(
             "SetProperty",
-            "Sets a named field in the given table to the input value",
+            r#"Sets a named field in the given table to the input value
+Order of parameters: Table, Property-Key, Value"#,
             SubProgramType::Object,
-            [PropertyName::Value.to_str(), PropertyName::Object.to_str(), PropertyName::Variable.to_str()],
+            [PropertyName::Object.to_str(), PropertyName::Variable.to_str(), PropertyName::Value.to_str()],
             [],
             []
         ),
