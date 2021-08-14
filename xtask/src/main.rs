@@ -17,6 +17,7 @@ fn main() {
             .arg(
                 Arg::with_name("target")
                     .takes_value(true)
+                    .required(true)
                     .possible_values(&["major", "minor", "patch"])
                     .multiple(false),
             ),
@@ -25,6 +26,7 @@ fn main() {
             SubCommand::with_name("build").arg(
                 Arg::with_name("target")
                     .takes_value(true)
+                    .required(true)
                     .possible_values(&["c"])
                     .min_values(1)
                     .multiple(true),
@@ -34,6 +36,7 @@ fn main() {
             SubCommand::with_name("test").arg(
                 Arg::with_name("target")
                     .takes_value(true)
+                    .required(true)
                     .possible_values(&["c"])
                     .min_values(1)
                     .multiple(true),
