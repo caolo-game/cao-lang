@@ -278,7 +278,7 @@ impl<'a> Compiler<'a> {
                 self.error(CompilationErrorPayload::BadVariableName(param.to_string()))
             })?)?;
         }
-        for (ic, card) in cards.into_iter().enumerate() {
+        for (ic, card) in cards.iter().enumerate() {
             self.current_card = ic as i32;
             let nodeid = NodeId {
                 lane: il as u16,
@@ -378,7 +378,7 @@ impl<'a> Compiler<'a> {
                 self.program.bytecode.push(Instruction::BeginForEach as u8);
                 let block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::ForEach as u8);
-                self.encode_jump(nodeid, &lane)?;
+                self.encode_jump(nodeid, lane)?;
                 // return to the repeat instruction
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
                 write_to_vec(block_begin, &mut self.program.bytecode);
@@ -391,7 +391,7 @@ impl<'a> Compiler<'a> {
                 self.program.bytecode.push(Instruction::BeginRepeat as u8);
                 let block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::Repeat as u8);
-                self.encode_jump(nodeid, &repeat)?;
+                self.encode_jump(nodeid, repeat)?;
                 // return to the repeat instruction
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
                 write_to_vec(block_begin, &mut self.program.bytecode);
@@ -443,7 +443,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(pos, &mut self.program.bytecode);
                 // else
                 self.program.bytecode.push(Instruction::CallLane as u8);
-                self.encode_jump(nodeid, &else_lane)?;
+                self.encode_jump(nodeid, else_lane)?;
 
                 self.program.bytecode.push(Instruction::Goto as u8);
                 let pos = instruction_span(Instruction::CallLane)
@@ -452,18 +452,18 @@ impl<'a> Compiler<'a> {
                 write_to_vec(pos, &mut self.program.bytecode);
                 // then
                 self.program.bytecode.push(Instruction::CallLane as u8);
-                self.encode_jump(nodeid, &then_lane)?;
+                self.encode_jump(nodeid, then_lane)?;
             }
             Card::IfFalse(jmp) => {
                 // if the value is true we DON'T jump
-                self.conditional_jump(Instruction::GotoIfTrue, nodeid, &jmp)?;
+                self.conditional_jump(Instruction::GotoIfTrue, nodeid, jmp)?;
             }
             Card::IfTrue(jmp) => {
                 // if the value is false we DON'T jump
-                self.conditional_jump(Instruction::GotoIfFalse, nodeid, &jmp)?;
+                self.conditional_jump(Instruction::GotoIfFalse, nodeid, jmp)?;
             }
             Card::Jump(jmp) => {
-                self.encode_jump(nodeid, &jmp)?;
+                self.encode_jump(nodeid, jmp)?;
             }
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),
             Card::CallNative(c) => {

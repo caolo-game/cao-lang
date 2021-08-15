@@ -32,6 +32,10 @@ pub enum CompileResult {
     cao_CompileResult_EmptyVariable,
 }
 
+/// # SAFETY
+///
+/// The produced program must be freed by calling
+/// [cao_free_compiled_program](cao_free_compiled_program)
 #[no_mangle]
 pub unsafe extern "C" fn cao_new_compiled_program() -> CompiledProgram {
     CompiledProgram {

@@ -13,7 +13,7 @@ pub fn cmd_build_c() -> CmdResult<()> {
     Ok(())
 }
 
-pub fn configure_c_interface<'a, T>(args: impl IntoIterator<Item = T>) -> CmdResult<()>
+pub fn configure_c_interface<T>(args: impl IntoIterator<Item = T>) -> CmdResult<()>
 where
     T: AsRef<OsStr>,
 {

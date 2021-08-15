@@ -120,7 +120,7 @@ fn bump_cargo_manifest_version(
         .with_context(|| "Failed to get version str")?;
 
     let mut version = match current_version.as_str() {
-        Some(vstr) => semver::Version::parse(&vstr).with_context(|| "Failed to parse version")?,
+        Some(vstr) => semver::Version::parse(vstr).with_context(|| "Failed to parse version")?,
         None => {
             return Err(anyhow::anyhow!("Expected version to be a string"));
         }

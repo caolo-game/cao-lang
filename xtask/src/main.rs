@@ -52,14 +52,13 @@ fn main() {
 
     if let Some(subcmd) = args.subcommand_matches("version-bump") {
         if let Some(target) = subcmd.value_of("TARGET") {
-            if subcmd.is_present("tag") {
-                if let Err(e) = cmd_version::cmd_create_tag(target) {
-                    eprintln!("Version tagging failed: {}", e);
-                }
+            let res = if subcmd.is_present("tag") {
+                cmd_version::cmd_create_tag(target)
             } else {
-                if let Err(e) = cmd_version::cmd_bump_version(target) {
-                    eprintln!("Version bump failed: {}", e);
-                }
+                cmd_version::cmd_bump_version(target).map(|_| ())
+            };
+            if let Err(e) = res {
+                eprintln!("Version bump failed: {}", e);
             }
         }
     }
