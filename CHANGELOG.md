@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.37
+
+
+### Refactor
+
+- The compiler no longer takes ownership of IR
+
 ## v0.1.35
 
 
