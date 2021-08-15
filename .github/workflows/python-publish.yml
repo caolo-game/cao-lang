@@ -2,7 +2,6 @@ name: Python publish
 
 on:
   push:
-    branches: [master, main]
     tags: [v*]
 
 jobs:
