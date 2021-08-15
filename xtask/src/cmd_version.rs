@@ -28,6 +28,8 @@ pub fn cmd_create_tag(version_target: &str) -> CmdResult<()> {
     commit_bump()?;
     git_tag(&new_version)?;
 
+    println!("Version bump successful. Push the new version: `git push --tags`");
+
     Ok(())
 }
 
