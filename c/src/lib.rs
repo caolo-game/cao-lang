@@ -32,7 +32,7 @@ pub enum CompileResult {
     cao_CompileResult_EmptyVariable,
 }
 
-/// # SAFETY
+/// # Safety
 ///
 /// The produced program must be freed by calling
 /// [cao_free_compiled_program](cao_free_compiled_program)
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn cao_new_compiled_program() -> CompiledProgram {
     }
 }
 
-/// # SAFETY
+/// # Safety
 ///
 /// Must be called once per CompiledProgram
 #[no_mangle]
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn cao_free_compiled_program(program: *mut CompiledProgram
 
 /// Compile a json serialized CaoIR
 ///
-/// # SAFETY
+/// # Safety
 ///
 /// `cao_ir_len` must be the length of the `cao_ir` string
 ///

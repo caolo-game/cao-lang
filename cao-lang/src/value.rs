@@ -40,7 +40,7 @@ impl Value {
         matches!(self, Value::String(_))
     }
 
-    /// # SAFETY
+    /// # Safety
     ///
     /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
     ///

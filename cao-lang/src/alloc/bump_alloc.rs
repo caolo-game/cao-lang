@@ -71,7 +71,7 @@ impl BumpAllocator {
         }
     }
 
-    ///# SAFETY
+    ///# Safety
     ///
     ///Invalidates all outstanding pointers
     pub unsafe fn reset(&mut self, capacity: usize) {
@@ -88,14 +88,14 @@ impl BumpAllocator {
         *self.head.get_mut() = 0;
     }
 
-    ///# SAFETY
+    ///# Safety
     ///
     ///Invalidates all outstanding pointers
     pub unsafe fn clear(&mut self) {
         *self.head.get_mut() = 0;
     }
 
-    /// # SAFETY
+    /// # Safety
     /// `alloc` is not thread safe. It is on the caller to ensure that only a single thread uses
     /// the allocator at a time
     pub unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
@@ -109,7 +109,7 @@ impl BumpAllocator {
         Ok(NonNull::new_unchecked(ptr))
     }
 
-    /// # SAFETY
+    /// # Safety
     ///
     /// Only pointers allocated by this instance are safe to free
     pub unsafe fn dealloc(&self, _p: NonNull<u8>, _l: Layout) {
