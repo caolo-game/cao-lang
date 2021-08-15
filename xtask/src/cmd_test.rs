@@ -9,8 +9,10 @@ use crate::{
     project_root, CmdResult,
 };
 
-pub fn cmd_test_c() -> CmdResult<()> {
-    configure_c_interface(&["-DCAOLO_ENABLE_TESTING=ON"])?;
+pub fn cmd_test_c(args: &[&str]) -> CmdResult<()> {
+    let mut args = args.iter().copied().collect::<Vec<_>>();
+    args.push("-DCAOLO_ENABLE_TESTING=ON");
+    configure_c_interface(args.as_slice())?;
     build_c_interface()?;
 
     // run the tests

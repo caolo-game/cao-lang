@@ -4,7 +4,7 @@ test-core:
 	@${MAKE} -C cao-lang test
 
 test-c:
-	cargo xtask test c
+	cargo xtask test c -- -GNinja
 
 test-py:
 	cd py && cargo test

@@ -4,10 +4,9 @@ mod cmd_version;
 
 use std::path::{Path, PathBuf};
 
-use clap::{App, Arg, SubCommand, Values};
+use clap::{App, Arg, SubCommand};
 
 type CmdResult<T> = Result<T, anyhow::Error>;
-type Cmd = fn() -> CmdResult<()>;
 
 fn main() {
     let app = App::new("Cao-Lang tasks")
@@ -34,9 +33,13 @@ fn main() {
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
-                    .min_values(1)
-                    .multiple(true),
-            ),
+                    .multiple(false),
+            )
+            .arg(
+            Arg::with_name("--")
+            .help("Arguments to pass to cmake configure")
+            .takes_value(true).required(false).multiple(true)
+            )
         )
         .subcommand(
             SubCommand::with_name("test").arg(
@@ -44,9 +47,14 @@ fn main() {
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
-                    .min_values(1)
-                    .multiple(true),
-            ),
+                    .multiple(false),
+            )
+            .arg(
+            Arg::with_name("--")
+            .help("Arguments to pass to cmake configure")
+            .takes_value(true).required(false).multiple(true)
+            )
+            ,
         );
     let args = app.get_matches();
 
@@ -62,36 +70,40 @@ fn main() {
             }
         }
     }
-    if let Some(targets) = args
-        .subcommand_matches("build")
-        .and_then(|b| b.values_of("TARGET"))
-    {
-        if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_build::cmd_build_c]) {
-            eprintln!("Build command failed: {}", e);
+    if let Some(subcmd) = args.subcommand_matches("build") {
+        if let Some(target) = subcmd.value_of("TARGET") {
+            match target {
+                "c" => {
+                    let args = subcmd
+                        .values_of("--")
+                        .unwrap_or_default()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    if let Err(e) = cmd_build::cmd_build_c(args.as_slice()) {
+                        eprintln!("Build command failed: {}", e);
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
     }
-    if let Some(targets) = args
-        .subcommand_matches("test")
-        .and_then(|b| b.values_of("TARGET"))
-    {
-        if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_test::cmd_test_c]) {
-            eprintln!("Test command failed: {}", e);
+    if let Some(subcmd) = args.subcommand_matches("test") {
+        if let Some(target) = subcmd.value_of("TARGET") {
+            match target {
+                "c" => {
+                    let args = subcmd
+                        .values_of("--")
+                        .unwrap_or_default()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    if let Err(e) = cmd_test::cmd_test_c(args.as_slice()) {
+                        eprintln!("Test command failed: {}", e);
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
     }
-}
-
-fn execute_subcommand(targets: Values, command_names: &[&str], commands: &[Cmd]) -> CmdResult<()> {
-    debug_assert!(command_names.len() == commands.len());
-
-    for t in targets {
-        let cmd = command_names
-            .iter()
-            .enumerate()
-            .find_map(|(i, x)| (*x == t).then(|| i))
-            .unwrap();
-        commands[cmd]()?;
-    }
-    Ok(())
 }
 
 fn project_root() -> PathBuf {

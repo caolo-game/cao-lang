@@ -6,8 +6,7 @@ use anyhow::{anyhow, Context};
 
 use crate::{project_root, CmdResult};
 
-pub fn cmd_build_c() -> CmdResult<()> {
-    let args: &[&str] = &[];
+pub fn cmd_build_c(args: &[&str]) -> CmdResult<()> {
     configure_c_interface(args)?;
     build_c_interface()?;
     Ok(())
