@@ -55,4 +55,4 @@ authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 build = "build.rs"
 edition = "2018"
 name = "cao-lang"
-version = "0.1.33"
+version = "0.1.34"

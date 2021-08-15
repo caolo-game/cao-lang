@@ -1,4 +1,20 @@
 # Changelog
+## v0.1.34
+
+
+### Bug Fixes
+
+- Fix changelog format
+
+- Add Len and ForEach cards to descriptions
+
+
+### Refactor
+
+- Impl From<CompileOptions> instead of Into
+
+- Return values instead of references from FieldTable
+
 ## v0.1.33
 
 
