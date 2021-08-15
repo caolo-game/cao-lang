@@ -29,7 +29,7 @@ features = ["release_max_level_info"]
 version = "0.1"
 
 [dev-dependencies]
-env_logger = "*"
+env_logger = "0.9"
 serde_json = "1"
 serde_yaml = "0.8"
 
@@ -40,7 +40,7 @@ version = "0.3"
 [dev-dependencies.test-env-log]
 default-features = false
 features = ["trace"]
-version = "*"
+version = "0.2"
 
 [dev-dependencies.tracing-subscriber]
 default-features = false
