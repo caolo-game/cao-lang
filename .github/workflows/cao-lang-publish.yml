@@ -1,4 +1,4 @@
-name: Cao-Lang core tests
+name: Cao-Lang core publish
 
 on:
   push:
