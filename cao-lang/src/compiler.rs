@@ -1,3 +1,5 @@
+//! The compiler module that transforms [CaoIr](CaoIr) into bytecode.
+//!
 mod card;
 mod compilation_error;
 mod compile_options;
@@ -68,7 +70,7 @@ pub struct Local<'a> {
 }
 
 pub fn compile(
-    compilation_unit: CaoIr,
+    compilation_unit: &CaoIr,
     compile_options: impl Into<Option<CompileOptions>>,
 ) -> CompilationResult<CaoProgram> {
     let mut compiler = Compiler::new();
@@ -98,7 +100,7 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(
         &mut self,
-        compilation_unit: CaoIr,
+        compilation_unit: &CaoIr,
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> CompilationResult<CaoProgram> {
         self.options = compile_options.into().unwrap_or_default();
@@ -106,7 +108,7 @@ impl<'a> Compiler<'a> {
         self._compile(compilation_unit)
     }
 
-    fn _compile(&mut self, mut compilation_unit: CaoIr) -> CompilationResult<CaoProgram> {
+    fn _compile(&mut self, compilation_unit: &CaoIr) -> CompilationResult<CaoProgram> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
@@ -117,7 +119,7 @@ impl<'a> Compiler<'a> {
         // initialize
         self.program = CaoProgram::default();
         self.next_var = RefCell::new(VariableId(0));
-        self.compile_stage_1(&mut compilation_unit)?;
+        self.compile_stage_1(compilation_unit)?;
         self.compile_stage_2(compilation_unit)?;
 
         Ok(mem::take(&mut self.program))
@@ -129,7 +131,7 @@ impl<'a> Compiler<'a> {
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(&mut self, compilation_unit: &mut CaoIr) -> CompilationResult<()> {
+    fn compile_stage_1(&mut self, compilation_unit: &CaoIr) -> CompilationResult<()> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.lanes.len().try_into() {
             Ok(i) => i,
@@ -138,7 +140,7 @@ impl<'a> Compiler<'a> {
 
         let mut num_cards = 0usize;
         self.current_card = -1;
-        for (i, n) in compilation_unit.lanes.iter_mut().enumerate() {
+        for (i, n) in compilation_unit.lanes.iter().enumerate() {
             self.current_lane = LaneNode::LaneId(i);
 
             let indexkey = Key::from_u32(i as u32);
@@ -159,12 +161,10 @@ impl<'a> Compiler<'a> {
                 arity: n.arguments.len() as u32,
             };
             self.jump_table.insert(indexkey, metadata).unwrap();
-            if let Some(ref mut name) = n.name.as_mut() {
+            if let Some(name) = n.name.as_ref() {
                 let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
                 if self.jump_table.contains(namekey) {
-                    return Err(
-                        self.error(CompilationErrorPayload::DuplicateName(std::mem::take(name)))
-                    );
+                    return Err(self.error(CompilationErrorPayload::DuplicateName(name.clone())));
                 }
                 self.jump_table.insert(namekey, metadata).unwrap();
             }
@@ -175,8 +175,8 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: CaoIr) -> CompilationResult<()> {
-        let mut lanes = compilation_unit.lanes.into_iter().enumerate();
+    fn compile_stage_2(&mut self, compilation_unit: &CaoIr) -> CompilationResult<()> {
+        let mut lanes = compilation_unit.lanes.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
             let len: u16 = match main_lane.cards.len().try_into() {
@@ -191,7 +191,7 @@ impl<'a> Compiler<'a> {
             };
             self.scope_end();
             // insert explicit exit after the first lane
-            self.process_card(nodeid, Card::Abort)?;
+            self.process_card(nodeid, &Card::Abort)?;
         }
 
         for (il, lane) in lanes {
@@ -260,7 +260,7 @@ impl<'a> Compiler<'a> {
         il: usize,
         Lane {
             cards, arguments, ..
-        }: Lane,
+        }: &Lane,
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
@@ -357,7 +357,7 @@ impl<'a> Compiler<'a> {
         Ok(-1)
     }
 
-    fn process_card(&mut self, nodeid: NodeId, card: Card) -> CompilationResult<()> {
+    fn process_card(&mut self, nodeid: NodeId, card: &Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Key::from_u32(nodeid.into());
@@ -504,7 +504,7 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn read_var_card(&mut self, variable: VarNode) -> CompilationResult<()> {
+    fn read_var_card(&mut self, variable: &VarNode) -> CompilationResult<()> {
         let scope = self.resolve_var(variable.0.as_str())?;
         if scope < 0 {
             // global

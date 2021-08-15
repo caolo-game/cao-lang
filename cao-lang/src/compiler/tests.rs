@@ -9,7 +9,7 @@ fn lane_names_must_be_unique() {
         ],
     };
 
-    let err = compile(cu, CompileOptions::new()).unwrap_err();
+    let err = compile(&cu, CompileOptions::new()).unwrap_err();
     assert!(matches!(
         err.payload,
         CompilationErrorPayload::DuplicateName(_)
@@ -26,7 +26,7 @@ fn can_json_de_serialize_output() {
         ])],
     };
 
-    let prog = compile(cu, CompileOptions::new()).unwrap();
+    let prog = compile(&cu, CompileOptions::new()).unwrap();
 
     let ser = serde_json::to_string(&prog).unwrap();
 
@@ -41,7 +41,7 @@ fn empty_varname_is_error() {
         ],
     };
 
-    let err = compile(cu, CompileOptions::new()).unwrap_err();
+    let err = compile(&cu, CompileOptions::new()).unwrap_err();
 
     assert!(matches!(
         err.payload,

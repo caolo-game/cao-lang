@@ -17,7 +17,7 @@ fn test_string_w_utf8() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))],
     };
 
-    let program = compile(program, Some(CompileOptions::new())).expect("compile");
+    let program = compile(&program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -64,7 +64,7 @@ fn test_string_param() {
             ))))],
     };
 
-    let program = compile(cu, None).expect("compile");
+    let program = compile(&cu, None).expect("compile");
 
     vm.run(&program).expect("run");
     let aux = vm.unwrap_aux();
@@ -86,7 +86,7 @@ fn simple_if_statement() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions::new())).expect("compile");
+    let program = compile(&program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -111,7 +111,7 @@ fn simple_if_statement_skips_if_false() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions::new())).unwrap();
+    let program = compile(&program, Some(CompileOptions::new())).unwrap();
 
     // Compilation was successful
 
@@ -145,7 +145,7 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions::new())).expect("compile");
+    let program = compile(&program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -199,7 +199,7 @@ fn test_local_variable() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))],
     };
 
-    let program = compile(program, None).expect("compile");
+    let program = compile(&program, None).expect("compile");
 
     // Compilation was successful
 
@@ -227,7 +227,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
         ],
     };
 
-    let program = compile(program, None).expect("compile");
+    let program = compile(&program, None).expect("compile");
 
     // Compilation was successful
 
@@ -257,7 +257,7 @@ fn simple_while_loop() {
         ],
     };
     /*let program =*/
-    match compile(program, Some(CompileOptions::new())).map_err(|e| e.payload) {
+    match compile(&program, Some(CompileOptions::new())).map_err(|e| e.payload) {
         Ok(_) => {
             panic!("Expected error, update this test pls")
         }
@@ -299,7 +299,7 @@ fn simple_for_loop() {
             ]),
         ],
     };
-    let program = compile(program, Some(CompileOptions::new())).expect("compile");
+    let program = compile(&program, Some(CompileOptions::new())).expect("compile");
 
     // Compilation was successful
 
@@ -323,7 +323,7 @@ fn call_native_test() {
             )))])],
     };
 
-    let prog = compile(cu, CompileOptions::new()).unwrap();
+    let prog = compile(&cu, CompileOptions::new()).unwrap();
 
     struct State {
         called: bool,
@@ -414,7 +414,7 @@ lanes:
           val: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
-    let prog = compile(cu, CompileOptions::new()).unwrap();
+    let prog = compile(&cu, CompileOptions::new()).unwrap();
 
     vm.run(&prog).expect("run failed");
 
@@ -444,7 +444,7 @@ fn jump_lane_w_params_test() {
         ],
     };
 
-    let program = compile(cu, CompileOptions::new()).expect("compile");
+    let program = compile(&cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -473,7 +473,7 @@ fn len_test_empty() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
     };
 
-    let program = compile(cu, CompileOptions::new()).expect("compile");
+    let program = compile(&cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -513,7 +513,7 @@ fn len_test_happy() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
     };
 
-    let program = compile(cu, CompileOptions::new()).expect("compile");
+    let program = compile(&cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -588,7 +588,7 @@ lanes:
     )
     .unwrap();
 
-    let program = compile(cu, CompileOptions::new()).expect("compile");
+    let program = compile(&cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");

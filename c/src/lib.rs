@@ -80,7 +80,7 @@ pub unsafe extern "C" fn cao_compile_json(
         Err(_) => return CompileResult::cao_CompileResult_BadJson,
     };
 
-    let program = match compile(ir, None) {
+    let program = match compile(&ir, None) {
         Ok(p) => p,
         Err(err) => match err.payload {
             CompilationErrorPayload::Unimplemented(_) => {

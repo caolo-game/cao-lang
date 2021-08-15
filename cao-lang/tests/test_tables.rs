@@ -15,7 +15,7 @@ fn test_init_table() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))],
     };
 
-    let program = compile(cu, None).expect("compile");
+    let program = compile(&cu, None).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -44,7 +44,7 @@ fn test_get_set() {
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie")))],
     };
 
-    let program = compile(cu, None).expect("compile");
+    let program = compile(&cu, None).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -90,7 +90,7 @@ fn test_native_w_table_input() {
             ))))],
     };
 
-    let program = compile(cu, CompileOptions::new()).unwrap();
+    let program = compile(&cu, CompileOptions::new()).unwrap();
 
     vm.run(&program).expect("run failed");
     assert_eq!(vm.unwrap_aux().param, 42);

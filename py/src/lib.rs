@@ -52,7 +52,7 @@ pub struct CaoProgram {
 
 #[pyfunction]
 fn compile(cu: CompilationUnit, options: Option<CompilationOptions>) -> PyResult<CaoProgram> {
-    cao_lang::prelude::compile(cu.inner, options.map(|o| o.inner))
+    cao_lang::prelude::compile(&cu.inner, options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
         .map(|inner| CaoProgram {
             inner: Arc::new(inner),

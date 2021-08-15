@@ -20,7 +20,7 @@ fn fib(n: i64) -> i64 {
 fn jump_lane(c: &mut Criterion) {
     c.bench_function("jump_lane", |b| {
         let cu = serde_yaml::from_str(JUMP_PROG).unwrap();
-        let program = compile(cu, CompileOptions::new()).unwrap();
+        let program = compile(&cu, CompileOptions::new()).unwrap();
 
         let mut vm = Vm::new(()).unwrap();
         b.iter(|| {
@@ -49,7 +49,7 @@ fn run_fib_recursive(c: &mut Criterion) {
             &iterations,
             move |b, &iterations| {
                 let cu = serde_yaml::from_str(FIB_RECURSE_PROG).unwrap();
-                let program = compile(cu, CompileOptions::new()).unwrap();
+                let program = compile(&cu, CompileOptions::new()).unwrap();
 
                 let mut vm = Vm::new(()).unwrap().with_max_iter(1 << 30);
                 b.iter(|| {
@@ -85,7 +85,7 @@ fn run_fib_iter(c: &mut Criterion) {
             &iterations,
             move |b, &iterations| {
                 let cu = serde_yaml::from_str(FIB_PROG).unwrap();
-                let program = compile(cu, CompileOptions::new()).unwrap();
+                let program = compile(&cu, CompileOptions::new()).unwrap();
 
                 let mut vm = Vm::new(()).unwrap().with_max_iter(250 * iterations);
                 let iterations = iterations as i64;

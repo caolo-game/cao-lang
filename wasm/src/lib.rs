@@ -15,7 +15,7 @@ pub fn cao_lang_prop_types() -> Box<[JsValue]> {
     caoc::card_description::PropertyName::all_props()
         .iter()
         .map(|name| name.to_str())
-        .map(|name|JsValue::from_str(name))
+        .map(|name| JsValue::from_str(name))
         .collect::<Vec<_>>()
         .into_boxed_slice()
 }
@@ -91,7 +91,7 @@ pub fn compile(
         .map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
-    let res = match caoc::compile(cu, ops) {
+    let res = match caoc::compile(&cu, ops) {
         Ok(res) => CompileResult::Program(res),
         Err(err) => CompileResult::CompileError(err.to_string()),
     };
@@ -112,7 +112,7 @@ pub enum CompileResult {
 #[derive(Debug, Default)]
 pub struct CompileOptions {}
 
-impl From<CompileOptions > for caoc::CompileOptions{
+impl From<CompileOptions> for caoc::CompileOptions {
     fn from(_: CompileOptions) -> Self {
         caoc::CompileOptions::new()
     }
