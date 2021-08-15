@@ -488,19 +488,19 @@ fn len_test_happy() {
         lanes: vec![Lane::default()
             .with_name("main")
             .with_card(Card::CreateTable)
-            .with_card(Card::SetVar(t))
+            .with_card(Card::SetVar(t.clone()))
             // first property
-            .with_card(Card::ReadVar(t))
+            .with_card(Card::ReadVar(t.clone()))
             .with_card(Card::StringLiteral(StringNode("asd".to_string())))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::SetProperty)
             // same property as above
-            .with_card(Card::ReadVar(t))
+            .with_card(Card::ReadVar(t.clone()))
             .with_card(Card::StringLiteral(StringNode("asd".to_string())))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::SetProperty)
             // new property
-            .with_card(Card::ReadVar(t))
+            .with_card(Card::ReadVar(t.clone()))
             .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::SetProperty)

@@ -212,14 +212,16 @@ pub struct SubProgramNode(pub InputString);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StringNode(pub String);
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct VarNode(pub VarName);
+pub struct VarNode(pub Box<VarName>);
 
 impl VarNode {
     /// panics if the string is too long
     pub fn from_str_unchecked(s: &str) -> Self {
-        Self(VarName::from(s).expect("Failed to parse variable name"))
+        Self(Box::new(
+            VarName::from(s).expect("Failed to parse variable name"),
+        ))
     }
 }
 

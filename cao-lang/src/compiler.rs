@@ -400,7 +400,7 @@ impl<'a> Compiler<'a> {
             }
             Card::SetVar(var) => {
                 let index = self.locals.len() as u32;
-                self.add_local(var.0)?;
+                self.add_local(*var.0)?;
                 self.program.bytecode.push(Instruction::SetLocalVar as u8);
                 write_to_vec(index, &mut self.program.bytecode);
             }
@@ -425,7 +425,7 @@ impl<'a> Compiler<'a> {
                     .variables
                     .names
                     .entry(*id)
-                    .or_insert_with(move || variable.0);
+                    .or_insert_with(move || *variable.0);
                 write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse {
@@ -523,7 +523,7 @@ impl<'a> Compiler<'a> {
                 .variables
                 .names
                 .entry(*id)
-                .or_insert_with(|| variable.0);
+                .or_insert_with(|| *variable.0);
             self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
             write_to_vec(*id, &mut self.program.bytecode);
         } else {
