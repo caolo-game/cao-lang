@@ -4,7 +4,9 @@ use crate::{project_root, CmdResult};
 use anyhow::Context;
 use semver::Version;
 
-pub fn cmd_bump_version(target: &str) -> CmdResult<()> {
+pub fn cmd_bump_version(target: &str) -> CmdResult<String> {
+    assert_git_not_dirty()
+        .with_context(|| "Please commit your changes before creating a new version")?;
     let new_version =
         bump_cargo_manifest_version(project_root().join("cao-lang").join("Cargo.toml"), target)
             .with_context(|| "Failed to bump core version")?;
@@ -17,6 +19,65 @@ pub fn cmd_bump_version(target: &str) -> CmdResult<()> {
     make_changelog(&new_version)?;
 
     println!("New core version: {}", new_version);
+    Ok(new_version)
+}
+
+pub fn cmd_create_tag(version_target: &str) -> CmdResult<()> {
+    let new_version = cmd_bump_version(version_target)?;
+
+    commit_bump()?;
+    git_tag(&new_version)?;
+
+    Ok(())
+}
+
+fn assert_git_not_dirty() -> CmdResult<()> {
+    let task = Command::new("git")
+        .args(&["diff", "--stat"])
+        .current_dir(project_root())
+        .output()
+        .with_context(|| "Failed to spawn git")?;
+
+    if !task.stdout.is_empty() {
+        return Err(anyhow::anyhow!("Git repository is dirty"));
+    }
+
+    Ok(())
+}
+
+fn commit_bump() -> CmdResult<()> {
+    let task = Command::new("git")
+        .args(&["commit", "-am", "Bump version"])
+        .current_dir(project_root())
+        .spawn()
+        .with_context(|| "Failed to spawn git")?;
+
+    if !task
+        .wait_with_output()
+        .expect("Failed to wait for git")
+        .status
+        .success()
+    {
+        return Err(anyhow::anyhow!("git commit failed"));
+    }
+    Ok(())
+}
+
+fn git_tag(tag: &str) -> CmdResult<()> {
+    let task = Command::new("git")
+        .args(&["tag", tag])
+        .current_dir(project_root())
+        .spawn()
+        .with_context(|| "Failed to spawn git")?;
+
+    if !task
+        .wait_with_output()
+        .expect("Failed to wait for git")
+        .status
+        .success()
+    {
+        return Err(anyhow::anyhow!("git tag failed"));
+    }
     Ok(())
 }
 

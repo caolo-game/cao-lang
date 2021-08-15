@@ -15,16 +15,22 @@ fn main() {
             SubCommand::with_name("version-bump")
             .after_help("This command bumps the versions of all modules in the repository and generates a new changelog.")
             .arg(
-                Arg::with_name("target")
+                Arg::with_name("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["major", "minor", "patch"])
                     .multiple(false),
+            )
+            .arg(
+                Arg::with_name("tag")
+                    .short("t")
+                    .required(false)
+                    .help("Also create a git tag after bumping the versions")
             ),
         )
         .subcommand(
             SubCommand::with_name("build").arg(
-                Arg::with_name("target")
+                Arg::with_name("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
@@ -34,7 +40,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("test").arg(
-                Arg::with_name("target")
+                Arg::with_name("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
@@ -44,17 +50,22 @@ fn main() {
         );
     let args = app.get_matches();
 
-    if let Some(target) = args
-        .subcommand_matches("version-bump")
-        .and_then(|b| b.value_of("target"))
-    {
-        if let Err(e) = cmd_version::cmd_bump_version(target) {
-            eprintln!("Version bump failed: {}", e);
+    if let Some(subcmd) = args.subcommand_matches("version-bump") {
+        if let Some(target) = subcmd.value_of("TARGET") {
+            if subcmd.is_present("tag") {
+                if let Err(e) = cmd_version::cmd_create_tag(target) {
+                    eprintln!("Version tagging failed: {}", e);
+                }
+            } else {
+                if let Err(e) = cmd_version::cmd_bump_version(target) {
+                    eprintln!("Version bump failed: {}", e);
+                }
+            }
         }
     }
     if let Some(targets) = args
         .subcommand_matches("build")
-        .and_then(|b| b.values_of("target"))
+        .and_then(|b| b.values_of("TARGET"))
     {
         if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_build::cmd_build_c]) {
             eprintln!("Build command failed: {}", e);
@@ -62,7 +73,7 @@ fn main() {
     }
     if let Some(targets) = args
         .subcommand_matches("test")
-        .and_then(|b| b.values_of("target"))
+        .and_then(|b| b.values_of("TARGET"))
     {
         if let Err(e) = execute_subcommand(targets, &["c"], &[cmd_test::cmd_test_c]) {
             eprintln!("Test command failed: {}", e);
