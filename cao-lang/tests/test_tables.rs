@@ -64,7 +64,7 @@ fn test_native_w_table_input() {
 
     let myboi = move |vm: &mut Vm<State>, table: &FieldTable| {
         let key = Key::from_str("boi").unwrap();
-        let res = table.get_value(key).copied().unwrap_or_default();
+        let res = table.get_value(key).unwrap_or_default();
         if let Value::Integer(i) = res {
             vm.get_aux_mut().param = i;
         } else {

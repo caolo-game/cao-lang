@@ -195,7 +195,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let handle = self.pop_key()?;
                     let instance = self.stack_pop();
                     let table = self.get_table(instance)?;
-                    let result = table.get_value(handle).copied().unwrap_or(Value::Nil);
+                    let result = table.get_value(handle).unwrap_or(Value::Nil);
                     self.stack_push(result)?;
                 }
                 Instruction::SetProperty => {

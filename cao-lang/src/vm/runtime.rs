@@ -35,12 +35,12 @@ impl FieldTable {
     }
 
     // keys can not be mutated
-    pub fn get_key(&self, handle: Key) -> Option<&Value> {
-        self.keys.get(handle)
+    pub fn get_key(&self, handle: Key) -> Option<Value> {
+        self.keys.get(handle).copied()
     }
 
-    pub fn get_value(&self, handle: Key) -> Option<&Value> {
-        self.values.get(handle)
+    pub fn get_value(&self, handle: Key) -> Option<Value> {
+        self.values.get(handle).copied()
     }
     pub fn get_value_mut(&mut self, handle: Key) -> Option<&mut Value> {
         self.values.get_mut(handle)
