@@ -80,6 +80,11 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::CreateTable),
         get_desc(Card::SetProperty),
         get_desc(Card::GetProperty),
+        get_desc(Card::Len),
+        get_desc(Card::ForEach {
+            lane: Default::default(),
+            variable: Default::default(),
+        }),
     ]
 }
 
