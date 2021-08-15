@@ -17,6 +17,22 @@ pub struct FieldTable {
     values: KeyMap<Value, BumpProxy>,
 }
 
+impl std::fmt::Debug for FieldTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_map()
+            .entries(
+                self.keys
+                    .iter()
+                    .zip(self.values.iter())
+                    .map(|((h1, k), (h2, v))| {
+                        debug_assert!(h1 == h2);
+                        (k, v)
+                    }),
+            )
+            .finish()
+    }
+}
+
 impl FieldTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {

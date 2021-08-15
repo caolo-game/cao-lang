@@ -1,5 +1,3 @@
-mod fibonacci;
-
 use test_env_log::test;
 
 use cao_lang::{
@@ -518,79 +516,4 @@ fn len_test_happy() {
         .expect("Failed to read foo variable");
 
     assert_eq!(len, Value::Integer(2));
-}
-
-#[test]
-fn for_each_1() {
-    let cu: CaoIr = serde_yaml::from_str(
-        r#"
-lanes: 
-    - name: main
-      cards:
-        # --- init the example table ---
-        - ty: CreateTable
-        - ty: SetVar
-          val: t
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f1
-        - ty: ScalarInt
-          val: 1
-        - ty: SetProperty
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f2
-        - ty: ScalarInt
-          val: 2
-        - ty: SetProperty
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f3
-        - ty: ScalarInt
-          val: 3
-        - ty: SetProperty
-        - ty: ScalarInt
-          val: 0
-        - ty: SetGlobalVar
-          val: g_result
-        # --- init done ---
-        - ty: ForEach
-          val:
-            lane: 
-              LaneName: pog
-            variable: t
-
-
-    - name: pog
-      arguments:
-        - "key"
-        - "table"
-      cards:
-        - ty: ReadVar
-          val: table
-        - ty: ReadVar
-          val: key
-        - ty: GetProperty
-        - ty: ReadVar
-          val: g_result
-        - ty: Add
-        - ty: SetGlobalVar
-          val: g_result
-        "#,
-    )
-    .unwrap();
-
-    let program = compile(&cu, CompileOptions::new()).expect("compile");
-
-    let mut vm = Vm::new(()).unwrap();
-    vm.run(&program).expect("run");
-
-    let res = vm
-        .read_var_by_name("g_result", &program.variables)
-        .expect("Failed to read result variable");
-
-    assert_eq!(res, Value::Integer(6));
 }

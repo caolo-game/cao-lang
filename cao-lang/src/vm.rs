@@ -120,7 +120,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             _ => {
                 debug!("Got {:?} instead of object", value);
                 return Err(ExecutionError::invalid_argument(
-                    "GetProperty input must be an Object".to_string(),
+                    "Input must be an Object".to_string(),
                 ));
             }
         };
@@ -219,6 +219,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                             &mut self.runtime_data,
                         )?;
                     } else {
+                        // add the span of the jump instruction metadata to the instr_ptr
+                        // to skip this instruction
+                        self.stack_push(false)?; // assumes that the next instruction is GotoIfTrue
                         instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }

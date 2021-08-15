@@ -35,7 +35,6 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Handle(u32);
 
-#[derive(Debug)]
 pub struct KeyMap<T, A = SysAllocator>
 where
     A: Allocator,
@@ -46,6 +45,15 @@ where
     capacity: usize,
 
     alloc: A,
+}
+
+impl<T, A: Allocator> std::fmt::Debug for KeyMap<T, A>
+where
+    T: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_map().entries(self.iter()).finish()
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error)]

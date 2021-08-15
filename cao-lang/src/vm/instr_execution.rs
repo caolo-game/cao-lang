@@ -1,6 +1,8 @@
 use std::alloc::Layout;
 use std::convert::TryFrom;
 
+use tracing::debug;
+
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
     collections::key_map::Handle,
@@ -270,43 +272,42 @@ pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
     Ok(())
 }
 
-/// push N and I onto the stack
-/// I shall be counted down (N-1..0)
+/// push `i=0` onto the stack
 pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let item = vm.runtime_data.stack.last();
-    if !item.is_obj() {
-        return Err(ExecutionError::invalid_argument(
-            "ForEach is only valid for tables".to_string(),
-        ));
-    }
+    // test if the input is a table
+    let _item = vm.get_table(item)?;
+    debug!("Starting for-each on table {:?}", _item);
 
-    let item = vm.get_table(item)?;
-    let n = item.len() as i64;
-
-    vm.stack_push(n)?;
-    vm.stack_push(0)?;
+    vm.stack_push(0)?; // i, this should be incremented by `for_each`
 
     Ok(())
 }
 
+/// Assumes that [begin_for_each](begin_for_each) was called once to set up the loop
+///
+/// Requires `i`, and the object to be on the stack.
+///
+/// Pushes the next key and the object onto the stack. Assumes that the lane takes these as
+/// parameters.
 pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
     let i = vm.stack_pop();
-    let n = vm.runtime_data.stack.peek_last(0);
-    let obj_val = vm.runtime_data.stack.peek_last(1);
+    let obj_val = vm.runtime_data.stack.peek_last(0);
 
     let mut i = i64::try_from(i).expect("Repeat input #0 must be an integer");
-    let n = i64::try_from(n).expect("Repeat input #1 must be an integer");
     let obj = vm
         .get_table(obj_val)
         .expect("Repeat input #2 must be a table");
 
-    debug_assert!(0 <= i);
+    debug_assert!(0 <= i, "for_each overflow");
 
-    let should_continue = i < n;
+    let n = obj.len() as i64;
+
+    let should_continue = 0 <= i && i < n;
     if should_continue {
         let key = obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
             ExecutionError::invalid_argument(format!(
-                "ForEach can not be completed. i: {} n: {}",
+                "ForEach can not find the `i`th argument. i: {} n: {}\nDid you remove items during iteration?",
                 i, n
             ))
         })?;
@@ -318,9 +319,7 @@ pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
         vm.stack_push(key)?;
         vm.stack_push(obj_val)?;
     } else {
-        vm.stack_pop(); // clean up N
         vm.stack_pop(); // clean up the object
-        vm.stack_push(false)?; // for the next GotoIfTrue
     }
 
     Ok(should_continue)

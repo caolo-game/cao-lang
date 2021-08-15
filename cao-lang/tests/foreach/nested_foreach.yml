@@ -1,0 +1,85 @@
+lanes:
+  - name: main
+    cards:
+      # --- init the example table ---
+      # {
+      #  f1: 1,
+      #  f2: 2,
+      #  f3: 3,
+      # }
+      - ty: CreateTable
+      - ty: SetVar
+        val: t
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f1
+      - ty: ScalarInt
+        val: 1
+      - ty: SetProperty
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f2
+      - ty: ScalarInt
+        val: 2
+      - ty: SetProperty
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f3
+      - ty: ScalarInt
+        val: 3
+      - ty: SetProperty
+        # set result and g_iters to zero
+      - ty: ScalarInt
+        val: 0
+      - ty: SetGlobalVar
+        val: g_result
+      - ty: ScalarInt
+        val: 0
+      - ty: SetGlobalVar
+        val: g_iters
+      # --- init done ---
+      - ty: ForEach
+        val:
+          lane:
+            LaneName: outer-loop
+          variable: t
+
+  - name: outer-loop
+    arguments:
+      - "key"
+      - "table"
+    card:
+      - ty: ForEach
+        val:
+          lane:
+            LaneName: inner-loop
+          variable: table
+
+  - name: inner-loop
+    arguments:
+      - "key"
+      - "table"
+    cards:
+      # get table[key]
+      - ty: ReadVar
+        val: table
+      - ty: ReadVar
+        val: key
+      - ty: GetProperty
+        # add table[key] to g_result
+      - ty: ReadVar
+        val: g_result
+      - ty: Add
+      - ty: SetGlobalVar
+        val: g_result
+        # add 1 to g_iters
+      - ty: ScalarInt
+        val: 1
+      - ty: ReadVar
+        val: g_iters
+      - ty: Add
+      - ty: SetGlobalVar
+        val: g_iters
