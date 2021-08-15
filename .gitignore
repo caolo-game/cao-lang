@@ -19,3 +19,4 @@ docs/_build
 /c/cao_lang_c.dll
 /out.txt
 /Cargo.lock
+/wasm/Cargo.lock
