@@ -1,6 +1,5 @@
 mod fibonacci;
 
-use std::convert::TryInto;
 use test_env_log::test;
 
 use cao_lang::{
@@ -25,12 +24,8 @@ fn test_string_w_utf8() {
     vm.run(&program).expect("run");
 
     let varid = program.variable_id("result").expect("varid");
-    let ptr = vm
-        .read_var(varid)
-        .expect("read var")
-        .try_into()
-        .expect("Expected a pointer");
-    let ress = unsafe { vm.get_str(ptr).expect("Failed to read string from vm") };
+    let ptr = vm.read_var(varid).expect("read var");
+    let ress = unsafe { ptr.as_str().expect("Failed to read string") };
 
     assert_eq!(test_str, ress);
 }
@@ -45,7 +40,7 @@ fn test_string_param() {
     }
 
     let fun = move |vm: &mut Vm<State>, arg: cao_lang::StrPointer| {
-        let vm_str = unsafe { vm.get_str(StrPointer(arg.0)).unwrap().to_string() };
+        let vm_str = unsafe { arg.get_str().unwrap().to_string() };
         vm.auxiliary_data.res = vm_str;
         Ok(())
     };

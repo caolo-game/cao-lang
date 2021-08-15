@@ -35,36 +35,19 @@ impl FieldTable {
     }
 
     // keys can not be mutated
-    pub fn get_key(&self, handle: Key) -> Option<Value> {
+    pub fn get_key(&self, handle: Handle) -> Option<Value> {
         self.keys.get(handle).copied()
     }
 
-    pub fn get_value(&self, handle: Key) -> Option<Value> {
+    pub fn get_value(&self, handle: Handle) -> Option<Value> {
         self.values.get(handle).copied()
     }
-    pub fn get_value_mut(&mut self, handle: Key) -> Option<&mut Value> {
+    pub fn get_value_mut(&mut self, handle: Handle) -> Option<&mut Value> {
         self.values.get_mut(handle)
     }
 
-    pub fn insert<T>(
-        &mut self,
-        key: Value,
-        value: Value,
-        vm: &Vm<T>,
-    ) -> Result<(), ExecutionError> {
-        let handle = match key {
-            Value::Nil => Key::default(),
-            Value::String(s) => {
-                let s = unsafe {
-                    vm.get_str(s).ok_or_else(|| {
-                        ExecutionError::invalid_argument("String not found".to_string())
-                    })?
-                };
-                Key::from_str(s).unwrap()
-            }
-            Value::Integer(i) => Key::from(i),
-            Value::Floating(_) | Value::Object(_) => return Err(ExecutionError::Unhashable),
-        };
+    pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionError> {
+        let handle = Self::hash_value(key)?;
         self.keys
             .insert(handle, key)
             .map_err(|_| ExecutionError::OutOfMemory)?;
@@ -73,6 +56,23 @@ impl FieldTable {
             .map_err(|_| ExecutionError::OutOfMemory)?;
 
         Ok(())
+    }
+
+    fn hash_value(key: Value) -> Result<Handle, ExecutionError> {
+        let handle = match key {
+            Value::Nil => Handle::default(),
+            Value::String(s) => {
+                let s = unsafe {
+                    s.get_str().ok_or_else(|| {
+                        ExecutionError::invalid_argument("String not found".to_string())
+                    })?
+                };
+                Handle::from_str(s).unwrap()
+            }
+            Value::Integer(i) => Handle::from(i),
+            Value::Floating(_) | Value::Object(_) => return Err(ExecutionError::Unhashable),
+        };
+        Ok(handle)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Value, Value)> + '_ {

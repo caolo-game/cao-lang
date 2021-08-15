@@ -4,7 +4,7 @@ mod serde_impl;
 use std::str::FromStr;
 
 use crate::{
-    collections::key_map::{Key, KeyMap},
+    collections::key_map::{Handle, KeyMap},
     VarName,
 };
 use crate::{version, VariableId};
@@ -51,7 +51,7 @@ impl CaoProgram {
     pub fn variable_id(&self, name: &str) -> Option<VariableId> {
         self.variables
             .ids
-            .get(Key::from_str(name).unwrap())
+            .get(Handle::from_str(name).unwrap())
             .copied()
     }
 }

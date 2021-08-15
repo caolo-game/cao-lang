@@ -104,6 +104,22 @@ impl Ord for NodeId {
 #[repr(transparent)]
 pub struct StrPointer(pub *mut u8);
 
+impl StrPointer {
+    /// # Safety
+    ///
+    /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
+    ///
+    /// # Return value
+    ///
+    /// Returns None if the underlying string is not valid utf8
+    pub unsafe fn get_str<'a>(self) -> Option<&'a str> {
+        let ptr = self.0;
+        let len = *(ptr as *const u32);
+        let ptr = ptr.add(4);
+        std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
+    }
+}
+
 pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 255;
 
 pub type InputString = ArrayString<INPUT_STR_LEN_IN_BYTES>;

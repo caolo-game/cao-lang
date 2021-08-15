@@ -6,13 +6,13 @@ fn can_insert() {
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42).expect("insert 0");
-    map.insert(Key(2), 42).expect("insert 1");
-    map.insert(Key(5), 31).expect("insert 2");
+    map.insert(Handle(5), 42).expect("insert 0");
+    map.insert(Handle(2), 42).expect("insert 1");
+    map.insert(Handle(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
-    let val = map.get(Key(5)).expect("Expected to get back the value");
+    let val = map.get(Handle(5)).expect("Expected to get back the value");
     assert_eq!(*val, 31);
 }
 
@@ -22,16 +22,16 @@ fn can_grow() {
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42).expect("insert 0");
-    map.insert(Key(2), 42).expect("insert 1");
-    map.insert(Key(5), 31).expect("insert 2");
+    map.insert(Handle(5), 42).expect("insert 0");
+    map.insert(Handle(2), 42).expect("insert 1");
+    map.insert(Handle(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
-    let val = map.get(Key(5)).expect("Expected to get back the value");
+    let val = map.get(Handle(5)).expect("Expected to get back the value");
     assert_eq!(*val, 31);
 
-    let val = map.get(Key(2)).expect("Expected to get back the value");
+    let val = map.get(Handle(2)).expect("Expected to get back the value");
     assert_eq!(*val, 42);
 }
 
@@ -41,17 +41,19 @@ fn can_mutate_value() {
 
     assert_eq!(map.len(), 0);
 
-    map.insert(Key(5), 42).expect("insert 0");
-    map.insert(Key(2), 42).expect("insert 1");
-    map.insert(Key(5), 31).expect("insert 2");
+    map.insert(Handle(5), 42).expect("insert 0");
+    map.insert(Handle(2), 42).expect("insert 1");
+    map.insert(Handle(5), 31).expect("insert 2");
 
     assert_eq!(map.len(), 2);
 
-    let val = map.get_mut(Key(5)).expect("Expected to get back the value");
+    let val = map
+        .get_mut(Handle(5))
+        .expect("Expected to get back the value");
     assert_eq!(*val, 31);
     *val = 69;
 
-    let val = map.get(Key(5)).expect("Expected to get back the value");
+    let val = map.get(Handle(5)).expect("Expected to get back the value");
     assert_eq!(*val, 69);
 }
 
@@ -71,11 +73,11 @@ fn drops_values() {
 
     {
         let mut map = KeyMap::with_capacity(1, SysAllocator::default()).unwrap();
-        map.insert(Key(5), Foo(drops.as_mut().get_mut()))
+        map.insert(Handle(5), Foo(drops.as_mut().get_mut()))
             .expect("insert 0");
-        map.insert(Key(2), Foo(drops.as_mut().get_mut()))
+        map.insert(Handle(2), Foo(drops.as_mut().get_mut()))
             .expect("insert 1");
-        map.insert(Key(5), Foo(drops.as_mut().get_mut()))
+        map.insert(Handle(5), Foo(drops.as_mut().get_mut()))
             .expect("insert 2");
 
         assert_eq!(map.len(), 2);

@@ -40,6 +40,26 @@ impl Value {
         matches!(self, Value::String(_))
     }
 
+    /// # SAFETY
+    ///
+    /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
+    ///
+    /// The Vm that allocated the string must still be in memory!
+    ///
+    /// # Return
+    ///
+    /// Returns `None` if the value is not a string, or points to an invalid string
+    pub unsafe fn as_str<'a>(self) -> Option<&'a str> {
+        match self {
+            Value::String(StrPointer(ptr)) => {
+                let len = *(ptr as *const u32);
+                let ptr = ptr.add(4);
+                std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
+            }
+            _ => None,
+        }
+    }
+
     #[inline]
     pub fn is_obj(self) -> bool {
         matches!(self, Value::Object(_))

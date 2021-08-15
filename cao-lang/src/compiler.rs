@@ -12,7 +12,7 @@ mod tests;
 
 use crate::{
     bytecode::{encode_str, write_to_vec},
-    collections::key_map::{Key, KeyMap},
+    collections::key_map::{Handle, KeyMap},
     instruction::instruction_span,
     program::{CaoProgram, Label},
     Instruction, NodeId, VarName, VariableId,
@@ -56,7 +56,7 @@ pub struct Compiler<'a> {
 
 #[derive(Debug, Clone, Copy)]
 struct LaneMeta {
-    pub hash_key: Key,
+    pub hash_key: Handle,
     /// number of arguments
     pub arity: u32,
 }
@@ -143,11 +143,11 @@ impl<'a> Compiler<'a> {
         for (i, n) in compilation_unit.lanes.iter().enumerate() {
             self.current_lane = LaneNode::LaneId(i);
 
-            let indexkey = Key::from_u32(i as u32);
+            let indexkey = Handle::from_u32(i as u32);
             assert!(!self.jump_table.contains(indexkey));
             num_cards += n.cards.len();
 
-            let nodekey = Key::from_u32(
+            let nodekey = Handle::from_u32(
                 NodeId {
                     // we know that i fits in 16 bits from the check above
                     lane: i as u16,
@@ -162,7 +162,7 @@ impl<'a> Compiler<'a> {
             };
             self.jump_table.insert(indexkey, metadata).unwrap();
             if let Some(name) = n.name.as_ref() {
-                let namekey = Key::from_str(name.as_str()).expect("Failed to hash lane name");
+                let namekey = Handle::from_str(name.as_str()).expect("Failed to hash lane name");
                 if self.jump_table.contains(namekey) {
                     return Err(self.error(CompilationErrorPayload::DuplicateName(name.clone())));
                 }
@@ -200,7 +200,7 @@ impl<'a> Compiler<'a> {
                     lane: il as u16,
                     pos: 0,
                 };
-                let nodeid_hash = Key::from_u32(nodeid.into());
+                let nodeid_hash = Handle::from_u32(nodeid.into());
                 let handle = u32::try_from(self.program.bytecode.len())
                     .expect("bytecode length to fit into 32 bits");
                 self.program
@@ -315,7 +315,7 @@ impl<'a> Compiler<'a> {
         let to = match lane {
             LaneNode::LaneName(lane) => self
                 .jump_table
-                .get(Key::from_str(lane).expect("Failed to hash jump target name"))
+                .get(Handle::from_str(lane).expect("Failed to hash jump target name"))
                 .ok_or_else(|| {
                     self.error(CompilationErrorPayload::InvalidJump {
                         src: nodeid,
@@ -323,17 +323,16 @@ impl<'a> Compiler<'a> {
                         msg: None,
                     })
                 })?,
-            LaneNode::LaneId(id) => {
-                self.jump_table
-                    .get(Key::from_u32(*id as u32))
-                    .ok_or_else(|| {
-                        self.error(CompilationErrorPayload::InvalidJump {
-                            src: nodeid,
-                            dst: format!("Lane id {}", id),
-                            msg: None,
-                        })
-                    })?
-            }
+            LaneNode::LaneId(id) => self
+                .jump_table
+                .get(Handle::from_u32(*id as u32))
+                .ok_or_else(|| {
+                    self.error(CompilationErrorPayload::InvalidJump {
+                        src: nodeid,
+                        dst: format!("Lane id {}", id),
+                        msg: None,
+                    })
+                })?,
         };
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
@@ -360,7 +359,7 @@ impl<'a> Compiler<'a> {
     fn process_card(&mut self, nodeid: NodeId, card: &Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
-        let nodeid_hash = Key::from_u32(nodeid.into());
+        let nodeid_hash = Handle::from_u32(nodeid.into());
         self.program
             .labels
             .0
@@ -410,7 +409,7 @@ impl<'a> Compiler<'a> {
                 if variable.0.is_empty() {
                     return Err(self.error(CompilationErrorPayload::EmptyVariable));
                 }
-                let varhash = Key::from_bytes(variable.0.as_bytes());
+                let varhash = Handle::from_bytes(variable.0.as_bytes());
 
                 let id = self
                     .program
@@ -468,7 +467,7 @@ impl<'a> Compiler<'a> {
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),
             Card::CallNative(c) => {
                 let name = &c.0;
-                let key = Key::from_str(name.as_str()).unwrap();
+                let key = Handle::from_str(name.as_str()).unwrap();
                 write_to_vec(key, &mut self.program.bytecode);
             }
             Card::ScalarInt(s) => {
@@ -509,7 +508,7 @@ impl<'a> Compiler<'a> {
         if scope < 0 {
             // global
             let mut next_var = self.next_var.borrow_mut();
-            let varhash = Key::from_bytes(variable.0.as_bytes());
+            let varhash = Handle::from_bytes(variable.0.as_bytes());
             let id = self
                 .program
                 .variables

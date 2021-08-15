@@ -10,13 +10,13 @@ mod tests;
 use self::runtime::CallFrame;
 use crate::{
     binary_compare,
-    collections::key_map::{Key, KeyMap},
+    collections::key_map::{Handle, KeyMap},
     instruction::instruction_span,
     instruction::Instruction,
     pop_stack,
     prelude::*,
     value::Value,
-    StrPointer, VariableId,
+    VariableId,
 };
 use runtime::RuntimeData;
 use std::{mem::transmute, str::FromStr};
@@ -54,7 +54,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     pub fn read_var_by_name(&self, name: &str, vars: &Variables) -> Option<Value> {
-        let varid = vars.ids.get(Key::from_str(name).ok()?)?;
+        let varid = vars.ids.get(Handle::from_str(name).ok()?)?;
         self.read_var(*varid)
     }
 
@@ -83,20 +83,6 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.auxiliary_data
     }
 
-    /// # Safety
-    ///
-    /// Must be called with ptr obtained from a `string_literal` instruction, before the last `clear`!
-    ///
-    /// # Return value
-    ///
-    /// Returns None if the underlying string is not valid utf8
-    #[inline]
-    pub unsafe fn get_str(&self, StrPointer(ptr): StrPointer) -> Option<&str> {
-        let len = *(ptr as *const u32);
-        let ptr = ptr.add(4);
-        std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
-    }
-
     /// Register a native function for use by Cao-Lang programs
     ///
     pub fn register_function<'b, S, C>(&mut self, name: S, f: C)
@@ -105,7 +91,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         C: VmFunction<Aux> + 'static,
     {
         let name = name.into();
-        let key = Key::from_str(name).unwrap();
+        let key = Handle::from_str(name).unwrap();
         self.callables
             .insert(key, Procedure::new(name, f))
             .expect("failed to insert new function");
@@ -203,7 +189,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let key = self.stack_pop();
                     let instance = self.stack_pop();
                     let table = self.get_table_mut(instance)?;
-                    table.insert(key, value, self).map_err(|err| {
+                    table.insert(key, value).map_err(|err| {
                         debug!("Failed to insert value {:?}", err);
                         ExecutionError::OutOfMemory
                     })?;
@@ -378,19 +364,19 @@ impl<'a, Aux> Vm<'a, Aux> {
         Ok(())
     }
 
-    fn pop_key(&mut self) -> Result<Key, ExecutionError> {
+    fn pop_key(&mut self) -> Result<Handle, ExecutionError> {
         let handle = self.stack_pop();
         let handle = match handle {
-            Value::Nil => Key::default(),
+            Value::Nil => Handle::default(),
             Value::String(s) => {
                 let s = unsafe {
-                    self.get_str(s).ok_or_else(|| {
+                    s.get_str().ok_or_else(|| {
                         ExecutionError::invalid_argument("String not found".to_string())
                     })?
                 };
-                Key::from_str(s).unwrap()
+                Handle::from_str(s).unwrap()
             }
-            Value::Integer(i) => Key::from(i),
+            Value::Integer(i) => Handle::from(i),
             Value::Floating(_) | Value::Object(_) => return Err(ExecutionError::Unhashable),
         };
         Ok(handle)

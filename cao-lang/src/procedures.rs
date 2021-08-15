@@ -1,6 +1,6 @@
 //! Helper module for dealing with function extensions.
 //!
-use crate::collections::key_map::Key;
+use crate::collections::key_map::Handle;
 use crate::traits::VmFunction;
 use thiserror::Error;
 
@@ -22,7 +22,7 @@ pub enum ExecutionError {
     #[error("Variable {0} was not found!")]
     VarNotFound(String),
     #[error("Procedure by the hash {0:?} could not be found")]
-    ProcedureNotFound(Key),
+    ProcedureNotFound(Handle),
     #[error("Unimplemented")]
     Unimplemented,
     #[error("The program ran out of memory")]

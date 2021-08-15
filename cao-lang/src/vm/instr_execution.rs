@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
-    collections::key_map::Key,
+    collections::key_map::Handle,
     procedures::ExecutionError,
     procedures::ExecutionResult,
     program::CaoProgram,
@@ -83,7 +83,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
         Value::Integer(_) | Value::Floating(_) => 1,
         Value::String(s) => {
             let st = unsafe {
-                vm.get_str(s).ok_or_else(|| {
+                s.get_str().ok_or_else(|| {
                     ExecutionError::invalid_argument("String not found".to_string())
                 })?
             };
@@ -130,7 +130,7 @@ pub fn instr_jump(
     program: &CaoProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
-    let label: Key = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let label: Handle = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let argcount: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
 
     // remember the location after this jump
@@ -159,7 +159,7 @@ pub fn instr_jump(
 }
 
 pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -> ExecutionResult {
-    let fun_hash: Key = unsafe { decode_value(bytecode, instr_ptr) };
+    let fun_hash: Handle = unsafe { decode_value(bytecode, instr_ptr) };
     let procedure = vm
         .callables
         .remove(fun_hash)

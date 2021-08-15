@@ -33,14 +33,14 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct Key(u32);
+pub struct Handle(u32);
 
 #[derive(Debug)]
 pub struct KeyMap<T, A = SysAllocator>
 where
     A: Allocator,
 {
-    keys: NonNull<Key>,
+    keys: NonNull<Handle>,
     values: NonNull<T>,
     count: usize,
     capacity: usize,
@@ -55,14 +55,14 @@ pub enum MapError {
 }
 
 pub struct Entry<'a, T> {
-    key: Key,
+    key: Handle,
     pl: EntryPayload<'a, T>,
 }
 
 enum EntryPayload<'a, T> {
     Occupied(&'a mut T),
     Vacant {
-        key: &'a mut Key,
+        key: &'a mut Handle,
         value: &'a mut MaybeUninit<T>,
         count: &'a mut usize,
     },
@@ -82,7 +82,7 @@ impl<'a, T: 'a> Entry<'a, T> {
     }
 }
 
-impl FromStr for Key {
+impl FromStr for Handle {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -90,7 +90,7 @@ impl FromStr for Key {
     }
 }
 
-impl Key {
+impl Handle {
     pub fn from_bytes(key: &[u8]) -> Self {
         const MASK: u64 = u32::MAX as u64;
         // FNV-1a
@@ -128,19 +128,19 @@ impl Key {
     }
 }
 
-impl From<i64> for Key {
+impl From<i64> for Handle {
     fn from(key: i64) -> Self {
         Self::from_i64(key)
     }
 }
 
-impl From<u32> for Key {
+impl From<u32> for Handle {
     fn from(key: u32) -> Self {
         Self::from_u32(key)
     }
 }
 
-impl<'a> From<&'a str> for Key {
+impl<'a> From<&'a str> for Handle {
     fn from(key: &'a str) -> Self {
         <Self as FromStr>::from_str(key).unwrap()
     }
@@ -164,7 +164,7 @@ where
         unsafe {
             self.alloc.dealloc(
                 transmute(self.keys),
-                Layout::from_size_align(self.capacity * size_of::<Key>(), align_of::<Key>())
+                Layout::from_size_align(self.capacity * size_of::<Handle>(), align_of::<Handle>())
                     .expect("old Key layout"),
             );
             self.alloc.dealloc(
@@ -198,7 +198,7 @@ where
         unsafe {
             for (i, k) in (0..self.capacity)
                 .map(|i| (i, &mut *self.keys.as_ptr().add(i)))
-                .filter(|(_, Key(x))| *x != 0)
+                .filter(|(_, Handle(x))| *x != 0)
             {
                 if std::mem::needs_drop::<T>() {
                     std::ptr::drop_in_place(self.values.as_ptr().add(i));
@@ -221,7 +221,7 @@ where
         Ok(())
     }
 
-    pub fn entry(&mut self, key: Key) -> Entry<T> {
+    pub fn entry(&mut self, key: Handle) -> Entry<T> {
         let ind = self.find_ind(key);
 
         let pl = unsafe {
@@ -254,12 +254,12 @@ where
     }
 
     #[inline]
-    pub fn contains(&self, key: Key) -> bool {
+    pub fn contains(&self, key: Handle) -> bool {
         let ind = self.find_ind(key);
         unsafe { (*self.keys.as_ptr().add(ind)).0 != 0 }
     }
 
-    pub fn get(&self, key: Key) -> Option<&T> {
+    pub fn get(&self, key: Handle) -> Option<&T> {
         let ind = self.find_ind(key);
         unsafe {
             if (*self.keys.as_ptr().add(ind)).0 != 0 {
@@ -271,7 +271,7 @@ where
         }
     }
 
-    pub fn get_mut(&mut self, key: Key) -> Option<&mut T> {
+    pub fn get_mut(&mut self, key: Handle) -> Option<&mut T> {
         let ind = self.find_ind(key);
         unsafe {
             if (*self.keys.as_ptr().add(ind)).0 != 0 {
@@ -283,7 +283,7 @@ where
         }
     }
 
-    fn find_ind(&self, key: Key) -> usize {
+    fn find_ind(&self, key: Handle) -> usize {
         let len = self.capacity;
         let mut ind = key.0 as usize % len;
         loop {
@@ -298,7 +298,7 @@ where
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Key, &'_ T)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (Handle, &'_ T)> + '_ {
         let keys = self.keys.as_ptr();
         let values = self.values.as_ptr();
         (0..self.capacity).filter_map(move |i| unsafe {
@@ -310,9 +310,10 @@ where
     unsafe fn alloc_storage(
         alloc: &A,
         capacity: usize,
-    ) -> Result<(NonNull<Key>, NonNull<T>), MapError> {
-        let keyslayout = Layout::from_size_align(capacity * size_of::<Key>(), align_of::<Key>())
-            .expect("Failed to produce keys layout");
+    ) -> Result<(NonNull<Handle>, NonNull<T>), MapError> {
+        let keyslayout =
+            Layout::from_size_align(capacity * size_of::<Handle>(), align_of::<Handle>())
+                .expect("Failed to produce keys layout");
         let keys = alloc.alloc(keyslayout).map_err(MapError::AllocError)?;
 
         let values = match alloc
@@ -329,9 +330,9 @@ where
             }
         };
         // zero the keys
-        let keys: NonNull<Key> = transmute(keys);
+        let keys: NonNull<Handle> = transmute(keys);
         for i in 0..capacity {
-            std::ptr::write(keys.as_ptr().add(i), Key(0));
+            std::ptr::write(keys.as_ptr().add(i), Handle(0));
         }
         Ok((keys, transmute(values)))
     }
@@ -348,7 +349,7 @@ where
         self.capacity = capacity;
         for (i, key) in (0..old_cap)
             .map(|i| (i, *keys.as_ptr().add(i)))
-            .filter(|(_, Key(x))| *x != 0)
+            .filter(|(_, Handle(x))| *x != 0)
         {
             let value: T = std::ptr::read(values.as_ptr().add(i));
             self._insert(key, value);
@@ -357,7 +358,7 @@ where
         // dealloc old buffers
         self.alloc.dealloc(
             transmute(keys),
-            Layout::from_size_align(old_cap * size_of::<Key>(), align_of::<Key>())
+            Layout::from_size_align(old_cap * size_of::<Handle>(), align_of::<Handle>())
                 .expect("old Key layout"),
         );
         self.alloc.dealloc(
@@ -377,7 +378,7 @@ where
     }
 
     /// Returns mutable reference to the just inserted value
-    pub fn insert(&mut self, key: Key, value: T) -> Result<&mut T, MapError> {
+    pub fn insert(&mut self, key: Handle, value: T) -> Result<&mut T, MapError> {
         debug_assert_ne!(key.0, 0, "0 keys mean unintialized entries");
         if (self.count + 1) as f32 > self.capacity as f32 * MAX_LOAD {
             self.grow()?;
@@ -386,7 +387,7 @@ where
     }
 
     #[inline]
-    fn _insert(&mut self, key: Key, value: T) -> &mut T {
+    fn _insert(&mut self, key: Handle, value: T) -> &mut T {
         let ind = self.find_ind(key);
 
         debug_assert!(ind < self.capacity);
@@ -408,13 +409,13 @@ where
     }
 
     /// Removes the element and returns `Some(value)` if it was present, else None
-    pub fn remove(&mut self, key: Key) -> Option<T> {
+    pub fn remove(&mut self, key: Handle) -> Option<T> {
         let ind = self.find_ind(key);
         unsafe {
             let kptr = self.keys.as_ptr().add(ind);
             if (*kptr).0 != 0 {
                 self.count -= 1;
-                *kptr = Key(0);
+                *kptr = Handle(0);
                 Some(std::ptr::read(self.values.as_ptr().add(ind)))
             } else {
                 None
@@ -423,10 +424,10 @@ where
     }
 }
 
-impl<T> Index<Key> for KeyMap<T> {
+impl<T> Index<Handle> for KeyMap<T> {
     type Output = T;
 
-    fn index(&self, key: Key) -> &Self::Output {
+    fn index(&self, key: Handle) -> &Self::Output {
         let ind = self.find_ind(key);
         unsafe {
             assert!((*self.keys.as_ptr().add(ind)).0 != 0);
@@ -437,8 +438,8 @@ impl<T> Index<Key> for KeyMap<T> {
         }
     }
 }
-impl<T> IndexMut<Key> for KeyMap<T> {
-    fn index_mut(&mut self, key: Key) -> &mut Self::Output {
+impl<T> IndexMut<Handle> for KeyMap<T> {
+    fn index_mut(&mut self, key: Handle) -> &mut Self::Output {
         let ind = self.find_ind(key);
         unsafe {
             assert!((*self.keys.as_ptr().add(ind)).0 != 0);
@@ -454,14 +455,14 @@ impl<T> Index<u32> for KeyMap<T> {
     type Output = T;
 
     fn index(&self, key: u32) -> &Self::Output {
-        let key = Key::from_u32(key);
+        let key = Handle::from_u32(key);
         &self[key]
     }
 }
 
 impl<T> IndexMut<u32> for KeyMap<T> {
     fn index_mut(&mut self, key: u32) -> &mut Self::Output {
-        let key = Key::from_u32(key);
+        let key = Handle::from_u32(key);
         &mut self[key]
     }
 }
@@ -470,13 +471,13 @@ impl<T> Index<&[u8]> for KeyMap<T> {
     type Output = T;
 
     fn index(&self, key: &[u8]) -> &Self::Output {
-        let key = Key::from_bytes(key);
+        let key = Handle::from_bytes(key);
         &self[key]
     }
 }
 impl<T> IndexMut<&[u8]> for KeyMap<T> {
     fn index_mut(&mut self, key: &[u8]) -> &mut Self::Output {
-        let key = Key::from_bytes(key);
+        let key = Handle::from_bytes(key);
         &mut self[key]
     }
 }
