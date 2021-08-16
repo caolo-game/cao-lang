@@ -129,9 +129,12 @@ fn bump_cargo_manifest_version(
     match target {
         "major" => {
             version.major += 1;
+            version.minor = 0;
+            version.patch = 0;
         }
         "minor" => {
             version.minor += 1;
+            version.patch = 0;
         }
         "patch" => {
             version.patch += 1;
