@@ -309,28 +309,13 @@ impl<'a> Compiler<'a> {
     }
 
     fn encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> CompilationResult<()> {
-        let to = match lane {
-            LaneNode::LaneName(lane) => self
-                .jump_table
-                .get(Handle::from_str(lane).expect("Failed to hash jump target name"))
-                .ok_or_else(|| {
-                    self.error(CompilationErrorPayload::InvalidJump {
-                        src: nodeid,
-                        dst: lane.to_string(),
-                        msg: None,
-                    })
-                })?,
-            LaneNode::LaneId(id) => self
-                .jump_table
-                .get(Handle::from_i64(*id as i64))
-                .ok_or_else(|| {
-                    self.error(CompilationErrorPayload::InvalidJump {
-                        src: nodeid,
-                        dst: format!("Lane id {}", id),
-                        msg: None,
-                    })
-                })?,
-        };
+        let to = self.jump_table.get(Handle::from(lane)).ok_or_else(|| {
+            self.error(CompilationErrorPayload::InvalidJump {
+                src: nodeid,
+                dst: lane.clone(),
+                msg: None,
+            })
+        })?;
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
         Ok(())
@@ -374,7 +359,7 @@ impl<'a> Compiler<'a> {
                 if arity != 2 {
                     return Err(self.error(CompilationErrorPayload::InvalidJump {
                         src: nodeid,
-                        dst: format!("{}", lane),
+                        dst: lane.clone(),
                         msg: Some(
                             "ForEach lanes need to have 2 parameters: `key` and `object` where the `key` is the current key, and `object` is the object that's being iterated over"
                             .to_string()

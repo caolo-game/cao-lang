@@ -58,7 +58,7 @@ pub enum CompilationErrorPayload {
     #[error("Jumping from {src:?} to {dst} can not be performed\n{msg:?}")]
     InvalidJump {
         src: NodeId,
-        dst: String,
+        dst: LaneNode,
         msg: Option<String>,
     },
 
