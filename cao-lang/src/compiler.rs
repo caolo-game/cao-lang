@@ -361,7 +361,7 @@ impl<'a> Compiler<'a> {
                         src: nodeid,
                         dst: lane.clone(),
                         msg: Some(
-                            "ForEach lanes need to have 2 parameters: `key` and `object` where the `key` is the current key, and `object` is the object that's being iterated over"
+                            "ForEach lanes need to have 2 parameters: `key` and `table` where the `key` is the current key, and `table` is the table that's being iterated over"
                             .to_string()
                         )
                     }));
