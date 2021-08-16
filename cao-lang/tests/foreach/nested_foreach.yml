@@ -3,9 +3,9 @@ lanes:
     cards:
       # --- init the example table ---
       # {
-      #  f1: 1,
-      #  f2: 2,
-      #  f3: 3,
+      #  f1: 3,
+      #  f2: 5,
+      #  f3: 7,
       # }
       - ty: CreateTable
       - ty: SetVar
@@ -15,21 +15,21 @@ lanes:
       - ty: StringLiteral
         val: f1
       - ty: ScalarInt
-        val: 1
+        val: 3
       - ty: SetProperty
       - ty: ReadVar
         val: t
       - ty: StringLiteral
         val: f2
       - ty: ScalarInt
-        val: 2
+        val: 5
       - ty: SetProperty
       - ty: ReadVar
         val: t
       - ty: StringLiteral
         val: f3
       - ty: ScalarInt
-        val: 3
+        val: 7
       - ty: SetProperty
         # set result and g_iters to zero
       - ty: ScalarInt
@@ -51,7 +51,7 @@ lanes:
     arguments:
       - "key"
       - "table"
-    card:
+    cards:
       - ty: ForEach
         val:
           lane:

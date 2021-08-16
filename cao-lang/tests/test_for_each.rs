@@ -1,4 +1,5 @@
 use cao_lang::prelude::*;
+use test_env_log::test;
 
 #[test]
 fn test_foreach_1() {
@@ -29,11 +30,11 @@ fn test_foreach_nested() {
         .read_var_by_name("g_result", &program.variables)
         .expect("Failed to read result variable");
 
-    assert_eq!(res, Value::Integer(6 * 3));
+    assert_eq!(res, Value::Integer((3 + 5 + 7) * 3));
 
     let res = vm
-        .read_var_by_name("g_iter", &program.variables)
+        .read_var_by_name("g_iters", &program.variables)
         .expect("Failed to read iter variable");
 
-    assert_eq!(res, Value::Integer(3));
+    assert_eq!(res, Value::Integer(9));
 }
