@@ -70,7 +70,6 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
         get_desc(Card::ScalarInt(Default::default())),
         get_desc(Card::ScalarFloat(Default::default())),
         get_desc(Card::StringLiteral(Default::default())),
-        get_desc(Card::CallNative(Box::new(Default::default()))),
         get_desc(Card::IfTrue(Default::default())),
         get_desc(Card::IfFalse(Default::default())),
         get_desc(Card::IfElse {
@@ -93,7 +92,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 #[inline(always)]
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
-        Card::CallNative(_)    => unreachable!(),
+        Card::CallNative(_) => unreachable!(),
         Card::GetProperty => subprogram_description!(
             "GetProperty",
             "Gets a named field in the given table. Returns `nil` if the field does not exist",
