@@ -1,4 +1,32 @@
 # Changelog
+## v0.1.38
+
+
+### Features
+
+- Bad arity in for-each lane is an error
+
+
+### Refactor
+
+- Unsafe get_str/as_str methods for String values
+
+- Put VarNode behind a pointer to reduce size of Card
+
+- JumpErrors will return LaneNodes instead of strings
+
+- Fix the ForEach node jumperror message wording
+
+
+### Styling
+
+- Use Titlecase for # Safety sections in docs
+
+
+### Wip
+
+- Add nested_foreach test + refactor
+
 ## v0.1.37
 
 

@@ -19,4 +19,4 @@ name = "cao_lang_py"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 name = "cao-lang-py"
-version = "0.1.21"
+version = "0.1.22"
