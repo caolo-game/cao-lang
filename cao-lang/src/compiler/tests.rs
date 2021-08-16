@@ -48,3 +48,43 @@ fn empty_varname_is_error() {
         CompilationErrorPayload::EmptyVariable
     ));
 }
+
+#[test]
+fn empty_arity_in_foreach_is_an_error() {
+    let cu = CaoIr {
+        lanes: vec![
+            Lane::default().with_card(Card::ForEach {
+                variable: VarNode::default(),
+                lane: LaneNode::LaneId(1),
+            }),
+            Lane::default(),
+        ],
+    };
+
+    let err = compile(&cu, CompileOptions::new()).unwrap_err();
+
+    assert!(matches!(
+        err.payload,
+        CompilationErrorPayload::InvalidJump { .. }
+    ));
+}
+
+#[test]
+fn arity_1_in_foreach_is_an_error() {
+    let cu = CaoIr {
+        lanes: vec![
+            Lane::default().with_card(Card::ForEach {
+                variable: VarNode::default(),
+                lane: LaneNode::LaneId(1),
+            }),
+            Lane::default().with_arg("asd"),
+        ],
+    };
+
+    let err = compile(&cu, CompileOptions::new()).unwrap_err();
+
+    assert!(matches!(
+        err.payload,
+        CompilationErrorPayload::InvalidJump { .. }
+    ));
+}

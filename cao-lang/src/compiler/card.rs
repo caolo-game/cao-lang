@@ -246,3 +246,18 @@ impl Default for LaneNode {
         Self::LaneId(0)
     }
 }
+
+impl From<LaneNode> for Handle {
+    fn from(ln: LaneNode) -> Self {
+        Self::from(&ln)
+    }
+}
+
+impl<'a> From<&'a LaneNode> for Handle {
+    fn from(ln: &'a LaneNode) -> Self {
+        match ln {
+            LaneNode::LaneName(s) => Handle::from_str(s.as_str()).unwrap(),
+            LaneNode::LaneId(i) => Handle::from_i64(*i as i64),
+        }
+    }
+}

@@ -254,7 +254,7 @@ pub fn repeat<T>(vm: &mut Vm<T>) -> Result<i64, ExecutionError> {
         ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
     })?;
     i -= 1;
-    if i >= 0 {
+    if 0 <= i {
         // restore the variable
         vm.stack_push(i)?;
     }

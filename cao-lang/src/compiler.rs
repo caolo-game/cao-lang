@@ -43,15 +43,13 @@ pub struct Compiler<'a> {
     pub(crate) program: CaoProgram,
     next_var: RefCell<VariableId>,
 
-    /// maps lanes to their pre-hash-map keys
+    /// maps lanes to their metadata
     jump_table: KeyMap<LaneMeta>,
 
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
     current_lane: LaneNode,
-
-    _m: std::marker::PhantomData<&'a ()>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -94,7 +92,6 @@ impl<'a> Compiler<'a> {
             scope_depth: 0,
             current_lane: LaneNode::LaneId(0),
             current_card: -1,
-            _m: Default::default(),
         }
     }
 
@@ -143,7 +140,7 @@ impl<'a> Compiler<'a> {
         for (i, n) in compilation_unit.lanes.iter().enumerate() {
             self.current_lane = LaneNode::LaneId(i);
 
-            let indexkey = Handle::from_u32(i as u32);
+            let indexkey = Handle::from_i64(i as i64);
             assert!(!self.jump_table.contains(indexkey));
             num_cards += n.cards.len();
 
@@ -325,7 +322,7 @@ impl<'a> Compiler<'a> {
                 })?,
             LaneNode::LaneId(id) => self
                 .jump_table
-                .get(Handle::from_u32(*id as u32))
+                .get(Handle::from_i64(*id as i64))
                 .ok_or_else(|| {
                     self.error(CompilationErrorPayload::InvalidJump {
                         src: nodeid,
@@ -372,7 +369,18 @@ impl<'a> Compiler<'a> {
         }
         match card {
             Card::ForEach { variable, lane } => {
-                // TODO: assert that target lane has two arguments!
+                let target_lane = Handle::from(lane);
+                let arity = self.jump_table[target_lane].arity;
+                if arity != 2 {
+                    return Err(self.error(CompilationErrorPayload::InvalidJump {
+                        src: nodeid,
+                        dst: format!("{}", lane),
+                        msg: Some(
+                            "ForEach lanes need to have 2 parameters: `key` and `object` where the `key` is the current key, and `object` is the object that's being iterated over"
+                            .to_string()
+                        )
+                    }));
+                }
                 self.read_var_card(variable)?;
                 self.program.bytecode.push(Instruction::BeginForEach as u8);
                 let block_begin = self.program.bytecode.len() as i32;
