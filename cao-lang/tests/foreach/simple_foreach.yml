@@ -10,21 +10,21 @@ lanes:
       - ty: StringLiteral
         val: f1
       - ty: ScalarInt
-        val: 1
+        val: 3
       - ty: SetProperty
       - ty: ReadVar
         val: t
       - ty: StringLiteral
         val: f2
       - ty: ScalarInt
-        val: 2
+        val: 5
       - ty: SetProperty
       - ty: ReadVar
         val: t
       - ty: StringLiteral
         val: f3
       - ty: ScalarInt
-        val: 3
+        val: 7
       - ty: SetProperty
       - ty: ScalarInt
         val: 0

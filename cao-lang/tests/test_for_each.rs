@@ -14,7 +14,7 @@ fn test_foreach_1() {
         .read_var_by_name("g_result", &program.variables)
         .expect("Failed to read result variable");
 
-    assert_eq!(res, Value::Integer(6));
+    assert_eq!(res, Value::Integer(3 + 5 + 7));
 }
 
 #[test]
