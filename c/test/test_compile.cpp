@@ -8,7 +8,7 @@ TEST(Compile, TestEmpty)
 {
     const uint8_t* empty_program = (uint8_t*)"{\"lanes\":[{\"name\":\"boi\",\"cards\":[]}]}\0";
 
-    cao_CompiledProgram program = cao_new_compiled_program();
+    cao_CaoCompiledProgram program = cao_new_compiled_program();
     const cao_CompileResult result = cao_compile_json(empty_program, strlen((const char*)empty_program), &program);
 
     EXPECT_EQ(result, cao_CompileResult_Ok);
@@ -149,10 +149,38 @@ TEST(Compile, MultiLaneProgram)
 }
 )prog";
 
-    cao_CompiledProgram program = cao_new_compiled_program();
+    cao_CaoCompiledProgram program = cao_new_compiled_program();
     const cao_CompileResult result = cao_compile_json(program_json, strlen((const char*)program_json), &program);
 
     EXPECT_EQ(result, cao_CompileResult_Ok);
 
     cao_free_compiled_program(&program);
+}
+
+TEST(Runs, EmptyProgram)
+{
+    const uint8_t* program_json = (uint8_t*)R"prog(
+{
+  "lanes": [
+    {
+      "name": "main",
+      "cards": [
+      ]
+    }
+  ]
+}
+)prog";
+
+    cao_CaoCompiledProgram program = cao_new_compiled_program();
+    const cao_CompileResult compile_result = cao_compile_json(program_json, strlen((const char*)program_json), &program);
+
+    ASSERT_EQ(compile_result, cao_CompileResult_Ok);
+
+    cao_CaoVm vm = cao_new_vm();
+
+    const cao_ExecutionResult run_result = cao_run_program(program, vm);
+
+    cao_free_vm(&vm);
+    cao_free_compiled_program(&program);
+    ASSERT_EQ(run_result, cao_ExecutionResult_Ok);
 }
