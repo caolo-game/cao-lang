@@ -289,7 +289,6 @@ impl<'a> Compiler<'a> {
     fn conditional_jump(
         &mut self,
         skip_instr: Instruction,
-        nodeid: NodeId,
         lane: &LaneNode,
     ) -> CompilationResult<()> {
         assert!(
@@ -304,14 +303,13 @@ impl<'a> Compiler<'a> {
         debug_assert_eq!(std::mem::size_of_val(&pos), 4);
         write_to_vec(pos, &mut self.program.bytecode);
         self.program.bytecode.push(Instruction::CallLane as u8);
-        self.encode_jump(nodeid, lane)?;
+        self.encode_jump(lane)?;
         Ok(())
     }
 
-    fn encode_jump(&mut self, nodeid: NodeId, lane: &LaneNode) -> CompilationResult<()> {
+    fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
         let to = self.jump_table.get(Handle::from(lane)).ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
-                src: nodeid,
                 dst: lane.clone(),
                 msg: None,
             })
@@ -358,19 +356,15 @@ impl<'a> Compiler<'a> {
                 let arity = self.jump_table[target_lane].arity;
                 if arity != 2 {
                     return Err(self.error(CompilationErrorPayload::InvalidJump {
-                        src: nodeid,
                         dst: lane.clone(),
-                        msg: Some(
-                            "ForEach lanes need to have 2 parameters: `key` and `table` where the `key` is the current key, and `table` is the table that's being iterated over"
-                            .to_string()
-                        )
+                        msg: Some("ForEach lanes need to have 2 parameters".to_string()),
                     }));
                 }
                 self.read_var_card(variable)?;
                 self.program.bytecode.push(Instruction::BeginForEach as u8);
                 let block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::ForEach as u8);
-                self.encode_jump(nodeid, lane)?;
+                self.encode_jump(lane)?;
                 // return to the repeat instruction
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
                 write_to_vec(block_begin, &mut self.program.bytecode);
@@ -380,10 +374,18 @@ impl<'a> Compiler<'a> {
                 return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
             }
             Card::Repeat(repeat) => {
+                let target_lane = Handle::from(repeat);
+                let arity = self.jump_table[target_lane].arity;
+                if arity != 1 {
+                    return Err(self.error(CompilationErrorPayload::InvalidJump {
+                        dst: repeat.clone(),
+                        msg: Some("Repeat lanes need to have 1 parameter".to_string()),
+                    }));
+                }
                 self.program.bytecode.push(Instruction::BeginRepeat as u8);
                 let block_begin = self.program.bytecode.len() as i32;
                 self.program.bytecode.push(Instruction::Repeat as u8);
-                self.encode_jump(nodeid, repeat)?;
+                self.encode_jump(repeat)?;
                 // return to the repeat instruction
                 self.program.bytecode.push(Instruction::GotoIfTrue as u8);
                 write_to_vec(block_begin, &mut self.program.bytecode);
@@ -435,7 +437,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(pos, &mut self.program.bytecode);
                 // else
                 self.program.bytecode.push(Instruction::CallLane as u8);
-                self.encode_jump(nodeid, else_lane)?;
+                self.encode_jump(else_lane)?;
 
                 self.program.bytecode.push(Instruction::Goto as u8);
                 let pos = instruction_span(Instruction::CallLane)
@@ -444,18 +446,18 @@ impl<'a> Compiler<'a> {
                 write_to_vec(pos, &mut self.program.bytecode);
                 // then
                 self.program.bytecode.push(Instruction::CallLane as u8);
-                self.encode_jump(nodeid, then_lane)?;
+                self.encode_jump(then_lane)?;
             }
             Card::IfFalse(jmp) => {
                 // if the value is true we DON'T jump
-                self.conditional_jump(Instruction::GotoIfTrue, nodeid, jmp)?;
+                self.conditional_jump(Instruction::GotoIfTrue, jmp)?;
             }
             Card::IfTrue(jmp) => {
                 // if the value is false we DON'T jump
-                self.conditional_jump(Instruction::GotoIfFalse, nodeid, jmp)?;
+                self.conditional_jump(Instruction::GotoIfFalse, jmp)?;
             }
             Card::Jump(jmp) => {
-                self.encode_jump(nodeid, jmp)?;
+                self.encode_jump(jmp)?;
             }
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),
             Card::CallNative(c) => {

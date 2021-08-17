@@ -233,7 +233,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
 }
 
 pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let n = vm.runtime_data.stack.pop();
+    let n = vm.runtime_data.stack.last();
     let n = i64::try_from(n).map_err(|_| {
         ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
     })?;
@@ -242,24 +242,30 @@ pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
             "Repeat input must be non-negative".to_string(),
         ));
     }
-    // restore the counter if it's valid, to be used by Repeat
-    vm.stack_push(n)?;
+    // init the loop counter
+    vm.stack_push(0)?;
     Ok(())
 }
 
-/// return i
-pub fn repeat<T>(vm: &mut Vm<T>) -> Result<i64, ExecutionError> {
-    let i = vm.runtime_data.stack.pop();
-    let mut i = i64::try_from(i).map_err(|_| {
-        ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
-    })?;
-    i -= 1;
-    if 0 <= i {
-        // restore the variable
+/// return if the loop should continue
+pub fn repeat<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
+    let i = vm.stack_pop();
+    let i = i64::try_from(i).expect("Repeat input `I` must be an integer");
+    let n = vm.runtime_data.stack.last();
+    let n = i64::try_from(n).expect("Repeat input `N` must be an integer");
+
+    let should_continue = i < n;
+    if should_continue {
+        // restore the variable and add 1
+        vm.stack_push(i + 1)?;
+        // push the lane argument
         vm.stack_push(i)?;
+    } else {
+        // clean up
+        vm.stack_pop(); // N
     }
 
-    Ok(i)
+    Ok(should_continue)
 }
 
 pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {

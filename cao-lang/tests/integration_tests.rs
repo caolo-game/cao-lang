@@ -283,13 +283,16 @@ fn simple_for_loop() {
                 Card::ScalarInt(IntegerNode(5)),
                 Card::Repeat(LaneNode::LaneName("Loop".to_string())),
             ]),
-            Lane::default().with_name("Loop").with_cards(vec![
-                // Add 1 to the global 'result' variable in each iteration
-                Card::ScalarInt(IntegerNode(1)),
-                Card::ReadVar(VarNode::from_str_unchecked("result")),
-                Card::Add,
-                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-            ]),
+            Lane::default()
+                .with_name("Loop")
+                .with_arg("i")
+                .with_cards(vec![
+                    // Add i to the global 'result' variable in each iteration
+                    Card::ReadVar(VarNode::from_str_unchecked("i")),
+                    Card::ReadVar(VarNode::from_str_unchecked("result")),
+                    Card::Add,
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ]),
         ],
     };
     let program = compile(&program, Some(CompileOptions::new())).expect("compile");
@@ -302,7 +305,7 @@ fn simple_for_loop() {
     let res = vm
         .read_var_by_name("result", &program.variables)
         .expect("Failed to read result variable");
-    assert_eq!(res, Value::Integer(5));
+    assert_eq!(res, Value::Integer((0..5).fold(0, std::ops::Add::add)));
 }
 
 #[test]

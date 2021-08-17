@@ -198,13 +198,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::begin_repeat(self)?;
                 }
                 Instruction::Repeat => {
-                    if instr_execution::repeat(self)? >= 0 {
+                    if instr_execution::repeat(self)? {
                         instr_execution::instr_jump(
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
                         )?;
                     } else {
+                        self.stack_push(false)?; // assumes that the next instruction is GotoIfTrue
                         instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }
@@ -219,9 +220,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                             &mut self.runtime_data,
                         )?;
                     } else {
-                        // add the span of the jump instruction metadata to the instr_ptr
-                        // to skip this instruction
                         self.stack_push(false)?; // assumes that the next instruction is GotoIfTrue
+                                                 // add the span of the jump instruction metadata to the instr_ptr
+                                                 // to skip this instruction
                         instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }

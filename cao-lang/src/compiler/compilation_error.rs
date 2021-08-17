@@ -55,12 +55,8 @@ pub enum CompilationErrorPayload {
     #[error("Program references node [{0:?}] but it was not found")]
     MissingNode(NodeId),
 
-    #[error("Jumping from {src:?} to {dst} can not be performed\n{msg:?}")]
-    InvalidJump {
-        src: NodeId,
-        dst: LaneNode,
-        msg: Option<String>,
-    },
+    #[error("Jumping to {dst} can not be performed\n{msg:?}")]
+    InvalidJump { dst: LaneNode, msg: Option<String> },
 
     #[error("Internal failure during compilation")]
     InternalError,
