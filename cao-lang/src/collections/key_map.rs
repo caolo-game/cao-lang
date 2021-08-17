@@ -116,7 +116,7 @@ impl Handle {
     pub fn from_u32(key: u32) -> Self {
         const MASK: u64 = u32::MAX as u64;
 
-        let mut key = key as u64 + 125; // add some padding to ensure non-zero keys
+        let mut key = key as u64 + MASK * (key == 0) as u64; // to ensure non-zero keys
         key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
         key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
         key = ((key >> 16) ^ key) & MASK;
@@ -127,7 +127,7 @@ impl Handle {
     pub fn from_i64(key: i64) -> Self {
         const MASK: u64 = u32::MAX as u64;
 
-        let mut key = key as u64 + 125; // add some padding to ensure non-zero keys
+        let mut key = key as u64 + MASK * (key == 0) as u64; // to ensure non-zero keys
         key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
         key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
         key = ((key >> 16) ^ key) & MASK;
