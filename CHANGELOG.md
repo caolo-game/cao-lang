@@ -1,4 +1,23 @@
 # Changelog
+## v0.1.39
+
+
+### Bug Fixes
+
+- Add missing card to the schema
+
+
+### Features
+
+- Pass in `i` to `Repeat`-ed Lanes
+
+
+### Refactor
+
+- Use different constant for 0 inputs to Handle
+
+- Use ABI3 in the python interface
+
 ## v0.1.38
 
 
