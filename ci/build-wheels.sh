@@ -8,9 +8,9 @@ cd /cao-lang
 
 ls -al /opt/python
 
-for PYBIN in /opt/python/cp{36,37,38,39}*/bin; do
-    "${PYBIN}/pip" install -U auditwheel build
-    "${PYBIN}/python" -m build --wheel
+for PYBIN in /opt/python/cp39*/bin; do
+    "${PYBIN}/pip" install -U auditwheel setuptools_rust wheel
+    "${PYBIN}/python" setup.py build bdist_wheel --py-limited-api=cp35
 done
 
 for whl in dist/*.whl; do

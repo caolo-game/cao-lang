@@ -25,7 +25,12 @@ setup(
     author="Daniel Kiss",
     author_email="littlesnorrboy@gmail.com",
     rust_extensions=[
-        RustExtension("cao_lang.cao_lang_py", "py/Cargo.toml", binding=Binding.PyO3)
+        RustExtension(
+            "cao_lang.cao_lang_py",
+            "py/Cargo.toml",
+            binding=Binding.PyO3,
+            py_limited_api=True,
+        )
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
