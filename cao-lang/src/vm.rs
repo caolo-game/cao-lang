@@ -63,6 +63,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.global_vars.get(name.0 as usize).cloned()
     }
 
+    #[must_use]
     pub fn with_max_iter(mut self, max_iter: u64) -> Self {
         self.max_instr = max_iter;
         self
