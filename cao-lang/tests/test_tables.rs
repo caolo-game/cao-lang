@@ -1,5 +1,5 @@
 use std::{convert::TryInto, str::FromStr};
-use test_env_log::test;
+use test_log::test;
 
 use cao_lang::{
     compiler::{CallNode, IntegerNode, StringNode, VarNode},

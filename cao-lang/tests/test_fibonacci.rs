@@ -1,5 +1,5 @@
 use cao_lang::prelude::*;
-use test_env_log::test;
+use test_log::test;
 
 const RECURSIVE_FIB: &str = include_str!("../benches/fibonacci_program_recursive.yaml");
 const ITERATIVE_FIB: &str = include_str!("../benches/fibonacci_program.yaml");

@@ -2,7 +2,7 @@ include(FetchContent)
 
 FetchContent_Declare(
   googletest
-  URL "https://github.com/google/googletest/archive/release-1.10.0.tar.gz")
+  URL "https://github.com/google/googletest/archive/release-1.11.0.tar.gz")
 
 # Prevent overriding the parent project's compiler/linker settings on Windows
 set(gtest_force_shared_crt
