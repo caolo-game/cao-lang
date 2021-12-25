@@ -11,6 +11,9 @@ target_link_libraries(cao_lang_tests cao_lang gtest gtest_main)
 
 gtest_discover_tests(cao_lang_tests)
 
+if(WIN32)
+  target_link_libraries(cao_lang_tests Bcrypt)
+endif()
 if(NOT WIN32 AND NOT APPLE)
-    target_link_options(cao_lang_tests PRIVATE -Wl,--no-as-needed -ldl -pthread)
+  target_link_options(cao_lang_tests PRIVATE -Wl,--no-as-needed -ldl -pthread)
 endif()
