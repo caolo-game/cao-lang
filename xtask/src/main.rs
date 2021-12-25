@@ -57,6 +57,7 @@ fn main() {
             ,
         );
     let args = app.get_matches();
+    let mut code = 0;
 
     if let Some(subcmd) = args.subcommand_matches("version-bump") {
         if let Some(target) = subcmd.value_of("TARGET") {
@@ -67,6 +68,7 @@ fn main() {
             };
             if let Err(e) = res {
                 eprintln!("Version bump failed: {}", e);
+                code = 1;
             }
         }
     }
@@ -81,6 +83,7 @@ fn main() {
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_build::cmd_build_c(args.as_slice()) {
                         eprintln!("Build command failed: {}", e);
+                        code = 2;
                     }
                 }
                 _ => unreachable!(),
@@ -98,12 +101,14 @@ fn main() {
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_test::cmd_test_c(args.as_slice()) {
                         eprintln!("Test command failed: {}", e);
+                        code = 3;
                     }
                 }
                 _ => unreachable!(),
             }
         }
     }
+    std::process::exit(code);
 }
 
 fn project_root() -> PathBuf {
