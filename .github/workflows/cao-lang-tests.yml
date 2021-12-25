@@ -1,10 +1,6 @@
 name: Cao-Lang core tests
 
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+on: [push, pull_request]
 
 defaults:
   run:
@@ -41,11 +37,10 @@ jobs:
           RUST_BACKTRACE: 1
 
   clippy_check:
-    needs: [test]
     runs-on: ubuntu-latest
     name: Clippy check
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -55,3 +50,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --manifest-path cao-lang/Cargo.toml
+
+  deny:
+    runs-on: ubuntu-latest
+    name: Cargo deny
+    steps:
+      - uses: actions/checkout@v2
+      - uses: EmbarkStudios/cargo-deny-action@v1
