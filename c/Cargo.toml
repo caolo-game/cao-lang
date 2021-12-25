@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 build = "build.rs"
+license="MIT"
 
 [lib]
 name = "cao_lang_c"
