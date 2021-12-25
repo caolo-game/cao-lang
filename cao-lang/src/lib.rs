@@ -51,7 +51,7 @@ pub mod version {
     include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
 }
 
-use std::{cmp::Ordering, str::FromStr};
+use std::{cmp::Ordering, mem::size_of, str::FromStr};
 
 use crate::instruction::Instruction;
 use arrayvec::ArrayString;
@@ -115,7 +115,7 @@ impl StrPointer {
     pub unsafe fn get_str<'a>(self) -> Option<&'a str> {
         let ptr = self.0;
         let len = *(ptr as *const u32);
-        let ptr = ptr.add(4);
+        let ptr = ptr.add(size_of::<u32>());
         std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
     }
 }

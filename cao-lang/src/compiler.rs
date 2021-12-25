@@ -32,7 +32,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 /// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoIr {
     pub lanes: Vec<Lane>,
@@ -61,7 +61,7 @@ struct LaneMeta {
 
 /// local variables during compilation
 #[derive(Debug)]
-pub struct Local<'a> {
+pub(crate) struct Local<'a> {
     pub name: VarName,
     pub depth: i32,
     _m: std::marker::PhantomData<&'a ()>,
