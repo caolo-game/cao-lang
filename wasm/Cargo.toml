@@ -1,9 +1,9 @@
 [dependencies]
-js-sys = "0.3"
-serde = "1"
-serde_derive = "1"
-wasm-bindgen-futures = "0.4"
-wasm-logger = "0.2"
+js-sys = "0.3.56"
+serde = "1.0.133"
+serde_derive = "1.0.133"
+wasm-bindgen-futures = "0.4.29"
+wasm-logger = "0.2.0"
 
 [dependencies.cao-lang]
 features = ["serde"]
@@ -11,15 +11,15 @@ path = "../cao-lang"
 
 [dependencies.console_error_panic_hook]
 optional = true
-version = "0.1.1"
+version = "0.1.7"
 
 [dependencies.wasm-bindgen]
 features = ["serde-serialize"]
-version = "0.2"
+version = "0.2.79"
 
 [dev-dependencies]
-serde_json = "1"
-wasm-bindgen-test = "0.3"
+serde_json = "1.0.75"
+wasm-bindgen-test = "0.3.29"
 
 [features]
 default = []

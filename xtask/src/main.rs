@@ -4,55 +4,55 @@ mod cmd_version;
 
 use std::path::{Path, PathBuf};
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, Arg};
 
 type CmdResult<T> = Result<T, anyhow::Error>;
 
 fn main() {
     let app = App::new("Cao-Lang tasks")
         .subcommand(
-            SubCommand::with_name("version-bump")
+            App::new("version-bump")
             .after_help("This command bumps the versions of all modules in the repository and generates a new changelog.")
             .arg(
-                Arg::with_name("TARGET")
+                Arg::new("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["major", "minor", "patch"])
-                    .multiple(false),
+                    .multiple_occurrences(false),
             )
             .arg(
-                Arg::with_name("tag")
-                    .short("t")
+                Arg::new("tag")
+                    .short('t')
                     .required(false)
                     .help("Also create a git tag after bumping the versions")
             ),
         )
         .subcommand(
-            SubCommand::with_name("build").arg(
-                Arg::with_name("TARGET")
+            App::new("build").arg(
+                Arg::new("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
-                    .multiple(false),
+                    .multiple_occurrences(false),
             )
             .arg(
-            Arg::with_name("--")
+            Arg::new("--")
             .help("Arguments to pass to cmake configure")
-            .takes_value(true).required(false).multiple(true)
+            .takes_value(true).required(false).multiple_occurrences(true)
             )
         )
         .subcommand(
-            SubCommand::with_name("test").arg(
-                Arg::with_name("TARGET")
+            App::new("test").arg(
+                Arg::new("TARGET")
                     .takes_value(true)
                     .required(true)
                     .possible_values(&["c"])
-                    .multiple(false),
+                    .multiple_occurrences(false),
             )
             .arg(
-            Arg::with_name("--")
+            Arg::new("--")
             .help("Arguments to pass to cmake configure")
-            .takes_value(true).required(false).multiple(true)
+            .takes_value(true).required(false).multiple_occurrences(true)
             )
             ,
         );
