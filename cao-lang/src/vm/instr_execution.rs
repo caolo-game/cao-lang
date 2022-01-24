@@ -1,4 +1,3 @@
-use std::alloc::Layout;
 use std::convert::TryFrom;
 
 use tracing::debug;
@@ -11,7 +10,7 @@ use crate::{
     program::CaoProgram,
     traits::MAX_STR_LEN,
     value::Value,
-    StrPointer, VariableId,
+    VariableId,
 };
 
 use super::{
@@ -109,20 +108,8 @@ pub fn instr_string_literal<T>(
     let payload = read_str(&mut (handle as usize), program.data.as_slice())
         .ok_or_else(|| ExecutionError::invalid_argument(None))?;
 
-    unsafe {
-        let layout = Layout::from_size_align(4 + payload.len(), 4).unwrap();
-        let mut ptr = vm
-            .runtime_data
-            .memory
-            .alloc(layout)
-            .map_err(|_| ExecutionError::OutOfMemory)?;
-
-        let result: *mut u8 = ptr.as_mut();
-        std::ptr::write(result as *mut u32, payload.len() as u32);
-        std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
-
-        vm.stack_push(Value::String(StrPointer(ptr.as_ptr())))?;
-    }
+    let ptr = vm.init_string(payload)?;
+    vm.stack_push(Value::String(ptr))?;
 
     Ok(())
 }

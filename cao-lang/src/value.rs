@@ -60,6 +60,22 @@ impl Value {
         }
     }
 
+    /// # Safety
+    ///
+    /// Must be called with ptr obtained from a vm , before the last `clear`!
+    ///
+    /// The Vm that allocated the table must still be in memory!
+    ///
+    /// # Return
+    ///
+    /// Returns `None` if the value is not a table, or points to an invalid table
+    pub unsafe fn as_table<'a>(self) -> Option<&'a FieldTable> {
+        match self {
+            Value::Object(table) => Some(&*table),
+            _ => None,
+        }
+    }
+
     #[inline]
     pub fn is_obj(self) -> bool {
         matches!(self, Value::Object(_))

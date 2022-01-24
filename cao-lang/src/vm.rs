@@ -147,6 +147,24 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.init_table()
     }
 
+    /// Initializes a new string owned by this VM instance
+    pub fn init_string(&mut self, payload: &str) -> Result<StrPointer, ExecutionError> {
+        unsafe {
+            let layout = std::alloc::Layout::from_size_align(4 + payload.len(), 4).unwrap();
+            let mut ptr = self
+                .runtime_data
+                .memory
+                .alloc(layout)
+                .map_err(|_| ExecutionError::OutOfMemory)?;
+
+            let result: *mut u8 = ptr.as_mut();
+            std::ptr::write(result as *mut u32, payload.len() as u32);
+            std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
+
+            Ok(StrPointer(ptr.as_ptr()))
+        }
+    }
+
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is very un-safe
     pub fn run(&mut self, program: &CaoProgram) -> Result<(), ExecutionError> {

@@ -15,3 +15,16 @@ fn test_binary_operatons() {
         _ => panic!("Invalid result type"),
     }
 }
+
+#[test]
+fn test_can_init_str() {
+    let mut vm = Vm::new(()).unwrap();
+
+    let ptr = vm.init_string("poggers").unwrap();
+
+    let val = Value::String(ptr);
+
+    let result = unsafe { val.as_str().unwrap() };
+
+    assert_eq!(result, "poggers");
+}
