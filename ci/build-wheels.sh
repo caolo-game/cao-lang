@@ -8,8 +8,8 @@ cd /cao-lang
 
 ls -al /opt/python
 
-for PYBIN in /opt/python/cp39*/bin; do
-    "${PYBIN}/pip" install -U auditwheel setuptools_rust wheel
+for PYBIN in /opt/python/cp*/bin; do
+    "${PYBIN}/pip" install -U auditwheel setuptools_rust wheel toml
     "${PYBIN}/python" setup.py build bdist_wheel --py-limited-api=cp35
 done
 
