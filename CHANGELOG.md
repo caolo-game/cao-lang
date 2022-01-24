@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.40
+
+
+### Features
+
+- Add basic program running to the C api
+
+- Add string insertion to VM
+
+
+### Refactor
+
+- Derive Default for CaoIr, hide Local from the public api
+
 ## v0.1.39
 
 
