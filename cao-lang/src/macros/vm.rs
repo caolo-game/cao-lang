@@ -1,15 +1,4 @@
 #[macro_export(local_inner_macros)]
-macro_rules! load_var {
-    ($val: expr, $from: ident) => {
-        $from
-            .variables
-            .get($val)
-            .copied()
-            .ok_or(ExecutionError::InvalidArgument { context: None })?;
-    };
-}
-
-#[macro_export(local_inner_macros)]
 macro_rules! pop_stack {
     ($from : ident) => {{
         $from.runtime_data.stack.pop()
