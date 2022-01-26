@@ -31,7 +31,7 @@ pub enum ExecutionError {
     MissingArgument,
     #[error("Program timed out")]
     Timeout,
-    #[error("Subtask [{name}] failed {error:?}")]
+    #[error("Subtask [{name}] failed {error}")]
     TaskFailure {
         name: String,
         error: Box<ExecutionError>,
