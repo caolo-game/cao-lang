@@ -153,7 +153,13 @@ pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -
         .callables
         .remove(fun_hash)
         .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
-    let res = procedure.fun.call(vm);
+    let res = procedure
+        .fun
+        .call(vm)
+        .map_err(|err| ExecutionError::TaskFailure {
+            name: procedure.name.clone(),
+            error: Box::new(err),
+        });
     //cleanup
     vm.callables
         .insert(fun_hash, procedure)

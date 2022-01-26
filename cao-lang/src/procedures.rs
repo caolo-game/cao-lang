@@ -31,8 +31,11 @@ pub enum ExecutionError {
     MissingArgument,
     #[error("Program timed out")]
     Timeout,
-    #[error("Subtask failed {0:?}")]
-    TaskFailure(String),
+    #[error("Subtask [{name}] failed {error:?}")]
+    TaskFailure {
+        name: String,
+        error: Box<ExecutionError>,
+    },
     #[error("The program has overflowns its stack")]
     Stackoverflow,
     #[error("Failed to return from a lane {reason}")]

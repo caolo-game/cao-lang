@@ -255,7 +255,7 @@ pub unsafe extern "C" fn cao_run_program(
             cao_lang::procedures::ExecutionError::Timeout => {
                 return ExecutionResult::cao_ExecutionResult_Timeout
             }
-            cao_lang::procedures::ExecutionError::TaskFailure(_) => {
+            cao_lang::procedures::ExecutionError::TaskFailure { .. } => {
                 return ExecutionResult::cao_ExecutionResult_TaskFailure
             }
             cao_lang::procedures::ExecutionError::Stackoverflow => {
