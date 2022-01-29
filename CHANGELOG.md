@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.42
+
+
+### Features
+
+- Pretty print inner error in Subtask failures
+
+
+### Refactor
+
+- Use tilde deps
+
 ## v0.1.40
 
 
