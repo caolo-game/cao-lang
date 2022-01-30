@@ -2,7 +2,10 @@ name: Python publish
 
 on:
   push:
-    tags: [v*]
+    branches: [master, main]
+    tags: "*"
+  pull_request:
+    branches: [master, main]
 
 jobs:
   distribute-linux:
@@ -34,7 +37,9 @@ jobs:
           docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
           ls -al dist/
 
+      # only upload on tags
       - name: "Upload"
+        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' }}
         run: twine upload --skip-existing --verbose dist/*
         env:
           TWINE_USERNAME: __token__
@@ -61,7 +66,9 @@ jobs:
         run: |
           python -m build --sdist --wheel
 
+      # only upload on tags
       - name: "Upload"
+        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' }}
         run: twine upload --skip-existing --verbose dist/*
         env:
           TWINE_USERNAME: __token__
