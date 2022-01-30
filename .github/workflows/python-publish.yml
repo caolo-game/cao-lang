@@ -49,7 +49,7 @@ jobs:
   distribute:
     strategy:
       matrix:
-        python: ["3.9"]
+        python: ["3.9", "pypy-3.7", "pypy-3.8"]
         os: ["windows-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:

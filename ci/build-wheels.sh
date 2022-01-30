@@ -18,7 +18,7 @@ for whl in dist/*.whl; do
 done
 
 # build pypy wheels
-for PYBIN in /opt/python/pypy*/bin; do
+for PYBIN in /opt/python/pp*/bin; do
     "${PYBIN}/pip" install -U auditwheel setuptools_rust wheel toml
     "${PYBIN}/python" setup.py build bdist_wheel --py-limited-api=cp35
 done
