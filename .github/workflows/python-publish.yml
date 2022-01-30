@@ -9,10 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: "Setup Python"
+      - name: "Setup CPython"
         uses: actions/setup-python@v2.2.1
         with:
           python-version: 3.9
+
+      - name: "Setup PyPy37"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 'pypy-3.7'
+
+      - name: "Setup PyPy38"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 'pypy-3.8'
 
       - name: "Install deps"
         run: |
