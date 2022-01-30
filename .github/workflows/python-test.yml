@@ -35,5 +35,10 @@ jobs:
         with:
           python-version: 3.6
 
+      - name: "Setup Pypy"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 'pypy-3.8'
+
       - run: pip install tox
       - run: tox -q -p auto
