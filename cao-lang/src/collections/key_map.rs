@@ -293,6 +293,8 @@ where
 
     fn find_ind(&self, needle: Handle) -> usize {
         let len = self.capacity;
+
+        debug_assert!(len >= 2);
         debug_assert!(
             (len & (len - 1)) == 0,
             "Expected self.capacity to be a power of two"
@@ -301,14 +303,12 @@ where
         let mut ind = needle.0 as usize & len_mask;
         let ptr = self.keys.as_ptr();
         loop {
-            unsafe {
-                debug_assert!(ind < len);
-                let k = *ptr.add(ind);
-                if k == needle || k.0 == 0 {
-                    return ind;
-                }
-                ind = (ind + 1) & len_mask;
+            debug_assert!(ind < len);
+            let k = unsafe { *ptr.add(ind) };
+            if k == needle || k.0 == 0 {
+                return ind;
             }
+            ind = (ind + 1) & len_mask;
         }
     }
 
@@ -352,7 +352,7 @@ where
     }
 
     unsafe fn adjust_size(&mut self, capacity: usize) -> Result<(), MapError> {
-        let capacity = pad_pot(capacity);
+        let capacity = pad_pot(capacity).max(2); // allocate at least two items
         let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
         swap(&mut self.keys, &mut keys);
