@@ -77,7 +77,7 @@ fn run_fib_recursive(c: &mut Criterion) {
 
 fn run_fib_iter(c: &mut Criterion) {
     let mut group = c.benchmark_group("fibonacci numbers iterative");
-    for iterations in 1..6 {
+    for iterations in 1..=6 {
         let iterations = 1 << iterations;
 
         group.bench_with_input(
