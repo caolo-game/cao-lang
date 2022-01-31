@@ -291,18 +291,23 @@ where
         }
     }
 
-    fn find_ind(&self, key: Handle) -> usize {
+    fn find_ind(&self, needle: Handle) -> usize {
         let len = self.capacity;
-        let mut ind = key.0 as usize % len;
+        debug_assert!(
+            (len & (len - 1)) == 0,
+            "Expected self.capacity to be a power of two"
+        );
+        let len_mask = len - 1;
+        let mut ind = needle.0 as usize & len_mask;
         let ptr = self.keys.as_ptr();
         loop {
             unsafe {
                 debug_assert!(ind < len);
                 let k = *ptr.add(ind);
-                if k == key || k.0 == 0 {
+                if k == needle || k.0 == 0 {
                     return ind;
                 }
-                ind = (ind + 1) % len;
+                ind = (ind + 1) & len_mask;
             }
         }
     }
@@ -347,6 +352,7 @@ where
     }
 
     unsafe fn adjust_size(&mut self, capacity: usize) -> Result<(), MapError> {
+        let capacity = pad_pot(capacity);
         let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
         swap(&mut self.keys, &mut keys);
@@ -493,3 +499,14 @@ impl<T> IndexMut<&[u8]> for KeyMap<T> {
 
 unsafe impl<T, A> Send for KeyMap<T, A> where A: Allocator + Send {}
 unsafe impl<T, A> Sync for KeyMap<T, A> where A: Allocator + Sync {}
+
+#[inline]
+fn pad_pot(cap: usize) -> usize {
+    let mut n = cap - 1; // to handle the case when cap is already POT
+    while (n & (n - 1)) != 0 {
+        n = n & (n - 1); // unset the rightmost bit
+    }
+
+    // return the next POT
+    n << 1
+}
