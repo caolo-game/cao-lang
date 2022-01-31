@@ -1,9 +1,10 @@
 # Cao-Lang
 
-[![Cao-Lang core tests](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/cao-lang-tests.yml)
-[![C bindings tests](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/c.yml)
-[![Python tests](https://github.com/caolo-game/cao-lang/actions/workflows/python-test.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/python-test.yml)
-[![WASM tests](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml/badge.svg)](https://github.com/caolo-game/cao-lang/actions/workflows/wasm-tests.yml)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/caolo-game/cao-lang/Cao-Lang%20tests)
+![MIT license](https://img.shields.io/github/license/caolo-game/cao-lang)
+![Crates.io version](https://img.shields.io/crates/v/cao-lang)
+![PyPI version](https://img.shields.io/pypi/v/cao-lang)
+![npm version](https://img.shields.io/npm/v/@caolo-game/cao-lang-wasm)
 
 The node based "language" that governs the actors in the game CaoLo
 
