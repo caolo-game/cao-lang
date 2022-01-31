@@ -9,11 +9,9 @@ mod tests;
 
 use self::runtime::CallFrame;
 use crate::{
-    binary_compare,
     collections::key_map::{Handle, KeyMap},
     instruction::instruction_span,
     instruction::Instruction,
-    pop_stack,
     prelude::*,
     value::Value,
     VariableId,
@@ -167,6 +165,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is very un-safe
+    #[inline(never)]
     pub fn run(&mut self, program: &CaoProgram) -> Result<(), ExecutionError> {
         self.runtime_data
             .call_stack
@@ -271,8 +270,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_ptr = pos as usize;
                 }
                 Instruction::SwapLast => {
-                    let b = pop_stack!(self);
-                    let a = pop_stack!(self);
+                    let b = self.stack_pop();
+                    let a = self.stack_pop();
                     // we popped two values, we know that the stack has capacity for 2 ..
                     self.stack_push(b).unwrap();
                     self.stack_push(a).unwrap();
@@ -357,10 +356,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Sub => self.binary_op(|a, b| a - b)?,
                 Instruction::Mul => self.binary_op(|a, b| a * b)?,
                 Instruction::Div => self.binary_op(|a, b| a / b)?,
-                Instruction::Equals => binary_compare!(self, ==, false),
-                Instruction::NotEquals => binary_compare!(self, !=, true),
-                Instruction::Less => binary_compare!(self, <, false),
-                Instruction::LessOrEq => binary_compare!(self, <=, false),
+                Instruction::Equals => self.binary_op(|a, b| (a == b).into())?,
+                Instruction::NotEquals => self.binary_op(|a, b| (a != b).into())?,
+                Instruction::Less => self.binary_op(|a, b| (a < b).into())?,
+                Instruction::LessOrEq => self.binary_op(|a, b| (a <= b).into())?,
                 Instruction::StringLiteral => {
                     instr_execution::instr_string_literal(self, &mut instr_ptr, program)?
                 }
@@ -374,9 +373,10 @@ impl<'a, Aux> Vm<'a, Aux> {
         Err(ExecutionError::UnexpectedEndOfInput)
     }
 
+    #[inline]
     fn binary_op(&mut self, op: fn(Value, Value) -> Value) -> Result<(), ExecutionError> {
-        let b = pop_stack!(self);
-        let a = pop_stack!(self);
+        let b = self.stack_pop();
+        let a = self.stack_pop();
 
         self.runtime_data
             .stack
