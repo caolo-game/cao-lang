@@ -307,9 +307,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     )?;
                 }
                 Instruction::Pop => {
-                    if !self.runtime_data.stack.is_empty() {
-                        self.runtime_data.stack.pop();
-                    }
+                    self.stack_pop();
                 }
                 Instruction::CallLane => {
                     instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)?;
