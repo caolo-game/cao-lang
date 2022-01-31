@@ -1,14 +1,36 @@
-name: Python publish
+name: Cao-Lang publish
 
 on:
   push:
-    branches: [master, main]
     tags: "*"
-  pull_request:
-    branches: [master, main]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: cao-lang
 
 jobs:
-  distribute-linux:
+  publish-cratesio:
+    name: Publish cao-lang to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: stable
+          override: true
+
+      - name: Publish
+        uses: katyo/publish-crates@v1
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          path: "./cao-lang"
+
+  publish-pypi-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -39,14 +61,13 @@ jobs:
 
       # only upload on tags
       - name: "Upload"
-        if: ${{ github.event_name == 'create' && github.event.ref_type == 'tag' }}
         run: twine upload --skip-existing --verbose dist/*
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
           TWINE_NON_INTERACTIVE: 1
 
-  distribute:
+  publish-pypi:
     strategy:
       matrix:
         python: ["3.9", "pypy-3.7", "pypy-3.8"]
@@ -68,7 +89,6 @@ jobs:
 
       # only upload on tags
       - name: "Upload"
-        if: ${{ startsWith(github.ref, 'ref/tags') }}
         run: twine upload --skip-existing --verbose dist/*
         env:
           TWINE_USERNAME: __token__

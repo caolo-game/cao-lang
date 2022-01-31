@@ -1,0 +1,205 @@
+name: Cao-Lang tests
+
+on: [push, pull_request]
+
+jobs:
+  test-core:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - nightly
+
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Run cargo test
+        run: |
+          cargo build
+          cargo test --tests --benches
+          cargo test --doc
+        env:
+          RUST_BACKTRACE: 1
+        working-directory: cao-lang
+
+  clippy-check:
+    runs-on: ubuntu-latest
+    name: Clippy check
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+          override: true
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --manifest-path cao-lang/Cargo.toml
+
+  cargo-deny:
+    runs-on: ubuntu-latest
+    name: Cargo deny
+    steps:
+      - uses: actions/checkout@v2
+      - uses: EmbarkStudios/cargo-deny-action@v1
+
+  wasm-test:
+    strategy:
+      matrix:
+        browser:
+          - chrome
+          - firefox
+          - node
+
+        include:
+          - browser: chrome
+            test-flags: --chrome --headless
+          - browser: firefox
+            test-flags: --firefox --headless
+          - browser: node
+            test-flags: --node
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          rustup update
+          rustc --version
+
+      - name: Run tests
+        working-directory: wasm
+        run: |
+          wasm-pack test ${{ matrix.test-flags }}
+
+  wasm-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          rustup update
+          rustc --version
+      - name: Build
+        working-directory: wasm
+        run: |
+          wasm-pack build --scope caolo-game -d out/pkg --dev
+
+      - name: Upload pkg
+        uses: actions/upload-artifact@v2
+        with:
+          name: pkg
+          path: wasm/out/pkg
+
+  wasm-docs:
+    needs: [wasm-package, wasm-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+      - name: Install
+        working-directory: wasm/docs
+        run: |
+          npm install
+      - name: Download pkg
+        uses: actions/download-artifact@v2
+        with:
+          name: pkg
+          path: wasm/out/pkg
+      - name: Build docs
+        working-directory: wasm/docs
+        run: |
+          npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
+
+      - name: Deploy 🚀
+        if: github.ref == 'refs/heads/master'
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+            ACCESS_TOKEN: ${{ secrets.ACCESS_KEY }}
+            BRANCH: gh-pages # The branch the action should deploy to.
+            FOLDER: wasm/out/docs # The folder the action should deploy.
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: stable
+          override: true
+
+      - name: "Setup Python 39"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.9
+
+      - name: "Setup Python 38"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.8
+
+      - name: "Setup Python 36"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 3.6
+
+      - name: "Setup Pypy"
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version: 'pypy-3.8'
+
+      - run: pip install tox
+      - run: tox -q -p auto
+
+  c-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    name: Test C binding builds
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: stable
+          override: true
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.8
+        with:
+          cmake-version: "3.18.x"
+
+      - name: Build project
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCAOLO_ENABLE_TESTING=ON
+          cmake --build .
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --output-on-failure
