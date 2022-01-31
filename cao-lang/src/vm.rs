@@ -374,10 +374,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         Err(ExecutionError::UnexpectedEndOfInput)
     }
 
-    fn binary_op<F>(&mut self, op: F) -> Result<(), ExecutionError>
-    where
-        F: Fn(Value, Value) -> Value,
-    {
+    fn binary_op(&mut self, op: fn(Value, Value) -> Value) -> Result<(), ExecutionError> {
         let b = pop_stack!(self);
         let a = pop_stack!(self);
 
