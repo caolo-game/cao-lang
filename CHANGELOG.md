@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.48
+
+
+### Refactor
+
+- Remove Instruction from the public interface
+
 ## v0.1.42
 
 
