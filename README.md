@@ -9,8 +9,6 @@ The node based "language" that governs the actors in the game CaoLo
 
 [Core documentation](https://docs.rs/cao_lang/)
 
-[WASM package documentation](https://caolo-game.github.io/cao-lang/index.html)
-
 ## Project layout
 
 ```

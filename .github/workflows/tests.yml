@@ -104,36 +104,6 @@ jobs:
           name: pkg
           path: wasm/out/pkg
 
-  wasm-docs:
-    needs: [wasm-package, wasm-test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: '12'
-      - name: Install
-        working-directory: wasm/docs
-        run: |
-          npm install
-      - name: Download pkg
-        uses: actions/download-artifact@v2
-        with:
-          name: pkg
-          path: wasm/out/pkg
-      - name: Build docs
-        working-directory: wasm/docs
-        run: |
-          npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
-
-      - name: Deploy 🚀
-        if: github.ref == 'refs/heads/master'
-        uses: JamesIves/github-pages-deploy-action@releases/v3
-        with:
-            ACCESS_TOKEN: ${{ secrets.ACCESS_KEY }}
-            BRANCH: gh-pages # The branch the action should deploy to.
-            FOLDER: wasm/out/docs # The folder the action should deploy.
-
   python-tests:
     runs-on: ubuntu-latest
     steps:

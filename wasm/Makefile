@@ -1,4 +1,4 @@
-.PHONY: test build release pack publish docs
+.PHONY: test build release pack publish 
 
 build:
 	wasm-pack build --scope caolo-game --dev -d out/pkg
@@ -17,5 +17,3 @@ pack: release
 publish: release
 	cd out/pkg && npm publish --access=public
 
-docs: build
-	cd docs && npx typedoc --inputFiles ../out/pkg/cao_lang_wasm.d.ts
