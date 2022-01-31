@@ -3,7 +3,6 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 const FIB_PROG: &str = include_str!("fibonacci_program.yaml");
 const FIB_RECURSE_PROG: &str = include_str!("fibonacci_program_recursive.yaml");
-const JUMP_PROG: &str = include_str!("jump_program.yaml");
 
 #[allow(unused)]
 fn fib(n: i64) -> i64 {
@@ -15,28 +14,6 @@ fn fib(n: i64) -> i64 {
         b = t;
     }
     b
-}
-
-fn jump_lane(c: &mut Criterion) {
-    c.bench_function("jump_lane", |b| {
-        let cu = serde_yaml::from_str(JUMP_PROG).unwrap();
-        let program = compile(&cu, CompileOptions::new()).unwrap();
-
-        let mut vm = Vm::new(()).unwrap();
-        b.iter(|| {
-            vm.clear();
-            vm.run(&program).unwrap()
-        })
-    });
-}
-
-fn vm_clear(c: &mut Criterion) {
-    c.bench_function("vm_clear", |b| {
-        let mut vm = Vm::new(()).unwrap();
-        b.iter(|| {
-            vm.clear();
-        })
-    });
 }
 
 fn run_fib_recursive(c: &mut Criterion) {
@@ -112,12 +89,6 @@ fn run_fib_iter(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    loop_benches,
-    run_fib_iter,
-    run_fib_recursive,
-    jump_lane,
-    vm_clear
-);
+criterion_group!(loop_benches, run_fib_iter, run_fib_recursive);
 
 criterion_main!(loop_benches);
