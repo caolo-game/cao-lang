@@ -4,11 +4,6 @@ on:
   push:
     tags: "*"
 
-defaults:
-  run:
-    shell: bash
-    working-directory: cao-lang
-
 jobs:
   publish-cratesio:
     name: Publish cao-lang to crates.io
