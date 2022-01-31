@@ -68,7 +68,7 @@ jobs:
 
       # only upload on tags
       - name: "Upload"
-        if: ${{ github.event.ref_type == 'tag' }}
+        if: startsWith(github.event.ref_type, 'reft/tags')
         run: twine upload --skip-existing --verbose dist/*
         env:
           TWINE_USERNAME: __token__
