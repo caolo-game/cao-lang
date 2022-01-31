@@ -1,8 +1,8 @@
 /// Single instruction of the interpreter
 #[derive(Debug, Clone, Copy, Eq, PartialEq, num_enum::TryFromPrimitive)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
-pub enum Instruction {
+pub(crate) enum Instruction {
     /// Add two numbers
     Add,
     /// Subtract two numbers
