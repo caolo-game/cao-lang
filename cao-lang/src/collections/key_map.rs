@@ -294,10 +294,11 @@ where
     fn find_ind(&self, key: Handle) -> usize {
         let len = self.capacity;
         let mut ind = key.0 as usize % len;
+        let ptr = self.keys.as_ptr();
         loop {
             unsafe {
                 debug_assert!(ind < len);
-                let k = *self.keys.as_ptr().add(ind);
+                let k = *ptr.add(ind);
                 if k == key || k.0 == 0 {
                     return ind;
                 }

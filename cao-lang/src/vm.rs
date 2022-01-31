@@ -179,12 +179,13 @@ impl<'a, Aux> Vm<'a, Aux> {
         let mut remaining_iters = self.max_instr;
 
         let mut instr_ptr = 0;
+        let bytecode_ptr = program.bytecode.as_ptr();
         while instr_ptr < len {
             remaining_iters -= 1;
             if remaining_iters == 0 {
                 return Err(ExecutionError::Timeout);
             }
-            let instr: u8 = unsafe { *program.bytecode.as_ptr().add(instr_ptr) };
+            let instr: u8 = unsafe { *bytecode_ptr.add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
             instr_ptr += 1;
             debug!(
