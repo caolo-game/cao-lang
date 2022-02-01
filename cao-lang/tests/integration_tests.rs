@@ -1,9 +1,30 @@
+use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
     compiler::{CallNode, FloatNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
+
+#[test]
+fn test_trace_entry() {
+    let ir = CaoIr {
+        lanes: vec![
+            Lane::default().with_card(Card::Jump(LaneNode::LaneId(1))),
+            Lane::default().with_card(Card::CallNative(Box::new(CallNode(
+                InputString::from_str("non-existent-function").unwrap(),
+            )))),
+        ],
+    };
+    let program = compile(&ir, None).unwrap();
+
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+    let err = vm.run(&program).expect_err("run");
+
+    let trace = err.trace;
+    assert_eq!(trace.lane, 1);
+    assert_eq!(trace.card, 0);
+}
 
 #[test]
 fn test_string_w_utf8() {
@@ -227,7 +248,10 @@ fn local_variable_doesnt_leak_out_of_scope() {
     let mut vm = Vm::new(()).unwrap().with_max_iter(500);
     let res = vm.run(&program);
     let _name = "foo".to_string();
-    assert!(matches!(res, Err(ExecutionError::VarNotFound(_name))));
+    assert!(matches!(
+        res.map_err(|err| err.payload),
+        Err(ExecutionErrorPayload::VarNotFound(_name))
+    ));
 }
 
 #[test]
@@ -345,25 +369,25 @@ fn test_function_registry() {
         call_3: bool,
     }
 
-    fn myfunc0(vm: &mut Vm<State>) -> ExecutionResult {
+    fn myfunc0(vm: &mut Vm<State>) -> Result<(), ExecutionErrorPayload> {
         vm.auxiliary_data.call_0 = true;
         Ok(())
     }
 
-    fn myfunc1(vm: &mut Vm<State>, i: i64) -> ExecutionResult {
+    fn myfunc1(vm: &mut Vm<State>, i: i64) -> Result<(), ExecutionErrorPayload> {
         vm.auxiliary_data.call_1 = true;
         assert_eq!(i, 42);
         Ok(())
     }
 
-    fn myfunc2(vm: &mut Vm<State>, i: i64, j: f64) -> ExecutionResult {
+    fn myfunc2(vm: &mut Vm<State>, i: i64, j: f64) -> Result<(), ExecutionErrorPayload> {
         vm.auxiliary_data.call_2 = true;
         assert_eq!(i, 12);
         assert_eq!(j, 4.2);
         Ok(())
     }
 
-    fn myfunc3(vm: &mut Vm<State>, i: i64, j: f64, b: bool) -> ExecutionResult {
+    fn myfunc3(vm: &mut Vm<State>, i: i64, j: f64, b: bool) -> Result<(), ExecutionErrorPayload> {
         vm.auxiliary_data.call_3 = true;
         assert_eq!(i, 33);
         assert_eq!(j, 2.88);

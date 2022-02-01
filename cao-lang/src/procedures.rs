@@ -1,13 +1,16 @@
 //! Helper module for dealing with function extensions.
 //!
+use std::fmt::Display;
+
 use crate::collections::key_map::Handle;
+use crate::prelude::TraceEntry;
 use crate::traits::VmFunction;
 use thiserror::Error;
 
 pub type ExecutionResult<T = ()> = Result<T, ExecutionError>;
 
 #[derive(Debug, Clone, Error)]
-pub enum ExecutionError {
+pub enum ExecutionErrorPayload {
     #[error("The program has overflown its call stack")]
     CallStackOverflow,
     #[error("Input ended unexpectedly")]
@@ -34,7 +37,7 @@ pub enum ExecutionError {
     #[error("Subtask [{name}] failed {error}")]
     TaskFailure {
         name: String,
-        error: Box<ExecutionError>,
+        error: Box<ExecutionErrorPayload>,
     },
     #[error("The program has overflowns its stack")]
     Stackoverflow,
@@ -44,8 +47,29 @@ pub enum ExecutionError {
     Unhashable,
 }
 
+#[derive(Debug, Clone, Error)]
+pub struct ExecutionError {
+    pub payload: ExecutionErrorPayload,
+    pub trace: TraceEntry,
+}
+
 impl ExecutionError {
-    pub fn invalid_argument<S: Into<Option<String>>>(reason: S) -> Self {
+    pub fn new(payload: ExecutionErrorPayload, trace: TraceEntry) -> Self {
+        Self { payload, trace }
+    }
+}
+
+impl Display for ExecutionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ExecutionError: {}", self.payload)
+    }
+}
+
+impl ExecutionErrorPayload {
+    pub fn invalid_argument<S>(reason: S) -> Self
+    where
+        S: Into<Option<String>>,
+    {
         Self::InvalidArgument {
             context: reason.into(),
         }

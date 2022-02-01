@@ -62,31 +62,31 @@ impl FieldTable {
         self.values.get_mut(handle)
     }
 
-    pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionError> {
+    pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionErrorPayload> {
         let handle = Self::hash_value(key)?;
         self.keys
             .insert(handle, key)
-            .map_err(|_| ExecutionError::OutOfMemory)?;
+            .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
         self.values
             .insert(handle, value)
-            .map_err(|_| ExecutionError::OutOfMemory)?;
+            .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
 
         Ok(())
     }
 
-    fn hash_value(key: Value) -> Result<Handle, ExecutionError> {
+    fn hash_value(key: Value) -> Result<Handle, ExecutionErrorPayload> {
         let handle = match key {
             Value::Nil => Handle::default(),
             Value::String(s) => {
                 let s = unsafe {
                     s.get_str().ok_or_else(|| {
-                        ExecutionError::invalid_argument("String not found".to_string())
+                        ExecutionErrorPayload::invalid_argument("String not found".to_string())
                     })?
                 };
                 Handle::from_str(s).unwrap()
             }
             Value::Integer(i) => Handle::from(i),
-            Value::Floating(_) | Value::Object(_) => return Err(ExecutionError::Unhashable),
+            Value::Floating(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
         };
         Ok(handle)
     }
@@ -121,7 +121,7 @@ impl RuntimeData {
         memory_capacity: usize,
         stack_size: usize,
         call_stack_size: usize,
-    ) -> Result<Self, ExecutionError> {
+    ) -> Result<Self, ExecutionErrorPayload> {
         let memory: BumpProxy = BumpAllocator::new(memory_capacity).into();
         let res = Self {
             stack: ValueStack::new(stack_size),
@@ -133,19 +133,19 @@ impl RuntimeData {
     }
 
     /// Initialize a new cao-lang table and return a pointer to it
-    pub fn init_table(&mut self) -> Result<NonNull<FieldTable>, ExecutionError> {
+    pub fn init_table(&mut self) -> Result<NonNull<FieldTable>, ExecutionErrorPayload> {
         unsafe {
             let alloc = self.memory.clone();
             let table = FieldTable::with_capacity(16, alloc).map_err(|err| {
                 debug!("Failed to init table {:?}", err);
-                ExecutionError::OutOfMemory
+                ExecutionErrorPayload::OutOfMemory
             })?;
             let table_ptr = self
                 .memory
                 .alloc(Layout::new::<FieldTable>())
                 .map_err(|err| {
                     debug!("Failed to allocate table {:?}", err);
-                    ExecutionError::OutOfMemory
+                    ExecutionErrorPayload::OutOfMemory
                 })?;
 
             std::ptr::write(table_ptr.as_ptr() as *mut FieldTable, table);
@@ -172,13 +172,13 @@ impl RuntimeData {
     }
 
     /// Types implementing Drop are not supported, thus the `Copy` bound
-    pub fn write_to_memory<T: Sized + Copy>(&mut self, val: T) -> Result<*mut T, ExecutionError> {
+    pub fn write_to_memory<T: Sized + Copy>(&mut self, val: T) -> Result<*mut T, ExecutionErrorPayload> {
         let l = std::alloc::Layout::new::<T>();
         unsafe {
             let ptr = self
                 .memory
                 .alloc(l)
-                .map_err(|_| ExecutionError::OutOfMemory)?;
+                .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
 
             std::ptr::write(ptr.as_ptr() as *mut T, val);
             Ok(ptr.as_ptr() as *mut T)

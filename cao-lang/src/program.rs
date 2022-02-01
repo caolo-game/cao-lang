@@ -1,7 +1,7 @@
 #[cfg(feature = "serde")]
 mod serde_impl;
 
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     collections::key_map::{Handle, KeyMap},
@@ -35,6 +35,14 @@ impl Label {
     }
 }
 
+/// Identifies a card in the program
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct TraceEntry {
+    pub lane: i32,
+    pub card: i32,
+}
+
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoProgram {
@@ -45,6 +53,7 @@ pub struct CaoProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
+    pub trace: HashMap<usize, TraceEntry>,
 }
 
 impl CaoProgram {
@@ -64,6 +73,7 @@ impl Default for CaoProgram {
             labels: Default::default(),
             variables: Default::default(),
             cao_lang_version: (version::MAJOR, version::MINOR, version::PATCH),
+            trace: Default::default(),
         }
     }
 }

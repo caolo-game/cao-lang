@@ -5,8 +5,7 @@ use tracing::debug;
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
     collections::key_map::Handle,
-    procedures::ExecutionError,
-    procedures::ExecutionResult,
+    procedures::ExecutionErrorPayload,
     program::CaoProgram,
     traits::MAX_STR_LEN,
     value::Value,
@@ -36,6 +35,8 @@ pub unsafe fn decode_value<T: TriviallyEncodable>(bytes: &[u8], instr_ptr: &mut 
     val
 }
 
+type ExecutionResult = Result<(), ExecutionErrorPayload>;
+
 pub fn instr_read_var(
     runtime_data: &mut RuntimeData,
     instr_ptr: &mut usize,
@@ -46,7 +47,7 @@ pub fn instr_read_var(
         .global_vars
         .get(varid as usize)
         .ok_or_else(|| {
-            ExecutionError::VarNotFound(
+            ExecutionErrorPayload::VarNotFound(
                 program
                     .variables
                     .names
@@ -58,7 +59,7 @@ pub fn instr_read_var(
     runtime_data
         .stack
         .push(*value)
-        .map_err(|_| ExecutionError::Stackoverflow)?;
+        .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
     Ok(())
 }
 
@@ -85,7 +86,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
         Value::String(s) => {
             let st = unsafe {
                 s.get_str().ok_or_else(|| {
-                    ExecutionError::invalid_argument("String not found".to_string())
+                    ExecutionErrorPayload::invalid_argument("String not found".to_string())
                 })?
             };
             st.len() as i64
@@ -106,7 +107,7 @@ pub fn instr_string_literal<T>(
 ) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let payload = read_str(&mut (handle as usize), program.data.as_slice())
-        .ok_or_else(|| ExecutionError::invalid_argument(None))?;
+        .ok_or_else(|| ExecutionErrorPayload::invalid_argument(None))?;
 
     let ptr = vm.init_string(payload)?;
     vm.stack_push(Value::String(ptr))?;
@@ -138,9 +139,9 @@ pub fn instr_jump(
                 .stack
                 .len()
                 .checked_sub(argcount as usize)
-                .ok_or(ExecutionError::MissingArgument)?,
+                .ok_or(ExecutionErrorPayload::MissingArgument)?,
         })
-        .map_err(|_| ExecutionError::CallStackOverflow)?;
+        .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
 
     // set the instr_ptr to the new lane's beginning
     *instr_ptr = program.labels.0.get(label).expect("Label not found").pos as usize;
@@ -152,11 +153,11 @@ pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -
     let procedure = vm
         .callables
         .remove(fun_hash)
-        .ok_or(ExecutionError::ProcedureNotFound(fun_hash))?;
+        .ok_or(ExecutionErrorPayload::ProcedureNotFound(fun_hash))?;
     let res = procedure
         .fun
         .call(vm)
-        .map_err(|err| ExecutionError::TaskFailure {
+        .map_err(|err| ExecutionErrorPayload::TaskFailure {
             name: procedure.name.clone(),
             error: Box::new(err),
         });
@@ -180,7 +181,7 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .stack
         .set(offset + handle as usize, value)
         .map_err(|err| {
-            ExecutionError::VarNotFound(format!("Failed to set local variable: {}", err))
+            ExecutionErrorPayload::VarNotFound(format!("Failed to set local variable: {}", err))
         })?;
     Ok(())
 }
@@ -204,7 +205,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
         // return value
         Some(rt) => vm.runtime_data.stack.clear_until(rt.stack_offset),
         None => {
-            return Err(ExecutionError::BadReturn {
+            return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Call stack is empty".to_string(),
             })
         }
@@ -215,7 +216,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
             *instr_ptr = *ptr;
         }
         None => {
-            return Err(ExecutionError::BadReturn {
+            return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Failed to find return address".to_string(),
             });
         }
@@ -228,10 +229,10 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
 pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let n = vm.runtime_data.stack.last();
     let n = i64::try_from(n).map_err(|_| {
-        ExecutionError::invalid_argument("Repeat input must be an integer".to_string())
+        ExecutionErrorPayload::invalid_argument("Repeat input must be an integer".to_string())
     })?;
     if n < 0 {
-        return Err(ExecutionError::invalid_argument(
+        return Err(ExecutionErrorPayload::invalid_argument(
             "Repeat input must be non-negative".to_string(),
         ));
     }
@@ -241,7 +242,7 @@ pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
 }
 
 /// return if the loop should continue
-pub fn repeat<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
+pub fn repeat<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
     let i = vm.stack_pop();
     let i = i64::try_from(i).expect("Repeat input `I` must be an integer");
     let n = vm.runtime_data.stack.last();
@@ -266,7 +267,7 @@ pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
     vm.runtime_data
         .stack
         .push(val)
-        .map_err(|_| ExecutionError::Stackoverflow)?;
+        .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
 
     Ok(())
 }
@@ -289,7 +290,7 @@ pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
 ///
 /// Pushes the next key and the object onto the stack. Assumes that the lane takes these as
 /// parameters.
-pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
+pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
     let i = vm.stack_pop();
     let obj_val = vm.runtime_data.stack.peek_last(0);
 
@@ -305,7 +306,7 @@ pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionError> {
     let should_continue = 0 <= i && i < n;
     if should_continue {
         let key = obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
-            ExecutionError::invalid_argument(format!(
+            ExecutionErrorPayload::invalid_argument(format!(
                 "ForEach can not find the `i`th argument. i: {} n: {}\nDid you remove items during iteration?",
                 i, n
             ))

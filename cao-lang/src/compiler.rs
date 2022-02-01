@@ -14,6 +14,7 @@ use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::key_map::{Handle, KeyMap},
     instruction::instruction_span,
+    prelude::TraceEntry,
     program::{CaoProgram, Label},
     Instruction, NodeId, VarName, VariableId,
 };
@@ -49,7 +50,7 @@ pub struct Compiler<'a> {
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
-    current_lane: LaneNode,
+    current_lane: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -84,14 +85,14 @@ impl<'a> Default for Compiler<'a> {
 impl<'a> Compiler<'a> {
     pub fn new() -> Self {
         Compiler {
-            program: CaoProgram::default(),
-            jump_table: Default::default(),
             options: Default::default(),
+            program: CaoProgram::default(),
             next_var: RefCell::new(VariableId(0)),
+            jump_table: Default::default(),
             locals: Default::default(),
             scope_depth: 0,
-            current_lane: LaneNode::LaneId(0),
             current_card: -1,
+            current_lane: 0,
         }
     }
 
@@ -123,7 +124,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn error(&self, pl: CompilationErrorPayload) -> CompilationError {
-        CompilationError::with_loc(pl, self.current_lane.clone(), self.current_card)
+        CompilationError::with_loc(pl, LaneNode::LaneId(self.current_lane), self.current_card)
     }
 
     /// build the jump table and consume the lane names
@@ -138,7 +139,7 @@ impl<'a> Compiler<'a> {
         let mut num_cards = 0usize;
         self.current_card = -1;
         for (i, n) in compilation_unit.lanes.iter().enumerate() {
-            self.current_lane = LaneNode::LaneId(i);
+            self.current_lane = i;
 
             let indexkey = Handle::from_i64(i as i64);
             assert!(!self.jump_table.contains(indexkey));
@@ -213,7 +214,7 @@ impl<'a> Compiler<'a> {
             self.process_lane(il, lane, 1)?;
 
             self.scope_end();
-            self.program.bytecode.push(Instruction::Return as u8);
+            self.push_instruction(Instruction::Return);
         }
 
         Ok(())
@@ -236,7 +237,7 @@ impl<'a> Compiler<'a> {
             // we can clean up a bit.
             // Note that this might leave garbage values on the stack,
             // but the VM clears those on Returns.
-            self.program.bytecode.push(Instruction::Pop as u8);
+            self.push_instruction(Instruction::Pop);
         }
     }
 
@@ -261,7 +262,7 @@ impl<'a> Compiler<'a> {
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
-        self.current_lane = LaneNode::LaneId(il);
+        self.current_lane = il;
         self.current_card = -1;
 
         // check if len fits in 16 bits
@@ -298,11 +299,11 @@ impl<'a> Compiler<'a> {
             ),
             "invalid skip instruction"
         );
-        self.program.bytecode.push(skip_instr as u8);
+        self.push_instruction(skip_instr);
         let pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
         debug_assert_eq!(std::mem::size_of_val(&pos), 4);
         write_to_vec(pos, &mut self.program.bytecode);
-        self.program.bytecode.push(Instruction::CallLane as u8);
+        self.push_instruction(Instruction::CallLane);
         self.encode_jump(lane)?;
         Ok(())
     }
@@ -348,7 +349,7 @@ impl<'a> Compiler<'a> {
 
         if let Some(instr) = card.instruction() {
             // instruction itself
-            self.program.bytecode.push(instr as u8);
+            self.push_instruction(instr);
         }
         match card {
             Card::ForEach { variable, lane } => {
@@ -361,12 +362,12 @@ impl<'a> Compiler<'a> {
                     }));
                 }
                 self.read_var_card(variable)?;
-                self.program.bytecode.push(Instruction::BeginForEach as u8);
+                self.push_instruction(Instruction::BeginForEach);
                 let block_begin = self.program.bytecode.len() as i32;
-                self.program.bytecode.push(Instruction::ForEach as u8);
+                self.push_instruction(Instruction::ForEach);
                 self.encode_jump(lane)?;
                 // return to the repeat instruction
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                self.push_instruction(Instruction::GotoIfTrue);
                 write_to_vec(block_begin, &mut self.program.bytecode);
             }
             // TODO: blocked by lane ABI
@@ -382,12 +383,12 @@ impl<'a> Compiler<'a> {
                         msg: Some("Repeat lanes need to have 1 parameter".to_string()),
                     }));
                 }
-                self.program.bytecode.push(Instruction::BeginRepeat as u8);
+                self.push_instruction(Instruction::BeginRepeat);
                 let block_begin = self.program.bytecode.len() as i32;
-                self.program.bytecode.push(Instruction::Repeat as u8);
+                self.push_instruction(Instruction::Repeat);
                 self.encode_jump(repeat)?;
                 // return to the repeat instruction
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                self.push_instruction(Instruction::GotoIfTrue);
                 write_to_vec(block_begin, &mut self.program.bytecode);
             }
             Card::ReadVar(variable) => {
@@ -396,7 +397,7 @@ impl<'a> Compiler<'a> {
             Card::SetVar(var) => {
                 let index = self.locals.len() as u32;
                 self.add_local(*var.0)?;
-                self.program.bytecode.push(Instruction::SetLocalVar as u8);
+                self.push_instruction(Instruction::SetLocalVar);
                 write_to_vec(index, &mut self.program.bytecode);
             }
             Card::SetGlobalVar(variable) => {
@@ -428,7 +429,7 @@ impl<'a> Compiler<'a> {
                 r#else: else_lane,
             } => {
                 // if true jump to then (2nd item) else execute 1st item then jump over the 2nd
-                self.program.bytecode.push(Instruction::GotoIfTrue as u8);
+                self.push_instruction(Instruction::GotoIfTrue);
                 let pos = instruction_span(Instruction::Goto)
                     + instruction_span(Instruction::CallLane)
                     + self.program.bytecode.len() as i32
@@ -436,16 +437,16 @@ impl<'a> Compiler<'a> {
                 debug_assert_eq!(std::mem::size_of_val(&pos), 4);
                 write_to_vec(pos, &mut self.program.bytecode);
                 // else
-                self.program.bytecode.push(Instruction::CallLane as u8);
+                self.push_instruction(Instruction::CallLane);
                 self.encode_jump(else_lane)?;
 
-                self.program.bytecode.push(Instruction::Goto as u8);
+                self.push_instruction(Instruction::Goto);
                 let pos = instruction_span(Instruction::CallLane)
                     + self.program.bytecode.len() as i32
                     + 4; // +4 == sizeof pos
                 write_to_vec(pos, &mut self.program.bytecode);
                 // then
-                self.program.bytecode.push(Instruction::CallLane as u8);
+                self.push_instruction(Instruction::CallLane);
                 self.encode_jump(then_lane)?;
             }
             Card::IfFalse(jmp) => {
@@ -514,16 +515,17 @@ impl<'a> Compiler<'a> {
                     *next_var = VariableId(id.0 + 1);
                     id
                 });
+            let id = *id;
             self.program
                 .variables
                 .names
-                .entry(*id)
+                .entry(id)
                 .or_insert_with(|| *variable.0);
-            self.program.bytecode.push(Instruction::ReadGlobalVar as u8);
-            write_to_vec(*id, &mut self.program.bytecode);
+            self.push_instruction(Instruction::ReadGlobalVar);
+            write_to_vec(id, &mut self.program.bytecode);
         } else {
             //local
-            self.program.bytecode.push(Instruction::ReadLocalVar as u8);
+            self.push_instruction(Instruction::ReadLocalVar);
             let index = scope as u32;
             write_to_vec(index, &mut self.program.bytecode);
         }
@@ -535,5 +537,16 @@ impl<'a> Compiler<'a> {
             return Err(self.error(CompilationErrorPayload::EmptyVariable));
         }
         Ok(())
+    }
+
+    fn push_instruction(&mut self, instruction: Instruction) {
+        self.program.trace.insert(
+            self.program.bytecode.len(),
+            TraceEntry {
+                lane: self.current_lane as i32,
+                card: self.current_card,
+            },
+        );
+        self.program.bytecode.push(instruction as u8);
     }
 }
