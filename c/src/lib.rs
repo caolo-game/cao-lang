@@ -221,50 +221,50 @@ pub unsafe extern "C" fn cao_run_program(
 
     match vm.run(program) {
         Ok(_) => {}
-        Err(err) => match err {
-            cao_lang::procedures::ExecutionError::CallStackOverflow => {
+        Err(err) => match err.payload {
+            cao_lang::procedures::ExecutionErrorPayload::CallStackOverflow => {
                 return ExecutionResult::cao_ExecutionResult_CallStackOverflow
             }
-            cao_lang::procedures::ExecutionError::UnexpectedEndOfInput => {
+            cao_lang::procedures::ExecutionErrorPayload::UnexpectedEndOfInput => {
                 return ExecutionResult::cao_ExecutionResult_UnexpectedEndOfInput
             }
-            cao_lang::procedures::ExecutionError::ExitCode(_) => {
+            cao_lang::procedures::ExecutionErrorPayload::ExitCode(_) => {
                 return ExecutionResult::cao_ExecutionResult_ExitCode
             }
-            cao_lang::procedures::ExecutionError::InvalidInstruction(_) => {
+            cao_lang::procedures::ExecutionErrorPayload::InvalidInstruction(_) => {
                 return ExecutionResult::cao_ExecutionResult_InvalidInstruction
             }
-            cao_lang::procedures::ExecutionError::InvalidArgument { .. } => {
+            cao_lang::procedures::ExecutionErrorPayload::InvalidArgument { .. } => {
                 return ExecutionResult::cao_ExecutionResult_InvalidArgument
             }
-            cao_lang::procedures::ExecutionError::VarNotFound(_) => {
+            cao_lang::procedures::ExecutionErrorPayload::VarNotFound(_) => {
                 return ExecutionResult::cao_ExecutionResult_VarNotFound
             }
-            cao_lang::procedures::ExecutionError::ProcedureNotFound(_) => {
+            cao_lang::procedures::ExecutionErrorPayload::ProcedureNotFound(_) => {
                 return ExecutionResult::cao_ExecutionResult_ProcedureNotFound
             }
-            cao_lang::procedures::ExecutionError::Unimplemented => {
+            cao_lang::procedures::ExecutionErrorPayload::Unimplemented => {
                 return ExecutionResult::cao_ExecutionResult_Unimplemented
             }
-            cao_lang::procedures::ExecutionError::OutOfMemory => {
+            cao_lang::procedures::ExecutionErrorPayload::OutOfMemory => {
                 return ExecutionResult::cao_ExecutionResult_OutOfMemory
             }
-            cao_lang::procedures::ExecutionError::MissingArgument => {
+            cao_lang::procedures::ExecutionErrorPayload::MissingArgument => {
                 return ExecutionResult::cao_ExecutionResult_MissingArgument
             }
-            cao_lang::procedures::ExecutionError::Timeout => {
+            cao_lang::procedures::ExecutionErrorPayload::Timeout => {
                 return ExecutionResult::cao_ExecutionResult_Timeout
             }
-            cao_lang::procedures::ExecutionError::TaskFailure { .. } => {
+            cao_lang::procedures::ExecutionErrorPayload::TaskFailure { .. } => {
                 return ExecutionResult::cao_ExecutionResult_TaskFailure
             }
-            cao_lang::procedures::ExecutionError::Stackoverflow => {
+            cao_lang::procedures::ExecutionErrorPayload::Stackoverflow => {
                 return ExecutionResult::cao_ExecutionResult_Stackoverflow
             }
-            cao_lang::procedures::ExecutionError::BadReturn { .. } => {
+            cao_lang::procedures::ExecutionErrorPayload::BadReturn { .. } => {
                 return ExecutionResult::cao_ExecutionResult_BadReturn
             }
-            cao_lang::procedures::ExecutionError::Unhashable => {
+            cao_lang::procedures::ExecutionErrorPayload::Unhashable => {
                 return ExecutionResult::cao_ExecutionResult_Unhashable
             }
         },
