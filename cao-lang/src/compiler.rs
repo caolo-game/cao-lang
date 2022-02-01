@@ -193,20 +193,18 @@ impl<'a> Compiler<'a> {
         }
 
         for (il, lane) in lanes {
-            {
-                let nodeid = NodeId {
-                    lane: il as u16,
-                    pos: 0,
-                };
-                let nodeid_hash = Handle::from_u32(nodeid.into());
-                let handle = u32::try_from(self.program.bytecode.len())
-                    .expect("bytecode length to fit into 32 bits");
-                self.program
-                    .labels
-                    .0
-                    .insert(nodeid_hash, Label::new(handle))
-                    .unwrap();
-            }
+            let nodeid = NodeId {
+                lane: il as u16,
+                pos: 0,
+            };
+            let nodeid_hash = Handle::from_u32(nodeid.into());
+            let handle = u32::try_from(self.program.bytecode.len())
+                .expect("bytecode length to fit into 32 bits");
+            self.program
+                .labels
+                .0
+                .insert(nodeid_hash, Label::new(handle))
+                .unwrap();
 
             self.scope_begin();
 

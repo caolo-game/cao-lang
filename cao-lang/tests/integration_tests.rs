@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, FloatNode, IntegerNode, LaneNode, StringNode, VarNode},
+    compiler::{CallNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
 
@@ -452,7 +452,9 @@ fn jump_lane_w_params_test() {
             Lane::default()
                 .with_name("main")
                 .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::ScalarFloat(FloatNode(6.9)))
+                .with_card(Card::StringLiteral(StringNode(
+                    "winnie the pooh".to_owned(),
+                )))
                 .with_card(Card::Jump(LaneNode::LaneId(1))),
             Lane::default()
                 .with_arg("foo")
@@ -477,7 +479,10 @@ fn jump_lane_w_params_test() {
     dbg!(foo, bar);
     assert!(matches!(foo, Value::Integer(42)));
     match bar {
-        Value::Floating(f) => assert!((f - 6.9).abs() < std::f64::EPSILON),
+        Value::String(s) => unsafe {
+            let val = s.get_str().unwrap();
+            assert_eq!(val, "winnie the pooh");
+        },
         _ => panic!("Unexpected value set for bar {:?}", bar),
     }
 }
