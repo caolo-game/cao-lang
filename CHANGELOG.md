@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.50
+
+
+### Features
+
+- Add traces to runtime errors
+
 ## v0.1.48
 
 
