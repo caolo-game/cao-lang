@@ -241,6 +241,7 @@ impl<'a> Compiler<'a> {
         }
     }
 
+    /// add a local variable
     fn add_local(&mut self, name: VarName) -> CompilationResult<()> {
         self.validate_var_name(&name)?;
         self.locals
