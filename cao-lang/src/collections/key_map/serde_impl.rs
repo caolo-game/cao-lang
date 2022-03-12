@@ -1,5 +1,5 @@
 use super::*;
-use ::serde::{
+use serde::{
     de::Visitor,
     de::{self, SeqAccess},
     ser::SerializeStruct,
@@ -48,8 +48,8 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for PhmVisitor<T> {
         A: ::serde::de::MapAccess<'de>,
     {
         let mut values = None;
-        while let Some(key) = map.next_key()? {
-            match key {
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
                 "values" => {
                     values = map.next_value()?;
                 }
@@ -106,6 +106,20 @@ mod tests {
         let payload = bincode::serialize(&map).unwrap();
 
         let map2: KeyMap<i32> = bincode::deserialize(&payload).unwrap();
+
+        let res = map2.get(Handle(123)).unwrap();
+        assert_eq!(*res, 69);
+    }
+
+    #[test]
+    fn can_serialize_cbor() {
+        let mut map = KeyMap::default();
+        map.insert(Handle(123), 69).unwrap();
+
+        let mut payload = Vec::new();
+        ciborium::ser::into_writer(&map, &mut payload).unwrap();
+
+        let map2: KeyMap<i32> = ciborium::de::from_reader(&payload[..]).unwrap();
 
         let res = map2.get(Handle(123)).unwrap();
         assert_eq!(*res, 69);
