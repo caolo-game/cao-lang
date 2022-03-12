@@ -10,7 +10,7 @@
 //!
 
 #[cfg(feature = "serde")]
-mod serde;
+mod serde_impl;
 
 #[cfg(test)]
 mod tests;
@@ -18,7 +18,7 @@ mod tests;
 use crate::alloc::{Allocator, SysAllocator};
 
 #[cfg(feature = "serde")]
-pub use self::serde::*;
+pub use self::serde_impl::*;
 
 use std::{
     alloc::Layout,
