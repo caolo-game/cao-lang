@@ -1,5 +1,10 @@
 # Changelog
-## v0.1.50
+## v0.1.51
+
+
+### Bug Fixes
+
+- Fix binary serialization of KeyMap
 
 
 ### Features
