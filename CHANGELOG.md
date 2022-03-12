@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.52
+
+
+### Bug Fixes
+
+- Fix cbor serialization of KeyMap
+
 ## v0.1.51
 
 
