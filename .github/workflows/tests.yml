@@ -138,18 +138,14 @@ jobs:
       - name: "Setup Pypy"
         uses: actions/setup-python@v2.2.1
         with:
-          python-version: 'pypy-3.8'
+          python-version: "pypy-3.8"
 
       - run: pip install tox
       - run: tox -q -p auto
 
   c-test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
     name: Test C binding builds
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
