@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.55
+
+
+### Bug Fixes
+
+- Remove custom deserialization for Variable names
+
+
+### Refactor
+
+- Replace variable names HashMap with KeyMap
+
 ## v0.1.54
 
 
