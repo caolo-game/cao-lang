@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.54
+
+
+### Bug Fixes
+
+- Use power of two capacity when deserializing
+
 ## v0.1.53
 
 
