@@ -51,7 +51,7 @@ pub fn instr_read_var(
                 program
                     .variables
                     .names
-                    .get(&VariableId(varid))
+                    .get(Handle::from_u32(varid))
                     .map(|x| x.to_string())
                     .unwrap_or_else(|| "<<<Unknown variable>>>".to_string()),
             )

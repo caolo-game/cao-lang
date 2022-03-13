@@ -14,8 +14,7 @@ pub struct Labels(pub KeyMap<Label>);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Variables {
     pub ids: KeyMap<VariableId>,
-    /// maps the variableIds back to names for debugging purposes
-    pub names: std::collections::HashMap<VariableId, VarName>,
+    pub names: KeyMap<VarName>,
 }
 
 #[derive(Debug, Clone, Default)]

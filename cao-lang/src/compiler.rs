@@ -419,7 +419,7 @@ impl<'a> Compiler<'a> {
                 self.program
                     .variables
                     .names
-                    .entry(*id)
+                    .entry(Handle::from_u32(id.0))
                     .or_insert_with(move || *variable.0);
                 write_to_vec(*id, &mut self.program.bytecode);
             }
@@ -518,7 +518,7 @@ impl<'a> Compiler<'a> {
             self.program
                 .variables
                 .names
-                .entry(id)
+                .entry(Handle::from_u32(id.0))
                 .or_insert_with(|| *variable.0);
             self.push_instruction(Instruction::ReadGlobalVar);
             write_to_vec(id, &mut self.program.bytecode);
