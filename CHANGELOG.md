@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.53
+
+
+### Bug Fixes
+
+- Yet more map serialization
+
 ## v0.1.52
 
 
