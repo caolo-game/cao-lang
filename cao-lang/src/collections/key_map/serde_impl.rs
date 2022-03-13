@@ -29,9 +29,11 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for KeyMapVisitor<T> {
     where
         A: ::serde::de::MapAccess<'de>,
     {
-        let mut res =
-            KeyMap::with_capacity(map.size_hint().unwrap_or(128), SysAllocator::default())
-                .expect("oom");
+        let mut cap = map.size_hint().unwrap_or(128);
+        if !cap.is_power_of_two() {
+            cap = cap.next_power_of_two();
+        }
+        let mut res = KeyMap::with_capacity(cap, SysAllocator::default()).expect("oom");
         while let Some((k, v)) = map.next_entry()? {
             res.insert(k, v).expect("oom");
         }
