@@ -17,7 +17,7 @@ fn lane_names_must_be_unique() {
 }
 
 #[test]
-fn can_json_de_serialize_output() {
+fn can_binary_de_serialize_output() {
     let cu = CaoIr {
         lanes: vec![Lane::default().with_name("Foo").with_cards(vec![
             Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
@@ -28,9 +28,9 @@ fn can_json_de_serialize_output() {
 
     let prog = compile(&cu, CompileOptions::new()).unwrap();
 
-    let ser = serde_json::to_string(&prog).unwrap();
+    let pl = bincode::serialize(&prog).unwrap();
 
-    let _prog: CaoProgram = serde_json::from_str(&ser).unwrap();
+    let _prog: CaoProgram = bincode::deserialize(&pl[..]).unwrap();
 }
 
 #[test]
