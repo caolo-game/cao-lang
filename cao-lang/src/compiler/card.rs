@@ -56,8 +56,6 @@ pub enum Card {
 impl Card {
     pub fn name(&self) -> &'static str {
         match self {
-            // Card::GetByKey => "GetByKey",
-            // Card::SetByKey => "SetByKey",
             Card::SetVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
             Card::Add => "Add",
