@@ -534,6 +534,8 @@ fn len_test_happy() {
             .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
             .with_card(Card::ScalarInt(IntegerNode(42)))
             .with_card(Card::SetProperty)
+            // len
+            .with_card(Card::ReadVar(t.clone()))
             .with_card(Card::Len)
             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))],
     };
