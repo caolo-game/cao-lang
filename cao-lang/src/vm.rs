@@ -221,9 +221,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|err| payload_to_error(err, instr_ptr))?;
                 }
                 Instruction::SetProperty => {
-                    let value = self.stack_pop();
-                    let key = self.stack_pop();
-                    let instance = self.stack_pop();
+                    let [value, key, instance] = self.runtime_data.stack.pop_n::<3>();
                     let table = self
                         .get_table_mut(instance)
                         .map_err(|err| payload_to_error(err, instr_ptr))?;

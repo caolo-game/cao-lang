@@ -55,6 +55,7 @@ impl ValueStack {
         }
     }
 
+    #[inline]
     pub fn clear(&mut self) {
         self.count = 0;
         self.data[0] = Value::Nil; // in case the stack is popped when empty
@@ -69,10 +70,21 @@ impl ValueStack {
     #[inline]
     pub fn pop(&mut self) -> Value {
         let count = self.count.saturating_sub(1);
-        let s = self.data[count];
+        let value = self.data[count];
         self.count = count;
         self.data[self.count] = Value::Nil;
-        s
+        value
+    }
+
+    #[inline]
+    pub fn pop_n<const N: usize>(&mut self) -> [Value; N] {
+        let mut result = [Value::Nil; N];
+        let n = self.count.min(N);
+        for i in 0..n {
+            result[i] = self.data[self.count - i - 1];
+        }
+        self.count -= n;
+        result
     }
 
     /// Pop value, treating offset as the 0 position
@@ -155,6 +167,25 @@ impl ValueStack {
             self.data[self.count - n - 1]
         } else {
             Value::Nil
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pop_n_not_enough_in_stack_test() {
+        let mut stack = ValueStack::new(4);
+        stack.push(Value::Integer(42)).unwrap();
+
+        let result = stack.pop_n::<8>();
+
+        assert_eq!(result.len(), 8);
+        assert_eq!(result[0], Value::Integer(42));
+        for i in 1..8 {
+            assert!(result[i].is_null());
         }
     }
 }
