@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.56
+
+
+### Bug Fixes
+
+- Undefined behaviour when decoding trivial structs
+
+- Fix memory leak when using Tables
+
+
+### Refactor
+
+- Return error on invalid key in KeyMaps
+
 ## v0.1.55
 
 
