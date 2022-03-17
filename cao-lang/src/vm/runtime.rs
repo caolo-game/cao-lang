@@ -107,6 +107,18 @@ pub struct RuntimeData {
     pub(crate) call_stack: BoundedStack<CallFrame>,
     pub(crate) global_vars: Vec<Value>,
     pub(crate) memory: BumpProxy,
+    pub(crate) object_list: Vec<NonNull<FieldTable>>,
+}
+
+impl Drop for RuntimeData {
+    fn drop(&mut self) {
+        // drop objects, ensuring proper destruction
+        for obj in self.object_list.iter_mut() {
+            unsafe {
+                std::ptr::drop_in_place(obj.as_ptr());
+            }
+        }
+    }
 }
 
 pub(crate) struct CallFrame {
@@ -127,6 +139,7 @@ impl RuntimeData {
             stack: ValueStack::new(stack_size),
             call_stack: BoundedStack::new(call_stack_size),
             global_vars: Vec::with_capacity(16),
+            object_list: Vec::with_capacity(16),
             memory,
         };
         Ok(res)
@@ -135,11 +148,6 @@ impl RuntimeData {
     /// Initialize a new cao-lang table and return a pointer to it
     pub fn init_table(&mut self) -> Result<NonNull<FieldTable>, ExecutionErrorPayload> {
         unsafe {
-            let alloc = self.memory.clone();
-            let table = FieldTable::with_capacity(16, alloc).map_err(|err| {
-                debug!("Failed to init table {:?}", err);
-                ExecutionErrorPayload::OutOfMemory
-            })?;
             let table_ptr = self
                 .memory
                 .alloc(Layout::new::<FieldTable>())
@@ -147,10 +155,16 @@ impl RuntimeData {
                     debug!("Failed to allocate table {:?}", err);
                     ExecutionErrorPayload::OutOfMemory
                 })?;
+            let table = FieldTable::with_capacity(16, self.memory.clone()).map_err(|err| {
+                debug!("Failed to init table {:?}", err);
+                ExecutionErrorPayload::OutOfMemory
+            })?;
 
-            std::ptr::write(table_ptr.as_ptr() as *mut FieldTable, table);
+            let table_ptr: NonNull<FieldTable> = std::mem::transmute(table_ptr);
+            std::ptr::write(table_ptr.as_ptr(), table);
+            self.object_list.push(table_ptr);
 
-            Ok(std::mem::transmute(table_ptr))
+            Ok(table_ptr)
         }
     }
 
@@ -172,7 +186,10 @@ impl RuntimeData {
     }
 
     /// Types implementing Drop are not supported, thus the `Copy` bound
-    pub fn write_to_memory<T: Sized + Copy>(&mut self, val: T) -> Result<*mut T, ExecutionErrorPayload> {
+    pub fn write_to_memory<T: Sized + Copy>(
+        &mut self,
+        val: T,
+    ) -> Result<*mut T, ExecutionErrorPayload> {
         let l = std::alloc::Layout::new::<T>();
         unsafe {
             let ptr = self

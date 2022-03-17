@@ -396,7 +396,7 @@ where
 
     #[inline]
     fn grow(&mut self) -> Result<(), MapError> {
-        let new_cap = self.capacity.max(2) * 3 / 2;
+        let new_cap = (self.capacity.max(2) * 3) / 2;
         debug_assert!(new_cap > self.capacity);
         unsafe { self.adjust_capacity(new_cap) }
     }
