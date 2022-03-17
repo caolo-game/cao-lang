@@ -60,6 +60,8 @@ where
 pub enum MapError {
     #[error("Failed to allocate memory {0}")]
     AllocError(crate::alloc::AllocError),
+    #[error("0 keys mean unintialized entries")]
+    InvalidHandle,
 }
 
 pub struct Entry<'a, T> {
@@ -223,7 +225,7 @@ where
         let new_cap = capacity + self.count;
         if new_cap > self.capacity {
             unsafe {
-                self.adjust_size((new_cap as f32 * (1.0 + MAX_LOAD)) as usize)?;
+                self.adjust_capacity((new_cap as f32 * (1.0 + MAX_LOAD)) as usize)?;
             }
         }
         Ok(())
@@ -345,13 +347,14 @@ where
         };
         // zero the keys
         let keys: NonNull<Handle> = transmute(keys);
-        for i in 0..capacity {
-            std::ptr::write(keys.as_ptr().add(i), Handle(0));
+        {
+            let keys = std::slice::from_raw_parts_mut(keys.as_ptr(), capacity);
+            keys.fill(Handle(0));
         }
         Ok((keys, transmute(values)))
     }
 
-    unsafe fn adjust_size(&mut self, capacity: usize) -> Result<(), MapError> {
+    unsafe fn adjust_capacity(&mut self, capacity: usize) -> Result<(), MapError> {
         let capacity = pad_pot(capacity).max(2); // allocate at least two items
         let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
@@ -359,6 +362,7 @@ where
         swap(&mut self.values, &mut values);
 
         let old_cap = self.capacity;
+        let old_count = self.count;
         // insert the old values
         self.count = 0;
         self.capacity = capacity;
@@ -382,6 +386,11 @@ where
                 .expect("old T layout"),
         );
 
+        debug_assert_eq!(
+            old_count, self.count,
+            "Expected count to stay unchanged after capacity adjustments"
+        );
+
         Ok(())
     }
 
@@ -389,12 +398,14 @@ where
     fn grow(&mut self) -> Result<(), MapError> {
         let new_cap = self.capacity.max(2) * 3 / 2;
         debug_assert!(new_cap > self.capacity);
-        unsafe { self.adjust_size(new_cap) }
+        unsafe { self.adjust_capacity(new_cap) }
     }
 
     /// Returns mutable reference to the just inserted value
     pub fn insert(&mut self, key: Handle, value: T) -> Result<&mut T, MapError> {
-        debug_assert_ne!(key.0, 0, "0 keys mean unintialized entries");
+        if key.0 == 0 {
+            return Err(MapError::InvalidHandle);
+        }
         if (self.count + 1) as f32 > self.capacity as f32 * MAX_LOAD {
             self.grow()?;
         }
