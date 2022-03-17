@@ -4,14 +4,14 @@ mod cmd_version;
 
 use std::path::{Path, PathBuf};
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 
 type CmdResult<T> = Result<T, anyhow::Error>;
 
 fn main() {
-    let app = App::new("Cao-Lang tasks")
+    let app = Command::new("Cao-Lang tasks")
         .subcommand(
-            App::new("version-bump")
+            Command::new("version-bump")
             .after_help("This command bumps the versions of all modules in the repository and generates a new changelog.")
             .arg(
                 Arg::new("TARGET")
@@ -28,7 +28,7 @@ fn main() {
             ),
         )
         .subcommand(
-            App::new("build").arg(
+            Command::new("build").arg(
                 Arg::new("TARGET")
                     .takes_value(true)
                     .required(true)
@@ -42,7 +42,7 @@ fn main() {
             )
         )
         .subcommand(
-            App::new("test").arg(
+            Command::new("test").arg(
                 Arg::new("TARGET")
                     .takes_value(true)
                     .required(true)
