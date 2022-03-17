@@ -19,7 +19,7 @@ pub fn read_from_bytes<T: TriviallyEncodable>(bts: &[u8]) -> Option<(usize, T)> 
     if bts.len() < size {
         return None;
     }
-    unsafe { Some((size, *(bts.as_ptr() as *const T))) }
+    unsafe { Some((size, std::ptr::read_unaligned(bts.as_ptr() as *const T))) }
 }
 
 pub fn encode_str(s: &str, out: &mut Vec<u8>) {
