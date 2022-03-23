@@ -1,4 +1,20 @@
 # Changelog
+## v0.1.57
+
+
+### Features
+
+- Add pop_n to ValueStack
+
+- Add composite cards
+
+
+### Refactor
+
+- Do not inline get_desc
+
+- Simplify SubProgram by using owned types instead of borrows
+
 ## v0.1.56
 
 
