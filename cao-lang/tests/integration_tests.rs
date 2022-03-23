@@ -7,6 +7,29 @@ use cao_lang::{
 };
 
 #[test]
+fn composite_card_test() {
+    let cu = CaoIr {
+        lanes: vec![Lane::default().with_card(Card::CompositeCard {
+            name: "triplepog".to_owned(),
+            cards: vec![
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ],
+        })],
+    };
+
+    let program = compile(&cu, None).unwrap();
+
+    let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+    vm.run(&program).expect("run");
+
+    let res = vm.read_var_by_name("result", &program.variables).unwrap();
+    let ress = unsafe { res.as_str().expect("Failed to read string") };
+
+    assert_eq!(ress, "poggers");
+}
+
+#[test]
 fn test_trace_entry() {
     let ir = CaoIr {
         lanes: vec![

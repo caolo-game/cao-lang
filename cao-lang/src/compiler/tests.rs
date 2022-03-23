@@ -1,6 +1,22 @@
 use super::*;
 
 #[test]
+fn composite_card_test() {
+    let cu = CaoIr {
+        lanes: vec![Lane::default().with_card(Card::CompositeCard {
+            name: "triplepog".to_owned(),
+            cards: vec![
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+            ],
+        })],
+    };
+
+    compile(&cu, None).unwrap();
+}
+
+#[test]
 fn lane_names_must_be_unique() {
     let cu = CaoIr {
         lanes: vec![

@@ -43,18 +43,30 @@ pub enum Card {
     CallNative(Box<CallNode>),
     IfTrue(LaneNode),
     IfFalse(LaneNode),
-    IfElse { then: LaneNode, r#else: LaneNode },
+    IfElse {
+        then: LaneNode,
+        r#else: LaneNode,
+    },
     Jump(LaneNode),
     SetGlobalVar(VarNode),
     SetVar(VarNode),
     ReadVar(VarNode),
     Repeat(LaneNode),
     While(LaneNode),
-    ForEach { variable: VarNode, lane: LaneNode },
+    ForEach {
+        variable: VarNode,
+        lane: LaneNode,
+    },
+    /// Single card that decomposes into multiple cards
+    // TODO: move into struct and store a Box<CompositeCard> to reduce Card size?
+    CompositeCard {
+        name: String,
+        cards: Vec<Card>,
+    },
 }
 
 impl Card {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> &str {
         match self {
             Card::SetVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
@@ -93,6 +105,7 @@ impl Card {
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
+            Card::CompositeCard { name, .. } => name.as_str(),
         }
     }
 
@@ -105,7 +118,8 @@ impl Card {
             | Card::SetVar(_)
             | Card::While(_)
             | Card::Repeat(_)
-            | Card::ForEach { .. } => None,
+            | Card::ForEach { .. }
+            | Card::CompositeCard { .. } => None,
 
             Card::GetProperty => Some(Instruction::GetProperty),
             Card::SetProperty => Some(Instruction::SetProperty),

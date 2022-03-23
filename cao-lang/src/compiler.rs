@@ -351,6 +351,11 @@ impl<'a> Compiler<'a> {
             self.push_instruction(instr);
         }
         match card {
+            Card::CompositeCard { cards, .. } => {
+                for card in cards.iter() {
+                    self.process_card(nodeid, card)?;
+                }
+            }
             Card::ForEach { variable, lane } => {
                 let target_lane = Handle::from(lane);
                 let arity = self.jump_table[target_lane].arity;

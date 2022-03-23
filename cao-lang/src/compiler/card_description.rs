@@ -92,7 +92,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
 #[inline(always)]
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
-        Card::CallNative(_) => unreachable!(),
+        Card::CompositeCard { .. } | Card::CallNative(_) => unreachable!(),
         Card::GetProperty => subprogram_description!(
             "GetProperty",
             "Gets a named field in the given table. Returns `nil` if the field does not exist",
