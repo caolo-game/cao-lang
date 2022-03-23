@@ -42,7 +42,7 @@ impl PropertyName {
     }
 }
 
-pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
+pub fn get_instruction_descriptions() -> Vec<SubProgram> {
     vec![
         get_desc(Card::Pass),
         get_desc(Card::Add),
@@ -89,7 +89,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
     ]
 }
 
-fn get_desc(node: Card) -> SubProgram<'static> {
+fn get_desc(node: Card) -> SubProgram {
     match node {
         Card::CompositeCard { .. } | Card::CallNative(_) => unreachable!(),
         Card::GetProperty => subprogram_description!(

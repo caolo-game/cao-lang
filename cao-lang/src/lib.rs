@@ -128,20 +128,20 @@ pub type VarName = ArrayString<64>;
 /// Subprograms consume their inputs and produce outputs.
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SubProgram<'a> {
-    pub name: &'a str,
-    pub description: &'a str,
+pub struct SubProgram {
+    pub name: String,
+    pub description: String,
     pub ty: SubProgramType,
 
     /// Human readable descriptions of the output
-    pub output: Box<[&'a str]>,
+    pub output: Box<[String]>,
     /// Human readable descriptions of inputs
-    pub input: Box<[&'a str]>,
+    pub input: Box<[String]>,
     /// Human readable descriptions of properties
-    pub properties: Box<[&'a str]>,
+    pub properties: Box<[String]>,
 }
 
-impl<'a> std::fmt::Debug for SubProgram<'a> {
+impl std::fmt::Debug for SubProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
             .field("name", &self.name)
@@ -188,8 +188,8 @@ impl SubProgramType {
 macro_rules! subprogram_description {
     ($name: expr, $description: expr, $ty: expr, [$($inputs: expr),*], [$($outputs: expr),*], [$($properties: expr),*]) => {
         SubProgram {
-            name: $name,
-            description: $description,
+            name: $name.to_string(),
+            description: $description.to_string(),
             ty: $ty,
             input: subprogram_description!(@input $($inputs),*) ,
             output: subprogram_description!(@input $($outputs),*),
@@ -200,7 +200,7 @@ macro_rules! subprogram_description {
     (@input $($lst: expr),*) => {
         vec![
             $(
-                $lst
+                $lst.to_string()
             ),*
         ]
         .into_boxed_slice()
