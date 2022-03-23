@@ -89,7 +89,6 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram<'static>> {
     ]
 }
 
-#[inline(always)]
 fn get_desc(node: Card) -> SubProgram<'static> {
     match node {
         Card::CompositeCard { .. } | Card::CallNative(_) => unreachable!(),
