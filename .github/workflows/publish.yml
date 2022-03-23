@@ -41,7 +41,7 @@ jobs:
 
       - name: "Build distributions"
         run: |
-          docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux2014_x86_64 bash /cao-lang/ci/build-wheels.sh
+          docker run --rm -v `pwd`:/cao-lang quay.io/pypa/manylinux_2_24_x86_64 bash /cao-lang/ci/build-wheels.sh
           ls -al dist/
 
       # only upload on tags
