@@ -1,4 +1,13 @@
 # Changelog
+## v0.1.60
+
+
+### Refactor
+
+- Remove python 3.6 support
+
+- Drop the lifetime requirement for `register_function`
+
 ## v0.1.57
 
 
