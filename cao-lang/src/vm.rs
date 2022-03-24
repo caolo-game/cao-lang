@@ -84,13 +84,13 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Register a native function for use by Cao-Lang programs
     ///
-    pub fn register_function<'b, S, C>(&mut self, name: S, f: C)
+    pub fn register_function<S, C>(&mut self, name: S, f: C)
     where
-        S: Into<&'b str>,
+        S: Into<String>,
         C: VmFunction<Aux> + 'static,
     {
         let name = name.into();
-        let key = Handle::from_str(name).unwrap();
+        let key = Handle::from_str(name.as_str()).unwrap();
         self.callables
             .insert(key, Procedure::new(name, f))
             .expect("failed to insert new function");
