@@ -130,11 +130,6 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: "Setup Python 36"
-        uses: actions/setup-python@v2.2.1
-        with:
-          python-version: 3.6
-
       - name: "Setup Pypy"
         uses: actions/setup-python@v2.2.1
         with:
