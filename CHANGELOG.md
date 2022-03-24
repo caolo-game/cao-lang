@@ -1,11 +1,4 @@
 # Changelog
-## v0.1.58
-
-
-### Bug Fixes
-
-- Fix linux publish
-
 ## v0.1.57
 
 
