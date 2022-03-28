@@ -16,7 +16,7 @@ use crate::{
     instruction::instruction_span,
     prelude::TraceEntry,
     program::{CaoProgram, Label},
-    Instruction, NodeId, VarName, VariableId,
+    Instruction, NodeId, VariableId,
 };
 use std::fmt::Debug;
 use std::mem;
@@ -40,8 +40,8 @@ pub struct CaoIr {
 }
 
 pub struct Compiler<'a> {
-    pub(crate) options: CompileOptions,
-    pub(crate) program: CaoProgram,
+    options: CompileOptions,
+    program: CaoProgram,
     next_var: RefCell<VariableId>,
 
     /// maps lanes to their metadata
@@ -63,9 +63,8 @@ struct LaneMeta {
 /// local variables during compilation
 #[derive(Debug)]
 pub(crate) struct Local<'a> {
-    pub name: VarName,
+    pub name: &'a str,
     pub depth: i32,
-    _m: std::marker::PhantomData<&'a ()>,
 }
 
 pub fn compile(
@@ -98,7 +97,7 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(
         &mut self,
-        compilation_unit: &CaoIr,
+        compilation_unit: &'a CaoIr,
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> CompilationResult<CaoProgram> {
         self.options = compile_options.into().unwrap_or_default();
@@ -106,7 +105,7 @@ impl<'a> Compiler<'a> {
         self._compile(compilation_unit)
     }
 
-    fn _compile(&mut self, compilation_unit: &CaoIr) -> CompilationResult<CaoProgram> {
+    fn _compile(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<CaoProgram> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
@@ -173,7 +172,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: &CaoIr) -> CompilationResult<()> {
+    fn compile_stage_2(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<()> {
         let mut lanes = compilation_unit.lanes.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
@@ -240,13 +239,12 @@ impl<'a> Compiler<'a> {
     }
 
     /// add a local variable
-    fn add_local(&mut self, name: VarName) -> CompilationResult<()> {
+    fn add_local(&mut self, name: &'a str) -> CompilationResult<()> {
         self.validate_var_name(&name)?;
         self.locals
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
-                _m: Default::default(),
             })
             .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))?;
         Ok(())
@@ -257,7 +255,7 @@ impl<'a> Compiler<'a> {
         il: usize,
         Lane {
             cards, arguments, ..
-        }: &Lane,
+        }: &'a Lane,
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
@@ -271,9 +269,7 @@ impl<'a> Compiler<'a> {
         };
         // at runtime: pop arguments in the same order as the variables were declared
         for param in arguments.iter() {
-            self.add_local(VarName::from_str(param.as_str()).map_err(|_| {
-                self.error(CompilationErrorPayload::BadVariableName(param.to_string()))
-            })?)?;
+            self.add_local(param.as_str())?;
         }
         for (ic, card) in cards.iter().enumerate() {
             self.current_card = ic as i32;
@@ -329,14 +325,14 @@ impl<'a> Compiler<'a> {
     fn resolve_var(&self, name: &str) -> CompilationResult<isize> {
         self.validate_var_name(name)?;
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if local.name.as_str() == name {
+            if local.name == name {
                 return Ok(i as isize);
             }
         }
         Ok(-1)
     }
 
-    fn process_card(&mut self, nodeid: NodeId, card: &Card) -> CompilationResult<()> {
+    fn process_card(&mut self, nodeid: NodeId, card: &'a Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Handle::from_u32(nodeid.into());
@@ -400,7 +396,7 @@ impl<'a> Compiler<'a> {
             }
             Card::SetVar(var) => {
                 let index = self.locals.len() as u32;
-                self.add_local(*var.0)?;
+                self.add_local(&*var.0)?;
                 self.push_instruction(Instruction::SetLocalVar);
                 write_to_vec(index, &mut self.program.bytecode);
             }
