@@ -493,6 +493,22 @@ impl<T> IndexMut<u32> for KeyMap<T> {
     }
 }
 
+impl<T> Index<&str> for KeyMap<T> {
+    type Output = T;
+
+    fn index(&self, key: &str) -> &Self::Output {
+        let key = Handle::from_str(key).unwrap();
+        &self[key]
+    }
+}
+
+impl<T> IndexMut<&str> for KeyMap<T> {
+    fn index_mut(&mut self, key: &str) -> &mut Self::Output {
+        let key = Handle::from_str(key).unwrap();
+        &mut self[key]
+    }
+}
+
 impl<T> Index<&[u8]> for KeyMap<T> {
     type Output = T;
 
@@ -501,6 +517,7 @@ impl<T> Index<&[u8]> for KeyMap<T> {
         &self[key]
     }
 }
+
 impl<T> IndexMut<&[u8]> for KeyMap<T> {
     fn index_mut(&mut self, key: &[u8]) -> &mut Self::Output {
         let key = Handle::from_bytes(key);
