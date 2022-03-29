@@ -8,7 +8,7 @@ test-c:
 
 test-py:
 	cd py && cargo test
-	tox
+	tox -p auto
 
 test-wasm:
 	@${MAKE} -C wasm test
