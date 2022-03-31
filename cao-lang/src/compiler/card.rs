@@ -63,6 +63,8 @@ pub enum Card {
         name: String,
         cards: Vec<Card>,
     },
+    /// Does nothing
+    Noop,
 }
 
 impl Card {
@@ -106,6 +108,7 @@ impl Card {
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard { name, .. } => name.as_str(),
+            Card::Noop => "No-op",
         }
     }
 
@@ -119,7 +122,8 @@ impl Card {
             | Card::While(_)
             | Card::Repeat(_)
             | Card::ForEach { .. }
-            | Card::CompositeCard { .. } => None,
+            | Card::CompositeCard { .. }
+            | Card::Noop => None,
 
             Card::GetProperty => Some(Instruction::GetProperty),
             Card::SetProperty => Some(Instruction::SetProperty),

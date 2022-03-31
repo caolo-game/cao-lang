@@ -347,6 +347,7 @@ impl<'a> Compiler<'a> {
             self.push_instruction(instr);
         }
         match card {
+            Card::Noop => {}
             Card::CompositeCard { cards, .. } => {
                 for card in cards.iter() {
                     self.process_card(nodeid, card)?;

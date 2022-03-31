@@ -406,5 +406,14 @@ Order of parameters: Table, Property-Key, Value"#,
             [PropertyName::Number.to_str()],
             []
         ),
+
+        Card::Noop => subprogram_description!(
+            "No-op",
+            "Does nothing",
+            SubProgramType::Instruction,
+            [],
+            [],
+            []
+        ),
     }
 }
