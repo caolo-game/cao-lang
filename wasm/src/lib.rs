@@ -67,17 +67,21 @@ pub fn basic_schema() -> Vec<JsValue> {
 ///
 /// ```json
 /// {
-///     "lanes": [{
-///         "name": "Foo",
-///         "cards": [
-///             {
-///                 "ty": "ScalarInt" , "val": 1
-///             },
-///             {
-///                 "ty": "Pass"
-///             }
-///         ]
-///     }]
+///     "main": "main",
+///     "module": {
+///         "submodules": {},
+///         "lanes": [{
+///             "name": "main",
+///             "cards": [
+///                 {
+///                     "ty": "ScalarInt" , "val": 1
+///                 },
+///                 {
+///                     "ty": "Pass"
+///                 }
+///             ]
+///         }]
+///     }
 /// }
 /// ```
 ///
@@ -87,11 +91,11 @@ pub fn compile(
     compile_options: Option<CompileOptions>,
 ) -> Result<JsValue, JsValue> {
     let cu = compilation_unit
-        .into_serde::<caoc::CaoIr>()
+        .into_serde::<caoc::CaoProgram>()
         .map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
-    let res = match caoc::compile(&cu, ops) {
+    let res = match caoc::compile(cu, ops) {
         Ok(res) => CompileResult::Program(res),
         Err(err) => CompileResult::CompileError(err.to_string()),
     };

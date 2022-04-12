@@ -5,16 +5,19 @@
 use serde_json::json;
 use wasm_bindgen_test::*;
 
-use cao_lang_wasm::{compile, run_program, CompileResult, basic_schema};
+use cao_lang_wasm::{basic_schema, compile, run_program, CompileResult};
 use wasm_bindgen::JsValue;
 
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
-        "lanes": [{
-            "name": "PogChamp",
-            "cards": [ {"ty": "ScalarInt", "val": 69 } ]
-        }]
+        "main": "main",
+        "module": {
+            "lanes": {"main": {
+                "name": "main",
+                "cards": [ {"ty": "ScalarInt", "val": 69 } ]
+            }}
+        }
     });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);
 
@@ -26,10 +29,13 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
-        "lanes": [{
-            "name": "PogChamp",
-            "cards": [ {"ty": "Jump", "val": {"LaneId": 42} } ]
-        }]
+        "main": "main",
+        "module": {
+            "lanes": {"main": {
+                "name": "main",
+                "cards": [ {"ty": "Jump", "val": "42" } ]
+            }}
+        }
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("Compile returned error");
     let output: CompileResult = output
@@ -45,13 +51,16 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
-        "lanes": [ {
-            "name": "Foo",
-            "cards": [
-            { "ty": "StringLiteral", "val": "Poggers" }
-            , {"ty": "SetGlobalVar", "val": "g_pogman" }
-            ]
-        }]
+        "main": "main",
+        "module": {
+            "lanes": { "main": {
+                "name": "main",
+                "cards": [
+                { "ty": "StringLiteral", "val": "Poggers" }
+                , {"ty": "SetGlobalVar", "val": "g_pogman" }
+                ]
+            }}
+        }
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
 
@@ -70,7 +79,7 @@ fn can_run_simple_program() {
 }
 
 #[wasm_bindgen_test]
-fn can_query_the_schema(){
+fn can_query_the_schema() {
     // smoke test
     let _res = basic_schema();
 }

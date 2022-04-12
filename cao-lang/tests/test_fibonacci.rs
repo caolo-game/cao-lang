@@ -18,7 +18,7 @@ fn fib(n: i64) -> i64 {
 #[test]
 fn fibonacci_1() {
     let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
-    let program = compile(&cu, CompileOptions::new()).unwrap();
+    let program = compile(cu, CompileOptions::new()).unwrap();
 
     let mut vm = Vm::new(()).unwrap();
     vm.stack_push(Value::Integer(1)).unwrap();
@@ -34,7 +34,7 @@ fn fibonacci_1() {
 #[test]
 fn fibonacci_4() {
     let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();
-    let program = compile(&cu, CompileOptions::new()).unwrap();
+    let program = compile(cu, CompileOptions::new()).unwrap();
 
     let mut vm = Vm::new(()).unwrap();
     vm.stack_push(Value::Integer(4)).unwrap();
@@ -50,7 +50,7 @@ fn fibonacci_4() {
 #[test]
 fn fibonacci_32() {
     let cu = serde_yaml::from_str(ITERATIVE_FIB).unwrap();
-    let program = compile(&cu, CompileOptions::new()).unwrap();
+    let program = compile(cu, CompileOptions::new()).unwrap();
 
     let mut vm = Vm::new(()).unwrap();
     vm.max_instr = 10_000_000;

@@ -4,6 +4,7 @@ mod card;
 mod compilation_error;
 mod compile_options;
 mod lane;
+mod program;
 
 pub mod card_description;
 
@@ -13,9 +14,9 @@ mod tests;
 use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::key_map::{Handle, KeyMap},
+    compiled_program::{CaoCompiledProgram, Label},
     instruction::instruction_span,
     prelude::TraceEntry,
-    compiled_program::{CaoCompiledProgram, Label},
     Instruction, NodeId, VariableId,
 };
 use std::fmt::Debug;
@@ -27,17 +28,14 @@ pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
 pub use lane::*;
+pub use program::*;
 
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
 /// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CaoIr {
-    pub lanes: Vec<Lane>,
-}
+pub(crate) type CaoIr<'a> = &'a [Lane];
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -50,7 +48,7 @@ pub struct Compiler<'a> {
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
-    current_lane: usize,
+    current_lane: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -68,11 +66,15 @@ pub(crate) struct Local<'a> {
 }
 
 pub fn compile(
-    compilation_unit: &CaoIr,
+    compilation_unit: CaoProgram,
     compile_options: impl Into<Option<CompileOptions>>,
 ) -> CompilationResult<CaoCompiledProgram> {
+    let compilation_unit = compilation_unit
+        .into_ir_stream()
+        .map_err(|err| CompilationError::with_loc(err, LaneNode::default(), 0))?;
+
     let mut compiler = Compiler::new();
-    compiler.compile(compilation_unit, compile_options)
+    compiler.compile(&compilation_unit, compile_options)
 }
 
 impl<'a> Default for Compiler<'a> {
@@ -91,13 +93,13 @@ impl<'a> Compiler<'a> {
             locals: Default::default(),
             scope_depth: 0,
             current_card: -1,
-            current_lane: 0,
+            current_lane: "".to_owned(),
         }
     }
 
     pub fn compile(
         &mut self,
-        compilation_unit: &'a CaoIr,
+        compilation_unit: CaoIr<'a>,
         compile_options: impl Into<Option<CompileOptions>>,
     ) -> CompilationResult<CaoCompiledProgram> {
         self.options = compile_options.into().unwrap_or_default();
@@ -105,11 +107,11 @@ impl<'a> Compiler<'a> {
         self._compile(compilation_unit)
     }
 
-    fn _compile(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<CaoCompiledProgram> {
-        if compilation_unit.lanes.is_empty() {
+    fn _compile(&mut self, compilation_unit: CaoIr<'a>) -> CompilationResult<CaoCompiledProgram> {
+        if compilation_unit.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
-                LaneNode::LaneId(0),
+                LaneNode::default(),
                 0,
             ));
         }
@@ -123,22 +125,26 @@ impl<'a> Compiler<'a> {
     }
 
     fn error(&self, pl: CompilationErrorPayload) -> CompilationError {
-        CompilationError::with_loc(pl, LaneNode::LaneId(self.current_lane), self.current_card)
+        CompilationError::with_loc(
+            pl,
+            LaneNode(self.current_lane.to_string()),
+            self.current_card,
+        )
     }
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(&mut self, compilation_unit: &CaoIr) -> CompilationResult<()> {
+    fn compile_stage_1(&mut self, compilation_unit: CaoIr) -> CompilationResult<()> {
         // check if len fits in 16 bits
-        let _: u16 = match compilation_unit.lanes.len().try_into() {
+        let _: u16 = match compilation_unit.len().try_into() {
             Ok(i) => i,
             Err(_) => return Err(self.error(CompilationErrorPayload::TooManyLanes)),
         };
 
         let mut num_cards = 0usize;
         self.current_card = -1;
-        for (i, n) in compilation_unit.lanes.iter().enumerate() {
-            self.current_lane = i;
+        for (i, n) in compilation_unit.iter().enumerate() {
+            self.current_lane = n.name.clone();
 
             let indexkey = Handle::from_i64(i as i64);
             assert!(!self.jump_table.contains(indexkey));
@@ -158,13 +164,11 @@ impl<'a> Compiler<'a> {
                 arity: n.arguments.len() as u32,
             };
             self.jump_table.insert(indexkey, metadata).unwrap();
-            if let Some(name) = n.name.as_ref() {
-                let namekey = Handle::from_str(name.as_str()).expect("Failed to hash lane name");
-                if self.jump_table.contains(namekey) {
-                    return Err(self.error(CompilationErrorPayload::DuplicateName(name.clone())));
-                }
-                self.jump_table.insert(namekey, metadata).unwrap();
+            let namekey = Handle::from_str(n.name.as_str()).expect("Failed to hash lane name");
+            if self.jump_table.contains(namekey) {
+                return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.clone())));
             }
+            self.jump_table.insert(namekey, metadata).unwrap();
         }
 
         self.program.labels.0.reserve(num_cards).expect("reserve");
@@ -172,8 +176,8 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<()> {
-        let mut lanes = compilation_unit.lanes.iter().enumerate();
+    fn compile_stage_2(&mut self, compilation_unit: CaoIr<'a>) -> CompilationResult<()> {
+        let mut lanes = compilation_unit.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
             let len: u16 = match main_lane.cards.len().try_into() {
@@ -240,7 +244,7 @@ impl<'a> Compiler<'a> {
 
     /// add a local variable
     fn add_local(&mut self, name: &'a str) -> CompilationResult<()> {
-        self.validate_var_name(&name)?;
+        self.validate_var_name(name)?;
         self.locals
             .try_push(Local {
                 name,
@@ -254,12 +258,15 @@ impl<'a> Compiler<'a> {
         &mut self,
         il: usize,
         Lane {
-            cards, arguments, ..
+            cards,
+            arguments,
+            name,
+            ..
         }: &'a Lane,
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
-        self.current_lane = il;
+        self.current_lane = name.clone();
         self.current_card = -1;
 
         // check if len fits in 16 bits
@@ -544,7 +551,7 @@ impl<'a> Compiler<'a> {
         self.program.trace.insert(
             self.program.bytecode.len(),
             TraceEntry {
-                lane: self.current_lane as i32,
+                lane: self.current_lane.clone(),
                 card: self.current_card,
             },
         );

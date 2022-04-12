@@ -38,11 +38,15 @@ pub enum CompilationErrorPayload {
     #[error("The requested functionality ({0}) is not yet implemented")]
     Unimplemented(&'static str),
 
+    #[error("Entrypoint not found")]
+    NoMain,
+
     #[error("Program was empty")]
     EmptyProgram,
 
     #[error("Number of lanes may not be larger than 2^16 - 1 = 65535")]
     TooManyLanes,
+
     #[error("Lanes {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
     TooManyCards(usize),
 
@@ -69,4 +73,7 @@ pub enum CompilationErrorPayload {
 
     #[error("Variable name can't be empty")]
     EmptyVariable,
+
+    #[error("{0:?} is not a valid name for a Lane")]
+    BadLaneName(String)
 }

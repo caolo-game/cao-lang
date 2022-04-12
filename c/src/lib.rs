@@ -3,7 +3,7 @@ use std::{alloc, ffi::c_void};
 use alloc::Layout;
 use cao_lang::{
     compiled_program,
-    compiler::{compile, CaoIr, CompilationErrorPayload},
+    compiler::{compile, CaoProgram, CompilationErrorPayload},
     vm::Vm,
 };
 
@@ -38,6 +38,8 @@ pub enum CompileResult {
     cao_CompileResult_TooManyLocals,
     cao_CompileResult_BadVariableName,
     cao_CompileResult_EmptyVariable,
+    cao_CompileResult_NoMain,
+    cao_CompileResult_BadLaneName,
 }
 
 #[allow(non_camel_case_types)]
@@ -144,12 +146,12 @@ pub unsafe extern "C" fn cao_compile_json(
 
     let cao_ir = std::slice::from_raw_parts(cao_ir, cao_ir_len as usize);
 
-    let ir: CaoIr = match serde_json::from_slice(cao_ir) {
+    let ir: CaoProgram = match serde_json::from_slice(cao_ir) {
         Ok(ir) => ir,
         Err(_) => return CompileResult::cao_CompileResult_BadJson,
     };
 
-    let program = match compile(&ir, None) {
+    let program = match compile(ir, None) {
         Ok(p) => p,
         Err(err) => match err.payload {
             CompilationErrorPayload::Unimplemented(_) => {
@@ -187,6 +189,10 @@ pub unsafe extern "C" fn cao_compile_json(
             }
             CompilationErrorPayload::EmptyVariable => {
                 return CompileResult::cao_CompileResult_EmptyVariable
+            }
+            CompilationErrorPayload::NoMain => return CompileResult::cao_CompileResult_NoMain,
+            CompilationErrorPayload::BadLaneName(_) => {
+                return CompileResult::cao_CompileResult_BadLaneName
             }
         },
     };

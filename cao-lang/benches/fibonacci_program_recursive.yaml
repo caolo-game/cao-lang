@@ -1,62 +1,63 @@
-lanes:
-  - name: main
-    # Assumes that N is pushed onto the stack before executing the program
-    arguments:
-      - N
-    cards:
-      - ty: ReadVar
-        val: N
+module:
+  submodules: {}
+  lanes:
+    main:
+      name: main
+      # Assumes that N is pushed onto the stack before executing the program
+      arguments:
+        - N
+      cards:
+        - ty: ReadVar
+          val: N
 
-      - ty: Jump
-        val:
-          LaneName: fib
-      - ty: SetGlobalVar
-        val: result
+        - ty: Jump
+          val: fib
+        - ty: SetGlobalVar
+          val: result
 
-  - name: fib
-    arguments:
-      - N
-    cards:
-      - ty: ReadVar
-        val: N
-      - ty: ScalarInt
-        val: 2
-      - ty: ReadVar
-        val: N
-      - ty: LessOrEq
-      - ty: IfElse
-        val:
-          then:
-            LaneName: fib-again
-          else:
-            LaneName: fib-one
-      - ty: Return
+    fib:
+      name: fib
+      arguments:
+        - N
+      cards:
+        - ty: ReadVar
+          val: N
+        - ty: ScalarInt
+          val: 2
+        - ty: ReadVar
+          val: N
+        - ty: LessOrEq
+        - ty: IfElse
+          val:
+            then: fib_again
+            else: fib_one
+        - ty: Return
 
-  - name: fib-again
-    arguments:
-      - N
-    cards:
-      - ty: ReadVar
-        val: N
-      - ty: ScalarInt
-        val: 1
-      - ty: Sub
-      - ty: Jump
-        val:
-          LaneName: fib
-      - ty: ReadVar
-        val: N
-      - ty: ScalarInt
-        val: 2
-      - ty: Sub
-      - ty: Jump
-        val:
-          LaneName: fib
-      - ty: Add
-      - ty: Return
+    fib_again:
+      name: fib_again
+      arguments:
+        - N
+      cards:
+        - ty: ReadVar
+          val: N
+        - ty: ScalarInt
+          val: 1
+        - ty: Sub
+        - ty: Jump
+          val: fib
+        - ty: ReadVar
+          val: N
+        - ty: ScalarInt
+          val: 2
+        - ty: Sub
+        - ty: Jump
+          val: fib
+        - ty: Add
+        - ty: Return
 
-  - name: fib-one
-    cards:
-      - ty: ScalarInt
-        val: 1
-      - ty: Return
+    fib_one:
+      name: fib_one
+      cards:
+        - ty: ScalarInt
+          val: 1
+        - ty: Return

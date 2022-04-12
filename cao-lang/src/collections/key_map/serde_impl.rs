@@ -55,7 +55,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for KeyMap<T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        compiler::{CaoIr, Lane},
+        compiler::{CaoProgram, Lane, Module},
         prelude::CaoCompiledProgram,
     };
 
@@ -104,12 +104,18 @@ mod tests {
     #[test]
     fn can_serialize_program_cbor() {
         let program = crate::compiler::compile(
-            &CaoIr {
-                lanes: vec![Lane {
-                    name: Some("poggers".into()),
-                    arguments: vec![],
-                    cards: vec![],
-                }],
+            CaoProgram {
+                module: Module {
+                    lanes: vec![Lane {
+                        name: "main".into(),
+                        arguments: vec![],
+                        cards: vec![],
+                    }]
+                    .into_iter()
+                    .map(|lane| (lane.name.clone(), lane))
+                    .collect(),
+                    submodules: Default::default(),
+                },
             },
             None,
         )

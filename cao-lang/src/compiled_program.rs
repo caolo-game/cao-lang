@@ -34,7 +34,7 @@ impl Label {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TraceEntry {
-    pub lane: i32,
+    pub lane: String,
     pub card: i32,
 }
 

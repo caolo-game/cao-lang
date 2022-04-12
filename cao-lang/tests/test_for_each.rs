@@ -3,9 +3,9 @@ use test_log::test;
 
 #[test]
 fn test_foreach_1() {
-    let cu: CaoIr = serde_yaml::from_str(include_str!("foreach/simple_foreach.yml")).unwrap();
+    let cu = serde_yaml::from_str(include_str!("foreach/simple_foreach.yml")).unwrap();
 
-    let program = compile(&cu, CompileOptions::new()).expect("compile");
+    let program = compile(cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -19,9 +19,9 @@ fn test_foreach_1() {
 
 #[test]
 fn test_foreach_nested() {
-    let cu: CaoIr = serde_yaml::from_str(include_str!("foreach/nested_foreach.yml")).unwrap();
+    let cu = serde_yaml::from_str(include_str!("foreach/nested_foreach.yml")).unwrap();
 
-    let program = compile(&cu, CompileOptions::new()).expect("compile");
+    let program = compile(cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");

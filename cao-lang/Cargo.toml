@@ -13,6 +13,7 @@ version = "^1.0"
 [dependencies]
 num_enum = "^0.5"
 thiserror = "^1.0"
+smallvec = "^1.8"
 
 [dependencies.arrayvec]
 features = ["serde"]

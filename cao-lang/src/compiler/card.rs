@@ -241,25 +241,13 @@ impl VarNode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum LaneNode {
-    LaneName(String),
-    LaneId(usize),
-}
+pub struct LaneNode(pub String);
 
 impl Display for LaneNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LaneNode::LaneName(n) => write!(f, "{}", n),
-            LaneNode::LaneId(n) => write!(f, "#{}", n),
-        }
-    }
-}
-
-impl Default for LaneNode {
-    fn default() -> Self {
-        Self::LaneId(0)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -271,9 +259,6 @@ impl From<LaneNode> for Handle {
 
 impl<'a> From<&'a LaneNode> for Handle {
     fn from(ln: &'a LaneNode) -> Self {
-        match ln {
-            LaneNode::LaneName(s) => Handle::from_str(s.as_str()).unwrap(),
-            LaneNode::LaneId(i) => Handle::from_i64(*i as i64),
-        }
+        Handle::from_str(ln.0.as_str()).unwrap()
     }
 }

@@ -80,6 +80,7 @@ impl ValueStack {
     pub fn pop_n<const N: usize>(&mut self) -> [Value; N] {
         let mut result = [Value::Nil; N];
         let n = self.count.min(N);
+        #[allow(clippy::needless_range_loop)]
         for i in 0..n {
             result[i] = self.data[self.count - i - 1];
         }

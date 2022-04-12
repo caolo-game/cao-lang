@@ -1,34 +1,6 @@
 //! ## Programs
 //!
-//! Programs are composed of Lanes and Cards. A Card consumes inputs and produces outputs.
-//! Cards will always consume from the top of the stack downwards and push their outputs to
-//! the stack. This means that subprogram composition is not a commutative operation. (Consider
-//! Cards A, B and C. Then the composition ABC is not the same as BAC if A != B. )
-//!
-//! Execution will begin at the first `Lane`.
-//!
-//! Example Program serialized as JSON
-//! ```
-//! const PROGRAM: &str = r#"{
-//!   "lanes":[
-//!      {
-//!         "name":"Main",
-//!         "cards":[
-//!            {
-//!               "ty": "ScalarInt",
-//!               "val":42
-//!            },
-//!            {
-//!               "ty": "CallNative", "val":"log_scalar"
-//!            }
-//!         ]
-//!      }
-//!   ]
-//!}"#;
-//!
-//!let compilation_unit = serde_json::from_str(PROGRAM).unwrap();
-//!cao_lang::compiler::compile(&compilation_unit, None).unwrap();
-//!```
+//! __TBA__
 //!
 
 #![recursion_limit = "256"]

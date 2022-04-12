@@ -1,33 +1,36 @@
-lanes:
-  - name: init
-    # Assumes that N is pushed onto the stack before executing the program
-    arguments:
-      - N
-    cards:
-      - ty: ScalarInt
-        val: 0
-      - ty: SetGlobalVar
-        val: a
-      - ty: ScalarInt
-        val: 1
-      - ty: SetGlobalVar
-        val: b
-      - ty: ReadVar
-        val: N
-      - ty: Repeat
-        val:
-          LaneName: "loop"
-  - name: loop
-    arguments:
-      - i
-    cards:
-      - ty: ReadVar
-        val: b
-      - ty: CopyLast
-      - ty: ReadVar
-        val: a
-      - ty: Add
-      - ty: SetGlobalVar
-        val: b
-      - ty: SetGlobalVar
-        val: a
+module:
+  submodules: {}
+  lanes:
+    main:
+      name: main
+      # Assumes that N is pushed onto the stack before executing the program
+      arguments:
+        - N
+      cards:
+        - ty: ScalarInt
+          val: 0
+        - ty: SetGlobalVar
+          val: a
+        - ty: ScalarInt
+          val: 1
+        - ty: SetGlobalVar
+          val: b
+        - ty: ReadVar
+          val: N
+        - ty: Repeat
+          val: "loop"
+    loop:
+      name: loop
+      arguments:
+        - i
+      cards:
+        - ty: ReadVar
+          val: b
+        - ty: CopyLast
+        - ty: ReadVar
+          val: a
+        - ty: Add
+        - ty: SetGlobalVar
+          val: b
+        - ty: SetGlobalVar
+          val: a
