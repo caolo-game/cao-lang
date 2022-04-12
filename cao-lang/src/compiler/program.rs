@@ -15,11 +15,7 @@ pub enum IntoStreamError {
     BadName(String),
 }
 
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CaoProgram {
-    pub module: Module,
-}
+pub type CaoProgram = Module;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -29,25 +25,24 @@ pub struct Module {
     pub lanes: HashMap<String, Lane>,
 }
 
-impl CaoProgram {
+impl Module {
     /// flatten this program into a lane stream
     // TODO: return an iterator???
     pub(crate) fn into_ir_stream(mut self) -> Result<Vec<Lane>, CompilationErrorPayload> {
         // the first lane is special
         //
         let first_fn = self
-            .module
             .lanes
             .remove("main")
             .ok_or(CompilationErrorPayload::NoMain)?;
 
         let mut result = vec![first_fn];
-        result.reserve(self.module.lanes.len() * self.module.submodules.len() * 2); // just some dumb heuristic
+        result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
         let mut namespace = SmallVec::<[_; 16]>::new();
 
         // flatten modules' functions
-        flatten_module(&self.module, &mut namespace, &mut result)?;
+        flatten_module(&self, &mut namespace, &mut result)?;
 
         Ok(result)
     }

@@ -11,13 +11,10 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
-        "main": "main",
-        "module": {
-            "lanes": {"main": {
-                "name": "main",
-                "cards": [ {"ty": "ScalarInt", "val": 69 } ]
-            }}
-        }
+        "lanes": {"main": {
+            "name": "main",
+            "cards": [ {"ty": "ScalarInt", "val": 69 } ]
+        }}
     });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);
 
@@ -29,13 +26,10 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
-        "main": "main",
-        "module": {
-            "lanes": {"main": {
-                "name": "main",
-                "cards": [ {"ty": "Jump", "val": "42" } ]
-            }}
-        }
+        "lanes": {"main": {
+            "name": "main",
+            "cards": [ {"ty": "Jump", "val": "42" } ]
+        }}
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("Compile returned error");
     let output: CompileResult = output
@@ -51,16 +45,13 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
-        "main": "main",
-        "module": {
-            "lanes": { "main": {
-                "name": "main",
-                "cards": [
-                { "ty": "StringLiteral", "val": "Poggers" }
-                , {"ty": "SetGlobalVar", "val": "g_pogman" }
-                ]
-            }}
-        }
+        "lanes": { "main": {
+            "name": "main",
+            "cards": [
+            { "ty": "StringLiteral", "val": "Poggers" }
+            , {"ty": "SetGlobalVar", "val": "g_pogman" }
+            ]
+        }}
     });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
 

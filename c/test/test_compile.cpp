@@ -7,134 +7,132 @@ extern "C" {
 TEST(Compile, MultiLaneProgram) {
   const char *program_json = R"prog(
 {
-    "module": {
-      "lanes": {
-        "main": {
-          "name": "main",
-          "cards": [
-            {
-              "ty": "StringLiteral",
-              "val": "RESOURCE"
-            },
-            {
-              "ty": "CallNative",
-              "val": "parse_find_constant"
-            },
-            {
-              "ty": "CallNative",
-              "val": "find_closest"
-            },
-            {
-              "ty": "SetVar",
-              "val": "resource"
-            },
-            {
-              "ty": "ReadVar",
-              "val": "resource"
-            },
-            {
-              "ty": "ScalarNil"
-            },
-            {
-              "ty": "Equals"
-            },
-            {
-              "ty": "IfTrue",
-              "val": 
-                "resource_error"
-              
-            },
-            {
-              "ty": "ReadVar",
-              "val": "resource"
-            },
-            {
-              "ty": "ReadVar",
-              "val": "resource"
-            },
-            {
-              "ty": "CallNative",
-              "val": "mine"
-            },
-            {
-              "ty": "ScalarInt",
-              "val": 0
-            },
-            {
-              "ty": "Equals"
-            },
-            {
-              "ty": "IfElse",
-              "val": {
-                "then": 
-                  "mine_success"
-                ,
-                "else": 
-                  "approach_resource"
-                
-              }
-            }
-          ]
+  "lanes": {
+    "main": {
+      "name": "main",
+      "cards": [
+        {
+          "ty": "StringLiteral",
+          "val": "RESOURCE"
         },
-        "approach_resource": {
-          "name": "approach_resource",
-          "arguments": [
-            "resource"
-          ],
-          "cards": [
-            {
-              "ty": "ReadVar",
-              "val": "resource"
-            },
-            {
-              "ty": "StringLiteral",
-              "val": "Work work...\nMove Result: "
-            },
-            {
-              "ty": "CallNative",
-              "val": "console_log"
-            },
-            {
-              "ty": "CallNative",
-              "val": "approach_entity"
-            },
-            {
-              "ty": "CallNative",
-              "val": "console_log"
-            }
-          ]
+        {
+          "ty": "CallNative",
+          "val": "parse_find_constant"
         },
-        "resource_error": {
-          "name": "resource_error",
-          "cards": [
-            {
-              "ty": "StringLiteral",
-              "val": "No resource found"
-            },
-            {
-              "ty": "CallNative",
-              "val": "console_log"
-            },
-            {
-              "ty": "Abort"
-            }
-          ]
+        {
+          "ty": "CallNative",
+          "val": "find_closest"
         },
-        "mine_success": {
-          "name": "mine_success",
-          "cards": [
-            {
-              "ty": "StringLiteral",
-              "val": "I be mining baws"
-            },
-            {
-              "ty": "CallNative",
-              "val": "console_log"
-            }
-          ]
+        {
+          "ty": "SetVar",
+          "val": "resource"
+        },
+        {
+          "ty": "ReadVar",
+          "val": "resource"
+        },
+        {
+          "ty": "ScalarNil"
+        },
+        {
+          "ty": "Equals"
+        },
+        {
+          "ty": "IfTrue",
+          "val": 
+            "resource_error"
+          
+        },
+        {
+          "ty": "ReadVar",
+          "val": "resource"
+        },
+        {
+          "ty": "ReadVar",
+          "val": "resource"
+        },
+        {
+          "ty": "CallNative",
+          "val": "mine"
+        },
+        {
+          "ty": "ScalarInt",
+          "val": 0
+        },
+        {
+          "ty": "Equals"
+        },
+        {
+          "ty": "IfElse",
+          "val": {
+            "then": 
+              "mine_success"
+            ,
+            "else": 
+              "approach_resource"
+            
+          }
         }
-      }
+      ]
+    },
+    "approach_resource": {
+      "name": "approach_resource",
+      "arguments": [
+        "resource"
+      ],
+      "cards": [
+        {
+          "ty": "ReadVar",
+          "val": "resource"
+        },
+        {
+          "ty": "StringLiteral",
+          "val": "Work work...\nMove Result: "
+        },
+        {
+          "ty": "CallNative",
+          "val": "console_log"
+        },
+        {
+          "ty": "CallNative",
+          "val": "approach_entity"
+        },
+        {
+          "ty": "CallNative",
+          "val": "console_log"
+        }
+      ]
+    },
+    "resource_error": {
+      "name": "resource_error",
+      "cards": [
+        {
+          "ty": "StringLiteral",
+          "val": "No resource found"
+        },
+        {
+          "ty": "CallNative",
+          "val": "console_log"
+        },
+        {
+          "ty": "Abort"
+        }
+      ]
+    },
+    "mine_success": {
+      "name": "mine_success",
+      "cards": [
+        {
+          "ty": "StringLiteral",
+          "val": "I be mining baws"
+        },
+        {
+          "ty": "CallNative",
+          "val": "console_log"
+        }
+      ]
     }
+}
 }
 )prog";
 
@@ -150,14 +148,12 @@ TEST(Compile, MultiLaneProgram) {
 TEST(Runs, EmptyProgram) {
   const uint8_t *program_json = (uint8_t *)R"prog(
 {
-    "module": {
-      "lanes": {
-        "main": {
-          "name": "main",
-          "cards": [
-          ]
-        }
-      }
+  "lanes": {
+    "main": {
+      "name": "main",
+      "cards": [
+      ]
+    }
   }
 }
 )prog";

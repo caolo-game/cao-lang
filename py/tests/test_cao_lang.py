@@ -7,16 +7,15 @@ def test_compile_and_run():
     """
 
     PROGRAM_YAML = """
-module:
-    lanes:
-        main: 
-            name: main
-            cards:
-                - ty: ScalarInt
-                  val: 5
-                - ty: ScalarInt
-                  val: 5
-                - ty: Add
+lanes:
+    main: 
+        name: main
+        cards:
+            - ty: ScalarInt
+              val: 5
+            - ty: ScalarInt
+              val: 5
+            - ty: Add
 """
 
     program = caoc.CompilationUnit.from_yaml(PROGRAM_YAML)

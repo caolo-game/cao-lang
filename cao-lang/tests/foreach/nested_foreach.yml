@@ -1,90 +1,86 @@
-main: main
-module:
-  submodules: {}
+lanes:
+  main:
+    name: main
+    cards:
+      # --- init the example table ---
+      # {
+      #  f1: 3,
+      #  f2: 5,
+      #  f3: 7,
+      # }
+      - ty: CreateTable
+      - ty: SetVar
+        val: t
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f1
+      - ty: ScalarInt
+        val: 3
+      - ty: SetProperty
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f2
+      - ty: ScalarInt
+        val: 5
+      - ty: SetProperty
+      - ty: ReadVar
+        val: t
+      - ty: StringLiteral
+        val: f3
+      - ty: ScalarInt
+        val: 7
+      - ty: SetProperty
+        # set result and g_iters to zero
+      - ty: ScalarInt
+        val: 0
+      - ty: SetGlobalVar
+        val: g_result
+      - ty: ScalarInt
+        val: 0
+      - ty: SetGlobalVar
+        val: g_iters
+      # --- init done ---
+      - ty: ForEach
+        val:
+          lane: outer_loop
+          variable: t
 
-  lanes:
-    main:
-      name: main
-      cards:
-        # --- init the example table ---
-        # {
-        #  f1: 3,
-        #  f2: 5,
-        #  f3: 7,
-        # }
-        - ty: CreateTable
-        - ty: SetVar
-          val: t
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f1
-        - ty: ScalarInt
-          val: 3
-        - ty: SetProperty
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f2
-        - ty: ScalarInt
-          val: 5
-        - ty: SetProperty
-        - ty: ReadVar
-          val: t
-        - ty: StringLiteral
-          val: f3
-        - ty: ScalarInt
-          val: 7
-        - ty: SetProperty
-          # set result and g_iters to zero
-        - ty: ScalarInt
-          val: 0
-        - ty: SetGlobalVar
-          val: g_result
-        - ty: ScalarInt
-          val: 0
-        - ty: SetGlobalVar
-          val: g_iters
-        # --- init done ---
-        - ty: ForEach
-          val:
-            lane: outer_loop
-            variable: t
+  outer_loop:
+    name: outer_loop
+    arguments:
+      - "key"
+      - "table"
+    cards:
+      - ty: ForEach
+        val:
+          lane: inner_loop
+          variable: table
 
-    outer_loop:
-      name: outer_loop
-      arguments:
-        - "key"
-        - "table"
-      cards:
-        - ty: ForEach
-          val:
-            lane: inner_loop
-            variable: table
-
-    inner_loop:
-      name: inner_loop
-      arguments:
-        - "key"
-        - "table"
-      cards:
-        # get table[key]
-        - ty: ReadVar
-          val: table
-        - ty: ReadVar
-          val: key
-        - ty: GetProperty
-          # add table[key] to g_result
-        - ty: ReadVar
-          val: g_result
-        - ty: Add
-        - ty: SetGlobalVar
-          val: g_result
-          # add 1 to g_iters
-        - ty: ScalarInt
-          val: 1
-        - ty: ReadVar
-          val: g_iters
-        - ty: Add
-        - ty: SetGlobalVar
-          val: g_iters
+  inner_loop:
+    name: inner_loop
+    arguments:
+      - "key"
+      - "table"
+    cards:
+      # get table[key]
+      - ty: ReadVar
+        val: table
+      - ty: ReadVar
+        val: key
+      - ty: GetProperty
+        # add table[key] to g_result
+      - ty: ReadVar
+        val: g_result
+      - ty: Add
+      - ty: SetGlobalVar
+        val: g_result
+        # add 1 to g_iters
+      - ty: ScalarInt
+        val: 1
+      - ty: ReadVar
+        val: g_iters
+      - ty: Add
+      - ty: SetGlobalVar
+        val: g_iters

@@ -2,26 +2,24 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, LaneNode, Module, StringNode, VarNode},
+    compiler::{CallNode, IntegerNode, LaneNode, StringNode, VarNode},
     prelude::*,
 };
 
 #[test]
 fn composite_card_test() {
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::from_name("main").with_card(Card::CompositeCard {
-                name: "triplepog".to_owned(),
-                cards: vec![
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ],
-            })]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::from_name("main").with_card(Card::CompositeCard {
+            name: "triplepog".to_owned(),
+            cards: vec![
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+            ],
+        })]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(cu, None).unwrap();
@@ -38,21 +36,19 @@ fn composite_card_test() {
 #[test]
 fn test_trace_entry() {
     let ir = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::from_name("main").with_card(Card::Jump(LaneNode("pooh".to_owned()))),
-                Lane::default()
-                    .with_name("pooh")
-                    .with_card(Card::CallNative(Box::new(CallNode(
-                        InputString::from_str("non-existent-function").unwrap(),
-                    ))))
-                    .with_name("pooh"),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::from_name("main").with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default()
+                .with_name("pooh")
+                .with_card(Card::CallNative(Box::new(CallNode(
+                    InputString::from_str("non-existent-function").unwrap(),
+                ))))
+                .with_name("pooh"),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     let program = compile(ir, None).unwrap();
 
@@ -68,16 +64,14 @@ fn test_trace_entry() {
 fn test_string_w_utf8() {
     let test_str = "winnie the pooh is 🔥🔥🔥 ";
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::default()
-                .with_name("main")
-                .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(program, Some(CompileOptions::new())).expect("compile");
@@ -116,17 +110,15 @@ fn test_string_param() {
     vm.register_function(name, into_f1(fun));
 
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::from_name("main")
-                .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
-                .with_card(Card::CallNative(Box::new(CallNode(
-                    InputString::from(name).unwrap(),
-                ))))]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::from_name("main")
+            .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+            .with_card(Card::CallNative(Box::new(CallNode(
+                InputString::from(name).unwrap(),
+            ))))]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(cu, None).expect("compile");
@@ -140,24 +132,22 @@ fn test_string_param() {
 #[test]
 fn simple_if_statement() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main".to_owned())
-                    .with_card(Card::ScalarInt(IntegerNode(42)))
-                    .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
-                Lane::default()
-                    .with_cards(vec![
-                        Card::ScalarInt(IntegerNode(69)),
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ])
-                    .with_name("pooh"),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
+            Lane::default()
+                .with_cards(vec![
+                    Card::ScalarInt(IntegerNode(69)),
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ])
+                .with_name("pooh"),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
@@ -173,24 +163,22 @@ fn simple_if_statement() {
 #[test]
 fn simple_if_statement_skips_if_false() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main".to_owned())
-                    .with_card(Card::ScalarInt(IntegerNode(0)))
-                    .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
-                Lane::default()
-                    .with_cards(vec![
-                        Card::ScalarInt(IntegerNode(69)),
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ])
-                    .with_name("pooh"),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
+            Lane::default()
+                .with_cards(vec![
+                    Card::ScalarInt(IntegerNode(69)),
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ])
+                .with_name("pooh"),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     let program = compile(program, Some(CompileOptions::new())).unwrap();
 
@@ -206,35 +194,33 @@ fn simple_if_statement_skips_if_false() {
 
 fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Value) {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main".to_owned())
-                    .with_card(condition)
-                    .with_card(Card::IfElse {
-                        then: LaneNode("pooh".to_string()),
-                        r#else: LaneNode("tiggers".to_string()),
-                    })
-                    .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
-                Lane::default()
-                    .with_cards(vec![
-                        true_res,
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ])
-                    .with_name("pooh"),
-                Lane::default()
-                    .with_cards(vec![
-                        false_res,
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ])
-                    .with_name("tiggers"),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main".to_owned())
+                .with_card(condition)
+                .with_card(Card::IfElse {
+                    then: LaneNode("pooh".to_string()),
+                    r#else: LaneNode("tiggers".to_string()),
+                })
+                .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
+            Lane::default()
+                .with_cards(vec![
+                    true_res,
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ])
+                .with_name("pooh"),
+            Lane::default()
+                .with_cards(vec![
+                    false_res,
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ])
+                .with_name("tiggers"),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
@@ -277,23 +263,21 @@ fn simple_if_else_statement_test_else() {
 #[test]
 fn test_local_variable() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::default()
-                .with_name("main")
-                // init the global variable
-                .with_card(Card::ScalarInt(IntegerNode(420)))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
-                // set another value in local var
-                .with_card(Card::ScalarInt(IntegerNode(123)))
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                // read the var and set the global variable
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::default()
+            .with_name("main")
+            // init the global variable
+            .with_card(Card::ScalarInt(IntegerNode(420)))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
+            // set another value in local var
+            .with_card(Card::ScalarInt(IntegerNode(123)))
+            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+            // read the var and set the global variable
+            .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(program, None).expect("compile");
@@ -312,22 +296,20 @@ fn test_local_variable() {
 #[test]
 fn local_variable_doesnt_leak_out_of_scope() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main")
-                    .with_card(Card::ScalarInt(IntegerNode(123)))
-                    .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                    .with_card(Card::Jump(LaneNode("bar".to_string()))),
-                Lane::default()
-                    .with_name("bar")
-                    .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo"))),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main")
+                .with_card(Card::ScalarInt(IntegerNode(123)))
+                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::Jump(LaneNode("bar".to_string()))),
+            Lane::default()
+                .with_name("bar")
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(program, None).expect("compile");
@@ -346,29 +328,27 @@ fn local_variable_doesnt_leak_out_of_scope() {
 #[test]
 fn simple_while_loop() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main".to_owned())
-                    .with_card(Card::ScalarInt(IntegerNode(69)))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))
-                    .with_card(Card::While(LaneNode("pooh".to_string()))),
-                Lane::default()
-                    .with_cards(vec![
-                        // Add 1 to the global 'result' variable in each iteration
-                        Card::ReadVar(VarNode::from_str_unchecked("result")),
-                        Card::ScalarInt(IntegerNode(1)),
-                        Card::Sub,
-                        Card::CopyLast, // return `result`
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ])
-                    .with_name("pooh"),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main".to_owned())
+                .with_card(Card::ScalarInt(IntegerNode(69)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))
+                .with_card(Card::While(LaneNode("pooh".to_string()))),
+            Lane::default()
+                .with_cards(vec![
+                    // Add 1 to the global 'result' variable in each iteration
+                    Card::ReadVar(VarNode::from_str_unchecked("result")),
+                    Card::ScalarInt(IntegerNode(1)),
+                    Card::Sub,
+                    Card::CopyLast, // return `result`
+                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                ])
+                .with_name("pooh"),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     /*let program =*/
     match compile(program, Some(CompileOptions::new())).map_err(|e| e.payload) {
@@ -395,32 +375,30 @@ fn simple_while_loop() {
 #[test]
 fn simple_for_loop() {
     let program = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default().with_name("main").with_cards(vec![
-                    // init the result variable
-                    Card::ScalarInt(IntegerNode(0)),
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default().with_name("main").with_cards(vec![
+                // init the result variable
+                Card::ScalarInt(IntegerNode(0)),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                // loop
+                Card::ScalarInt(IntegerNode(5)),
+                Card::Repeat(LaneNode("Loop".to_string())),
+            ]),
+            Lane::default()
+                .with_name("Loop")
+                .with_arg("i")
+                .with_cards(vec![
+                    // Add i to the global 'result' variable in each iteration
+                    Card::ReadVar(VarNode::from_str_unchecked("i")),
+                    Card::ReadVar(VarNode::from_str_unchecked("result")),
+                    Card::Add,
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    // loop
-                    Card::ScalarInt(IntegerNode(5)),
-                    Card::Repeat(LaneNode("Loop".to_string())),
                 ]),
-                Lane::default()
-                    .with_name("Loop")
-                    .with_arg("i")
-                    .with_cards(vec![
-                        // Add i to the global 'result' variable in each iteration
-                        Card::ReadVar(VarNode::from_str_unchecked("i")),
-                        Card::ReadVar(VarNode::from_str_unchecked("result")),
-                        Card::Add,
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ]),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
     let program = compile(program, Some(CompileOptions::new())).expect("compile");
 
@@ -439,17 +417,15 @@ fn simple_for_loop() {
 fn call_native_test() {
     let name = "foo";
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::from_name("main").with_cards(vec![Card::CallNative(Box::new(CallNode(
-                    InputString::from(name).unwrap(),
-                )))]),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::from_name("main").with_cards(vec![Card::CallNative(Box::new(CallNode(
+                InputString::from(name).unwrap(),
+            )))]),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let prog = compile(cu, CompileOptions::new()).unwrap();
@@ -519,32 +495,30 @@ fn test_function_registry() {
     vm.register_function("func3", into_f3(myfunc3));
 
     const PROG: &str = r#"
-module:
-    submodules: {}
-    lanes:
-        main:
-            name: main
-            cards:
-                - ty: CallNative
-                  val: "func0"
-                - ty: ScalarInt
-                  val: 42
-                - ty: CallNative
-                  val: "func1"
-                - ty: ScalarInt
-                  val: 12
-                - ty: ScalarFloat
-                  val: 4.2
-                - ty: CallNative
-                  val: "func2"
-                - ty: ScalarInt
-                  val: 33
-                - ty: ScalarFloat
-                  val: 2.88
-                - ty: ScalarInt
-                  val: 0
-                - ty: CallNative
-                  val: "func3"
+lanes:
+    main:
+        name: main
+        cards:
+            - ty: CallNative
+              val: "func0"
+            - ty: ScalarInt
+              val: 42
+            - ty: CallNative
+              val: "func1"
+            - ty: ScalarInt
+              val: 12
+            - ty: ScalarFloat
+              val: 4.2
+            - ty: CallNative
+              val: "func2"
+            - ty: ScalarInt
+              val: 33
+            - ty: ScalarFloat
+              val: 2.88
+            - ty: ScalarInt
+              val: 0
+            - ty: CallNative
+              val: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
     let prog = compile(cu, CompileOptions::new()).unwrap();
@@ -561,29 +535,27 @@ module:
 #[test]
 fn jump_lane_w_params_test() {
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![
-                Lane::default()
-                    .with_name("main")
-                    .with_card(Card::ScalarInt(IntegerNode(42)))
-                    .with_card(Card::StringLiteral(StringNode(
-                        "winnie the pooh".to_owned(),
-                    )))
-                    .with_card(Card::Jump(LaneNode("pooh".to_owned()))),
-                Lane::default()
-                    .with_name("pooh")
-                    .with_arg("foo")
-                    .with_arg("bar")
-                    .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))
-                    .with_card(Card::ReadVar(VarNode::from_str_unchecked("bar")))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_bar"))),
-            ]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![
+            Lane::default()
+                .with_name("main")
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::StringLiteral(StringNode(
+                    "winnie the pooh".to_owned(),
+                )))
+                .with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default()
+                .with_name("pooh")
+                .with_arg("foo")
+                .with_arg("bar")
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("bar")))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_bar"))),
+        ]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(cu, CompileOptions::new()).expect("compile");
@@ -611,17 +583,15 @@ fn jump_lane_w_params_test() {
 fn len_test_empty() {
     // happy path
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::default()
-                .with_name("main")
-                .with_card(Card::CreateTable)
-                .with_card(Card::Len)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::CreateTable)
+            .with_card(Card::Len)
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(cu, CompileOptions::new()).expect("compile");
@@ -641,35 +611,33 @@ fn len_test_happy() {
     // happy path
     let t = VarNode::from_str_unchecked("t");
     let cu = CaoProgram {
-        module: Module {
-            submodules: Default::default(),
-            lanes: vec![Lane::default()
-                .with_name("main")
-                .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(t.clone()))
-                // first property
-                .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::SetProperty)
-                // same property as above
-                .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::SetProperty)
-                // new property
-                .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::SetProperty)
-                // len
-                .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::Len)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))]
-            .into_iter()
-            .map(|lane| (lane.name.clone(), lane))
-            .collect(),
-        },
+        submodules: Default::default(),
+        lanes: vec![Lane::default()
+            .with_name("main")
+            .with_card(Card::CreateTable)
+            .with_card(Card::SetVar(t.clone()))
+            // first property
+            .with_card(Card::ReadVar(t.clone()))
+            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::SetProperty)
+            // same property as above
+            .with_card(Card::ReadVar(t.clone()))
+            .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::SetProperty)
+            // new property
+            .with_card(Card::ReadVar(t.clone()))
+            .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
+            .with_card(Card::ScalarInt(IntegerNode(42)))
+            .with_card(Card::SetProperty)
+            // len
+            .with_card(Card::ReadVar(t.clone()))
+            .with_card(Card::Len)
+            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result")))]
+        .into_iter()
+        .map(|lane| (lane.name.clone(), lane))
+        .collect(),
     };
 
     let program = compile(cu, CompileOptions::new()).expect("compile");
