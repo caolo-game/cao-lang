@@ -12,8 +12,8 @@ version = "^1.0"
 
 [dependencies]
 num_enum = "^0.5"
-thiserror = "^1.0"
 smallvec = "^1.8"
+thiserror = "^1.0"
 
 [dependencies.arrayvec]
 features = ["serde"]
@@ -58,4 +58,4 @@ license-file = "../LICENSE"
 name = "cao-lang"
 readme = "../README.md"
 repository = "https://github.com/caolo-game/cao-lang.git"
-version = "0.1.60"
+version = "0.1.61"

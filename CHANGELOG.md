@@ -1,4 +1,22 @@
 # Changelog
+## v0.1.61
+
+
+### Features
+
+- Add `Noop` card that does nothing
+
+- Introduce modules
+
+
+### Refactor
+
+- Borrow local variables in the compiler
+
+- Add &str indexing to KeyMap
+
+- Rename compiled program to CaoCompiledProgram
+
 ## v0.1.60
 
 
