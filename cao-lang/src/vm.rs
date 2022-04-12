@@ -166,7 +166,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// This mostly assumes that program is valid, produced by the compiler.
     /// As such running non-compiler emitted programs is very un-safe
     #[inline(never)]
-    pub fn run(&mut self, program: &CaoProgram) -> ExecutionResult<()> {
+    pub fn run(&mut self, program: &CaoCompiledProgram) -> ExecutionResult<()> {
         self.runtime_data
             .call_stack
             .push(CallFrame {

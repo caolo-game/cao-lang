@@ -46,21 +46,24 @@ impl CompilationOptions {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct CaoProgram {
-    inner: Arc<cao_lang::prelude::CaoProgram>,
+pub struct CaoCompiledProgram {
+    inner: Arc<cao_lang::prelude::CaoCompiledProgram>,
 }
 
 #[pyfunction]
-fn compile(cu: CompilationUnit, options: Option<CompilationOptions>) -> PyResult<CaoProgram> {
+fn compile(
+    cu: CompilationUnit,
+    options: Option<CompilationOptions>,
+) -> PyResult<CaoCompiledProgram> {
     cao_lang::prelude::compile(&cu.inner, options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
-        .map(|inner| CaoProgram {
+        .map(|inner| CaoCompiledProgram {
             inner: Arc::new(inner),
         })
 }
 
 #[pyfunction]
-fn run(prog: CaoProgram) -> PyResult<()> {
+fn run(prog: CaoCompiledProgram) -> PyResult<()> {
     let mut vm = cao_lang::prelude::Vm::new(()).expect("Failed to init vm");
     vm.run(&prog.inner)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
@@ -91,7 +94,7 @@ fn cao_lang_py(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<CompilationUnit>()?;
     m.add_class::<CompilationOptions>()?;
-    m.add_class::<CaoProgram>()?;
+    m.add_class::<CaoCompiledProgram>()?;
 
     Ok(())
 }

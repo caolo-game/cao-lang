@@ -35,11 +35,11 @@
 
 mod alloc;
 pub mod collections;
+pub mod compiled_program;
 pub mod compiler;
 pub mod instruction;
 pub mod prelude;
 pub mod procedures;
-pub mod program;
 pub mod traits;
 pub mod value;
 pub mod vm;

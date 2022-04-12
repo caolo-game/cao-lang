@@ -2,6 +2,7 @@ use super::Card;
 use crate::VarName;
 use std::str::FromStr;
 
+/// Cao-lang functions
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {

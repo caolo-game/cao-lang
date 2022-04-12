@@ -104,7 +104,7 @@ pub fn compile(
 #[serde(tag = "ty", content = "val")]
 #[serde(rename_all = "camelCase")]
 pub enum CompileResult {
-    Program(CaoProgram),
+    Program(CaoCompiledProgram),
     CompileError(String),
 }
 
@@ -131,7 +131,7 @@ impl RunResult {}
 #[wasm_bindgen(js_name = "runProgram")]
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = Vm::new(()).expect("Failed to initialize VM");
-    let program: CaoProgram = program.into_serde().map_err(err_to_js)?;
+    let program: CaoCompiledProgram = program.into_serde().map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|()| RunResult {})
 }
 

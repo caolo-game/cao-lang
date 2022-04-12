@@ -40,7 +40,7 @@ pub struct TraceEntry {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CaoProgram {
+pub struct CaoCompiledProgram {
     /// Instructions
     pub bytecode: Vec<u8>,
     /// Data used by instuctions with variable length inputs
@@ -51,7 +51,7 @@ pub struct CaoProgram {
     pub trace: HashMap<usize, TraceEntry>,
 }
 
-impl CaoProgram {
+impl CaoCompiledProgram {
     pub fn variable_id(&self, name: &str) -> Option<VariableId> {
         self.variables
             .ids
@@ -60,7 +60,7 @@ impl CaoProgram {
     }
 }
 
-impl Default for CaoProgram {
+impl Default for CaoCompiledProgram {
     fn default() -> Self {
         Self {
             bytecode: Default::default(),

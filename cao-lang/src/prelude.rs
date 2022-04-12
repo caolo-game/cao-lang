@@ -2,7 +2,7 @@ pub use crate::compiler::{
     compile, CaoIr, Card, CompilationError, CompilationErrorPayload, CompileOptions, Lane,
 };
 pub use crate::procedures::*;
-pub use crate::program::*;
+pub use crate::compiled_program::*;
 pub use crate::traits::*;
 pub use crate::value::*;
 pub use crate::{

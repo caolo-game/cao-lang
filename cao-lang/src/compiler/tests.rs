@@ -46,7 +46,7 @@ fn can_binary_de_serialize_output() {
 
     let pl = bincode::serialize(&prog).unwrap();
 
-    let _prog: CaoProgram = bincode::deserialize(&pl[..]).unwrap();
+    let _prog: CaoCompiledProgram = bincode::deserialize(&pl[..]).unwrap();
 }
 
 #[test]

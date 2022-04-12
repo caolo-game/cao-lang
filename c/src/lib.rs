@@ -2,8 +2,8 @@ use std::{alloc, ffi::c_void};
 
 use alloc::Layout;
 use cao_lang::{
+    compiled_program,
     compiler::{compile, CaoIr, CompilationErrorPayload},
-    program::CaoProgram,
     vm::Vm,
 };
 
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn cao_free_compiled_program(program: *mut CaoCompiledProg
     }
     let program = &mut *program;
     if !program._inner.is_null() {
-        let _program = Box::from_raw(program._inner as *mut CaoProgram);
+        let _program = Box::from_raw(program._inner as *mut compiled_program::CaoCompiledProgram);
     }
     program._inner = std::ptr::null_mut();
 }
@@ -190,8 +190,11 @@ pub unsafe extern "C" fn cao_compile_json(
             }
         },
     };
-    let program_ptr = alloc::alloc(Layout::new::<CaoProgram>());
-    std::ptr::write(program_ptr as *mut CaoProgram, program);
+    let program_ptr = alloc::alloc(Layout::new::<compiled_program::CaoCompiledProgram>());
+    std::ptr::write(
+        program_ptr as *mut compiled_program::CaoCompiledProgram,
+        program,
+    );
 
     let program = CaoCompiledProgram {
         _inner: program_ptr as *mut c_void,
@@ -216,7 +219,7 @@ pub unsafe extern "C" fn cao_run_program(
     if vm._inner.is_null() {
         return ExecutionResult::cao_ExecutionResult_BadVm;
     }
-    let program: &CaoProgram = &*(program._inner as *const _);
+    let program: &compiled_program::CaoCompiledProgram = &*(program._inner as *const _);
     let vm: &mut Vm<*mut c_void> = &mut *(vm._inner as *mut _);
 
     match vm.run(program) {

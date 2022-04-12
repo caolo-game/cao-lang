@@ -6,7 +6,7 @@ use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
     collections::key_map::Handle,
     procedures::ExecutionErrorPayload,
-    program::CaoProgram,
+    compiled_program::CaoCompiledProgram,
     traits::MAX_STR_LEN,
     value::Value,
     VariableId,
@@ -40,7 +40,7 @@ type ExecutionResult = Result<(), ExecutionErrorPayload>;
 pub fn instr_read_var(
     runtime_data: &mut RuntimeData,
     instr_ptr: &mut usize,
-    program: &CaoProgram,
+    program: &CaoCompiledProgram,
 ) -> ExecutionResult {
     let VariableId(varid): VariableId = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let value = runtime_data
@@ -103,7 +103,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
 pub fn instr_string_literal<T>(
     vm: &mut Vm<T>,
     instr_ptr: &mut usize,
-    program: &CaoProgram,
+    program: &CaoCompiledProgram,
 ) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let payload = read_str(&mut (handle as usize), program.data.as_slice())
@@ -117,7 +117,7 @@ pub fn instr_string_literal<T>(
 
 pub fn instr_jump(
     instr_ptr: &mut usize,
-    program: &CaoProgram,
+    program: &CaoCompiledProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
     let label: Handle = unsafe { decode_value(&program.bytecode, instr_ptr) };

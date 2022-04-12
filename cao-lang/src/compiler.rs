@@ -15,7 +15,7 @@ use crate::{
     collections::key_map::{Handle, KeyMap},
     instruction::instruction_span,
     prelude::TraceEntry,
-    program::{CaoProgram, Label},
+    compiled_program::{CaoCompiledProgram, Label},
     Instruction, NodeId, VariableId,
 };
 use std::fmt::Debug;
@@ -41,7 +41,7 @@ pub struct CaoIr {
 
 pub struct Compiler<'a> {
     options: CompileOptions,
-    program: CaoProgram,
+    program: CaoCompiledProgram,
     next_var: RefCell<VariableId>,
 
     /// maps lanes to their metadata
@@ -70,7 +70,7 @@ pub(crate) struct Local<'a> {
 pub fn compile(
     compilation_unit: &CaoIr,
     compile_options: impl Into<Option<CompileOptions>>,
-) -> CompilationResult<CaoProgram> {
+) -> CompilationResult<CaoCompiledProgram> {
     let mut compiler = Compiler::new();
     compiler.compile(compilation_unit, compile_options)
 }
@@ -85,7 +85,7 @@ impl<'a> Compiler<'a> {
     pub fn new() -> Self {
         Compiler {
             options: Default::default(),
-            program: CaoProgram::default(),
+            program: CaoCompiledProgram::default(),
             next_var: RefCell::new(VariableId(0)),
             jump_table: Default::default(),
             locals: Default::default(),
@@ -99,13 +99,13 @@ impl<'a> Compiler<'a> {
         &mut self,
         compilation_unit: &'a CaoIr,
         compile_options: impl Into<Option<CompileOptions>>,
-    ) -> CompilationResult<CaoProgram> {
+    ) -> CompilationResult<CaoCompiledProgram> {
         self.options = compile_options.into().unwrap_or_default();
         // minimize the surface of the generic function
         self._compile(compilation_unit)
     }
 
-    fn _compile(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<CaoProgram> {
+    fn _compile(&mut self, compilation_unit: &'a CaoIr) -> CompilationResult<CaoCompiledProgram> {
         if compilation_unit.lanes.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
@@ -114,7 +114,7 @@ impl<'a> Compiler<'a> {
             ));
         }
         // initialize
-        self.program = CaoProgram::default();
+        self.program = CaoCompiledProgram::default();
         self.next_var = RefCell::new(VariableId(0));
         self.compile_stage_1(compilation_unit)?;
         self.compile_stage_2(compilation_unit)?;

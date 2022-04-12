@@ -56,7 +56,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for KeyMap<T> {
 mod tests {
     use crate::{
         compiler::{CaoIr, Lane},
-        prelude::CaoProgram,
+        prelude::CaoCompiledProgram,
     };
 
     use super::*;
@@ -118,6 +118,6 @@ mod tests {
         let mut payload = Vec::new();
         ciborium::ser::into_writer(&program, &mut payload).unwrap();
 
-        let _: CaoProgram = ciborium::de::from_reader(payload.as_slice()).unwrap();
+        let _: CaoCompiledProgram = ciborium::de::from_reader(payload.as_slice()).unwrap();
     }
 }
