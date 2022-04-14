@@ -294,6 +294,7 @@ impl<'a> Compiler<'a> {
         skip_instr: Instruction,
         lane: &LaneNode,
     ) -> CompilationResult<()> {
+        type Pos = i32;
         assert!(
             matches!(
                 skip_instr,
@@ -302,8 +303,8 @@ impl<'a> Compiler<'a> {
             "invalid skip instruction"
         );
         self.push_instruction(skip_instr);
-        let pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as i32 + 4; // +4 == sizeof pos
-        debug_assert_eq!(std::mem::size_of_val(&pos), 4);
+        let mut pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as Pos;
+        pos += mem::size_of_val(&pos) as Pos;
         write_to_vec(pos, &mut self.program.bytecode);
         self.push_instruction(Instruction::CallLane);
         self.encode_jump(lane)?;
@@ -311,6 +312,9 @@ impl<'a> Compiler<'a> {
     }
 
     fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
+        // TODO
+        // we need to take track of the current namespace we're in and extend the lookup with that
+        // as well
         let to = self.jump_table.get(Handle::from(lane)).ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
                 dst: lane.clone(),
