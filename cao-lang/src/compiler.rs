@@ -327,7 +327,7 @@ impl<'a> Compiler<'a> {
             // TODO: create handle from parts instead of building the string..
             let mut name = self.current_namespace[0..i].join(".");
             name.push('.');
-            name.extend(lane.0.as_str().chars());
+            name.push_str(lane.0.as_str());
             let handle = Handle::from(name.as_str());
             to = self.jump_table.get(handle);
             i -= 1;

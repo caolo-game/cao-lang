@@ -77,7 +77,7 @@ fn flatten_module<'a>(
 
 fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> CompiledLane {
     assert!(
-        namespace.len() >= 1,
+        !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
     );
 
