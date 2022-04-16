@@ -8,6 +8,7 @@ mod program;
 
 pub mod card_description;
 
+mod compiled_lane;
 #[cfg(test)]
 mod tests;
 
@@ -30,12 +31,14 @@ pub use compile_options::*;
 pub use lane::*;
 pub use program::*;
 
+use self::compiled_lane::CompiledLane;
+
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
 /// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
-pub(crate) type CaoIr<'a> = &'a [Lane];
+pub(crate) type CaoIr<'a> = &'a [CompiledLane];
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -257,12 +260,12 @@ impl<'a> Compiler<'a> {
     fn process_lane(
         &mut self,
         il: usize,
-        Lane {
+        CompiledLane {
             cards,
             arguments,
             name,
             ..
-        }: &'a Lane,
+        }: &'a CompiledLane,
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {

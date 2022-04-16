@@ -105,14 +105,14 @@ mod tests {
     fn can_serialize_program_cbor() {
         let program = crate::compiler::compile(
             CaoProgram {
-                lanes: vec![Lane {
-                    name: "main".into(),
-                    arguments: vec![],
-                    cards: vec![],
-                }]
-                .into_iter()
-                .map(|lane| (lane.name.clone(), lane))
-                .collect(),
+                lanes: [(
+                    "main".to_owned(),
+                    Lane {
+                        arguments: vec![],
+                        cards: vec![],
+                    },
+                )]
+                .into(),
                 submodules: Default::default(),
             },
             None,

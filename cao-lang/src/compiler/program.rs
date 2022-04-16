@@ -7,6 +7,8 @@ use smallvec::SmallVec;
 use std::collections::HashMap;
 use thiserror::Error;
 
+use super::compiled_lane::CompiledLane;
+
 #[derive(Debug, Clone, Error)]
 pub enum IntoStreamError {
     #[error("Main function by name {0} was not found")]
@@ -28,7 +30,7 @@ pub struct Module {
 impl Module {
     /// flatten this program into a lane stream
     // TODO: return an iterator???
-    pub(crate) fn into_ir_stream(mut self) -> Result<Vec<Lane>, CompilationErrorPayload> {
+    pub(crate) fn into_ir_stream(mut self) -> Result<Vec<CompiledLane>, CompilationErrorPayload> {
         // the first lane is special
         //
         let first_fn = self
@@ -36,6 +38,7 @@ impl Module {
             .remove("main")
             .ok_or(CompilationErrorPayload::NoMain)?;
 
+        let first_fn = lane_to_compiled_lane(&first_fn, &["main"]);
         let mut result = vec![first_fn];
         result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
@@ -51,7 +54,7 @@ impl Module {
 fn flatten_module<'a>(
     module: &'a Module,
     namespace: &mut SmallVec<[&'a str; 16]>,
-    out: &mut Vec<Lane>,
+    out: &mut Vec<CompiledLane>,
 ) -> Result<(), CompilationErrorPayload> {
     for (name, submod) in module.submodules.iter() {
         namespace.push(name.as_str());
@@ -65,13 +68,22 @@ fn flatten_module<'a>(
         if !is_name_valid(name.as_str()) {
             return Err(CompilationErrorPayload::BadLaneName(name.clone()));
         }
-        let mut lane = lane.clone();
         namespace.push(name.as_str());
-        lane.name = flatten_name(namespace.as_slice());
+        out.push(lane_to_compiled_lane(lane, namespace));
         namespace.pop();
-        out.push(lane);
     }
     Ok(())
+}
+
+fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> CompiledLane {
+    let mut cl = CompiledLane {
+        name: flatten_name(namespace),
+        arguments: lane.arguments.clone(),
+        cards: lane.cards.clone(),
+        ..Default::default()
+    };
+    cl.namespace.extend(namespace.iter().map(|x| x.to_string()));
+    cl
 }
 
 fn is_name_valid(name: &str) -> bool {

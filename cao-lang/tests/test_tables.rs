@@ -10,13 +10,13 @@ use cao_lang::{
 fn test_init_table() {
     let cu = CaoProgram {
         submodules: Default::default(),
-        lanes: vec![Lane::default()
-            .with_name("main")
-            .with_card(Card::CreateTable)
-            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))]
-        .into_iter()
-        .map(|lane| (lane.name.clone(), lane))
-        .collect(),
+        lanes: [(
+            "main".to_owned(),
+            Lane::default()
+                .with_card(Card::CreateTable)
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo"))),
+        )]
+        .into(),
     };
 
     let program = compile(cu, None).expect("compile");
@@ -35,21 +35,21 @@ fn test_init_table() {
 fn test_get_set() {
     let cu = CaoProgram {
         submodules: Default::default(),
-        lanes: vec![Lane::default()
-            .with_name("main")
-            .with_card(Card::CreateTable)
-            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::StringLiteral(StringNode("bar".to_string())))
-            .with_card(Card::ScalarInt(IntegerNode(42)))
-            .with_card(Card::SetProperty) // foo.bar
-            .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::StringLiteral(StringNode("bar".to_string())))
-            .with_card(Card::GetProperty)
-            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie")))]
-        .into_iter()
-        .map(|lane| (lane.name.clone(), lane))
-        .collect(),
+        lanes: [(
+            "main".to_owned(),
+            Lane::default()
+                .with_card(Card::CreateTable)
+                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::StringLiteral(StringNode("bar".to_string())))
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::SetProperty) // foo.bar
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::StringLiteral(StringNode("bar".to_string())))
+                .with_card(Card::GetProperty)
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie"))),
+        )]
+        .into(),
     };
 
     let program = compile(cu, None).expect("compile");
@@ -86,20 +86,20 @@ fn test_native_w_table_input() {
 
     let cu = CaoProgram {
         submodules: Default::default(),
-        lanes: vec![Lane::default()
-            .with_name("main")
-            .with_card(Card::CreateTable)
-            .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-            .with_card(Card::StringLiteral(StringNode("boi".to_string())))
-            .with_card(Card::ScalarInt(IntegerNode(42)))
-            .with_card(Card::SetProperty) // foo.bar
-            .with_card(Card::CallNative(Box::new(CallNode(
-                InputString::from("boii").unwrap(),
-            ))))]
-        .into_iter()
-        .map(|lane| (lane.name.clone(), lane))
-        .collect(),
+        lanes: [(
+            "main".to_owned(),
+            Lane::default()
+                .with_card(Card::CreateTable)
+                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::StringLiteral(StringNode("boi".to_string())))
+                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::SetProperty) // foo.bar
+                .with_card(Card::CallNative(Box::new(CallNode(
+                    InputString::from("boii").unwrap(),
+                )))),
+        )]
+        .into(),
     };
 
     let program = compile(cu, CompileOptions::new()).unwrap();
