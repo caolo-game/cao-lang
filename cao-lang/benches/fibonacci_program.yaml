@@ -1,6 +1,5 @@
 lanes:
   main:
-    name: main
     # Assumes that N is pushed onto the stack before executing the program
     arguments:
       - N
@@ -18,7 +17,6 @@ lanes:
       - ty: Repeat
         val: "loop"
   loop:
-    name: loop
     arguments:
       - i
     cards:

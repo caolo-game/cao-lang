@@ -76,13 +76,23 @@ fn flatten_module<'a>(
 }
 
 fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> CompiledLane {
+    assert!(
+        namespace.len() >= 1,
+        "Assume that lane name is the last entry in namespace"
+    );
+
     let mut cl = CompiledLane {
         name: flatten_name(namespace),
         arguments: lane.arguments.clone(),
         cards: lane.cards.clone(),
         ..Default::default()
     };
-    cl.namespace.extend(namespace.iter().map(|x| x.to_string()));
+    cl.namespace.extend(
+        namespace
+            .iter()
+            .take(namespace.len() - 1)
+            .map(|x| x.to_string()),
+    );
     cl
 }
 

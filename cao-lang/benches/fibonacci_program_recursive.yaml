@@ -1,6 +1,5 @@
 lanes:
   main:
-    name: main
     # Assumes that N is pushed onto the stack before executing the program
     arguments:
       - N
@@ -14,7 +13,6 @@ lanes:
         val: result
 
   fib:
-    name: fib
     arguments:
       - N
     cards:
@@ -32,7 +30,6 @@ lanes:
       - ty: Return
 
   fib_again:
-    name: fib_again
     arguments:
       - N
     cards:
@@ -54,7 +51,6 @@ lanes:
       - ty: Return
 
   fib_one:
-    name: fib_one
     cards:
       - ty: ScalarInt
         val: 1

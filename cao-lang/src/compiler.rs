@@ -39,6 +39,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 ///
 /// Execution will begin with the first Lane
 pub(crate) type CaoIr<'a> = &'a [CompiledLane];
+pub(crate) type NameSpace = smallvec::SmallVec<[String; 8]>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -48,6 +49,7 @@ pub struct Compiler<'a> {
     /// maps lanes to their metadata
     jump_table: KeyMap<LaneMeta>,
 
+    current_namespace: NameSpace,
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
@@ -93,6 +95,7 @@ impl<'a> Compiler<'a> {
             program: CaoCompiledProgram::default(),
             next_var: RefCell::new(VariableId(0)),
             jump_table: Default::default(),
+            current_namespace: Default::default(),
             locals: Default::default(),
             scope_depth: 0,
             current_card: -1,
@@ -261,16 +264,17 @@ impl<'a> Compiler<'a> {
         &mut self,
         il: usize,
         CompiledLane {
-            cards,
-            arguments,
             name,
-            ..
+            arguments,
+            cards,
+            namespace,
         }: &'a CompiledLane,
         // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
         self.current_lane = name.clone();
         self.current_card = -1;
+        self.current_namespace = namespace.clone();
 
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {
@@ -315,10 +319,20 @@ impl<'a> Compiler<'a> {
     }
 
     fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
-        // TODO
-        // we need to take track of the current namespace we're in and extend the lookup with that
-        // as well
-        let to = self.jump_table.get(Handle::from(lane)).ok_or_else(|| {
+        let mut to = self.jump_table.get(Handle::from(lane));
+        let mut i = self.current_namespace.len();
+        while i > 0 && to.is_none() {
+            // attempt to look up the function in the current namespace
+            //
+            // TODO: create handle from parts instead of building the string..
+            let mut name = self.current_namespace[0..i].join(".");
+            name.push('.');
+            name.extend(lane.0.as_str().chars());
+            let handle = Handle::from(name.as_str());
+            to = self.jump_table.get(handle);
+            i -= 1;
+        }
+        let to = to.ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
                 dst: lane.clone(),
                 msg: None,

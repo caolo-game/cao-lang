@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, LaneNode, StringNode, VarNode},
+    compiler::{CallNode, IntegerNode, LaneNode, Module, StringNode, VarNode},
     prelude::*,
 };
 
@@ -661,4 +661,48 @@ fn len_test_happy() {
         .expect("Failed to read foo variable");
 
     assert_eq!(len, Value::Integer(2));
+}
+
+#[test]
+fn nested_module_can_call_self_test() {
+    let cu = CaoProgram {
+        submodules: [(
+            "winnie".to_owned(),
+            Module {
+                submodules: Default::default(),
+                lanes: [
+                    (
+                        "win".to_owned(),
+                        Lane::default().with_card(Card::Jump(LaneNode("nie".to_owned()))),
+                    ),
+                    (
+                        "nie".to_owned(),
+                        Lane::default()
+                            .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                    ),
+                ]
+                .into(),
+            },
+        )]
+        .into(),
+        lanes: [(
+            "main".to_owned(),
+            Lane::default().with_card(Card::Jump(LaneNode("winnie.win".to_owned()))),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read foo variable");
+
+    let result = unsafe { result.as_str().unwrap() };
+
+    assert_eq!(result, "poggers");
 }
