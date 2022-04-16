@@ -1,4 +1,20 @@
 # Changelog
+## v0.1.62
+
+
+### Bug Fixes
+
+- Jumps now work within a namespace
+
+- Fix clippy warnings
+
+
+### Refactor
+
+- CaoPrograms are now Modules
+
+- Split public and internal Lane data
+
 ## v0.1.61
 
 
