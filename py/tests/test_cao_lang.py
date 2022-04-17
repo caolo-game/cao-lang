@@ -9,7 +9,6 @@ def test_compile_and_run():
     PROGRAM_YAML = """
 lanes:
     main: 
-        name: main
         cards:
             - ty: ScalarInt
               val: 5
@@ -29,3 +28,23 @@ lanes:
 def test_get_version():
     v = caoc.native_version()
     assert isinstance(v, str)
+
+
+def test_json():
+    PROGRAM_JSON = """
+    {
+        "lanes": {
+            "main": {
+                "cards": [
+                    { "ty": "Noop" }
+                ]
+            }
+        }
+    }
+    """
+    program = caoc.CompilationUnit.from_json(PROGRAM_JSON)
+    options = caoc.CompilationOptions()
+
+    program = caoc.compile(program, options)
+
+    caoc.run(program)

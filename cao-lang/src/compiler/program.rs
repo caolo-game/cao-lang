@@ -24,6 +24,7 @@ pub type CaoProgram = Module;
 pub struct Module {
     #[cfg_attr(feature = "serde", serde(default = "HashMap::default"))]
     pub submodules: HashMap<String, Module>,
+    #[cfg_attr(feature = "serde", serde(default = "HashMap::default"))]
     pub lanes: HashMap<String, Lane>,
 }
 
