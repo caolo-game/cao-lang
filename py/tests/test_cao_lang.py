@@ -1,3 +1,4 @@
+import pytest
 import cao_lang as caoc
 
 
@@ -48,3 +49,17 @@ def test_json():
     program = caoc.compile(program, options)
 
     caoc.run(program)
+
+
+def test_bad_json_is_value_error():
+    PROGRAM_JSON = """
+    {
+        "lanes": {
+            "main": {
+                "cards": [ {} ]
+            }
+        }
+    }
+    """
+    with pytest.raises(ValueError):
+        caoc.CompilationUnit.from_json(PROGRAM_JSON)
