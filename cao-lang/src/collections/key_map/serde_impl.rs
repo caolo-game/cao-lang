@@ -106,7 +106,7 @@ mod tests {
         let program = crate::compiler::compile(
             CaoProgram {
                 lanes: [(
-                    "main".to_owned(),
+                    "main".into(),
                     Lane {
                         arguments: vec![],
                         cards: vec![],

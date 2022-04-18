@@ -9,7 +9,7 @@ use pyo3::{
 #[pyclass]
 #[derive(Clone)]
 pub struct CompilationUnit {
-    inner: cao_lang::prelude::CaoProgram,
+    inner: serde_json::Value,
 }
 
 #[pyclass]
@@ -55,7 +55,8 @@ fn compile(
     cu: CompilationUnit,
     options: Option<CompilationOptions>,
 ) -> PyResult<CaoCompiledProgram> {
-    cao_lang::prelude::compile(cu.inner, options.map(|o| o.inner))
+    let cu = serde_json::from_value(cu.inner).unwrap();
+    cao_lang::prelude::compile(cu, options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
         .map(|inner| CaoCompiledProgram {
             inner: Arc::new(inner),

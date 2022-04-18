@@ -4,6 +4,7 @@
 use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -17,18 +18,19 @@ pub enum IntoStreamError {
     BadName(String),
 }
 
-pub type CaoProgram = Module;
+pub type CaoProgram<'a> = Module<'a>;
+pub type CaoIdentifier<'a> = Cow<'a, str>;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Module {
+pub struct Module<'a> {
     #[cfg_attr(feature = "serde", serde(default = "HashMap::default"))]
-    pub submodules: HashMap<String, Module>,
+    pub submodules: HashMap<CaoIdentifier<'a>, Module<'a>>,
     #[cfg_attr(feature = "serde", serde(default = "HashMap::default"))]
-    pub lanes: HashMap<String, Lane>,
+    pub lanes: HashMap<CaoIdentifier<'a>, Lane>,
 }
 
-impl Module {
+impl<'a> Module<'a> {
     /// flatten this program into a lane stream
     // TODO: return an iterator???
     pub(crate) fn into_ir_stream(mut self) -> Result<Vec<CompiledLane>, CompilationErrorPayload> {
@@ -58,7 +60,7 @@ fn flatten_module<'a>(
     out: &mut Vec<CompiledLane>,
 ) -> Result<(), CompilationErrorPayload> {
     for (name, submod) in module.submodules.iter() {
-        namespace.push(name.as_str());
+        namespace.push(name.as_ref());
         flatten_module(submod, namespace, out)?;
         namespace.pop();
     }
@@ -66,10 +68,10 @@ fn flatten_module<'a>(
         out.reserve(module.lanes.len() - (out.capacity() - out.len()));
     }
     for (name, lane) in module.lanes.iter() {
-        if !is_name_valid(name.as_str()) {
-            return Err(CompilationErrorPayload::BadLaneName(name.clone()));
+        if !is_name_valid(name.as_ref()) {
+            return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
         }
-        namespace.push(name.as_str());
+        namespace.push(name.as_ref());
         out.push(lane_to_compiled_lane(lane, namespace));
         namespace.pop();
     }

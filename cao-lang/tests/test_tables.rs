@@ -11,7 +11,7 @@ fn test_init_table() {
     let cu = CaoProgram {
         submodules: Default::default(),
         lanes: [(
-            "main".to_owned(),
+            "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo"))),
@@ -36,7 +36,7 @@ fn test_get_set() {
     let cu = CaoProgram {
         submodules: Default::default(),
         lanes: [(
-            "main".to_owned(),
+            "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
@@ -87,7 +87,7 @@ fn test_native_w_table_input() {
     let cu = CaoProgram {
         submodules: Default::default(),
         lanes: [(
-            "main".to_owned(),
+            "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))

@@ -6,7 +6,7 @@ use super::*;
 fn composite_card_test() {
     let mut lanes = HashMap::new();
     lanes.insert(
-        "main".to_string(),
+        "main".into(),
         Lane::default().with_card(Card::CompositeCard {
             name: "triplepog".to_owned(),
             cards: vec![
@@ -29,7 +29,7 @@ fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         submodules: Default::default(),
         lanes: [(
-            "main".to_owned(),
+            "main".into(),
             Lane::default().with_cards(vec![
                 Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
                 Card::Pass,
@@ -51,7 +51,7 @@ fn empty_varname_is_error() {
     let cu = CaoProgram {
         submodules: Default::default(),
         lanes: [(
-            "main".to_owned(),
+            "main".into(),
             Lane::default().with_cards(vec![Card::SetGlobalVar(VarNode::from_str_unchecked(""))]),
         )]
         .into(),
@@ -71,13 +71,13 @@ fn empty_arity_in_foreach_is_an_error() {
         submodules: Default::default(),
         lanes: [
             (
-                "main".to_string(),
+                "main".into(),
                 Lane::default().with_card(Card::ForEach {
                     variable: VarNode::default(),
                     lane: LaneNode("pooh".to_owned()),
                 }),
             ),
-            ("pooh".to_string(), Lane::default()),
+            ("pooh".into(), Lane::default()),
         ]
         .into(),
     };
@@ -96,13 +96,13 @@ fn arity_1_in_foreach_is_an_error() {
         submodules: Default::default(),
         lanes: HashMap::from([
             (
-                "main".to_string(),
+                "main".into(),
                 Lane::default().with_card(Card::ForEach {
                     variable: VarNode::default(),
                     lane: LaneNode("pooh".to_owned()),
                 }),
             ),
-            ("pooh".to_string(), Lane::default().with_arg("asd")),
+            ("pooh".into(), Lane::default().with_arg("asd")),
         ]),
     };
 
@@ -118,16 +118,16 @@ fn arity_1_in_foreach_is_an_error() {
 fn can_call_nested_function_test() {
     let mut submodules = HashMap::new();
     submodules.insert(
-        "coggers".to_owned(),
+        "coggers".into(),
         Module {
             submodules: Default::default(),
-            lanes: HashMap::from([("pooh".to_string(), Lane::default().with_card(Card::Noop))]),
+            lanes: HashMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
         },
     );
     let prog = CaoProgram {
         submodules,
         lanes: HashMap::from([(
-            "main".to_string(),
+            "main".into(),
             Lane::default().with_cards(vec![Card::Jump(LaneNode("coggers.pooh".to_string()))]),
         )]),
     };
