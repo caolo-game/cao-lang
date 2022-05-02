@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.68
+
+
+### Refactor
+
+- Disallow null field when deserializing modules
+
 ## v0.1.67
 
 
