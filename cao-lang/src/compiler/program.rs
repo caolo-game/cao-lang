@@ -49,11 +49,17 @@ mod deser_helpers {
     use super::*;
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub(crate) fn ser_submodules<S: Serializer>(module: &Module, s: S) -> Result<S::Ok, S::Error> {
+    pub(crate) fn ser_submodules<'a, S: Serializer>(
+        module: &HashMap<CaoIdentifier<'a>, Module<'a>>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
         s.serialize_some(module)
     }
 
-    pub(crate) fn ser_lane<S: Serializer>(l: &Lane, s: S) -> Result<S::Ok, S::Error> {
+    pub(crate) fn ser_lane<S: Serializer>(
+        l: &HashMap<CaoIdentifier<'_>, Lane>,
+        s: S,
+    ) -> Result<S::Ok, S::Error> {
         s.serialize_some(l)
     }
 
