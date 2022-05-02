@@ -20,7 +20,7 @@ lanes:
               val: "foo.bar"
 submodules:
     foo:
-        submodules: null
+        submodules: {}
         lanes:
             bar:
                 cards:
@@ -54,7 +54,7 @@ def test_json():
         },
         "submodules": {
             "foo": {
-                "submodules": null,
+                "submodules": {},
                 "lanes": {
                     "bar": {
                         "cards": [

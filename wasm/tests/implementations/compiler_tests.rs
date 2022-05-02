@@ -11,6 +11,7 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
+        "submodules": {},
         "lanes": {"main": {
             "name": "main",
             "cards": [ {"ty": "ScalarInt", "val": 69 } ]
@@ -26,6 +27,7 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
+        "submodules": {},
         "lanes": {"main": {
             "name": "main",
             "cards": [ {"ty": "Jump", "val": "42" } ]
@@ -45,6 +47,7 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
+        "submodules": {},
         "lanes": { "main": {
             "name": "main",
             "cards": [

@@ -24,58 +24,8 @@ pub type CaoIdentifier<'a> = Cow<'a, str>;
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Module<'a> {
-    #[cfg_attr(
-        feature = "serde",
-        serde(
-            default = "HashMap::default",
-            deserialize_with = "deser_helpers::nullable_submodules",
-            serialize_with = "deser_helpers::ser_submodules",
-        )
-    )]
     pub submodules: HashMap<CaoIdentifier<'a>, Module<'a>>,
-    #[cfg_attr(
-        feature = "serde",
-        serde(
-            default = "HashMap::default",
-            deserialize_with = "deser_helpers::nullable_lanes",
-            serialize_with = "deser_helpers::ser_lane",
-        )
-    )]
     pub lanes: HashMap<CaoIdentifier<'a>, Lane>,
-}
-
-#[cfg(feature = "serde")]
-mod deser_helpers {
-    use super::*;
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub(crate) fn ser_submodules<'a, S: Serializer>(
-        module: &HashMap<CaoIdentifier<'a>, Module<'a>>,
-        s: S,
-    ) -> Result<S::Ok, S::Error> {
-        s.serialize_some(module)
-    }
-
-    pub(crate) fn ser_lane<S: Serializer>(
-        l: &HashMap<CaoIdentifier<'_>, Lane>,
-        s: S,
-    ) -> Result<S::Ok, S::Error> {
-        s.serialize_some(l)
-    }
-
-    pub(crate) fn nullable_submodules<'de, 'a: 'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<HashMap<CaoIdentifier<'a>, Module<'a>>, D::Error> {
-        let opt = Option::deserialize(deserializer)?;
-        Ok(opt.unwrap_or_default())
-    }
-
-    pub(crate) fn nullable_lanes<'de, 'a: 'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<HashMap<CaoIdentifier<'a>, Lane>, D::Error> {
-        let opt = Option::deserialize(deserializer)?;
-        Ok(opt.unwrap_or_default())
-    }
 }
 
 impl<'a> Module<'a> {
