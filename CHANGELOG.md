@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.67
+
+
+### Bug Fixes
+
+- Fix serialization of modules
+
+
+### Refactor
+
+- Honor the cargo target dir environment variable if present in the C API
+
 ## v0.1.66
 
 
