@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.65
+
+
+### Bug Fixes
+
+- Fix potential lifetime issue in the Python wrapper
+
+
+### Features
+
+- Support `null` values in Module deserializing
+
 ## v0.1.64
 
 
