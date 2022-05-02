@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.66
+
+
+### Bug Fixes
+
+- Fix Module serialization
+
 ## v0.1.65
 
 
