@@ -12,20 +12,27 @@ option(CAOLO_ENABLE_TESTING "Enable testing" OFF)
 add_library(cao_lang INTERFACE)
 target_include_directories(cao_lang
                            INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/c/include)
+
+# Honor the cargo dir env variable if present
+set(CAO_TARGET_DIR $ENV{CARGO_TARGET_DIR})
+if(NOT EXISTS ${CAO_TARGET_DIR}) 
+    set(CAO_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target")
+endif()
+
 if(WIN32)
     target_link_libraries(
         cao_lang
         INTERFACE debug
-                  "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/cao_lang_c.lib"
+                  "${CAO_TARGET_DIR}/debug/cao_lang_c.lib"
                   optimized
-                  "${CMAKE_CURRENT_SOURCE_DIR}/target/release/cao_lang_c.lib")
+                  "${CAO_TARGET_DIR}/release/cao_lang_c.lib")
 else()
     target_link_libraries(
         cao_lang
         INTERFACE debug
-                  "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/libcao_lang_c.a"
+                  "${CAO_TARGET_DIR}/debug/libcao_lang_c.a"
                   optimized
-                  "${CMAKE_CURRENT_SOURCE_DIR}/target/release/libcao_lang_c.a")
+                  "${CAO_TARGET_DIR}/release/libcao_lang_c.a")
 endif()
 
 ExternalProject_Add(
@@ -37,10 +44,10 @@ ExternalProject_Add(
     INSTALL_COMMAND ""
     LOG_BUILD ON
     BUILD_BYPRODUCTS
-        "${CMAKE_CURRENT_SOURCE_DIR}/target/release/libcao_lang_c.a"
-        "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/libcao_lang_c.a"
-        "${CMAKE_CURRENT_SOURCE_DIR}/target/release/cao_lang_c.lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/target/debug/cao_lang_c.lib")
+        "${CAO_TARGET_DIR}/release/libcao_lang_c.a"
+        "${CAO_TARGET_DIR}/debug/libcao_lang_c.a"
+        "${CAO_TARGET_DIR}/release/cao_lang_c.lib"
+        "${CAO_TARGET_DIR}/debug/cao_lang_c.lib")
 
 add_dependencies(cao_lang cao_lang_rs)
 
