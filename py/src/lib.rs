@@ -9,7 +9,8 @@ use pyo3::{
 #[pyclass]
 #[derive(Clone)]
 pub struct CompilationUnit {
-    inner: cao_lang::prelude::CaoProgram<'static>,
+    // wrap in an Arc, because clone might cause lifetime issues
+    inner: Arc<cao_lang::prelude::CaoProgram<'static>>,
 }
 
 #[pyclass]
@@ -24,14 +25,18 @@ impl CompilationUnit {
     fn from_json(payload: &str) -> PyResult<Self> {
         let inner =
             serde_json::from_str(payload).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        Ok(Self { inner })
+        Ok(Self {
+            inner: Arc::new(inner),
+        })
     }
 
     #[staticmethod]
     fn from_yaml(payload: &str) -> PyResult<Self> {
         let inner =
             serde_yaml::from_str(payload).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        Ok(Self { inner })
+        Ok(Self {
+            inner: Arc::new(inner),
+        })
     }
 }
 
@@ -55,7 +60,7 @@ fn compile(
     cu: CompilationUnit,
     options: Option<CompilationOptions>,
 ) -> PyResult<CaoCompiledProgram> {
-    cao_lang::prelude::compile(cu.inner, options.map(|o| o.inner))
+    cao_lang::prelude::compile(cu.inner.as_ref().clone(), options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
         .map(|inner| CaoCompiledProgram {
             inner: Arc::new(inner),
