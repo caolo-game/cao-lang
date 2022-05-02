@@ -16,6 +16,16 @@ lanes:
             - ty: ScalarInt
               val: 5
             - ty: Add
+            - ty: Jump
+              val: "foo.bar"
+submodules:
+    foo:
+        lanes:
+            bar:
+                cards:
+                    - ty: ScalarInt
+                      val: 42
+
 """
 
     program = caoc.CompilationUnit.from_yaml(PROGRAM_YAML)
@@ -37,8 +47,19 @@ def test_json():
         "lanes": {
             "main": {
                 "cards": [
-                    { "ty": "Noop" }
+                    { "ty": "Jump", "val": "foo.bar" }
                 ]
+            }
+        },
+        "submodules": {
+            "foo": {
+                "lanes": {
+                    "bar": {
+                        "cards": [
+                            { "ty": "Noop" }
+                        ]
+                    }
+                }
             }
         }
     }
