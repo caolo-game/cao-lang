@@ -6,11 +6,11 @@ use crate::{
 };
 use crate::{version, VariableId};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Labels(pub KeyMap<Label>);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Variables {
     pub ids: KeyMap<VariableId>,
@@ -38,7 +38,7 @@ pub struct TraceEntry {
     pub card: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoCompiledProgram {
     /// Instructions

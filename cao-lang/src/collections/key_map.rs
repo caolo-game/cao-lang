@@ -47,6 +47,22 @@ where
     alloc: A,
 }
 
+impl<T, A> Clone for KeyMap<T, A>
+where
+    T: Clone,
+    A: Allocator + Clone,
+{
+    fn clone(&self) -> Self {
+        let mut result = KeyMap::with_capacity(self.capacity, self.alloc.clone()).unwrap();
+
+        for (k, v) in self.iter() {
+            result.insert(k, v.clone()).unwrap();
+        }
+
+        result
+    }
+}
+
 impl<T, A: Allocator> std::fmt::Debug for KeyMap<T, A>
 where
     T: std::fmt::Debug,
