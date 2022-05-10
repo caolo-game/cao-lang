@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.69
+
+
+### Features
+
+- Allow constructing FieldTables from iterators
+
+- Add OwnedValues that allow users to save and load Values between VM instances
+
+
+### Refactor
+
+- Implement Clone for KeyMap and CompiledProgram
+
 ## v0.1.68
 
 
