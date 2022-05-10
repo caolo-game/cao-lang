@@ -12,6 +12,38 @@ pub enum Value {
 }
 
 /// Intended for saving `Values` after the program has finished executing
+///
+/// ```
+/// use cao_lang::prelude::*;
+///
+/// let mut vm = Vm::new(()).unwrap();
+/// // init an object `val` with 1 entry {'pog': 42}
+/// let mut obj = vm.init_table().unwrap();
+/// let pog = vm.init_string("pog").unwrap();
+/// unsafe { obj.as_mut() }
+///     .insert(Value::String(pog), 42.into())
+///     .unwrap();
+/// let val = Value::Object(obj.as_ptr());
+///
+/// let owned = OwnedValue::from(val);
+///
+/// // (de)serialize the owned object...
+///
+/// // new vm instance
+/// let mut vm = Vm::new(()).unwrap();
+/// let loaded = vm.insert_value(owned).unwrap();
+///
+/// # // check the contents
+/// # let loaded_table = vm.get_table(loaded).unwrap();
+/// # assert_eq!(loaded_table.len(), 1);
+/// # for (k, v) in loaded_table.iter() {
+/// #     let k = unsafe { k.as_str().unwrap() };
+/// #     let v = v.as_int().unwrap();
+
+/// #     assert_eq!(k, "pog");
+/// #     assert_eq!(v, 42);
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum OwnedValue {
