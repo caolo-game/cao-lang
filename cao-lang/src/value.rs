@@ -54,6 +54,12 @@ pub enum OwnedValue {
     Real(f64),
 }
 
+impl Default for OwnedValue {
+    fn default() -> Self {
+        OwnedValue::Nil
+    }
+}
+
 impl From<Value> for OwnedValue {
     fn from(v: Value) -> Self {
         match v {
