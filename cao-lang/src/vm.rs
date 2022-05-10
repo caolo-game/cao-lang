@@ -48,7 +48,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     /// Inserts the given value into the VM's runtime memory. Returns the inserted [[Value]]
-    pub fn insert_value(&mut self, value: OwnedValue) -> Result<Value, ExecutionErrorPayload> {
+    pub fn insert_value(&mut self, value: &OwnedValue) -> Result<Value, ExecutionErrorPayload> {
         let res = match value {
             OwnedValue::Nil => Value::Nil,
             OwnedValue::String(s) => {
@@ -66,8 +66,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Value::Object(res.as_ptr())
             }
-            OwnedValue::Integer(x) => Value::Integer(x),
-            OwnedValue::Real(x) => Value::Real(x),
+            OwnedValue::Integer(x) => Value::Integer(*x),
+            OwnedValue::Real(x) => Value::Real(*x),
         };
         Ok(res)
     }
