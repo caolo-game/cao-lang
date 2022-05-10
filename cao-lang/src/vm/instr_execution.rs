@@ -82,7 +82,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let val = vm.stack_pop();
     let len = match val {
         Value::Nil => 0,
-        Value::Integer(_) | Value::Floating(_) => 1,
+        Value::Integer(_) | Value::Real(_) => 1,
         Value::String(s) => {
             let st = unsafe {
                 s.get_str().ok_or_else(|| {

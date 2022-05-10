@@ -47,6 +47,31 @@ impl<'a, Aux> Vm<'a, Aux> {
         })
     }
 
+    /// Inserts the given value into the VM's runtime memory. Returns the inserted [[Value]]
+    pub fn insert_value(&mut self, value: OwnedValue) -> Result<Value, ExecutionErrorPayload> {
+        let res = match value {
+            OwnedValue::Nil => Value::Nil,
+            OwnedValue::String(s) => {
+                let res = self.init_string(s.as_str())?;
+                Value::String(res)
+            }
+            OwnedValue::Object(o) => {
+                let mut res = self.init_table()?;
+                for [k, v] in o.into_iter() {
+                    let k = self.insert_value(k)?;
+                    let v = self.insert_value(v)?;
+                    unsafe {
+                        res.as_mut().insert(k, v)?;
+                    }
+                }
+                Value::Object(res.as_ptr())
+            }
+            OwnedValue::Integer(x) => Value::Integer(x),
+            OwnedValue::Real(x) => Value::Real(x),
+        };
+        Ok(res)
+    }
+
     pub fn clear(&mut self) {
         self.runtime_data.clear();
     }
@@ -371,7 +396,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::ScalarFloat => {
                     self.runtime_data
                         .value_stack
-                        .push(Value::Floating(unsafe {
+                        .push(Value::Real(unsafe {
                             instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
@@ -460,7 +485,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Handle::from_str(s).unwrap()
             }
             Value::Integer(i) => Handle::from(i),
-            Value::Floating(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
+            Value::Real(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
         };
         Ok(handle)
     }

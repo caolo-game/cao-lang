@@ -3,13 +3,40 @@ use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-#[repr(C)]
 pub enum Value {
     Nil,
     String(StrPointer),
     Object(*mut FieldTable),
     Integer(i64),
-    Floating(f64),
+    Real(f64),
+}
+
+/// Intended for saving `Values` after the program has finished executing
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum OwnedValue {
+    Nil,
+    String(String),
+    Object(Vec<[OwnedValue; 2]>),
+    Integer(i64),
+    Real(f64),
+}
+
+impl From<Value> for OwnedValue {
+    fn from(v: Value) -> Self {
+        match v {
+            Value::Nil => Self::Nil,
+            Value::String(_) => Self::String(unsafe { v.as_str() }.unwrap().to_owned()),
+            Value::Object(ptr) => Self::Object({
+                unsafe { &*ptr }
+                    .iter()
+                    .map(|(k, v)| [k.into(), v.into()])
+                    .collect()
+            }),
+            Value::Integer(x) => Self::Integer(x),
+            Value::Real(x) => Self::Real(x),
+        }
+    }
 }
 
 impl Default for Value {
@@ -25,14 +52,14 @@ impl Value {
             Value::String(i) => !i.0.is_null(),
             Value::Object(i) => !i.is_null(),
             Value::Integer(i) => i != 0,
-            Value::Floating(i) => i != 0.0,
+            Value::Real(i) => i != 0.0,
             Value::Nil => false,
         }
     }
 
     #[inline]
     pub fn is_float(self) -> bool {
-        matches!(self, Value::Floating(_))
+        matches!(self, Value::Real(_))
     }
 
     #[inline]
@@ -76,6 +103,20 @@ impl Value {
         }
     }
 
+    pub fn as_int(self) -> Option<i64> {
+        match self {
+            Value::Integer(x) => Some(x),
+            _ => None,
+        }
+    }
+
+    pub fn as_real(self) -> Option<f64> {
+        match self {
+            Value::Real(x) => Some(x),
+            _ => None,
+        }
+    }
+
     #[inline]
     pub fn is_obj(self) -> bool {
         matches!(self, Value::Object(_))
@@ -95,13 +136,13 @@ impl Value {
     fn cast_match(self, other: Self) -> (Self, Self) {
         if self.is_float() || other.is_float() {
             return (
-                Value::Floating(
+                Value::Real(
                     i64::try_from(self)
                         .map(|x| x as f64)
                         .or_else(f64::try_from)
                         .unwrap(),
                 ),
-                Value::Floating(
+                Value::Real(
                     i64::try_from(other)
                         .map(|x| x as f64)
                         .or_else(f64::try_from)
@@ -192,7 +233,7 @@ impl TryFrom<Value> for f64 {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Floating(i) => Ok(i),
+            Value::Real(i) => Ok(i),
             _ => Err(v),
         }
     }
@@ -218,7 +259,7 @@ macro_rules! binary_op {
             (Value::Integer(a), Value::Integer(b)) => {
                     Value::Integer(a $op b)
             }
-            (Value::Floating(a), Value::Floating(b)) => Value::Floating(a $op b),
+            (Value::Real(a), Value::Real(b)) => Value::Real(a $op b),
             _ => Value::Nil
         }
         }

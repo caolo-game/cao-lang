@@ -15,6 +15,13 @@ use tracing::debug;
 pub struct FieldTable {
     keys: KeyMap<Value, BumpProxy>,
     values: KeyMap<Value, BumpProxy>,
+    alloc: BumpProxy,
+}
+
+impl Clone for FieldTable {
+    fn clone(&self) -> Self {
+        Self::from_iter(self.iter(), self.alloc.clone()).unwrap()
+    }
 }
 
 impl std::fmt::Debug for FieldTable {
@@ -37,7 +44,8 @@ impl FieldTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {
             keys: KeyMap::with_capacity(size, proxy.clone())?,
-            values: KeyMap::with_capacity(size, proxy)?,
+            values: KeyMap::with_capacity(size, proxy.clone())?,
+            alloc: proxy,
         };
         Ok(res)
     }
@@ -100,7 +108,7 @@ impl FieldTable {
                 Handle::from_str(s).unwrap()
             }
             Value::Integer(i) => Handle::from(i),
-            Value::Floating(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
+            Value::Real(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
         };
         Ok(handle)
     }
