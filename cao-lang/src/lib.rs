@@ -70,7 +70,6 @@ impl Ord for NodeId {
     }
 }
 
-/// Convenience newtype for native functions with string arguments
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[repr(transparent)]
 pub struct StrPointer(pub *mut u8);

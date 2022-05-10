@@ -102,7 +102,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         S: Into<Value>,
     {
         self.runtime_data
-            .stack
+            .value_stack
             .push(value.into())
             .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
         Ok(())
@@ -110,7 +110,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     #[inline]
     pub fn stack_pop(&mut self) -> Value {
-        self.runtime_data.stack.pop()
+        self.runtime_data.value_stack.pop()
     }
 
     pub fn get_table(&self, value: Value) -> Result<&FieldTable, ExecutionErrorPayload> {
@@ -198,7 +198,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             instr_ptr += 1;
             debug!(
                 "Executing: {:?} instr_ptr: {} Stack: {}",
-                instr, instr_ptr, self.runtime_data.stack
+                instr, instr_ptr, self.runtime_data.value_stack
             );
             match instr {
                 Instruction::InitTable => {
@@ -221,7 +221,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|err| payload_to_error(err, instr_ptr))?;
                 }
                 Instruction::SetProperty => {
-                    let [value, key, instance] = self.runtime_data.stack.pop_n::<3>();
+                    let [value, key, instance] = self.runtime_data.value_stack.pop_n::<3>();
                     let table = self
                         .get_table_mut(instance)
                         .map_err(|err| payload_to_error(err, instr_ptr))?;
@@ -276,7 +276,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                 }
                 Instruction::GotoIfTrue => {
-                    let condition = self.runtime_data.stack.pop();
+                    let condition = self.runtime_data.value_stack.pop();
                     let pos: i32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
@@ -285,7 +285,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     }
                 }
                 Instruction::GotoIfFalse => {
-                    let condition = self.runtime_data.stack.pop();
+                    let condition = self.runtime_data.value_stack.pop();
                     let pos: i32 =
                         unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
                     debug_assert!(pos >= 0);
@@ -310,7 +310,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     .stack_push(Value::Nil)
                     .map_err(|err| payload_to_error(err, instr_ptr))?,
                 Instruction::ClearStack => {
-                    self.runtime_data.stack.clear_until(
+                    self.runtime_data.value_stack.clear_until(
                         self.runtime_data
                             .call_stack
                             .last()
@@ -361,7 +361,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Pass => {}
                 Instruction::ScalarInt => {
                     self.runtime_data
-                        .stack
+                        .value_stack
                         .push(Value::Integer(unsafe {
                             instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
@@ -370,7 +370,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::ScalarFloat => {
                     self.runtime_data
-                        .stack
+                        .value_stack
                         .push(Value::Floating(unsafe {
                             instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
@@ -441,7 +441,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         let a = self.stack_pop();
 
         self.runtime_data
-            .stack
+            .value_stack
             .push(op(a, b))
             .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
         Ok(())

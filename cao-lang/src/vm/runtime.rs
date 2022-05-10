@@ -62,6 +62,20 @@ impl FieldTable {
         self.values.get_mut(handle)
     }
 
+    pub fn from_iter(
+        it: impl Iterator<Item = (Value, Value)>,
+        alloc: BumpProxy,
+    ) -> Result<Self, ExecutionErrorPayload> {
+        let mut result = Self::with_capacity(it.size_hint().0, alloc)
+            .map_err(|_err| ExecutionErrorPayload::OutOfMemory)?;
+
+        for (key, value) in it {
+            result.insert(key, value)?;
+        }
+
+        Ok(result)
+    }
+
     pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionErrorPayload> {
         let handle = Self::hash_value(key)?;
         self.keys
@@ -100,10 +114,20 @@ impl FieldTable {
                 (*k, *v)
             })
     }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Value, &mut Value)> + '_ {
+        self.keys
+            .iter()
+            .zip(self.values.iter_mut())
+            .map(|((k1, k), (k2, v))| {
+                debug_assert!(k1 == k2);
+                (*k, v)
+            })
+    }
 }
 
 pub struct RuntimeData {
-    pub(crate) stack: ValueStack,
+    pub(crate) value_stack: ValueStack,
     pub(crate) call_stack: BoundedStack<CallFrame>,
     pub(crate) global_vars: Vec<Value>,
     pub(crate) memory: BumpProxy,
@@ -136,7 +160,7 @@ impl RuntimeData {
     ) -> Result<Self, ExecutionErrorPayload> {
         let memory: BumpProxy = BumpAllocator::new(memory_capacity).into();
         let res = Self {
-            stack: ValueStack::new(stack_size),
+            value_stack: ValueStack::new(stack_size),
             call_stack: BoundedStack::new(call_stack_size),
             global_vars: Vec::with_capacity(16),
             object_list: Vec::with_capacity(16),
@@ -169,7 +193,7 @@ impl RuntimeData {
     }
 
     pub fn clear(&mut self) {
-        self.stack.clear();
+        self.value_stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();
         unsafe {

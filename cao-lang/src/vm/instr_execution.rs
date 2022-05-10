@@ -57,7 +57,7 @@ pub fn instr_read_var(
             )
         })?;
     runtime_data
-        .stack
+        .value_stack
         .push(*value)
         .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
     Ok(())
@@ -69,7 +69,7 @@ pub fn instr_set_var(
     instr_ptr: &mut usize,
 ) -> ExecutionResult {
     let varname = unsafe { decode_value::<VariableId>(bytecode, instr_ptr) };
-    let scalar = runtime_data.stack.pop();
+    let scalar = runtime_data.value_stack.pop();
     let varid = varname.0 as usize;
     if runtime_data.global_vars.len() <= varid {
         runtime_data.global_vars.resize(varid + 1, Value::Nil);
@@ -136,7 +136,7 @@ pub fn instr_jump(
         .push(CallFrame {
             instr_ptr: *instr_ptr,
             stack_offset: runtime_data
-                .stack
+                .value_stack
                 .len()
                 .checked_sub(argcount as usize)
                 .ok_or(ExecutionErrorPayload::MissingArgument)?,
@@ -176,9 +176,9 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .last()
         .expect("Call stack is emtpy")
         .stack_offset;
-    let value = vm.runtime_data.stack.pop_w_offset(offset);
+    let value = vm.runtime_data.value_stack.pop_w_offset(offset);
     vm.runtime_data
-        .stack
+        .value_stack
         .set(offset + handle as usize, value)
         .map_err(|err| {
             ExecutionErrorPayload::VarNotFound(format!("Failed to set local variable: {}", err))
@@ -194,7 +194,7 @@ pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .last()
         .expect("Call stack is emtpy")
         .stack_offset;
-    let value = vm.runtime_data.stack.get(offset + handle as usize);
+    let value = vm.runtime_data.value_stack.get(offset + handle as usize);
     vm.stack_push(value)?;
     Ok(())
 }
@@ -203,7 +203,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     // pop the current stack frame
     let value = match vm.runtime_data.call_stack.pop() {
         // return value
-        Some(rt) => vm.runtime_data.stack.clear_until(rt.stack_offset),
+        Some(rt) => vm.runtime_data.value_stack.clear_until(rt.stack_offset),
         None => {
             return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Call stack is empty".to_string(),
@@ -227,7 +227,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
 }
 
 pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let n = vm.runtime_data.stack.last();
+    let n = vm.runtime_data.value_stack.last();
     let n = i64::try_from(n).map_err(|_| {
         ExecutionErrorPayload::invalid_argument("Repeat input must be an integer".to_string())
     })?;
@@ -245,7 +245,7 @@ pub fn begin_repeat<T>(vm: &mut Vm<T>) -> ExecutionResult {
 pub fn repeat<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
     let i = vm.stack_pop();
     let i = i64::try_from(i).expect("Repeat input `I` must be an integer");
-    let n = vm.runtime_data.stack.last();
+    let n = vm.runtime_data.value_stack.last();
     let n = i64::try_from(n).expect("Repeat input `N` must be an integer");
 
     let should_continue = i < n;
@@ -263,9 +263,9 @@ pub fn repeat<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
 }
 
 pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let val = vm.runtime_data.stack.last();
+    let val = vm.runtime_data.value_stack.last();
     vm.runtime_data
-        .stack
+        .value_stack
         .push(val)
         .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
 
@@ -274,7 +274,7 @@ pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
 
 /// push `i=0` onto the stack
 pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let item = vm.runtime_data.stack.last();
+    let item = vm.runtime_data.value_stack.last();
     // test if the input is a table
     let _item = vm.get_table(item)?;
     debug!("Starting for-each on table {:?}", _item);
@@ -292,7 +292,7 @@ pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
 /// parameters.
 pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
     let i = vm.stack_pop();
-    let obj_val = vm.runtime_data.stack.peek_last(0);
+    let obj_val = vm.runtime_data.value_stack.peek_last(0);
 
     let mut i = i64::try_from(i).expect("Repeat input #0 must be an integer");
     let obj = vm

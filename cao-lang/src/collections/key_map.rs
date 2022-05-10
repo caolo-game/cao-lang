@@ -339,6 +339,15 @@ where
         })
     }
 
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Handle, &'_ mut T)> + '_ {
+        let keys = self.keys.as_ptr();
+        let values = self.values.as_ptr();
+        (0..self.capacity).filter_map(move |i| unsafe {
+            let k = *keys.add(i);
+            (k.0 != 0).then(|| (k, &mut *values.add(i)))
+        })
+    }
+
     unsafe fn alloc_storage(
         alloc: &A,
         capacity: usize,
