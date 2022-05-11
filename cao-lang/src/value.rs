@@ -31,7 +31,7 @@ pub enum Value {
 ///
 /// // new vm instance
 /// let mut vm = Vm::new(()).unwrap();
-/// let loaded = vm.insert_value(owned).unwrap();
+/// let loaded = vm.insert_value(&owned).unwrap();
 ///
 /// # // check the contents
 /// # let loaded_table = vm.get_table(loaded).unwrap();

@@ -56,7 +56,7 @@ fn test_can_save_and_restore_values() {
     // load the object in a new VM
     let loaded: OwnedValue = serde_json::from_str(pl.as_str()).unwrap();
     let mut vm = Vm::new(()).unwrap();
-    let loaded = vm.insert_value(loaded).unwrap();
+    let loaded = vm.insert_value(&loaded).unwrap();
 
     // check the contents
     let loaded_table = vm.get_table(loaded).unwrap();
