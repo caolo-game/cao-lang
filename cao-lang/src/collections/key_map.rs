@@ -24,6 +24,7 @@ use std::{
     alloc::Layout,
     intrinsics::transmute,
     mem::{align_of, size_of, swap, MaybeUninit},
+    num::Wrapping,
     ops::{Index, IndexMut},
     ptr::NonNull,
     str::FromStr,
@@ -119,7 +120,6 @@ impl FromStr for Handle {
 impl Handle {
     pub fn from_bytes(key: &[u8]) -> Self {
         const MASK: u64 = u32::MAX as u64;
-        // FNV-1a
         let mut hash = 2166136261u64;
         for byte in key {
             hash ^= *byte as u64;
@@ -133,25 +133,35 @@ impl Handle {
 
     pub fn from_u32(key: u32) -> Self {
         const MASK: u64 = u32::MAX as u64;
+        let key = hash_u64(key as u64, MASK);
+        Self(key)
+    }
 
-        let mut key = key as u64 + MASK * (key == 0) as u64; // to ensure non-zero keys
-        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
-        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
-        key = ((key >> 16) ^ key) & MASK;
-        debug_assert!(key != 0);
-        Self(key as u32)
+    pub fn from_u64(key: u64) -> Self {
+        const MASK: u64 = u64::MAX;
+        let key = hash_u64(key, MASK);
+        Self(key)
     }
 
     pub fn from_i64(key: i64) -> Self {
-        const MASK: u64 = u32::MAX as u64;
-
-        let mut key = key as u64 + MASK * (key == 0) as u64; // to ensure non-zero keys
-        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
-        key = (((key >> 16) ^ key) * 0x45d0f3b) & MASK;
-        key = ((key >> 16) ^ key) & MASK;
-        debug_assert!(key != 0);
-        Self(key as u32)
+        const MASK: u64 = u64::MAX as u64;
+        let key = hash_u64(key as u64, MASK);
+        Self(key)
     }
+}
+
+// FNV-1a
+#[inline]
+fn hash_u64(key: u64, mask: u64) -> u32 {
+    let key = key + mask * (key == 0) as u64; // to ensure non-zero keys
+
+    let mut key = Wrapping(key);
+    let mask = Wrapping(mask);
+    key = (((key >> 16) ^ key) * Wrapping(0x45d0f3b)) & mask;
+    key = (((key >> 16) ^ key) * Wrapping(0x45d0f3b)) & mask;
+    key = ((key >> 16) ^ key) & mask;
+    debug_assert!(key.0 != 0);
+    ((key >> 32) ^ key).0 as u32
 }
 
 impl From<i64> for Handle {
