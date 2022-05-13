@@ -49,9 +49,16 @@ pub enum Value {
 pub enum OwnedValue {
     Nil,
     String(String),
-    Object(Vec<[OwnedValue; 2]>),
+    Object(Vec<OwnedEntry>),
     Integer(i64),
     Real(f64),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct OwnedEntry {
+    pub key: OwnedValue,
+    pub value: OwnedValue,
 }
 
 impl Default for OwnedValue {
@@ -68,7 +75,10 @@ impl From<Value> for OwnedValue {
             Value::Object(ptr) => Self::Object({
                 unsafe { &*ptr }
                     .iter()
-                    .map(|(k, v)| [k.into(), v.into()])
+                    .map(|(k, v)| OwnedEntry {
+                        key: k.into(),
+                        value: v.into(),
+                    })
                     .collect()
             }),
             Value::Integer(x) => Self::Integer(x),

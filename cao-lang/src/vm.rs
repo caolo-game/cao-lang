@@ -57,11 +57,11 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             OwnedValue::Object(o) => {
                 let mut res = self.init_table()?;
-                for [k, v] in o.into_iter() {
-                    let k = self.insert_value(k)?;
-                    let v = self.insert_value(v)?;
+                for OwnedEntry { key, value } in o.into_iter() {
+                    let key = self.insert_value(key)?;
+                    let value = self.insert_value(value)?;
                     unsafe {
-                        res.as_mut().insert(k, v)?;
+                        res.as_mut().insert(key, value)?;
                     }
                 }
                 Value::Object(res.as_ptr())
