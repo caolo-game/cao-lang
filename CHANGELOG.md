@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.70
+
+
+### Refactor
+
+- Implement Default for OwnedValue
+
+- Do not take ownership of OwnedValue when inserting
+
+
+### Break
+
+- Use structs for the inner OwnedValue::Object representation
+
 ## v0.1.69
 
 
