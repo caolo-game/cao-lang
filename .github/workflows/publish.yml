@@ -103,7 +103,7 @@ jobs:
       - name: Package
         working-directory: wasm
         run: | 
-          wasm-pack build --scope caolo-game --release -d out/pkg -- --no-default-features
+          wasm-pack build --target=web --scope caolo-game --release -d out/pkg -- --no-default-features
           wasm-pack pack out/pkg
 
       - name: Publish
