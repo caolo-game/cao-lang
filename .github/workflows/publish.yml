@@ -101,11 +101,13 @@ jobs:
           version: 'latest'
 
       - name: Package
+        working-directory: wasm
         run: | 
           wasm-pack build --scope caolo-game --release -d out/pkg -- --no-default-features
           wasm-pack pack out/pkg
 
       - name: Publish
+        working-directory: wasm
         run: |
           cd out/pkg && npm publish --access=public
         env:
