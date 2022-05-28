@@ -1,8 +1,8 @@
 [dependencies]
-js-sys = "0.3.56"
-serde = "1.0.136"
-serde_derive = "1.0.136"
-wasm-bindgen-futures = "0.4.29"
+js-sys = "0.3.57"
+serde = "1.0.137"
+serde_derive = "1.0.137"
+wasm-bindgen-futures = "0.4.30"
 wasm-logger = "0.2.0"
 
 [dependencies.cao-lang]
@@ -15,11 +15,11 @@ version = "0.1.7"
 
 [dependencies.wasm-bindgen]
 features = ["serde-serialize"]
-version = "0.2.79"
+version = "0.2.80"
 
 [dev-dependencies]
-serde_json = "1.0.79"
-wasm-bindgen-test = "0.3.29"
+serde_json = "1.0.81"
+wasm-bindgen-test = "0.3.30"
 
 [features]
 default = []
