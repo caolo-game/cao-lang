@@ -20,4 +20,4 @@ authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 edition = "2018"
 license = "MIT"
 name = "cao-lang-py"
-version = "0.1.58"
+version = "0.1.59"

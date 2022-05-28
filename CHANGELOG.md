@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.74
+
+
+### Break
+
+- Only publish the web target to npm
+
 ## v0.1.70
 
 
