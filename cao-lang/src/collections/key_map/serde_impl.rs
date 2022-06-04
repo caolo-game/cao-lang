@@ -77,14 +77,17 @@ mod tests {
     #[test]
     fn can_serialize_bincode() {
         let mut map = KeyMap::default();
-        map.insert(Handle(123), 69).unwrap();
+        map.insert(Handle(123), "poggers".to_string()).unwrap();
+        map.insert(Handle(42), "coggers".to_string()).unwrap();
 
         let payload = bincode::serialize(&map).unwrap();
 
-        let map2: KeyMap<i32> = bincode::deserialize(&payload).unwrap();
+        let map2: KeyMap<String> = bincode::deserialize(&payload).unwrap();
 
         let res = map2.get(Handle(123)).unwrap();
-        assert_eq!(*res, 69);
+        assert_eq!(*res, "poggers");
+        let res = map2.get(Handle(42)).unwrap();
+        assert_eq!(*res, "coggers");
     }
 
     #[test]
