@@ -8,7 +8,7 @@ fn composite_card_test() {
     lanes.insert(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard {
-            name: "triplepog".to_owned(),
+            name: "triplepog".to_string().into(),
             cards: vec![
                 Card::StringLiteral(StringNode("poggers".to_owned())),
                 Card::StringLiteral(StringNode("poggers".to_owned())),

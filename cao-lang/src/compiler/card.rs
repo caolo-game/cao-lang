@@ -60,7 +60,7 @@ pub enum Card {
     /// Single card that decomposes into multiple cards
     // TODO: move into struct and store a Box<CompositeCard> to reduce Card size?
     CompositeCard {
-        name: String,
+        name: Option<String>,
         cards: Vec<Card>,
     },
     /// Does nothing
@@ -107,7 +107,10 @@ impl Card {
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
-            Card::CompositeCard { name, .. } => name.as_str(),
+            Card::CompositeCard { name, .. } => name
+                .as_ref()
+                .map(|x| x.as_str())
+                .unwrap_or("Unnamed CompositeCard"),
             Card::Noop => "No-op",
         }
     }

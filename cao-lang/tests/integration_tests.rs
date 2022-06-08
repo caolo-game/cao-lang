@@ -13,7 +13,7 @@ fn composite_card_test() {
         lanes: [(
             "main".into(),
             Lane::default().with_card(Card::CompositeCard {
-                name: "triplepog".into(),
+                name: "triplepog".to_string().into(),
                 cards: vec![
                     Card::StringLiteral(StringNode("poggers".to_owned())),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
