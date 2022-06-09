@@ -466,7 +466,7 @@ impl<'a> Compiler<'a> {
                 let mut idx = 0;
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.process_card(nodeid, then_card)?;
-                    // TODO jump over the `else` branch
+                    // jump over the `else` branch
                     c.push_instruction(Instruction::Goto);
                     idx = c.program.bytecode.len();
                     write_to_vec(0i32, &mut c.program.bytecode);
