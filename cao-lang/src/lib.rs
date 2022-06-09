@@ -45,14 +45,14 @@ impl FromStr for VariableId {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NodeId {
     /// Index of the lane this node is in
-    pub lane: u16,
+    pub lane: u32,
     /// Index of the node relative to the lane
-    pub pos: u16,
+    pub pos: u32,
 }
 
-impl From<NodeId> for u32 {
-    fn from(n: NodeId) -> u32 {
-        ((n.lane as u32) << 16) | n.pos as u32
+impl From<NodeId> for u64 {
+    fn from(n: NodeId) -> u64 {
+        ((n.lane as u64) << 32) | n.pos as u64
     }
 }
 

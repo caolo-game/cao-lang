@@ -151,33 +151,40 @@ impl<'a> Compiler<'a> {
         self.current_card = -1;
         for (i, n) in compilation_unit.iter().enumerate() {
             self.current_lane = n.name.clone();
-
-            let indexkey = Handle::from_i64(i as i64);
-            assert!(!self.jump_table.contains(indexkey));
             num_cards += n.cards.len();
 
-            let nodekey = Handle::from_u32(
-                NodeId {
-                    // we know that i fits in 16 bits from the check above
-                    lane: i as u16,
-                    pos: 0,
-                }
-                .into(),
-            );
-            // allow referencing lanes using both name and index
-            let metadata = LaneMeta {
-                hash_key: nodekey,
-                arity: n.arguments.len() as u32,
-            };
-            self.jump_table.insert(indexkey, metadata).unwrap();
-            let namekey = Handle::from_str(n.name.as_str()).expect("Failed to hash lane name");
-            if self.jump_table.contains(namekey) {
-                return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.clone())));
-            }
-            self.jump_table.insert(namekey, metadata).unwrap();
+            self.add_lane(i as i64, n)?;
         }
 
         self.program.labels.0.reserve(num_cards).expect("reserve");
+        Ok(())
+    }
+
+    fn add_lane(&mut self, i: i64, n: &CompiledLane) -> CompilationResult<()> {
+        let indexkey = Handle::from_i64(i);
+        assert!(!self.jump_table.contains(indexkey));
+
+        let nodekey = Handle::from_u64(
+            NodeId {
+                // we know that i fits in 16 bits from the check above
+                lane: i
+                    .try_into()
+                    .map_err(|_| self.error(CompilationErrorPayload::TooManyLanes))?,
+                pos: 0,
+            }
+            .into(),
+        );
+        // allow referencing lanes using both name and index
+        let metadata = LaneMeta {
+            hash_key: nodekey,
+            arity: n.arguments.len() as u32,
+        };
+        self.jump_table.insert(indexkey, metadata).unwrap();
+        let namekey = Handle::from_str(n.name.as_str()).expect("Failed to hash lane name");
+        if self.jump_table.contains(namekey) {
+            return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.clone())));
+        }
+        self.jump_table.insert(namekey, metadata).unwrap();
         Ok(())
     }
 
@@ -186,14 +193,14 @@ impl<'a> Compiler<'a> {
         let mut lanes = compilation_unit.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
-            let len: u16 = match main_lane.cards.len().try_into() {
+            let len: u32 = match main_lane.cards.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
             };
             self.scope_begin();
             self.process_lane(il, main_lane, 0)?;
             let nodeid = NodeId {
-                lane: il as u16,
+                lane: il as u32,
                 pos: len,
             };
             self.scope_end();
@@ -203,10 +210,10 @@ impl<'a> Compiler<'a> {
 
         for (il, lane) in lanes {
             let nodeid = NodeId {
-                lane: il as u16,
+                lane: il as u32,
                 pos: 0,
             };
-            let nodeid_hash = Handle::from_u32(nodeid.into());
+            let nodeid_hash = Handle::from_u64(nodeid.into());
             let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
             self.program
@@ -269,7 +276,6 @@ impl<'a> Compiler<'a> {
             cards,
             namespace,
         }: &'a CompiledLane,
-        // cards: Vec<Card>,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
         self.current_lane = name.clone();
@@ -288,8 +294,8 @@ impl<'a> Compiler<'a> {
         for (ic, card) in cards.iter().enumerate() {
             self.current_card = ic as i32;
             let nodeid = NodeId {
-                lane: il as u16,
-                pos: (ic as i32 + instruction_offset) as u16,
+                lane: il as u32,
+                pos: (ic as i32 + instruction_offset) as u32,
             };
             self.process_card(nodeid, card)?;
         }
@@ -363,7 +369,7 @@ impl<'a> Compiler<'a> {
     fn process_card(&mut self, nodeid: NodeId, card: &'a Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
-        let nodeid_hash = Handle::from_u32(nodeid.into());
+        let nodeid_hash = Handle::from_u64(nodeid.into());
         self.program
             .labels
             .0

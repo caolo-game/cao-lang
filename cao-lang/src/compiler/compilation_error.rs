@@ -44,7 +44,7 @@ pub enum CompilationErrorPayload {
     #[error("Program was empty")]
     EmptyProgram,
 
-    #[error("Number of lanes may not be larger than 2^16 - 1 = 65535")]
+    #[error("Can not handle that many lanes")]
     TooManyLanes,
 
     #[error("Lanes {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
@@ -75,5 +75,5 @@ pub enum CompilationErrorPayload {
     EmptyVariable,
 
     #[error("{0:?} is not a valid name for a Lane")]
-    BadLaneName(String)
+    BadLaneName(String),
 }
