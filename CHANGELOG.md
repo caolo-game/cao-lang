@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.75
+
+
+### Features
+
+- If/Else cards take another Card as parameter instead of lanes
+
+
+### Refactor
+
+- CompositeCard names are optional
+
 ## v0.1.74
 
 
