@@ -57,7 +57,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             OwnedValue::Object(o) => {
                 let mut res = self.init_table()?;
-                for OwnedEntry { key, value } in o.into_iter() {
+                for OwnedEntry { key, value } in o.iter() {
                     let key = self.insert_value(key)?;
                     let value = self.insert_value(value)?;
                     unsafe {
