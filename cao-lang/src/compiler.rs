@@ -161,12 +161,8 @@ impl<'a> Compiler<'a> {
     }
 
     fn add_lane(&mut self, i: i64, n: &CompiledLane) -> CompilationResult<()> {
-        let indexkey = Handle::from_i64(i);
-        assert!(!self.jump_table.contains(indexkey));
-
         let nodekey = Handle::from_u64(
             NodeId {
-                // we know that i fits in 16 bits from the check above
                 lane: i
                     .try_into()
                     .map_err(|_| self.error(CompilationErrorPayload::TooManyLanes))?,
@@ -174,12 +170,10 @@ impl<'a> Compiler<'a> {
             }
             .into(),
         );
-        // allow referencing lanes using both name and index
         let metadata = LaneMeta {
             hash_key: nodekey,
             arity: n.arguments.len() as u32,
         };
-        self.jump_table.insert(indexkey, metadata).unwrap();
         let namekey = Handle::from_str(n.name.as_str()).expect("Failed to hash lane name");
         if self.jump_table.contains(namekey) {
             return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.clone())));
@@ -224,7 +218,6 @@ impl<'a> Compiler<'a> {
 
             self.scope_begin();
 
-            // process the lane
             self.process_lane(il, lane, 1)?;
 
             self.scope_end();
