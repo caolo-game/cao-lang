@@ -141,7 +141,9 @@ fn simple_if_statement() {
                 "main".into(),
                 Lane::default()
                     .with_card(Card::ScalarInt(IntegerNode(42)))
-                    .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
+                    .with_card(Card::IfTrue(Box::new(Card::Jump(LaneNode(
+                        "pooh".to_owned(),
+                    ))))),
             ),
             (
                 "pooh".into(),
@@ -168,21 +170,26 @@ fn simple_if_statement() {
 fn simple_if_statement_skips_if_false() {
     let program = CaoProgram {
         submodules: Default::default(),
-        lanes: [
-            (
-                "main".into(),
-                Lane::default()
-                    .with_card(Card::ScalarInt(IntegerNode(0)))
-                    .with_card(Card::IfTrue(LaneNode("pooh".to_owned()))),
-            ),
-            (
-                "pooh".into(),
-                Lane::default().with_cards(vec![
-                    Card::ScalarInt(IntegerNode(69)),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ]),
-            ),
-        ]
+        lanes: [(
+            "main".into(),
+            Lane::default()
+                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::IfTrue(Box::new(Card::CompositeCard {
+                    name: None,
+                    cards: vec![
+                        Card::ScalarInt(IntegerNode(69)),
+                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    ],
+                })))
+                .with_card(Card::ScalarInt(IntegerNode(1)))
+                .with_card(Card::IfFalse(Box::new(Card::CompositeCard {
+                    name: None,
+                    cards: vec![
+                        Card::ScalarInt(IntegerNode(42)),
+                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    ],
+                }))),
+        )]
         .into(),
     };
     let program = compile(program, Some(CompileOptions::new())).unwrap();
@@ -194,7 +201,11 @@ fn simple_if_statement_skips_if_false() {
 
     let varid = program.variable_id("result").unwrap();
     let value = vm.read_var(varid);
-    assert!(value.is_none(), "{:?}", value);
+    assert!(
+        value.is_none(),
+        "expected value to be none, instead got: {:?}",
+        value
+    );
 }
 
 fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Value) {
@@ -206,8 +217,8 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
                 Lane::default()
                     .with_card(condition)
                     .with_card(Card::IfElse {
-                        then: LaneNode("pooh".to_string()),
-                        r#else: LaneNode("tiggers".to_string()),
+                        then: Box::new(Card::Jump(LaneNode("pooh".to_string()))),
+                        r#else: Box::new(Card::Jump(LaneNode("tiggers".to_string()))),
                     })
                     .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),

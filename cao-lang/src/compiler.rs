@@ -16,7 +16,6 @@ use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::key_map::{Handle, KeyMap},
     compiled_program::{CaoCompiledProgram, Label},
-    instruction::instruction_span,
     prelude::TraceEntry,
     Instruction, NodeId, VariableId,
 };
@@ -153,23 +152,23 @@ impl<'a> Compiler<'a> {
             self.current_lane = n.name.clone();
             num_cards += n.cards.len();
 
-            self.add_lane(i as i64, n)?;
+            let nodekey = Handle::from_u64(
+                NodeId {
+                    lane: i
+                        .try_into()
+                        .map_err(|_| self.error(CompilationErrorPayload::TooManyLanes))?,
+                    pos: 0,
+                }
+                .into(),
+            );
+            self.add_lane(nodekey, n)?;
         }
 
         self.program.labels.0.reserve(num_cards).expect("reserve");
         Ok(())
     }
 
-    fn add_lane(&mut self, i: i64, n: &CompiledLane) -> CompilationResult<()> {
-        let nodekey = Handle::from_u64(
-            NodeId {
-                lane: i
-                    .try_into()
-                    .map_err(|_| self.error(CompilationErrorPayload::TooManyLanes))?,
-                pos: 0,
-            }
-            .into(),
-        );
+    fn add_lane(&mut self, nodekey: Handle, n: &CompiledLane) -> CompilationResult<()> {
         let metadata = LaneMeta {
             hash_key: nodekey,
             arity: n.arguments.len() as u32,
@@ -249,15 +248,18 @@ impl<'a> Compiler<'a> {
     }
 
     /// add a local variable
-    fn add_local(&mut self, name: &'a str) -> CompilationResult<()> {
+    ///
+    /// return its index
+    fn add_local(&mut self, name: &'a str) -> CompilationResult<u32> {
         self.validate_var_name(name)?;
+        let result = self.locals.len();
         self.locals
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
             })
             .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))?;
-        Ok(())
+        Ok(result as u32)
     }
 
     fn process_lane(
@@ -295,10 +297,11 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn conditional_jump(
+    /// encodes the then block (card), and conditionally jumps over it using the `skip_instr`
+    fn encode_if_then(
         &mut self,
         skip_instr: Instruction,
-        lane: &LaneNode,
+        then: impl FnOnce(&mut Self) -> CompilationResult<()>,
     ) -> CompilationResult<()> {
         type Pos = i32;
         assert!(
@@ -309,11 +312,16 @@ impl<'a> Compiler<'a> {
             "invalid skip instruction"
         );
         self.push_instruction(skip_instr);
-        let mut pos = instruction_span(Instruction::CallLane) + self.program.bytecode.len() as Pos;
-        pos += mem::size_of_val(&pos) as Pos;
-        write_to_vec(pos, &mut self.program.bytecode);
-        self.push_instruction(Instruction::CallLane);
-        self.encode_jump(lane)?;
+        let idx = self.program.bytecode.len();
+        write_to_vec(0 as Pos, &mut self.program.bytecode);
+
+        // write the `then` block
+        then(self)?;
+
+        unsafe {
+            let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut Pos;
+            std::ptr::write(ptr, self.program.bytecode.len() as Pos);
+        };
         Ok(())
     }
 
@@ -423,8 +431,7 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let index = self.locals.len() as u32;
-                self.add_local(&*var.0)?;
+                let index = self.add_local(&*var.0)?;
                 self.push_instruction(Instruction::SetLocalVar);
                 write_to_vec(index, &mut self.program.bytecode);
             }
@@ -453,41 +460,31 @@ impl<'a> Compiler<'a> {
                 write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse {
-                then: then_lane,
-                r#else: else_lane,
+                then: then_card,
+                r#else: else_card,
             } => {
-                // if true jump to then (2nd item) else execute 1st item then jump over the 2nd
-                self.push_instruction(Instruction::GotoIfTrue);
-                let pos = instruction_span(Instruction::Goto)
-                    + instruction_span(Instruction::CallLane)
-                    + self.program.bytecode.len() as i32
-                    + 4; // +4 == sizeof pos
-                debug_assert_eq!(std::mem::size_of_val(&pos), 4);
-                write_to_vec(pos, &mut self.program.bytecode);
-                // else
-                self.push_instruction(Instruction::CallLane);
-                self.encode_jump(else_lane)?;
-
-                self.push_instruction(Instruction::Goto);
-                let pos = instruction_span(Instruction::CallLane)
-                    + self.program.bytecode.len() as i32
-                    + 4; // +4 == sizeof pos
-                write_to_vec(pos, &mut self.program.bytecode);
-                // then
-                self.push_instruction(Instruction::CallLane);
-                self.encode_jump(then_lane)?;
+                let mut idx = 0;
+                self.encode_if_then(Instruction::GotoIfFalse, |c| {
+                    c.process_card(nodeid, then_card)?;
+                    // TODO jump over the `else` branch
+                    c.push_instruction(Instruction::Goto);
+                    idx = c.program.bytecode.len();
+                    write_to_vec(0i32, &mut c.program.bytecode);
+                    Ok(())
+                })?;
+                self.process_card(nodeid, else_card)?;
+                unsafe {
+                    let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut i32;
+                    std::ptr::write(ptr, self.program.bytecode.len() as i32);
+                }
             }
             Card::IfFalse(jmp) => {
-                // if the value is true we DON'T jump
-                self.conditional_jump(Instruction::GotoIfTrue, jmp)?;
+                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(nodeid, jmp))?
             }
             Card::IfTrue(jmp) => {
-                // if the value is false we DON'T jump
-                self.conditional_jump(Instruction::GotoIfFalse, jmp)?;
+                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(nodeid, jmp))?
             }
-            Card::Jump(jmp) => {
-                self.encode_jump(jmp)?;
-            }
+            Card::Jump(jmp) => self.encode_jump(jmp)?,
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),
             Card::CallNative(c) => {
                 let name = &c.0;
@@ -553,11 +550,14 @@ impl<'a> Compiler<'a> {
             write_to_vec(id, &mut self.program.bytecode);
         } else {
             //local
-            self.push_instruction(Instruction::ReadLocalVar);
-            let index = scope as u32;
-            write_to_vec(index, &mut self.program.bytecode);
+            self.read_local_var(scope as u32);
         }
         Ok(())
+    }
+
+    fn read_local_var(&mut self, index: u32) {
+        self.push_instruction(Instruction::ReadLocalVar);
+        write_to_vec(index, &mut self.program.bytecode);
     }
 
     fn validate_var_name(&self, name: &str) -> CompilationResult<()> {

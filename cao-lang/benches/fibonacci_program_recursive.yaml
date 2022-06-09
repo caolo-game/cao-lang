@@ -7,7 +7,6 @@ lanes:
     cards:
       - ty: ReadVar
         val: N
-
       - ty: Jump
         val: fib
       - ty: SetGlobalVar
@@ -26,8 +25,12 @@ lanes:
       - ty: LessOrEq
       - ty: IfElse
         val:
-          then: fib_again
-          else: fib_one
+          then:
+            ty: Jump
+            val: fib_again
+          else:
+            ty: ScalarInt
+            val: 1
       - ty: Return
 
   fib_again:
@@ -49,10 +52,4 @@ lanes:
       - ty: Jump
         val: fib
       - ty: Add
-      - ty: Return
-
-  fib_one:
-    cards:
-      - ty: ScalarInt
-        val: 1
       - ty: Return

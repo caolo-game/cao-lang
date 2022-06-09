@@ -40,9 +40,10 @@ TEST(Compile, MultiLaneProgram) {
         },
         {
           "ty": "IfTrue",
-          "val": 
-            "resource_error"
-          
+          "val": {
+            "ty": "Jump",
+            "val": "resource_error"
+          }
         },
         {
           "ty": "ReadVar",
@@ -66,11 +67,15 @@ TEST(Compile, MultiLaneProgram) {
         {
           "ty": "IfElse",
           "val": {
-            "then": 
-              "mine_success"
+            "then":{ 
+                "ty":"Jump",
+              "val":"mine_success"
+              }
             ,
-            "else": 
-              "approach_resource"
+            "else":  {
+                "ty":"Jump",
+              "val":"approach_resource"
+              }
             
           }
         }
