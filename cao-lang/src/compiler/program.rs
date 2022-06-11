@@ -5,7 +5,7 @@ use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 use super::compiled_lane::CompiledLane;
@@ -24,8 +24,8 @@ pub type CaoIdentifier<'a> = Cow<'a, str>;
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Module<'a> {
-    pub submodules: HashMap<CaoIdentifier<'a>, Module<'a>>,
-    pub lanes: HashMap<CaoIdentifier<'a>, Lane>,
+    pub submodules: BTreeMap<CaoIdentifier<'a>, Module<'a>>,
+    pub lanes: BTreeMap<CaoIdentifier<'a>, Lane>,
 }
 
 impl<'a> Module<'a> {

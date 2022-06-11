@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::*;
 
 #[test]
 fn composite_card_test() {
-    let mut lanes = HashMap::new();
+    let mut lanes = BTreeMap::new();
     lanes.insert(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard {
@@ -94,7 +94,7 @@ fn empty_arity_in_foreach_is_an_error() {
 fn arity_1_in_foreach_is_an_error() {
     let cu = CaoProgram {
         submodules: Default::default(),
-        lanes: HashMap::from([
+        lanes: BTreeMap::from([
             (
                 "main".into(),
                 Lane::default().with_card(Card::ForEach {
@@ -116,17 +116,17 @@ fn arity_1_in_foreach_is_an_error() {
 
 #[test]
 fn can_call_nested_function_test() {
-    let mut submodules = HashMap::new();
+    let mut submodules = BTreeMap::new();
     submodules.insert(
         "coggers".into(),
         Module {
             submodules: Default::default(),
-            lanes: HashMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
+            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
         },
     );
     let prog = CaoProgram {
         submodules,
-        lanes: HashMap::from([(
+        lanes: BTreeMap::from([(
             "main".into(),
             Lane::default().with_cards(vec![Card::Jump(LaneNode("coggers.pooh".to_string()))]),
         )]),
