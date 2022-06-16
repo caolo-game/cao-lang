@@ -110,7 +110,7 @@ impl Card {
             Card::CompositeCard { name, .. } => name
                 .as_ref()
                 .map(|x| x.as_str())
-                .unwrap_or("Unnamed CompositeCard"),
+                .unwrap_or("CompositeCard"),
             Card::Noop => "No-op",
         }
     }
