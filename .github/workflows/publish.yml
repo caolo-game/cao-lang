@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -29,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: "Setup CPython"
         uses: actions/setup-python@v2.2.1
         with:
@@ -60,6 +62,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: "Setup Python ${{matrix.python}}"
         uses: actions/setup-python@v2.2.1
         with:
@@ -84,6 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - uses: actions/setup-node@v1
         with:
           node-version: 12
