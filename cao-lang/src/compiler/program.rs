@@ -5,7 +5,9 @@ use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::borrow::Cow;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
+use std::hash::Hasher;
 use thiserror::Error;
 
 use super::compiled_lane::CompiledLane;
@@ -49,6 +51,32 @@ impl<'a> Module<'a> {
         flatten_module(&self, &mut namespace, &mut result)?;
 
         Ok(result)
+    }
+
+    /// Hash the keys in the program.
+    ///
+    /// Keys = lanes, submodules, card names.
+    pub fn get_keys_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hash_module(&mut hasher, self);
+        hasher.finish()
+    }
+}
+
+fn hash_module(hasher: &mut impl Hasher, module: &Module) {
+    for (name, lane) in module.lanes.iter() {
+        hasher.write(name.as_ref().as_bytes());
+        hash_lane(hasher, lane);
+    }
+    for (name, submodule) in module.submodules.iter() {
+        hasher.write(name.as_ref().as_bytes());
+        hash_module(hasher, submodule);
+    }
+}
+
+fn hash_lane(hasher: &mut impl Hasher, lane: &Lane) {
+    for card in lane.cards.iter() {
+        hasher.write(card.name().as_bytes());
     }
 }
 
