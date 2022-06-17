@@ -43,6 +43,7 @@ jobs:
     name: Clippy check
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -58,6 +59,7 @@ jobs:
     name: Cargo deny
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - uses: EmbarkStudios/cargo-deny-action@v1
 
   wasm-test:
@@ -79,6 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: Install
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
@@ -94,6 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
       - name: Install
         run: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
@@ -114,6 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
