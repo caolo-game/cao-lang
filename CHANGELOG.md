@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.77
+
+
+### Features
+
+- Add a hashing function to Programs
+
 ## v0.1.76
 
 
