@@ -56,7 +56,7 @@ impl<'a> Module<'a> {
     /// Hash the keys in the program.
     ///
     /// Keys = lanes, submodules, card names.
-    pub fn get_keys_hash(&self) -> u64 {
+    pub fn compute_keys_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
         hash_module(&mut hasher, self);
         hasher.finish()
