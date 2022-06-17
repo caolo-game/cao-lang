@@ -25,6 +25,27 @@ fn composite_card_test() {
 }
 
 #[test]
+fn empty_foreach_is_error_test() {
+    let mut lanes = BTreeMap::new();
+    lanes.insert(
+        "main".into(),
+        Lane::default().with_card(Card::CompositeCard {
+            name: "triplepog".to_string().into(),
+            cards: vec![Card::ForEach {
+                variable: VarNode::from_str_unchecked("pog"),
+                lane: LaneNode("".to_string()),
+            }],
+        }),
+    );
+    let cu = CaoProgram {
+        submodules: Default::default(),
+        lanes,
+    };
+
+    compile(cu, None).unwrap_err();
+}
+
+#[test]
 fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         submodules: Default::default(),

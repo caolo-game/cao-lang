@@ -390,7 +390,15 @@ impl<'a> Compiler<'a> {
             }
             Card::ForEach { variable, lane } => {
                 let target_lane = Handle::from(lane);
-                let arity = self.jump_table[target_lane].arity;
+                let arity = match self.jump_table.get(target_lane) {
+                    Some(x) => x.arity,
+                    None => {
+                        return Err(self.error(CompilationErrorPayload::InvalidJump {
+                            dst: lane.clone(),
+                            msg: Some("ForEach target lane not found".to_string()),
+                        }))
+                    }
+                };
                 if arity != 2 {
                     return Err(self.error(CompilationErrorPayload::InvalidJump {
                         dst: lane.clone(),
@@ -412,7 +420,15 @@ impl<'a> Compiler<'a> {
             }
             Card::Repeat(repeat) => {
                 let target_lane = Handle::from(repeat);
-                let arity = self.jump_table[target_lane].arity;
+                let arity = match self.jump_table.get(target_lane) {
+                    Some(x) => x.arity,
+                    None => {
+                        return Err(self.error(CompilationErrorPayload::InvalidJump {
+                            dst: repeat.clone(),
+                            msg: Some("ForEach target lane not found".to_string()),
+                        }))
+                    }
+                };
                 if arity != 1 {
                     return Err(self.error(CompilationErrorPayload::InvalidJump {
                         dst: repeat.clone(),
