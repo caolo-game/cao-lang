@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.76
+
+
+### Bug Fixes
+
+- Fix panic on empty target lanes in ForEach card
+
+
+### Refactor
+
+- Use BTreeMaps for Modules for fixed ordering of keys
+
+- Shorten unnamed CompositeCard name
+
 ## v0.1.75
 
 
