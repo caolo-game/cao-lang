@@ -9,5 +9,5 @@ pub use crate::{
     collections::key_map::Handle,
     subprogram_description,
     vm::{runtime::FieldTable, Vm},
-    InputString, NodeId, StrPointer, SubProgram, SubProgramType,
+    InputString, NodeId, StrPointer, SubProgramDescription, SubProgramType,
 };

@@ -99,7 +99,7 @@ pub type VarName = ArrayString<64>;
 /// Subprograms consume their inputs and produce outputs.
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SubProgram {
+pub struct SubProgramDescription {
     pub name: String,
     pub description: String,
     pub ty: SubProgramType,
@@ -112,7 +112,7 @@ pub struct SubProgram {
     pub properties: Box<[String]>,
 }
 
-impl std::fmt::Debug for SubProgram {
+impl std::fmt::Debug for SubProgramDescription {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
             .field("name", &self.name)
@@ -158,7 +158,7 @@ impl SubProgramType {
 #[macro_export]
 macro_rules! subprogram_description {
     ($name: expr, $description: expr, $ty: expr, [$($inputs: expr),*], [$($outputs: expr),*], [$($properties: expr),*]) => {
-        SubProgram {
+        SubProgramDescription {
             name: $name.to_string(),
             description: $description.to_string(),
             ty: $ty,

@@ -1,5 +1,5 @@
 use super::Card;
-use crate::{subprogram_description, SubProgram, SubProgramType};
+use crate::{subprogram_description, SubProgramDescription, SubProgramType};
 
 #[derive(Debug, Clone, Copy)]
 pub enum PropertyName {
@@ -42,7 +42,7 @@ impl PropertyName {
     }
 }
 
-pub fn get_instruction_descriptions() -> Vec<SubProgram> {
+pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
     vec![
         get_desc(&Card::Pass),
         get_desc(&Card::Add),
@@ -89,7 +89,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgram> {
     ]
 }
 
-pub fn get_desc(node: &Card) -> SubProgram {
+pub fn get_desc(node: &Card) -> SubProgramDescription {
     match node {
         Card::CompositeCard { .. } | Card::CallNative(_) => unreachable!(),
         Card::GetProperty => subprogram_description!(

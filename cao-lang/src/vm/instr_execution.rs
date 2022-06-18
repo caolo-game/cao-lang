@@ -5,8 +5,8 @@ use tracing::debug;
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
     collections::key_map::Handle,
-    procedures::ExecutionErrorPayload,
     compiled_program::CaoCompiledProgram,
+    procedures::ExecutionErrorPayload,
     traits::MAX_STR_LEN,
     value::Value,
     VariableId,

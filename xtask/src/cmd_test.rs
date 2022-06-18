@@ -10,7 +10,10 @@ use crate::{
 };
 
 pub fn cmd_test_c(args: &[&str]) -> CmdResult<()> {
-    let mut args = args.iter().copied().collect::<smallvec::SmallVec<[_; 16]>>();
+    let mut args = args
+        .iter()
+        .copied()
+        .collect::<smallvec::SmallVec<[_; 16]>>();
     args.push("-DCAOLO_ENABLE_TESTING=ON");
     configure_c_interface(args.as_slice())?;
     build_c_interface()?;
