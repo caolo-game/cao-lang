@@ -34,7 +34,7 @@ impl Lane {
             for _i in 0..subprog.input.len() {
                 result.pop();
             }
-            for out in subprog.output.into_iter() {
+            for out in subprog.output.iter() {
                 result.push(out.clone());
             }
         }
