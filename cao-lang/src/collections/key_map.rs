@@ -328,7 +328,9 @@ where
             "Expected self.capacity to be a power of two"
         );
         let len_mask = len - 1;
-        let mut ind = needle.0 as usize & len_mask;
+        // improve uniformity via fibonacci hashing
+        // in wasm sizeof usize is 4, so multiply our already 32 bit hash
+        let mut ind = (needle.0.wrapping_mul(2654435769) as usize) & len_mask;
         let ptr = self.keys.as_ptr();
         loop {
             debug_assert!(ind < len);
