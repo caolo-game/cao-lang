@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.78
+
+
+### Features
+
+- Add `compute_stack_at_card` to Lanes
+
+- Add recursion limit to compile options
+
+
+### Refactor
+
+- Rename hashing function
+
 ## v0.1.77
 
 
