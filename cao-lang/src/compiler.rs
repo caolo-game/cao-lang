@@ -321,7 +321,7 @@ impl<'a> Compiler<'a> {
 
         unsafe {
             let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut Pos;
-            std::ptr::write(ptr, self.program.bytecode.len() as Pos);
+            std::ptr::write_unaligned(ptr, self.program.bytecode.len() as Pos);
         };
         Ok(())
     }
@@ -492,7 +492,7 @@ impl<'a> Compiler<'a> {
                 self.process_card(nodeid, else_card)?;
                 unsafe {
                     let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut i32;
-                    std::ptr::write(ptr, self.program.bytecode.len() as i32);
+                    std::ptr::write_unaligned(ptr, self.program.bytecode.len() as i32);
                 }
             }
             Card::IfFalse(jmp) => {
