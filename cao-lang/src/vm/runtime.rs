@@ -196,19 +196,22 @@ impl RuntimeData {
     }
 
     pub fn clear(&mut self) {
-        for obj in self.object_list.iter_mut() {
-            unsafe {
-                std::ptr::drop_in_place(obj.as_ptr());
-            }
-        }
-
-        self.object_list.clear();
+        self.clear_objects();
         self.value_stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();
         unsafe {
             self.memory.get_inner().clear();
         }
+    }
+
+    fn clear_objects(&mut self) {
+        for obj in self.object_list.iter_mut() {
+            unsafe {
+                std::ptr::drop_in_place(obj.as_ptr());
+            }
+        }
+        self.object_list.clear();
     }
 
     /// implies clear
