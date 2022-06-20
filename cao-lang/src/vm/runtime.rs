@@ -144,12 +144,7 @@ pub struct RuntimeData {
 
 impl Drop for RuntimeData {
     fn drop(&mut self) {
-        // drop objects, ensuring proper destruction
-        for obj in self.object_list.iter_mut() {
-            unsafe {
-                std::ptr::drop_in_place(obj.as_ptr());
-            }
-        }
+        self.clear();
     }
 }
 
@@ -187,12 +182,12 @@ impl RuntimeData {
                     debug!("Failed to allocate table {:?}", err);
                     ExecutionErrorPayload::OutOfMemory
                 })?;
-            let table = FieldTable::with_capacity(16, self.memory.clone()).map_err(|err| {
+            let table = FieldTable::with_capacity(8, self.memory.clone()).map_err(|err| {
                 debug!("Failed to init table {:?}", err);
                 ExecutionErrorPayload::OutOfMemory
             })?;
 
-            let table_ptr: NonNull<FieldTable> = std::mem::transmute(table_ptr);
+            let table_ptr: NonNull<FieldTable> = table_ptr.cast();
             std::ptr::write(table_ptr.as_ptr(), table);
             self.object_list.push(table_ptr);
 
@@ -201,6 +196,13 @@ impl RuntimeData {
     }
 
     pub fn clear(&mut self) {
+        for obj in self.object_list.iter_mut() {
+            unsafe {
+                std::ptr::drop_in_place(obj.as_ptr());
+            }
+        }
+
+        self.object_list.clear();
         self.value_stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();

@@ -22,7 +22,6 @@ pub use self::serde_impl::*;
 
 use std::{
     alloc::Layout,
-    intrinsics::transmute,
     mem::{align_of, size_of, swap, MaybeUninit},
     num::Wrapping,
     ops::{Index, IndexMut},
@@ -199,14 +198,13 @@ where
         self.clear();
         unsafe {
             self.alloc.dealloc(
-                transmute(self.keys),
+                self.keys.cast(),
                 Layout::from_size_align(self.capacity * size_of::<Handle>(), align_of::<Handle>())
-                    .expect("old Key layout"),
+                    .unwrap(),
             );
             self.alloc.dealloc(
-                transmute(self.values),
-                Layout::from_size_align(self.capacity * size_of::<T>(), align_of::<T>())
-                    .expect("old T layout"),
+                self.values.cast(),
+                Layout::from_size_align(self.capacity * size_of::<T>(), align_of::<T>()).unwrap(),
             );
         }
     }
@@ -383,16 +381,16 @@ where
             }
         };
         // zero the keys
-        let keys: NonNull<Handle> = transmute(keys);
+        let keys: NonNull<Handle> = keys.cast();
         {
             let keys = std::slice::from_raw_parts_mut(keys.as_ptr(), capacity);
             keys.fill(Handle(0));
         }
-        Ok((keys, transmute(values)))
+        Ok((keys, values.cast()))
     }
 
     unsafe fn adjust_capacity(&mut self, capacity: usize) -> Result<(), MapError> {
-        let capacity = pad_pot(capacity).max(2); // allocate at least two items
+        let capacity = pad_pot(capacity).max(4); // allocate at least four items
         let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
         swap(&mut self.keys, &mut keys);
@@ -413,12 +411,12 @@ where
 
         // dealloc old buffers
         self.alloc.dealloc(
-            transmute(keys),
+            keys.cast(),
             Layout::from_size_align(old_cap * size_of::<Handle>(), align_of::<Handle>())
                 .expect("old Key layout"),
         );
         self.alloc.dealloc(
-            transmute(values),
+            values.cast(),
             Layout::from_size_align(old_cap * size_of::<T>(), align_of::<T>())
                 .expect("old T layout"),
         );
