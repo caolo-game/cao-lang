@@ -33,7 +33,10 @@ pub struct Module<'a> {
 impl<'a> Module<'a> {
     /// flatten this program into a lane stream
     // TODO: return an iterator???
-    pub(crate) fn into_ir_stream(mut self) -> Result<Vec<CompiledLane>, CompilationErrorPayload> {
+    pub(crate) fn into_ir_stream(
+        mut self,
+        recursion_limit: u32,
+    ) -> Result<Vec<CompiledLane>, CompilationErrorPayload> {
         // the first lane is special
         //
         let first_fn = self
@@ -48,7 +51,7 @@ impl<'a> Module<'a> {
         let mut namespace = SmallVec::<[_; 16]>::new();
 
         // flatten modules' functions
-        flatten_module(&self, &mut namespace, &mut result)?;
+        flatten_module(&self, recursion_limit, &mut namespace, &mut result)?;
 
         Ok(result)
     }
@@ -82,12 +85,18 @@ fn hash_lane(hasher: &mut impl Hasher, lane: &Lane) {
 
 fn flatten_module<'a>(
     module: &'a Module,
+    recursion_limit: u32,
     namespace: &mut SmallVec<[&'a str; 16]>,
     out: &mut Vec<CompiledLane>,
 ) -> Result<(), CompilationErrorPayload> {
+    if namespace.len() >= recursion_limit as usize {
+        return Err(CompilationErrorPayload::RecursionLimitReached(
+            recursion_limit,
+        ));
+    }
     for (name, submod) in module.submodules.iter() {
         namespace.push(name.as_ref());
-        flatten_module(submod, namespace, out)?;
+        flatten_module(submod, recursion_limit, namespace, out)?;
         namespace.pop();
     }
     if out.capacity() - out.len() < module.lanes.len() {

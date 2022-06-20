@@ -73,12 +73,13 @@ pub fn compile(
     compilation_unit: CaoProgram,
     compile_options: impl Into<Option<CompileOptions>>,
 ) -> CompilationResult<CaoCompiledProgram> {
+    let options = compile_options.into().unwrap_or_default();
     let compilation_unit = compilation_unit
-        .into_ir_stream()
+        .into_ir_stream(options.recursion_limit)
         .map_err(|err| CompilationError::with_loc(err, LaneNode::default(), 0))?;
 
     let mut compiler = Compiler::new();
-    compiler.compile(&compilation_unit, compile_options)
+    compiler.compile(&compilation_unit, Some(options))
 }
 
 impl<'a> Default for Compiler<'a> {

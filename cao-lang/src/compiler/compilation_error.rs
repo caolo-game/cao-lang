@@ -76,4 +76,7 @@ pub enum CompilationErrorPayload {
 
     #[error("{0:?} is not a valid name for a Lane")]
     BadLaneName(String),
+
+    #[error("Recursion limit ({0}) reached")]
+    RecursionLimitReached(u32),
 }

@@ -40,6 +40,7 @@ pub enum CompileResult {
     cao_CompileResult_EmptyVariable,
     cao_CompileResult_NoMain,
     cao_CompileResult_BadLaneName,
+    cao_CompileResult_RecursionLimitReached,
 }
 
 #[allow(non_camel_case_types)]
@@ -193,6 +194,9 @@ pub unsafe extern "C" fn cao_compile_json(
             CompilationErrorPayload::NoMain => return CompileResult::cao_CompileResult_NoMain,
             CompilationErrorPayload::BadLaneName(_) => {
                 return CompileResult::cao_CompileResult_BadLaneName
+            }
+            CompilationErrorPayload::RecursionLimitReached(_) => {
+                return CompileResult::cao_CompileResult_RecursionLimitReached
             }
         },
     };

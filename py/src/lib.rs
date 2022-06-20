@@ -44,8 +44,18 @@ impl CompilationUnit {
 impl CompilationOptions {
     #[new]
     fn new() -> Self {
-        let inner = cao_lang::prelude::CompileOptions {};
+        let inner = cao_lang::prelude::CompileOptions::default();
         Self { inner }
+    }
+
+    #[getter(recursion_limit)]
+    pub fn get_recursion_limit(&self) -> u32 {
+        self.inner.recursion_limit
+    }
+
+    #[setter(recursion_limit)]
+    pub fn set_recursion_limit(&mut self, value: u32) {
+        self.inner.recursion_limit = value;
     }
 }
 

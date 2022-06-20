@@ -1,3 +1,5 @@
+import json
+
 import pytest
 import cao_lang as caoc
 
@@ -7,7 +9,7 @@ def test_compile_and_run():
     Test if we can take a simple program and parse, compile and run it without error
     """
 
-    PROGRAM_YAML = """
+    program_yaml = """
 lanes:
     main: 
         cards:
@@ -29,7 +31,7 @@ submodules:
 
 """
 
-    program = caoc.CompilationUnit.from_yaml(PROGRAM_YAML)
+    program = caoc.CompilationUnit.from_yaml(program_yaml)
     options = caoc.CompilationOptions()
 
     program = caoc.compile(program, options)
@@ -43,7 +45,7 @@ def test_get_version():
 
 
 def test_json():
-    PROGRAM_JSON = """
+    program_json = """
     {
         "lanes": {
             "main": {
@@ -66,7 +68,7 @@ def test_json():
         }
     }
     """
-    program = caoc.CompilationUnit.from_json(PROGRAM_JSON)
+    program = caoc.CompilationUnit.from_json(program_json)
     options = caoc.CompilationOptions()
 
     program = caoc.compile(program, options)
@@ -75,7 +77,7 @@ def test_json():
 
 
 def test_bad_json_is_value_error():
-    PROGRAM_JSON = """
+    program_json = """
     {
         "lanes": {
             "main": {
@@ -85,4 +87,22 @@ def test_bad_json_is_value_error():
     }
     """
     with pytest.raises(ValueError):
-        caoc.CompilationUnit.from_json(PROGRAM_JSON)
+        caoc.CompilationUnit.from_json(program_json)
+
+
+def test_recursion_limit():
+    program = {"submodules": {}, "lanes": {"main": {"cards": []}}}
+    _pr = program
+    for i in range(2):
+        _pr["submodules"]["foo"] = {"submodules": {}, "lanes": {}}
+        _pr = _pr["submodules"]["foo"]
+
+    program = caoc.CompilationUnit.from_json(json.dumps(program))
+    options = caoc.CompilationOptions()
+
+    # default options should not an raise error
+    _ = caoc.compile(program, options)
+
+    with pytest.raises(ValueError):
+        options.recursion_limit = 1
+        _ = caoc.compile(program, options)

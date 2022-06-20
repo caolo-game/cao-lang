@@ -1,6 +1,9 @@
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CompileOptions {}
+pub struct CompileOptions {
+    /// How deep is the submodule tree allowed to grow?
+    pub recursion_limit: u32,
+}
 
 impl Default for CompileOptions {
     fn default() -> Self {
@@ -10,6 +13,8 @@ impl Default for CompileOptions {
 
 impl CompileOptions {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            recursion_limit: 64,
+        }
     }
 }
