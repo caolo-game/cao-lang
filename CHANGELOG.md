@@ -1,4 +1,13 @@
 # Changelog
+## v0.1.79
+
+
+### Bug Fixes
+
+- Fix undefined behaviour in the Compiler
+
+- Fix leaky objects in RuntimeData
+
 ## v0.1.78
 
 
