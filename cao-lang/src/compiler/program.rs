@@ -31,8 +31,7 @@ pub struct Module<'a> {
 }
 
 impl<'a> Module<'a> {
-    /// flatten this program into a lane stream
-    // TODO: return an iterator???
+    /// flatten this program into a vec of lanes
     pub(crate) fn into_ir_stream(
         mut self,
         recursion_limit: u32,
