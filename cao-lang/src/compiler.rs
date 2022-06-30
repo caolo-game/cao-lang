@@ -19,8 +19,8 @@ use crate::{
     prelude::TraceEntry,
     Instruction, NodeId, VariableId,
 };
-use std::fmt::Debug;
 use std::mem;
+use std::{borrow::Cow, fmt::Debug};
 use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
 
@@ -48,7 +48,7 @@ pub struct Compiler<'a> {
     /// maps lanes to their metadata
     jump_table: KeyMap<LaneMeta>,
 
-    current_namespace: NameSpace,
+    current_namespace: Cow<'a, NameSpace>,
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
@@ -276,7 +276,7 @@ impl<'a> Compiler<'a> {
     ) -> CompilationResult<()> {
         self.current_lane = name.clone();
         self.current_card = -1;
-        self.current_namespace = namespace.clone();
+        self.current_namespace = Cow::Borrowed(namespace);
 
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {
