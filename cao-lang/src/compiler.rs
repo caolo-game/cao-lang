@@ -305,7 +305,7 @@ impl<'a> Compiler<'a> {
         then: impl FnOnce(&mut Self) -> CompilationResult<()>,
     ) -> CompilationResult<()> {
         type Pos = i32;
-        assert!(
+        debug_assert!(
             matches!(
                 skip_instr,
                 Instruction::GotoIfTrue | Instruction::GotoIfFalse
