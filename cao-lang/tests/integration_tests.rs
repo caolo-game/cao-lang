@@ -58,7 +58,7 @@ fn test_trace_entry() {
     let err = vm.run(&program).expect_err("run");
 
     let trace = err.trace;
-    assert_eq!(trace.lane, "pooh");
+    assert_eq!(trace.lane.as_ref(), "pooh");
     assert_eq!(trace.card, 0);
 }
 

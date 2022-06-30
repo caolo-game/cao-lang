@@ -8,7 +8,7 @@ mod program;
 
 pub mod card_description;
 
-mod compiled_lane;
+mod lane_ir;
 #[cfg(test)]
 mod tests;
 
@@ -30,15 +30,15 @@ pub use compile_options::*;
 pub use lane::*;
 pub use program::*;
 
-use self::compiled_lane::CompiledLane;
+use self::lane_ir::LaneIr;
 
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
 /// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
-pub(crate) type CaoIr<'a> = &'a [CompiledLane];
-pub(crate) type NameSpace = smallvec::SmallVec<[String; 8]>;
+pub(crate) type CaoIr<'a> = &'a [LaneIr];
+pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -52,7 +52,7 @@ pub struct Compiler<'a> {
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
-    current_lane: String,
+    current_lane: Box<str>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -99,7 +99,7 @@ impl<'a> Compiler<'a> {
             locals: Default::default(),
             scope_depth: 0,
             current_card: -1,
-            current_lane: "".to_owned(),
+            current_lane: "".into(),
         }
     }
 
@@ -169,14 +169,14 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn add_lane(&mut self, nodekey: Handle, n: &CompiledLane) -> CompilationResult<()> {
+    fn add_lane(&mut self, nodekey: Handle, n: &LaneIr) -> CompilationResult<()> {
         let metadata = LaneMeta {
             hash_key: nodekey,
             arity: n.arguments.len() as u32,
         };
-        let namekey = Handle::from_str(n.name.as_str()).expect("Failed to hash lane name");
+        let namekey = Handle::from_str(n.name.as_ref()).expect("Failed to hash lane name");
         if self.jump_table.contains(namekey) {
-            return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.clone())));
+            return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.to_string())));
         }
         self.jump_table.insert(namekey, metadata).unwrap();
         Ok(())
@@ -266,12 +266,12 @@ impl<'a> Compiler<'a> {
     fn process_lane(
         &mut self,
         il: usize,
-        CompiledLane {
+        LaneIr {
             name,
             arguments,
             cards,
             namespace,
-        }: &'a CompiledLane,
+        }: &'a LaneIr,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
         self.current_lane = name.clone();

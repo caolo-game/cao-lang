@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use std::hash::Hasher;
 use thiserror::Error;
 
-use super::compiled_lane::CompiledLane;
+use super::lane_ir::LaneIr;
 
 #[derive(Debug, Clone, Error)]
 pub enum IntoStreamError {
@@ -35,7 +35,7 @@ impl<'a> Module<'a> {
     pub(crate) fn into_ir_stream(
         mut self,
         recursion_limit: u32,
-    ) -> Result<Vec<CompiledLane>, CompilationErrorPayload> {
+    ) -> Result<Vec<LaneIr>, CompilationErrorPayload> {
         // the first lane is special
         //
         let first_fn = self
@@ -86,7 +86,7 @@ fn flatten_module<'a>(
     module: &'a Module,
     recursion_limit: u32,
     namespace: &mut SmallVec<[&'a str; 16]>,
-    out: &mut Vec<CompiledLane>,
+    out: &mut Vec<LaneIr>,
 ) -> Result<(), CompilationErrorPayload> {
     if namespace.len() >= recursion_limit as usize {
         return Err(CompilationErrorPayload::RecursionLimitReached(
@@ -112,23 +112,23 @@ fn flatten_module<'a>(
     Ok(())
 }
 
-fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> CompiledLane {
+fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
     );
 
-    let mut cl = CompiledLane {
-        name: flatten_name(namespace),
-        arguments: lane.arguments.clone(),
-        cards: lane.cards.clone(),
+    let mut cl = LaneIr {
+        name: flatten_name(namespace).into_boxed_str(),
+        arguments: lane.arguments.clone().into_boxed_slice(),
+        cards: lane.cards.clone().into_boxed_slice(),
         ..Default::default()
     };
     cl.namespace.extend(
         namespace
             .iter()
             .take(namespace.len() - 1)
-            .map(|x| x.to_string()),
+            .map(|x| x.to_string().into_boxed_str()),
     );
     cl
 }
