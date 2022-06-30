@@ -79,7 +79,7 @@ pub fn compile(
         .map_err(|err| CompilationError::with_loc(err, LaneNode::default(), 0))?;
 
     let mut compiler = Compiler::new();
-    compiler.compile(&compilation_unit, Some(options))
+    compiler.compile(&compilation_unit, options)
 }
 
 impl<'a> Default for Compiler<'a> {
@@ -106,14 +106,9 @@ impl<'a> Compiler<'a> {
     pub fn compile(
         &mut self,
         compilation_unit: CaoIr<'a>,
-        compile_options: impl Into<Option<CompileOptions>>,
+        compile_options: CompileOptions,
     ) -> CompilationResult<CaoCompiledProgram> {
-        self.options = compile_options.into().unwrap_or_default();
-        // minimize the surface of the generic function
-        self._compile(compilation_unit)
-    }
-
-    fn _compile(&mut self, compilation_unit: CaoIr<'a>) -> CompilationResult<CaoCompiledProgram> {
+        self.options = compile_options;
         if compilation_unit.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
@@ -121,7 +116,6 @@ impl<'a> Compiler<'a> {
                 0,
             ));
         }
-        // initialize
         self.program = CaoCompiledProgram::default();
         self.next_var = RefCell::new(VariableId(0));
         self.compile_stage_1(compilation_unit)?;
