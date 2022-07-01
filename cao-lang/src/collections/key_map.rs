@@ -116,16 +116,41 @@ impl FromStr for Handle {
     }
 }
 
+fn hash_bytes(base: u64, key: &[u8]) -> u64 {
+    let mut hash = base;
+    const MASK: u64 = u32::MAX as u64;
+    for byte in key {
+        hash ^= *byte as u64;
+        hash &= MASK;
+        hash *= 16777619;
+    }
+    hash & MASK
+}
+
 impl Handle {
     pub fn from_bytes(key: &[u8]) -> Self {
-        const MASK: u64 = u32::MAX as u64;
-        let mut hash = 2166136261u64;
-        for byte in key {
-            hash ^= *byte as u64;
-            hash &= MASK;
-            hash *= 16777619;
+        let hash = hash_bytes(2166136261, key);
+        debug_assert!(hash != 0);
+        Self(hash as u32)
+    }
+
+    pub fn from_slice<'a, T>(keys: &'a [T]) -> Self
+    where
+        &'a T: Into<&'a [u8]>,
+    {
+        let mut hash = 2166136261;
+        for key in keys {
+            hash = hash_bytes(hash, key.into());
         }
-        let hash = hash & MASK;
+        debug_assert!(hash != 0);
+        Self(hash as u32)
+    }
+
+    pub fn from_bytes_iter<'a>(keys: impl Iterator<Item = &'a [u8]>) -> Self {
+        let mut hash = 2166136261;
+        for key in keys {
+            hash = hash_bytes(hash, key);
+        }
         debug_assert!(hash != 0);
         Self(hash as u32)
     }

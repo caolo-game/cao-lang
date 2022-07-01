@@ -324,12 +324,14 @@ impl<'a> Compiler<'a> {
         let mut to = self.jump_table.get(Handle::from(lane));
         if to.is_none() {
             // attempt to look up the function in the current namespace
-            //
-            // TODO: create handle from parts instead of building the string..
-            let mut name = self.current_namespace[..].join(".");
-            name.push('.');
-            name.push_str(lane.0.as_str());
-            let handle = Handle::from(name.as_str());
+
+            // current_namespace.join('.').push('.').push_str(lane.0)
+            let handle = Handle::from_bytes_iter(
+                self.current_namespace
+                    .iter()
+                    .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
+                    .chain(std::iter::once(lane.0.as_bytes())),
+            );
             to = self.jump_table.get(handle);
         }
         let to = to.ok_or_else(|| {
