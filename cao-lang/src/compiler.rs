@@ -327,8 +327,20 @@ impl<'a> Compiler<'a> {
     }
 
     fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
+        let to = self.lookup_lane(&self.jump_table, lane)?;
+        write_to_vec(to.hash_key, &mut self.program.bytecode);
+        write_to_vec(to.arity, &mut self.program.bytecode);
+        Ok(())
+    }
+
+    // take jump_table by param because of lifetimes
+    fn lookup_lane<'b>(
+        &self,
+        jump_table: &'b KeyMap<LaneMeta>,
+        lane: &LaneNode,
+    ) -> CompilationResult<&'b LaneMeta> {
         // attempt to look up the function by name
-        let mut to = self.jump_table.get(Handle::from(lane));
+        let mut to = jump_table.get(Handle::from(lane));
         if to.is_none() {
             // attempt to look up the function in the current namespace
 
@@ -339,7 +351,7 @@ impl<'a> Compiler<'a> {
                     .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
                     .chain(std::iter::once(lane.0.as_bytes())),
             );
-            to = self.jump_table.get(handle);
+            to = jump_table.get(handle);
         }
         if to.is_none() {
             // attempt to look up function in the imports
@@ -354,18 +366,38 @@ impl<'a> Compiler<'a> {
                         .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
                         .chain(std::iter::once(alias.as_bytes())),
                 );
-                to = self.jump_table.get(handle);
+                to = jump_table.get(handle);
             }
         }
-        let to = to.ok_or_else(|| {
+        if to.is_none() {
+            // attempt to look up by imported module
+            if let Some((prefix, suffix)) = lane.0.as_str().split_once('.') {
+                if let Some((_, alias)) = self
+                    .current_imports
+                    .iter()
+                    .find(|(import, _)| *import == prefix)
+                {
+                    // namespace.alias.suffix
+                    let handle = Handle::from_bytes_iter(
+                        self.current_namespace
+                            .iter()
+                            .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
+                            .chain(
+                                [alias.as_bytes(), ".".as_bytes(), suffix.as_bytes()]
+                                    .iter()
+                                    .copied(),
+                            ),
+                    );
+                    to = jump_table.get(handle);
+                }
+            }
+        }
+        to.ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
                 dst: lane.clone(),
                 msg: None,
             })
-        })?;
-        write_to_vec(to.hash_key, &mut self.program.bytecode);
-        write_to_vec(to.arity, &mut self.program.bytecode);
-        Ok(())
+        })
     }
 
     fn push_str(&mut self, data: &str) {

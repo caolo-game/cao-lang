@@ -116,8 +116,7 @@ impl FromStr for Handle {
     }
 }
 
-fn hash_bytes(base: u64, key: &[u8]) -> u64 {
-    let mut hash = base;
+fn hash_bytes(mut hash: u64, key: &[u8]) -> u64 {
     const MASK: u64 = u32::MAX as u64;
     for byte in key {
         hash ^= *byte as u64;
