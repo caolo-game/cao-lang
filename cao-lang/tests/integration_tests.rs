@@ -738,46 +738,6 @@ fn nested_module_can_call_self_test() {
 }
 
 #[test]
-fn can_call_imported_function_test() {
-    let cu = CaoProgram {
-        submodules: [(
-            "winnie".into(),
-            Module {
-                imports: Default::default(),
-                submodules: Default::default(),
-                lanes: [(
-                    "pooh".into(),
-                    Lane::default()
-                        .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
-                        .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
-                )]
-                .into(),
-            },
-        )]
-        .into(),
-        imports: ["winnie.pooh".into()].into(),
-        lanes: [(
-            "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
-        )]
-        .into(),
-    };
-
-    let program = compile(cu, CompileOptions::new()).expect("compile");
-
-    let mut vm = Vm::new(()).unwrap();
-    vm.run(&program).expect("run");
-
-    let result = vm
-        .read_var_by_name("g_result", &program.variables)
-        .expect("Failed to read foo variable");
-
-    let result = unsafe { result.as_str().unwrap() };
-
-    assert_eq!(result, "poggers");
-}
-
-#[test]
 fn invalid_import_is_error_test() {
     let cu = CaoProgram {
         submodules: [].into(),
