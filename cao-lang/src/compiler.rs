@@ -19,9 +19,9 @@ use crate::{
     prelude::TraceEntry,
     Instruction, NodeId, VariableId,
 };
+use std::convert::TryFrom;
 use std::mem;
 use std::{borrow::Cow, fmt::Debug};
-use std::{cell::RefCell, convert::TryFrom};
 use std::{convert::TryInto, str::FromStr};
 
 pub use card::*;
@@ -43,7 +43,7 @@ pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 pub struct Compiler<'a> {
     options: CompileOptions,
     program: CaoCompiledProgram,
-    next_var: RefCell<VariableId>,
+    next_var: VariableId,
 
     /// maps lanes to their metadata
     jump_table: KeyMap<LaneMeta>,
@@ -93,7 +93,7 @@ impl<'a> Compiler<'a> {
         Compiler {
             options: Default::default(),
             program: CaoCompiledProgram::default(),
-            next_var: RefCell::new(VariableId(0)),
+            next_var: VariableId(0),
             jump_table: Default::default(),
             current_namespace: Default::default(),
             locals: Default::default(),
@@ -117,7 +117,7 @@ impl<'a> Compiler<'a> {
             ));
         }
         self.program = CaoCompiledProgram::default();
-        self.next_var = RefCell::new(VariableId(0));
+        self.next_var = VariableId(0);
         self.compile_stage_1(compilation_unit)?;
         self.compile_stage_2(compilation_unit)?;
 
@@ -447,7 +447,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(index, &mut self.program.bytecode);
             }
             Card::SetGlobalVar(variable) => {
-                let mut next_var = self.next_var.borrow_mut();
+                let next_var = &mut self.next_var;
                 if variable.0.is_empty() {
                     return Err(self.error(CompilationErrorPayload::EmptyVariable));
                 }
@@ -539,7 +539,7 @@ impl<'a> Compiler<'a> {
         let scope = self.resolve_var(variable.0.as_str())?;
         if scope < 0 {
             // global
-            let mut next_var = self.next_var.borrow_mut();
+            let next_var = &mut self.next_var;
             let varhash = Handle::from_bytes(variable.0.as_bytes());
             let id = self
                 .program
