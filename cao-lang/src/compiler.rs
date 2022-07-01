@@ -4,7 +4,7 @@ mod card;
 mod compilation_error;
 mod compile_options;
 mod lane;
-mod program;
+mod module;
 
 pub mod card_description;
 
@@ -28,7 +28,7 @@ pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
 pub use lane::*;
-pub use program::*;
+pub use module::*;
 
 use self::lane_ir::LaneIr;
 
