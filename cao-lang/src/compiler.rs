@@ -37,7 +37,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 /// Intermediate representation of a Cao-Lang program.
 ///
 /// Execution will begin with the first Lane
-pub(crate) type CaoIr<'a> = &'a [LaneIr];
+pub(crate) type LaneSlice<'a> = &'a [LaneIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 
 pub struct Compiler<'a> {
@@ -105,7 +105,7 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(
         &mut self,
-        compilation_unit: CaoIr<'a>,
+        compilation_unit: LaneSlice<'a>,
         compile_options: CompileOptions,
     ) -> CompilationResult<CaoCompiledProgram> {
         self.options = compile_options;
@@ -134,7 +134,7 @@ impl<'a> Compiler<'a> {
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(&mut self, compilation_unit: CaoIr) -> CompilationResult<()> {
+    fn compile_stage_1(&mut self, compilation_unit: LaneSlice) -> CompilationResult<()> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.len().try_into() {
             Ok(i) => i,
@@ -177,7 +177,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: CaoIr<'a>) -> CompilationResult<()> {
+    fn compile_stage_2(&mut self, compilation_unit: LaneSlice<'a>) -> CompilationResult<()> {
         let mut lanes = compilation_unit.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
