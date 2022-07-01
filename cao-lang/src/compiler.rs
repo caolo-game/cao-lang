@@ -407,14 +407,14 @@ impl<'a> Compiler<'a> {
         encode_str(data, &mut self.program.data);
     }
 
-    fn resolve_var(&self, name: &str) -> CompilationResult<isize> {
+    fn resolve_var(&self, name: &str) -> CompilationResult<Option<usize>> {
         self.validate_var_name(name)?;
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name == name {
-                return Ok(i as isize);
+                return Ok(Some(i));
             }
         }
-        Ok(-1)
+        Ok(None)
     }
 
     fn process_card(&mut self, nodeid: NodeId, card: &'a Card) -> CompilationResult<()> {
@@ -592,31 +592,34 @@ impl<'a> Compiler<'a> {
 
     fn read_var_card(&mut self, variable: &VarNode) -> CompilationResult<()> {
         let scope = self.resolve_var(variable.0.as_str())?;
-        if scope < 0 {
-            // global
-            let next_var = &mut self.next_var;
-            let varhash = Handle::from_bytes(variable.0.as_bytes());
-            let id = self
-                .program
-                .variables
-                .ids
-                .entry(varhash)
-                .or_insert_with(move || {
-                    let id = *next_var;
-                    *next_var = VariableId(id.0 + 1);
-                    id
-                });
-            let id = *id;
-            self.program
-                .variables
-                .names
-                .entry(Handle::from_u32(id.0))
-                .or_insert_with(|| *variable.0);
-            self.push_instruction(Instruction::ReadGlobalVar);
-            write_to_vec(id, &mut self.program.bytecode);
-        } else {
-            //local
-            self.read_local_var(scope as u32);
+        match scope {
+            Some(scope) => {
+                //local
+                self.read_local_var(scope as u32);
+            }
+            None => {
+                // global
+                let next_var = &mut self.next_var;
+                let varhash = Handle::from_bytes(variable.0.as_bytes());
+                let id = self
+                    .program
+                    .variables
+                    .ids
+                    .entry(varhash)
+                    .or_insert_with(move || {
+                        let id = *next_var;
+                        *next_var = VariableId(id.0 + 1);
+                        id
+                    });
+                let id = *id;
+                self.program
+                    .variables
+                    .names
+                    .entry(Handle::from_u32(id.0))
+                    .or_insert_with(|| *variable.0);
+                self.push_instruction(Instruction::ReadGlobalVar);
+                write_to_vec(id, &mut self.program.bytecode);
+            }
         }
         Ok(())
     }
