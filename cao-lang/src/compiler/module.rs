@@ -30,6 +30,9 @@ pub type CaoIdentifier<'a> = Cow<'a, str>;
 pub struct Module<'a> {
     pub submodules: BTreeMap<CaoIdentifier<'a>, Module<'a>>,
     pub lanes: BTreeMap<CaoIdentifier<'a>, Lane>,
+    /// _lanes_ to import from submodules
+    ///
+    /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
     pub imports: BTreeSet<CaoIdentifier<'a>>,
 }
 
