@@ -322,17 +322,15 @@ impl<'a> Compiler<'a> {
 
     fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
         let mut to = self.jump_table.get(Handle::from(lane));
-        let mut i = self.current_namespace.len();
-        while i > 0 && to.is_none() {
+        if to.is_none() {
             // attempt to look up the function in the current namespace
             //
             // TODO: create handle from parts instead of building the string..
-            let mut name = self.current_namespace[0..i].join(".");
+            let mut name = self.current_namespace[..].join(".");
             name.push('.');
             name.push_str(lane.0.as_str());
             let handle = Handle::from(name.as_str());
             to = self.jump_table.get(handle);
-            i -= 1;
         }
         let to = to.ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
