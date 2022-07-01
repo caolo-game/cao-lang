@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.80
+
+
+### Features
+
+- Add imports
+
+
+### Break
+
+- Remove the `compute_stack_at_card` function for now
+
+- Remove Lane lookup in parent scopes
+
 ## v0.1.79
 
 
