@@ -9,6 +9,7 @@ use cao_lang::{
 #[test]
 fn composite_card_test() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -37,6 +38,7 @@ fn composite_card_test() {
 #[test]
 fn test_trace_entry() {
     let ir = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -66,6 +68,7 @@ fn test_trace_entry() {
 fn test_string_w_utf8() {
     let test_str = "winnie the pooh is 🔥🔥🔥 ";
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -112,6 +115,7 @@ fn test_string_param() {
     vm.register_function(name, into_f1(fun));
 
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -135,6 +139,7 @@ fn test_string_param() {
 #[test]
 fn simple_if_statement() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -169,6 +174,7 @@ fn simple_if_statement() {
 #[test]
 fn simple_if_statement_skips_if_false() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -210,6 +216,7 @@ fn simple_if_statement_skips_if_false() {
 
 fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Value) {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -281,6 +288,7 @@ fn simple_if_else_statement_test_else() {
 #[test]
 fn test_local_variable() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -314,6 +322,7 @@ fn test_local_variable() {
 #[test]
 fn local_variable_doesnt_leak_out_of_scope() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -347,6 +356,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
 #[test]
 fn simple_while_loop() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -395,6 +405,7 @@ fn simple_while_loop() {
 #[test]
 fn simple_for_loop() {
     let program = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -438,6 +449,7 @@ fn simple_for_loop() {
 fn call_native_test() {
     let name = "foo";
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -516,6 +528,7 @@ fn test_function_registry() {
 
     const PROG: &str = r#"
 submodules: {}
+imports: []
 lanes:
     main:
         name: main
@@ -556,6 +569,7 @@ lanes:
 #[test]
 fn jump_lane_w_params_test() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -606,6 +620,7 @@ fn jump_lane_w_params_test() {
 fn len_test_empty() {
     // happy path
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -634,6 +649,7 @@ fn len_test_happy() {
     // happy path
     let t = VarNode::from_str_unchecked("t");
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -678,9 +694,11 @@ fn len_test_happy() {
 #[test]
 fn nested_module_can_call_self_test() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: [(
             "winnie".into(),
             Module {
+                imports: Default::default(),
                 submodules: Default::default(),
                 lanes: [
                     (

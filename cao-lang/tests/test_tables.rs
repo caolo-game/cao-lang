@@ -9,6 +9,7 @@ use cao_lang::{
 #[test]
 fn test_init_table() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -34,6 +35,7 @@ fn test_init_table() {
 #[test]
 fn test_get_set() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -85,6 +87,7 @@ fn test_native_w_table_input() {
     vm.register_function("boii", into_f1(myboi));
 
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),

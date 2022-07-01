@@ -6,11 +6,13 @@ use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::hash::Hasher;
+use std::rc::Rc;
 use thiserror::Error;
 
 use super::lane_ir::LaneIr;
+use super::Imports;
 
 #[derive(Debug, Clone, Error)]
 pub enum IntoStreamError {
@@ -28,6 +30,7 @@ pub type CaoIdentifier<'a> = Cow<'a, str>;
 pub struct Module<'a> {
     pub submodules: BTreeMap<CaoIdentifier<'a>, Module<'a>>,
     pub lanes: BTreeMap<CaoIdentifier<'a>, Lane>,
+    pub imports: BTreeSet<CaoIdentifier<'a>>,
 }
 
 impl<'a> Module<'a> {
@@ -43,7 +46,8 @@ impl<'a> Module<'a> {
             .remove("main")
             .ok_or(CompilationErrorPayload::NoMain)?;
 
-        let first_fn = lane_to_compiled_lane(&first_fn, &["main"]);
+        let imports = self.execute_imports()?;
+        let first_fn = lane_to_compiled_lane(&first_fn, &["main"], Rc::new(imports));
         let mut result = vec![first_fn];
         result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
@@ -51,6 +55,25 @@ impl<'a> Module<'a> {
 
         // flatten modules' functions
         flatten_module(&self, recursion_limit, &mut namespace, &mut result)?;
+
+        Ok(result)
+    }
+
+    fn execute_imports(&self) -> Result<Imports, CompilationErrorPayload> {
+        let mut result = Imports::with_capacity(self.imports.len());
+
+        for import in self.imports.iter() {
+            let import = import.as_ref();
+
+            match import.rsplit_once('.') {
+                Some((_, name)) => {
+                    result.insert(name.to_string(), import.to_string());
+                }
+                None => {
+                    return Err(CompilationErrorPayload::BadImport(import.to_string()));
+                }
+            }
+        }
 
         Ok(result)
     }
@@ -101,18 +124,19 @@ fn flatten_module<'a>(
     if out.capacity() - out.len() < module.lanes.len() {
         out.reserve(module.lanes.len() - (out.capacity() - out.len()));
     }
+    let imports = Rc::new(module.execute_imports()?);
     for (name, lane) in module.lanes.iter() {
         if !is_name_valid(name.as_ref()) {
             return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
         }
         namespace.push(name.as_ref());
-        out.push(lane_to_compiled_lane(lane, namespace));
+        out.push(lane_to_compiled_lane(lane, namespace, Rc::clone(&imports)));
         namespace.pop();
     }
     Ok(())
 }
 
-fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> LaneIr {
+fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
@@ -122,6 +146,7 @@ fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str]) -> LaneIr {
         name: flatten_name(namespace).into_boxed_str(),
         arguments: lane.arguments.clone().into_boxed_slice(),
         cards: lane.cards.clone().into_boxed_slice(),
+        imports,
         ..Default::default()
     };
     cl.namespace.extend(

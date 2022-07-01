@@ -17,6 +17,7 @@ fn composite_card_test() {
         }),
     );
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes,
     };
@@ -38,6 +39,7 @@ fn empty_foreach_is_error_test() {
         }),
     );
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes,
     };
@@ -48,6 +50,7 @@ fn empty_foreach_is_error_test() {
 #[test]
 fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -70,6 +73,7 @@ fn can_binary_de_serialize_output() {
 #[test]
 fn empty_varname_is_error() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [(
             "main".into(),
@@ -89,6 +93,7 @@ fn empty_varname_is_error() {
 #[test]
 fn empty_arity_in_foreach_is_an_error() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: [
             (
@@ -114,6 +119,7 @@ fn empty_arity_in_foreach_is_an_error() {
 #[test]
 fn arity_1_in_foreach_is_an_error() {
     let cu = CaoProgram {
+        imports: Default::default(),
         submodules: Default::default(),
         lanes: BTreeMap::from([
             (
@@ -141,11 +147,13 @@ fn can_call_nested_function_test() {
     submodules.insert(
         "coggers".into(),
         Module {
+            imports: Default::default(),
             submodules: Default::default(),
             lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
         },
     );
     let prog = CaoProgram {
+        imports: Default::default(),
         submodules,
         lanes: BTreeMap::from([(
             "main".into(),

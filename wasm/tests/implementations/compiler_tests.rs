@@ -11,12 +11,13 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
-        "submodules": {},
-        "lanes": {"main": {
-            "name": "main",
-            "cards": [ {"ty": "ScalarInt", "val": 69 } ]
-        }}
-    });
+          "submodules": {},
+          "imports": [],
+          "lanes": {"main": {
+              "name": "main",
+              "cards": [ {"ty": "ScalarInt", "val": 69 } ]
+          }}
+      });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
@@ -27,12 +28,13 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
-        "submodules": {},
-        "lanes": {"main": {
-            "name": "main",
-            "cards": [ {"ty": "Jump", "val": "42" } ]
-        }}
-    });
+          "submodules": {},
+          "imports": [],
+          "lanes": {"main": {
+              "name": "main",
+              "cards": [ {"ty": "Jump", "val": "42" } ]
+          }}
+      });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("Compile returned error");
     let output: CompileResult = output
         .into_serde()
@@ -47,15 +49,16 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
-        "submodules": {},
-        "lanes": { "main": {
-            "name": "main",
-            "cards": [
-            { "ty": "StringLiteral", "val": "Poggers" }
-            , {"ty": "SetGlobalVar", "val": "g_pogman" }
-            ]
-        }}
-    });
+          "submodules": {},
+          "imports": [],
+          "lanes": { "main": {
+              "name": "main",
+              "cards": [
+              { "ty": "StringLiteral", "val": "Poggers" }
+              , {"ty": "SetGlobalVar", "val": "g_pogman" }
+              ]
+          }}
+      });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("failed to run compile");
 
     let output: CompileResult = output

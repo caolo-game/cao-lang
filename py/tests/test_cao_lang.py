@@ -20,8 +20,10 @@ lanes:
             - ty: Add
             - ty: Jump
               val: "foo.bar"
+imports: []
 submodules:
     foo:
+        imports: []
         submodules: {}
         lanes:
             bar:
@@ -54,8 +56,10 @@ def test_json():
                 ]
             }
         },
+        "imports": [],
         "submodules": {
             "foo": {
+                "imports": [],
                 "submodules": {},
                 "lanes": {
                     "bar": {
@@ -91,10 +95,10 @@ def test_bad_json_is_value_error():
 
 
 def test_recursion_limit():
-    program = {"submodules": {}, "lanes": {"main": {"cards": []}}}
+    program = {"imports": [], "submodules": {}, "lanes": {"main": {"cards": []}}}
     _pr = program
     for _ in range(2):
-        _pr["submodules"]["foo"] = {"submodules": {}, "lanes": {}}
+        _pr["submodules"]["foo"] = {"imports": [], "submodules": {}, "lanes": {}}
         _pr = _pr["submodules"]["foo"]
 
     program = caoc.CompilationUnit.from_json(json.dumps(program))

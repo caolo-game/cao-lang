@@ -39,6 +39,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 /// Execution will begin with the first Lane
 pub(crate) type LaneSlice<'a> = &'a [LaneIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
+pub(crate) type Imports = std::collections::HashMap<String, String>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -49,6 +50,7 @@ pub struct Compiler<'a> {
     jump_table: KeyMap<LaneMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
+    current_imports: Cow<'a, Imports>,
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_card: i32,
@@ -100,6 +102,7 @@ impl<'a> Compiler<'a> {
             scope_depth: 0,
             current_card: -1,
             current_lane: "".into(),
+            current_imports: Default::default(),
         }
     }
 
@@ -121,6 +124,7 @@ impl<'a> Compiler<'a> {
         self.compile_stage_1(compilation_unit)?;
         self.compile_stage_2(compilation_unit)?;
 
+        self.current_imports = Default::default();
         Ok(mem::take(&mut self.program))
     }
 
@@ -265,12 +269,14 @@ impl<'a> Compiler<'a> {
             arguments,
             cards,
             namespace,
+            imports,
         }: &'a LaneIr,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
         self.current_lane = name.clone();
         self.current_card = -1;
         self.current_namespace = Cow::Borrowed(namespace);
+        self.current_imports = Cow::Borrowed(imports);
 
         // check if len fits in 16 bits
         let _len: u16 = match cards.len().try_into() {

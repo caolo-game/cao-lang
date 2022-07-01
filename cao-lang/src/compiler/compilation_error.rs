@@ -79,4 +79,7 @@ pub enum CompilationErrorPayload {
 
     #[error("Recursion limit ({0}) reached")]
     RecursionLimitReached(u32),
+
+    #[error("Import '{0}' is not valid")]
+    BadImport(String),
 }

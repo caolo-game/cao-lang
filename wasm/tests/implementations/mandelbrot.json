@@ -1,109 +1,110 @@
 {
-    "_comment": "Take an input x, y and return if the number x+yi is in the Mandelbrot set",
-    "lanes": [
+  "_comment": "Take an input x, y and return if the number x+yi is in the Mandelbrot set",
+  "imports": [],
+  "lanes": [
+    {
+      "name": "init",
+      "cards": [
         {
-            "name": "init",
-            "cards": [
-                {
-                    "ScalarInt": 0
-                },
-                {
-                    "SetGlobalVar": "n"
-                }
-            ]
+          "ScalarInt": 0
         },
         {
-            "name": "mandelbrot",
-            "cards": [
-                {
-                    "SetGlobalVar": "y"
-                },
-                {
-                    "SetGlobalVar": "x"
-                },
-                {
-                    "Repeat": "mandelbrot-loop"
-                }
-            ]
-        },
-        {
-            "name": "mandelbrot-loop",
-            "cards": [
-                {
-                    "ScalarFloat": 2.0
-                },
-                {
-                    "ReadGlobalVar": "x"
-                },
-                {
-                    "ReadGlobalVar": "y"
-                },
-                {
-                    "Jump": "len2"
-                },
-                {
-                    "Less": null
-                },
-                {
-                    "ReadGlobalVar": "n"
-                },
-                {
-                    "ScalarInt": 80
-                },
-                {
-                    "Less": null
-                },
-                {
-                    "And": null
-                },
-                {
-                    "JumpIfFalse": "exit"
-                },
-                {
-                    "ReadGlobalVar": "n"
-                },
-                {
-                    "ScalarInt": 1
-                },
-                {
-                    "Add": null
-                }
-            ]
-        },
-        {
-            "name": "exit",
-            "cards": [
-                {
-                    "ReadGlobalVar": "n"
-                },
-                {
-                    "Exit": null
-                }
-            ]
-        },
-        {
-            "name": "len2",
-            "_desc": "squared length of a 2d vector",
-            "cards": [
-                {
-                    "CopyLast": null
-                },
-                {
-                    "Mul": null
-                },
-                {
-                    "CopyLast": null
-                },
-                {
-                    "Mul": null
-                },
-                {
-                    "Add": null
-                },
-                {
-                    "Return": null
-                }
-            ]
+          "SetGlobalVar": "n"
         }
-    ]
+      ]
+    },
+    {
+      "name": "mandelbrot",
+      "cards": [
+        {
+          "SetGlobalVar": "y"
+        },
+        {
+          "SetGlobalVar": "x"
+        },
+        {
+          "Repeat": "mandelbrot-loop"
+        }
+      ]
+    },
+    {
+      "name": "mandelbrot-loop",
+      "cards": [
+        {
+          "ScalarFloat": 2.0
+        },
+        {
+          "ReadGlobalVar": "x"
+        },
+        {
+          "ReadGlobalVar": "y"
+        },
+        {
+          "Jump": "len2"
+        },
+        {
+          "Less": null
+        },
+        {
+          "ReadGlobalVar": "n"
+        },
+        {
+          "ScalarInt": 80
+        },
+        {
+          "Less": null
+        },
+        {
+          "And": null
+        },
+        {
+          "JumpIfFalse": "exit"
+        },
+        {
+          "ReadGlobalVar": "n"
+        },
+        {
+          "ScalarInt": 1
+        },
+        {
+          "Add": null
+        }
+      ]
+    },
+    {
+      "name": "exit",
+      "cards": [
+        {
+          "ReadGlobalVar": "n"
+        },
+        {
+          "Exit": null
+        }
+      ]
+    },
+    {
+      "name": "len2",
+      "_desc": "squared length of a 2d vector",
+      "cards": [
+        {
+          "CopyLast": null
+        },
+        {
+          "Mul": null
+        },
+        {
+          "CopyLast": null
+        },
+        {
+          "Mul": null
+        },
+        {
+          "Add": null
+        },
+        {
+          "Return": null
+        }
+      ]
+    }
+  ]
 }
