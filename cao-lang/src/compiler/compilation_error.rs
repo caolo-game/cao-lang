@@ -82,4 +82,7 @@ pub enum CompilationErrorPayload {
 
     #[error("Import '{0}' is not valid")]
     BadImport(String),
+
+    #[error("Too many `super.` calls.")]
+    SuperLimitReached,
 }

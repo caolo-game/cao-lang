@@ -360,11 +360,13 @@ impl<'a> Compiler<'a> {
                 .iter()
                 .find(|(import, _)| *import == &lane.0)
             {
+                let (super_depth, suffix) = super_depth(alias);
                 let handle = Handle::from_bytes_iter(
                     self.current_namespace
                         .iter()
+                        .take(self.current_namespace.len() - super_depth)
                         .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
-                        .chain(std::iter::once(alias.as_bytes())),
+                        .chain(std::iter::once(suffix.unwrap_or(alias).as_bytes())),
                 );
                 to = jump_table.get(handle);
             }
@@ -646,4 +648,17 @@ impl<'a> Compiler<'a> {
         );
         self.program.bytecode.push(instruction as u8);
     }
+}
+
+fn super_depth(import: &str) -> (usize, Option<&str>) {
+    let mut super_pog = import.split_once("super.");
+    let mut super_cnt = 0;
+    let mut suffix = None;
+    while let Some((_sup_pre, sup_post)) = super_pog {
+        super_cnt += 1;
+        super_pog = sup_post.split_once("super.");
+        suffix = Some(sup_post);
+    }
+
+    (super_cnt, suffix)
 }
