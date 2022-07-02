@@ -1,4 +1,20 @@
 # Changelog
+## v0.1.81
+
+
+### Features
+
+- Add submodule imports
+
+- Add super function imports
+
+- Add super module import
+
+
+### Breaking
+
+- Reserve the `super` keyword
+
 ## v0.1.80
 
 
