@@ -928,3 +928,60 @@ fn can_import_function_from_super_module_test() {
 
     assert_eq!(result, "poggers");
 }
+
+#[test]
+fn import_super_module_test() {
+    let winnie = Module {
+        imports: ["super.super.bar".into()].into(),
+        submodules: Default::default(),
+        lanes: [(
+            "pooh".into(),
+            Lane::default().with_card(Card::Jump(LaneNode("bar.pog".to_owned()))),
+        )]
+        .into(),
+    };
+    let foo = Module {
+        submodules: [("winnie".into(), winnie)].into(),
+        imports: Default::default(),
+        lanes: [].into(),
+    };
+    let bar = Module {
+        imports: ["foo.winnie".into()].into(),
+        submodules: [("foo".into(), foo)].into(),
+        lanes: [
+            (
+                "run".into(),
+                Lane::default().with_card(Card::Jump(LaneNode("winnie.pooh".to_owned()))),
+            ),
+            (
+                "pog".into(),
+                Lane::default()
+                    .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+            ),
+        ]
+        .into(),
+    };
+    let cu = Module {
+        imports: [].into(),
+        submodules: [("bar".into(), bar)].into(),
+        lanes: [(
+            "main".into(),
+            Lane::default().with_card(Card::Jump(LaneNode("bar.run".to_owned()))),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read foo variable");
+
+    let result = unsafe { result.as_str().unwrap() };
+
+    assert_eq!(result, "poggers");
+}

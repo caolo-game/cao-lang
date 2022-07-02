@@ -380,14 +380,20 @@ impl<'a> Compiler<'a> {
                     .find(|(import, _)| *import == prefix)
                 {
                     // namespace.alias.suffix
+                    let (super_depth, s) = super_depth(alias);
                     let handle = Handle::from_bytes_iter(
                         self.current_namespace
                             .iter()
+                            .take(self.current_namespace.len() - super_depth)
                             .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
                             .chain(
-                                [alias.as_bytes(), ".".as_bytes(), suffix.as_bytes()]
-                                    .iter()
-                                    .copied(),
+                                [
+                                    alias.as_bytes(),
+                                    ".".as_bytes(),
+                                    s.unwrap_or(suffix).as_bytes(),
+                                ]
+                                .iter()
+                                .copied(),
                             ),
                     );
                     to = jump_table.get(handle);
