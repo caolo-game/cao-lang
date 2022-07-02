@@ -162,7 +162,9 @@ fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) 
 }
 
 fn is_name_valid(name: &str) -> bool {
-    !name.contains(|c: char| !c.is_alphanumeric() && c != '_') && !name.is_empty()
+    !name.contains(|c: char| !c.is_alphanumeric() && c != '_')
+        && !name.is_empty()
+        && name != "super" // `super` is a reserved identifier
 }
 
 fn flatten_name(namespace: &[&str]) -> String {
