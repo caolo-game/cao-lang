@@ -1,6 +1,6 @@
 [dependencies]
 serde_json = "1.0.81"
-serde_yaml = "0.8.24"
+serde_yaml = "0.9.2"
 
 [dependencies.cao-lang]
 default-features = false
