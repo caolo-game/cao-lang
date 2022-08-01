@@ -6,24 +6,24 @@ lanes:
     name: main
     cards:
       # --- init the example table ---
-      - CreateTable
-      - SetVar: t
-      - ReadVar: t
-      - StringLiteral: f1
-      - ScalarInt: 3
-      - SetProperty
-      - ReadVar: t
-      - StringLiteral: f2
-      - ScalarInt: 5
-      - SetProperty
-      - ReadVar: t
-      - StringLiteral: f3
-      - ScalarInt: 7
-      - SetProperty
-      - ScalarInt: 0
-      - SetGlobalVar: g_result
+      - !CreateTable
+      - !SetVar t
+      - !ReadVar t
+      - !StringLiteral f1
+      - !ScalarInt 3
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f2
+      - !ScalarInt 5
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f3
+      - !ScalarInt 7
+      - !SetProperty
+      - !ScalarInt 0
+      - !SetGlobalVar g_result
       # --- init done ---
-      - ForEach:
+      - !ForEach
           lane: pog
           variable: t
 
@@ -33,9 +33,9 @@ lanes:
       - "key"
       - "table"
     cards:
-      - ReadVar: table
-      - ReadVar: key
-      - GetProperty
-      - ReadVar: g_result
-      - Add
-      - SetGlobalVar: g_result
+      - !ReadVar table
+      - !ReadVar key
+      - !GetProperty
+      - !ReadVar g_result
+      - !Add
+      - !SetGlobalVar g_result

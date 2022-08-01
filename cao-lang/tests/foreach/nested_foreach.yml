@@ -11,29 +11,29 @@ lanes:
       #  f2: 5,
       #  f3: 7,
       # }
-      - CreateTable
-      - SetVar: t
-      - ReadVar: t
-      - StringLiteral: f1
-      - ScalarInt: 3
-      - SetProperty
-      - ReadVar: t
-      - StringLiteral: f2
-      - ScalarInt: 5
-      - SetProperty
-      - ReadVar: t
-      - StringLiteral: f3
-      - ScalarInt: 7
-      - SetProperty
-        # set result and g_iters to zero
-      - ScalarInt: 0
-      - SetGlobalVar: g_result
-      - ScalarInt: 0
-      - SetGlobalVar: g_iters
+      - !CreateTable
+      - !SetVar t
+      - !ReadVar t
+      - !StringLiteral f1
+      - !ScalarInt 3
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f2
+      - !ScalarInt 5
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f3
+      - !ScalarInt 7
+      - !SetProperty # set result and g_iters to zero
+
+      - !ScalarInt 0
+      - !SetGlobalVar g_result
+      - !ScalarInt 0
+      - !SetGlobalVar g_iters
       # --- init done ---
-      - ForEach:
-          lane: outer_loop
-          variable: t
+      - !ForEach
+        lane: outer_loop
+        variable: t
 
   outer_loop:
     name: outer_loop
@@ -41,9 +41,9 @@ lanes:
       - "key"
       - "table"
     cards:
-      - ForEach:
-          lane: inner_loop
-          variable: table
+      - !ForEach
+        lane: inner_loop
+        variable: table
 
   inner_loop:
     name: inner_loop
@@ -52,15 +52,15 @@ lanes:
       - "table"
     cards:
       # get table[key]
-      - ReadVar: table
-      - ReadVar: key
-      - GetProperty
-        # add table[key] to g_result
-      - ReadVar: g_result
-      - Add
-      - SetGlobalVar: g_result
+      - !ReadVar table
+      - !ReadVar key
+      - !GetProperty # add table[key] to g_result
+
+      - !ReadVar g_result
+      - !Add
+      - !SetGlobalVar g_result
         # add 1 to g_iters
-      - ScalarInt: 1
-      - ReadVar: g_iters
-      - Add
-      - SetGlobalVar: g_iters
+      - !ScalarInt 1
+      - !ReadVar g_iters
+      - !Add
+      - !SetGlobalVar g_iters

@@ -534,16 +534,16 @@ lanes:
         name: main
         arguments: []
         cards:
-            - CallNative: "func0"
-            - ScalarInt: 42
-            - CallNative: "func1"
-            - ScalarInt: 12
-            - ScalarFloat: 4.2
-            - CallNative: "func2"
-            - ScalarInt: 33
-            - ScalarFloat: 2.88
-            - ScalarInt: 0
-            - CallNative: "func3"
+            - !CallNative "func0"
+            - !ScalarInt 42
+            - !CallNative "func1"
+            - !ScalarInt 12
+            - !ScalarFloat 4.2
+            - !CallNative "func2"
+            - !ScalarInt 33
+            - !ScalarFloat 2.88
+            - !ScalarInt 0
+            - !CallNative "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
     let prog = compile(cu, CompileOptions::new()).unwrap();

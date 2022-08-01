@@ -15,10 +15,10 @@ lanes:
         arguments: []
         name: main
         cards:
-            - ScalarInt: 5
-            - ScalarInt: 5
-            - Add
-            - Jump: "foo.bar"
+            - !ScalarInt 5
+            - !ScalarInt 5
+            - !Add
+            - !Jump "foo.bar"
 imports: []
 submodules:
     foo:
@@ -29,7 +29,7 @@ submodules:
                 name: bar
                 arguments: []
                 cards:
-                    - ScalarInt: 42
+                    - !ScalarInt 42
 
 """
 

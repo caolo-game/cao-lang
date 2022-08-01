@@ -6,36 +6,36 @@ lanes:
     arguments:
       - N
     cards:
-      - ReadVar: N
-      - Jump: fib
-      - SetGlobalVar: result
+      - !ReadVar N
+      - !Jump fib
+      - !SetGlobalVar result
 
   fib:
     arguments:
       - N
     cards:
-      - ReadVar: N
-      - ScalarInt: 2
-      - ReadVar: N
-      - LessOrEq
-      - IfElse: 
+      - !ReadVar N
+      - !ScalarInt 2
+      - !ReadVar N
+      - !LessOrEq
+      - !IfElse 
           then:
-            Jump: fib_again
+            !Jump fib_again
           else:
-            ScalarInt: 1
-      - Return
+            !ScalarInt 1
+      - !Return
 
   fib_again:
     arguments:
       - N
     cards:
-      - ReadVar: N
-      - ScalarInt: 1
-      - Sub
-      - Jump: fib
-      - ReadVar: N
-      - ScalarInt: 2
-      - Sub
-      - Jump: fib
-      - Add
-      - Return
+      - !ReadVar N
+      - !ScalarInt 1
+      - !Sub
+      - !Jump fib
+      - !ReadVar N
+      - !ScalarInt 2
+      - !Sub
+      - !Jump fib
+      - !Add
+      - !Return

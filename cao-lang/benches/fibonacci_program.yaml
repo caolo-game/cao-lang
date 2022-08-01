@@ -6,19 +6,19 @@ lanes:
     arguments:
       - N
     cards:
-      - ScalarInt: 0
-      - SetGlobalVar: a
-      - ScalarInt: 1
-      - SetGlobalVar: b
-      - ReadVar: N
-      - Repeat: "loop"
+      - !ScalarInt 0
+      - !SetGlobalVar a
+      - !ScalarInt 1
+      - !SetGlobalVar b
+      - !ReadVar N
+      - !Repeat "loop"
   loop:
     arguments:
       - i
     cards:
-      - ReadVar: b
-      - CopyLast
-      - ReadVar: a
-      - Add
-      - SetGlobalVar: b
-      - SetGlobalVar: a
+      - !ReadVar b
+      - !CopyLast
+      - !ReadVar a
+      - !Add
+      - !SetGlobalVar b
+      - !SetGlobalVar a
