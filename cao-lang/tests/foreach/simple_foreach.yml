@@ -2,40 +2,28 @@ submodules: {}
 imports: []
 lanes:
   main:
+    arguments: []
     name: main
     cards:
       # --- init the example table ---
-      - ty: CreateTable
-      - ty: SetVar
-        val: t
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f1
-      - ty: ScalarInt
-        val: 3
-      - ty: SetProperty
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f2
-      - ty: ScalarInt
-        val: 5
-      - ty: SetProperty
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f3
-      - ty: ScalarInt
-        val: 7
-      - ty: SetProperty
-      - ty: ScalarInt
-        val: 0
-      - ty: SetGlobalVar
-        val: g_result
+      - CreateTable
+      - SetVar: t
+      - ReadVar: t
+      - StringLiteral: f1
+      - ScalarInt: 3
+      - SetProperty
+      - ReadVar: t
+      - StringLiteral: f2
+      - ScalarInt: 5
+      - SetProperty
+      - ReadVar: t
+      - StringLiteral: f3
+      - ScalarInt: 7
+      - SetProperty
+      - ScalarInt: 0
+      - SetGlobalVar: g_result
       # --- init done ---
-      - ty: ForEach
-        val:
+      - ForEach:
           lane: pog
           variable: t
 
@@ -45,13 +33,9 @@ lanes:
       - "key"
       - "table"
     cards:
-      - ty: ReadVar
-        val: table
-      - ty: ReadVar
-        val: key
-      - ty: GetProperty
-      - ty: ReadVar
-        val: g_result
-      - ty: Add
-      - ty: SetGlobalVar
-        val: g_result
+      - ReadVar: table
+      - ReadVar: key
+      - GetProperty
+      - ReadVar: g_result
+      - Add
+      - SetGlobalVar: g_result

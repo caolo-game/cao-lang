@@ -6,9 +6,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
-    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
     pub arguments: Vec<VarName>,
-    #[cfg_attr(feature = "serde", serde(default = "Vec::new"))]
     pub cards: Vec<Card>,
 }
 

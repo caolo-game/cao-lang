@@ -170,3 +170,44 @@ fn is_name_valid(name: &str) -> bool {
 fn flatten_name(namespace: &[&str]) -> String {
     namespace.join(".")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn module_bincode_serde_test() {
+        use bincode::DefaultOptions;
+        use serde::{Deserialize, Serialize};
+
+        use crate::compiler::{Card, StringNode};
+
+        let mut lanes = BTreeMap::new();
+        lanes.insert(
+            "main".into(),
+            Lane::default().with_card(Card::CompositeCard {
+                name: "triplepog".to_string().into(),
+                cards: vec![
+                    Card::StringLiteral(StringNode("poggers".to_owned())),
+                    Card::StringLiteral(StringNode("poggers".to_owned())),
+                    Card::StringLiteral(StringNode("poggers".to_owned())),
+                ],
+            }),
+        );
+        let default_prog = CaoProgram {
+            imports: Default::default(),
+            submodules: Default::default(),
+            lanes,
+        };
+
+        let mut pl = vec![];
+        let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
+        default_prog.serialize(&mut s).unwrap();
+
+        let mut reader =
+            bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
+
+        let _prog = Module::deserialize(&mut reader).unwrap();
+    }
+}

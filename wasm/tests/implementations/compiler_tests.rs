@@ -15,7 +15,8 @@ fn can_compile_simple_program() {
           "imports": [],
           "lanes": {"main": {
               "name": "main",
-              "cards": [ {"ty": "ScalarInt", "val": 69 } ]
+              "arguments": [],
+              "cards": [ {"ScalarInt": 69 } ]
           }}
       });
     let result = compile(JsValue::from_serde(&cu).unwrap(), None);
@@ -32,7 +33,8 @@ fn compiler_returns_error_not_exception() {
           "imports": [],
           "lanes": {"main": {
               "name": "main",
-              "cards": [ {"ty": "Jump", "val": "42" } ]
+              "arguments": [],
+              "cards": [ {"Jump": "42" } ]
           }}
       });
     let output = compile(JsValue::from_serde(&cu).unwrap(), None).expect("Compile returned error");
@@ -53,9 +55,10 @@ fn can_run_simple_program() {
           "imports": [],
           "lanes": { "main": {
               "name": "main",
+              "arguments": [],
               "cards": [
-              { "ty": "StringLiteral", "val": "Poggers" }
-              , {"ty": "SetGlobalVar", "val": "g_pogman" }
+              {  "StringLiteral": "Poggers" }
+              , { "SetGlobalVar": "g_pogman" }
               ]
           }}
       });

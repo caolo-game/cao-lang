@@ -12,72 +12,58 @@ TEST(Compile, MultiLaneProgram) {
   "lanes": {
     "main": {
       "name": "main",
+      "arguments": [],
       "cards": [
         {
-          "ty": "StringLiteral",
-          "val": "RESOURCE"
+          "StringLiteral": "RESOURCE"
         },
         {
-          "ty": "CallNative",
-          "val": "parse_find_constant"
+          "CallNative": "parse_find_constant"
         },
         {
-          "ty": "CallNative",
-          "val": "find_closest"
+          "CallNative": "find_closest"
         },
         {
-          "ty": "SetVar",
-          "val": "resource"
+          "SetVar": "resource"
         },
         {
-          "ty": "ReadVar",
-          "val": "resource"
+          "ReadVar": "resource"
         },
         {
-          "ty": "ScalarNil"
+          "ScalarNil": null
         },
         {
-          "ty": "Equals"
+          "Equals": null
         },
         {
-          "ty": "IfTrue",
-          "val": {
-            "ty": "Jump",
-            "val": "resource_error"
+          "IfTrue": {
+            "Jump": "resource_error"
           }
         },
         {
-          "ty": "ReadVar",
-          "val": "resource"
+          "ReadVar": "resource"
         },
         {
-          "ty": "ReadVar",
-          "val": "resource"
+          "ReadVar": "resource"
         },
         {
-          "ty": "CallNative",
-          "val": "mine"
+          "CallNative": "mine"
         },
         {
-          "ty": "ScalarInt",
-          "val": 0
+          "ScalarInt": 0
         },
         {
-          "ty": "Equals"
+          "Equals": null
         },
         {
-          "ty": "IfElse",
-          "val": {
+          "IfElse": {
             "then":{ 
-                "ty":"Jump",
-              "val":"mine_success"
+                "Jump":"mine_success"
               }
             ,
             "else":  {
-                "ty":"Jump",
-              "val":"approach_resource"
+                "Jump":"approach_resource"
               }
-            
           }
         }
       ]
@@ -89,53 +75,46 @@ TEST(Compile, MultiLaneProgram) {
       ],
       "cards": [
         {
-          "ty": "ReadVar",
-          "val": "resource"
+          "ReadVar": "resource"
         },
         {
-          "ty": "StringLiteral",
-          "val": "Work work...\nMove Result: "
+          "StringLiteral": "Work work...\nMove Result: "
         },
         {
-          "ty": "CallNative",
-          "val": "console_log"
+          "CallNative": "console_log"
         },
         {
-          "ty": "CallNative",
-          "val": "approach_entity"
+          "CallNative": "approach_entity"
         },
         {
-          "ty": "CallNative",
-          "val": "console_log"
+          "CallNative": "console_log"
         }
       ]
     },
     "resource_error": {
       "name": "resource_error",
+      "arguments": [],
       "cards": [
         {
-          "ty": "StringLiteral",
-          "val": "No resource found"
+          "StringLiteral": "No resource found"
         },
         {
-          "ty": "CallNative",
-          "val": "console_log"
+          "CallNative": "console_log"
         },
         {
-          "ty": "Abort"
+          "Abort": null
         }
       ]
     },
     "mine_success": {
       "name": "mine_success",
+      "arguments": [],
       "cards": [
         {
-          "ty": "StringLiteral",
-          "val": "I be mining baws"
+          "StringLiteral": "I be mining baws"
         },
         {
-          "ty": "CallNative",
-          "val": "console_log"
+          "CallNative": "console_log"
         }
       ]
     }
@@ -160,6 +139,7 @@ TEST(Runs, EmptyProgram) {
   "lanes": {
     "main": {
       "name": "main",
+      "arguments": [],
       "cards": [
       ]
     }

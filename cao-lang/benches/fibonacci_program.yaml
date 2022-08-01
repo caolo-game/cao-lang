@@ -6,29 +6,19 @@ lanes:
     arguments:
       - N
     cards:
-      - ty: ScalarInt
-        val: 0
-      - ty: SetGlobalVar
-        val: a
-      - ty: ScalarInt
-        val: 1
-      - ty: SetGlobalVar
-        val: b
-      - ty: ReadVar
-        val: N
-      - ty: Repeat
-        val: "loop"
+      - ScalarInt: 0
+      - SetGlobalVar: a
+      - ScalarInt: 1
+      - SetGlobalVar: b
+      - ReadVar: N
+      - Repeat: "loop"
   loop:
     arguments:
       - i
     cards:
-      - ty: ReadVar
-        val: b
-      - ty: CopyLast
-      - ty: ReadVar
-        val: a
-      - ty: Add
-      - ty: SetGlobalVar
-        val: b
-      - ty: SetGlobalVar
-        val: a
+      - ReadVar: b
+      - CopyLast
+      - ReadVar: a
+      - Add
+      - SetGlobalVar: b
+      - SetGlobalVar: a

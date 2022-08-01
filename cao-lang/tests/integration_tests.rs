@@ -532,27 +532,18 @@ imports: []
 lanes:
     main:
         name: main
+        arguments: []
         cards:
-            - ty: CallNative
-              val: "func0"
-            - ty: ScalarInt
-              val: 42
-            - ty: CallNative
-              val: "func1"
-            - ty: ScalarInt
-              val: 12
-            - ty: ScalarFloat
-              val: 4.2
-            - ty: CallNative
-              val: "func2"
-            - ty: ScalarInt
-              val: 33
-            - ty: ScalarFloat
-              val: 2.88
-            - ty: ScalarInt
-              val: 0
-            - ty: CallNative
-              val: "func3"
+            - CallNative: "func0"
+            - ScalarInt: 42
+            - CallNative: "func1"
+            - ScalarInt: 12
+            - ScalarFloat: 4.2
+            - CallNative: "func2"
+            - ScalarInt: 33
+            - ScalarFloat: 2.88
+            - ScalarInt: 0
+            - CallNative: "func3"
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
     let prog = compile(cu, CompileOptions::new()).unwrap();

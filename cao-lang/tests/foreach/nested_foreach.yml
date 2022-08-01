@@ -3,6 +3,7 @@ imports: []
 lanes:
   main:
     name: main
+    arguments: []
     cards:
       # --- init the example table ---
       # {
@@ -10,42 +11,27 @@ lanes:
       #  f2: 5,
       #  f3: 7,
       # }
-      - ty: CreateTable
-      - ty: SetVar
-        val: t
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f1
-      - ty: ScalarInt
-        val: 3
-      - ty: SetProperty
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f2
-      - ty: ScalarInt
-        val: 5
-      - ty: SetProperty
-      - ty: ReadVar
-        val: t
-      - ty: StringLiteral
-        val: f3
-      - ty: ScalarInt
-        val: 7
-      - ty: SetProperty
+      - CreateTable
+      - SetVar: t
+      - ReadVar: t
+      - StringLiteral: f1
+      - ScalarInt: 3
+      - SetProperty
+      - ReadVar: t
+      - StringLiteral: f2
+      - ScalarInt: 5
+      - SetProperty
+      - ReadVar: t
+      - StringLiteral: f3
+      - ScalarInt: 7
+      - SetProperty
         # set result and g_iters to zero
-      - ty: ScalarInt
-        val: 0
-      - ty: SetGlobalVar
-        val: g_result
-      - ty: ScalarInt
-        val: 0
-      - ty: SetGlobalVar
-        val: g_iters
+      - ScalarInt: 0
+      - SetGlobalVar: g_result
+      - ScalarInt: 0
+      - SetGlobalVar: g_iters
       # --- init done ---
-      - ty: ForEach
-        val:
+      - ForEach:
           lane: outer_loop
           variable: t
 
@@ -55,8 +41,7 @@ lanes:
       - "key"
       - "table"
     cards:
-      - ty: ForEach
-        val:
+      - ForEach:
           lane: inner_loop
           variable: table
 
@@ -67,22 +52,15 @@ lanes:
       - "table"
     cards:
       # get table[key]
-      - ty: ReadVar
-        val: table
-      - ty: ReadVar
-        val: key
-      - ty: GetProperty
+      - ReadVar: table
+      - ReadVar: key
+      - GetProperty
         # add table[key] to g_result
-      - ty: ReadVar
-        val: g_result
-      - ty: Add
-      - ty: SetGlobalVar
-        val: g_result
+      - ReadVar: g_result
+      - Add
+      - SetGlobalVar: g_result
         # add 1 to g_iters
-      - ty: ScalarInt
-        val: 1
-      - ty: ReadVar
-        val: g_iters
-      - ty: Add
-      - ty: SetGlobalVar
-        val: g_iters
+      - ScalarInt: 1
+      - ReadVar: g_iters
+      - Add
+      - SetGlobalVar: g_iters
