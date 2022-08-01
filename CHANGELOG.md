@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.82
+
+
+### Break
+
+- Simplify Module serialization format
+
 ## v0.1.81
 
 
