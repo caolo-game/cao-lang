@@ -17,7 +17,7 @@ name = "cao_lang_py"
 
 [package]
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 name = "cao-lang-py"
 version = "0.1.67"

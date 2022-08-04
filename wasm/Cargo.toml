@@ -30,7 +30,7 @@ crate-type = ["cdylib", "rlib"]
 [package]
 authors = ["Daniel Kiss <littlesnorrboy@gmail.com>"]
 description = "Wrapper of [CaoLang](https://github.com/caolo-game/cao-lang.git)"
-edition = "2018"
+edition = "2021"
 license = "MIT"
 name = "cao-lang-wasm"
 repository = "https://github.com/caolo-game/cao-lang"

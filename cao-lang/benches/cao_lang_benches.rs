@@ -35,8 +35,6 @@ fn run_fib_recursive(c: &mut Criterion) {
                     let res = vm.run(&program).expect("run failed");
                     #[cfg(debug_assertions)]
                     {
-                        use std::convert::TryInto;
-
                         let b = vm
                             .read_var_by_name("result", &program.variables)
                             .expect("Failed to read `b` variable");
@@ -72,8 +70,6 @@ fn run_fib_iter(c: &mut Criterion) {
                     let res = vm.run(&program).expect("run failed");
                     #[cfg(debug_assertions)]
                     {
-                        use std::convert::TryInto;
-
                         let b = vm
                             .read_var_by_name("b", &program.variables)
                             .expect("Failed to read `b` variable");
