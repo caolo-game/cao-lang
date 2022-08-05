@@ -2,7 +2,6 @@ submodules: {}
 imports: []
 lanes:
   main:
-    name: main
     arguments: []
     cards:
       # --- init the example table ---
@@ -36,7 +35,6 @@ lanes:
         variable: t
 
   outer_loop:
-    name: outer_loop
     arguments:
       - "key"
       - "table"
@@ -46,7 +44,6 @@ lanes:
         variable: table
 
   inner_loop:
-    name: inner_loop
     arguments:
       - "key"
       - "table"

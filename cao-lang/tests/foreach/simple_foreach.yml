@@ -3,7 +3,6 @@ imports: []
 lanes:
   main:
     arguments: []
-    name: main
     cards:
       # --- init the example table ---
       - !CreateTable
@@ -28,7 +27,6 @@ lanes:
           variable: t
 
   pog:
-    name: pog
     arguments:
       - "key"
       - "table"

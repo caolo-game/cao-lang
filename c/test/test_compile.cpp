@@ -11,7 +11,6 @@ TEST(Compile, MultiLaneProgram) {
   "imports": [],
   "lanes": {
     "main": {
-      "name": "main",
       "arguments": [],
       "cards": [
         {
@@ -69,7 +68,6 @@ TEST(Compile, MultiLaneProgram) {
       ]
     },
     "approach_resource": {
-      "name": "approach_resource",
       "arguments": [
         "resource"
       ],
@@ -92,7 +90,6 @@ TEST(Compile, MultiLaneProgram) {
       ]
     },
     "resource_error": {
-      "name": "resource_error",
       "arguments": [],
       "cards": [
         {
@@ -107,7 +104,6 @@ TEST(Compile, MultiLaneProgram) {
       ]
     },
     "mine_success": {
-      "name": "mine_success",
       "arguments": [],
       "cards": [
         {
@@ -138,7 +134,6 @@ TEST(Runs, EmptyProgram) {
   "imports": [],
   "lanes": {
     "main": {
-      "name": "main",
       "arguments": [],
       "cards": [
       ]

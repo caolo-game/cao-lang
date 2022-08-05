@@ -13,7 +13,6 @@ def test_compile_and_run():
 lanes:
     main: 
         arguments: []
-        name: main
         cards:
             - !ScalarInt 5
             - !ScalarInt 5
@@ -26,7 +25,6 @@ submodules:
         submodules: {}
         lanes:
             bar:
-                name: bar
                 arguments: []
                 cards:
                     - !ScalarInt 42
@@ -51,7 +49,6 @@ def test_json():
     {
         "lanes": {
             "main": {
-                "name":"main",
                 "arguments": [],
                 "cards": [
                     {  "Jump": "foo.bar" }
@@ -65,7 +62,6 @@ def test_json():
                 "submodules": {},
                 "lanes": {
                     "bar": {
-                        "name":"bar",
                         "arguments": [],
                         "cards": [
                             {  "Noop":null }
@@ -102,7 +98,7 @@ def test_recursion_limit():
     program = {
         "imports": [],
         "submodules": {},
-        "lanes": {"main": {"name": "main", "arguments": [], "cards": []}},
+        "lanes": {"main": {"arguments": [], "cards": []}},
     }
     _pr = program
     for _ in range(2):
