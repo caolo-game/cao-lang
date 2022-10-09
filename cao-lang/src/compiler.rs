@@ -55,6 +55,8 @@ pub struct Compiler<'a> {
     scope_depth: i32,
     current_card: i32,
     current_lane: Box<str>,
+    /// currently processed module's cards
+    current_cards: Option<&'a ModuleCards>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -103,6 +105,7 @@ impl<'a> Compiler<'a> {
             current_card: -1,
             current_lane: "".into(),
             current_imports: Default::default(),
+            current_cards: None,
         }
     }
 
@@ -185,19 +188,11 @@ impl<'a> Compiler<'a> {
         let mut lanes = compilation_unit.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
-            let len: u32 = match main_lane.cards.len().try_into() {
-                Ok(i) => i,
-                Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
-            };
             self.scope_begin();
             self.process_lane(il, main_lane, 0)?;
-            let nodeid = NodeId {
-                lane: il as u32,
-                pos: len,
-            };
             self.scope_end();
             // insert explicit exit after the first lane
-            self.process_card(nodeid, &Card::Abort)?;
+            self.push_instruction(Card::Abort.instruction().unwrap());
         }
 
         for (il, lane) in lanes {
@@ -270,9 +265,11 @@ impl<'a> Compiler<'a> {
             cards,
             namespace,
             imports,
+            card_impls,
         }: &'a LaneIr,
         instruction_offset: i32,
     ) -> CompilationResult<()> {
+        self.current_cards = Some(card_impls);
         self.current_lane = name.clone();
         self.current_card = -1;
         self.current_namespace = Cow::Borrowed(namespace);
@@ -287,13 +284,13 @@ impl<'a> Compiler<'a> {
         for param in arguments.iter() {
             self.add_local(param.as_str())?;
         }
-        for (ic, card) in cards.iter().enumerate() {
+        for (ic, card_id) in cards.iter().enumerate() {
             self.current_card = ic as i32;
             let nodeid = NodeId {
                 lane: il as u32,
                 pos: (ic as i32 + instruction_offset) as u32,
             };
-            self.process_card(nodeid, card)?;
+            self.process_card(nodeid, *card_id)?;
         }
         Ok(())
     }
@@ -425,7 +422,7 @@ impl<'a> Compiler<'a> {
         Ok(None)
     }
 
-    fn process_card(&mut self, nodeid: NodeId, card: &'a Card) -> CompilationResult<()> {
+    fn process_card(&mut self, nodeid: NodeId, card: CardId) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = Handle::from_u64(nodeid.into());
@@ -435,6 +432,11 @@ impl<'a> Compiler<'a> {
             .insert(nodeid_hash, Label::new(handle))
             .unwrap();
 
+        let card = self
+            .current_cards
+            .expect("Cards not set")
+            .get(&card)
+            .ok_or_else(|| self.error(CompilationErrorPayload::MissingCard { card_id: card }))?;
         if let Some(instr) = card.instruction() {
             // instruction itself
             self.push_instruction(instr);
@@ -442,8 +444,8 @@ impl<'a> Compiler<'a> {
         match card {
             Card::Noop => {}
             Card::CompositeCard { cards, .. } => {
-                for card in cards.iter() {
-                    self.process_card(nodeid, card)?;
+                for card_id in cards.iter() {
+                    self.process_card(nodeid, *card_id)?;
                 }
             }
             Card::ForEach { variable, lane } => {
@@ -539,24 +541,24 @@ impl<'a> Compiler<'a> {
             } => {
                 let mut idx = 0;
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
-                    c.process_card(nodeid, then_card)?;
+                    c.process_card(nodeid, *then_card)?;
                     // jump over the `else` branch
                     c.push_instruction(Instruction::Goto);
                     idx = c.program.bytecode.len();
                     write_to_vec(0i32, &mut c.program.bytecode);
                     Ok(())
                 })?;
-                self.process_card(nodeid, else_card)?;
+                self.process_card(nodeid, *else_card)?;
                 unsafe {
                     let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut i32;
                     std::ptr::write_unaligned(ptr, self.program.bytecode.len() as i32);
                 }
             }
             Card::IfFalse(jmp) => {
-                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(nodeid, jmp))?
+                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(nodeid, *jmp))?
             }
             Card::IfTrue(jmp) => {
-                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(nodeid, jmp))?
+                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(nodeid, *jmp))?
             }
             Card::Jump(jmp) => self.encode_jump(jmp)?,
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),

@@ -85,4 +85,7 @@ pub enum CompilationErrorPayload {
 
     #[error("Too many `super.` calls.")]
     SuperLimitReached,
+
+    #[error("Card by id {card_id} not found")]
+    MissingCard { card_id: super::CardId },
 }

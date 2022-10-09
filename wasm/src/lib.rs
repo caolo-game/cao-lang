@@ -30,7 +30,7 @@ pub struct VersionInfo {}
 
 #[wasm_bindgen]
 impl VersionInfo {
-    #[wasm_bindgen(method, getter)]
+    #[wasm_bindgen(getter)]
     pub fn native(&self) -> String {
         cao_lang::version::VERSION_STR.to_string()
     }
@@ -41,7 +41,7 @@ impl VersionInfo {
 pub fn basic_schema() -> Vec<JsValue> {
     cao_lang::compiler::card_description::get_instruction_descriptions()
         .into_iter()
-        .map(|x| JsValue::from_serde(&x).unwrap())
+        .map(|x| serde_wasm_bindgen::to_value(&x).unwrap())
         .collect()
 }
 
@@ -51,48 +51,13 @@ pub fn basic_schema() -> Vec<JsValue> {
 /// than throwing an exception. Exceptions are thrown on contract violation, e.g. passing in an
 /// object that can not be deserialized into a compilable object.
 ///
-/// ```json
-/// {
-///     "ty": "compileError",
-///     "val": "someerror"
-/// }
-/// ```
-///
-/// `ty` is one of:
-///
-/// - `program`
-/// - `compileError`
-///
-///  ## Compilation unit (input) example:
-///
-/// ```json
-/// {
-///     "main": "main",
-///     "module": {
-///         "submodules": {},
-///         "lanes": [{
-///             "name": "main",
-///             "cards": [
-///                 {
-///                     "ty": "ScalarInt" , "val": 1
-///                 },
-///                 {
-///                     "ty": "Pass"
-///                 }
-///             ]
-///         }]
-///     }
-/// }
-/// ```
-///
 #[wasm_bindgen]
 pub fn compile(
     compilation_unit: JsValue,
     compile_options: Option<CompileOptions>,
 ) -> Result<JsValue, JsValue> {
-    let cu = compilation_unit
-        .into_serde::<caoc::CaoProgram>()
-        .map_err(err_to_js)?;
+    let cu: caoc::CaoProgram =
+        serde_wasm_bindgen::from_value(compilation_unit).map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
     let res = match caoc::compile(cu, ops) {
@@ -100,7 +65,7 @@ pub fn compile(
         Err(err) => CompileResult::CompileError(err.to_string()),
     };
 
-    let res = JsValue::from_serde(&res).expect("failed to serialize result");
+    let res = serde_wasm_bindgen::to_value(&res).expect("failed to serialize result");
     Ok(res)
 }
 
@@ -135,10 +100,10 @@ impl RunResult {}
 #[wasm_bindgen(js_name = "runProgram")]
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
     let mut vm = Vm::new(()).expect("Failed to initialize VM");
-    let program: CaoCompiledProgram = program.into_serde().map_err(err_to_js)?;
+    let program: CaoCompiledProgram = serde_wasm_bindgen::from_value(program).map_err(err_to_js)?;
     vm.run(&program).map_err(err_to_js).map(|()| RunResult {})
 }
 
 fn err_to_js(e: impl std::error::Error) -> JsValue {
-    JsValue::from_serde(&format!("{:?}", e)).unwrap()
+    JsValue::from_str(&format!("{:?}", e))
 }

@@ -25,6 +25,33 @@ pub enum IntoStreamError {
 pub type CaoProgram<'a> = Module<'a>;
 pub type CaoIdentifier<'a> = Cow<'a, str>;
 
+pub type ModuleCards = BTreeMap<CardId, super::Card>;
+
+#[derive(Debug, Clone, Default, Copy, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CardId(pub u64);
+
+impl std::fmt::Display for CardId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<u64> for CardId {
+    fn from(i: u64) -> Self {
+        CardId(i)
+    }
+}
+
+impl std::str::FromStr for CardId {
+    type Err = <u64 as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let i = u64::from_str(s)?;
+        Ok(CardId(i))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Module<'a> {
@@ -34,6 +61,13 @@ pub struct Module<'a> {
     ///
     /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
     pub imports: BTreeSet<CaoIdentifier<'a>>,
+
+    /// This field holds the actual card instances used by this module.
+    /// This representation is more convenient for reordering/moving cards between lanes.
+    /// While we could use [module_name, lane_name, index] as a unique index, it doesn't work for
+    /// inline cards in the case of CompositeCards. Instead of "edge case poisoning" the indexing
+    /// the author has elected to use a unique integer based index for all cards
+    pub cards: ModuleCards,
 }
 
 impl<'a> Module<'a> {
@@ -50,7 +84,7 @@ impl<'a> Module<'a> {
             .ok_or(CompilationErrorPayload::NoMain)?;
 
         let imports = self.execute_imports()?;
-        let first_fn = lane_to_compiled_lane(&first_fn, &["main"], Rc::new(imports));
+        let first_fn = lane_to_compiled_lane(&self.cards, &first_fn, &["main"], Rc::new(imports));
         let mut result = vec![first_fn];
         result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
@@ -103,8 +137,8 @@ fn hash_module(hasher: &mut impl Hasher, module: &Module) {
 }
 
 fn hash_lane(hasher: &mut impl Hasher, lane: &Lane) {
-    for card in lane.cards.iter() {
-        hasher.write(card.name().as_bytes());
+    for card_id in lane.cards.iter() {
+        hasher.write_u64(card_id.0);
     }
 }
 
@@ -133,13 +167,23 @@ fn flatten_module<'a>(
             return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
         }
         namespace.push(name.as_ref());
-        out.push(lane_to_compiled_lane(lane, namespace, Rc::clone(&imports)));
+        out.push(lane_to_compiled_lane(
+            &module.cards,
+            lane,
+            namespace,
+            Rc::clone(&imports),
+        ));
         namespace.pop();
     }
     Ok(())
 }
 
-fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) -> LaneIr {
+fn lane_to_compiled_lane(
+    cards: &BTreeMap<CardId, super::Card>,
+    lane: &Lane,
+    namespace: &[&str],
+    imports: Rc<Imports>,
+) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
@@ -150,6 +194,7 @@ fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) 
         arguments: lane.arguments.clone().into_boxed_slice(),
         cards: lane.cards.clone().into_boxed_slice(),
         imports,
+        card_impls: cards.clone(), // TODO can we get rid of this copy?
         ..Default::default()
     };
     cl.namespace.extend(
@@ -184,21 +229,26 @@ mod tests {
         use crate::compiler::{Card, StringNode};
 
         let mut lanes = BTreeMap::new();
-        lanes.insert(
-            "main".into(),
-            Lane::default().with_card(Card::CompositeCard {
-                name: "triplepog".to_string().into(),
-                cards: vec![
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                ],
-            }),
-        );
+        lanes.insert("main".into(), Lane::default().with_card(1));
+        let cards = [
+            (
+                1.into(),
+                Card::CompositeCard {
+                    name: "triplepog".to_string().into(),
+                    cards: vec![2.into(), 2.into(), 2.into()],
+                },
+            ),
+            (
+                2.into(),
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+            ),
+        ]
+        .into();
         let default_prog = CaoProgram {
             imports: Default::default(),
             submodules: Default::default(),
             lanes,
+            cards,
         };
 
         let mut pl = vec![];
