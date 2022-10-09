@@ -11,13 +11,15 @@ fn test_init_table() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
-            "main".into(),
-            Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo"))),
-        )]
+        cards: [
+            (1.into(), Card::CreateTable),
+            (
+                2.into(),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")),
+            ),
+        ]
         .into(),
+        lanes: [("main".into(), Lane::default().with_card(1).with_card(2))].into(),
     };
 
     let program = compile(cu, None).expect("compile");
@@ -37,19 +39,35 @@ fn test_get_set() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
+        cards: [
+            (1.into(), Card::CreateTable),
+            (2.into(), Card::SetVar(VarNode::from_str_unchecked("foo"))),
+            (3.into(), Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+            (4.into(), Card::StringLiteral(StringNode("bar".to_string()))),
+            (5.into(), Card::ScalarInt(IntegerNode(42))),
+            (6.into(), Card::SetProperty),
+            (7.into(), Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+            (8.into(), Card::StringLiteral(StringNode("bar".to_string()))),
+            (9.into(), Card::GetProperty),
+            (
+                10.into(),
+                Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie")),
+            ),
+        ]
+        .into(),
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::StringLiteral(StringNode("bar".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::StringLiteral(StringNode("bar".to_string())))
-                .with_card(Card::GetProperty)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie"))),
+                .with_card(1)
+                .with_card(2)
+                .with_card(3)
+                .with_card(4)
+                .with_card(5)
+                .with_card(6)
+                .with_card(7)
+                .with_card(8)
+                .with_card(9)
+                .with_card(10),
         )]
         .into(),
     };
@@ -89,18 +107,29 @@ fn test_native_w_table_input() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
+        cards: [
+            (1.into(), Card::CreateTable),
+            (2.into(), Card::SetVar(VarNode::from_str_unchecked("foo"))),
+            (3.into(), Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+            (4.into(), Card::StringLiteral(StringNode("boi".to_string()))),
+            (5.into(), Card::ScalarInt(IntegerNode(42))),
+            (6.into(), Card::SetProperty),
+            (
+                7.into(),
+                Card::CallNative(Box::new(CallNode(InputString::from("boii").unwrap()))),
+            ),
+        ]
+        .into(),
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::StringLiteral(StringNode("boi".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
-                .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::CallNative(Box::new(CallNode(
-                    InputString::from("boii").unwrap(),
-                )))),
+                .with_card(1)
+                .with_card(2)
+                .with_card(3)
+                .with_card(4)
+                .with_card(5)
+                .with_card(6)
+                .with_card(7),
         )]
         .into(),
     };

@@ -1,41 +1,60 @@
 submodules: {}
 imports: []
+cards:
+  1: !ReadVar N
+  2: !Jump fib
+  3: !SetGlobalVar result
+  4: !ReadVar N
+  5: !ScalarInt 2
+  6: !ReadVar N
+  7: !LessOrEq
+  8: !IfElse
+    then: 20
+    else: 11
+  9: !Return
+  10: !ReadVar N
+  11: !ScalarInt 1
+  12: !Sub
+  13: !Jump fib
+  14: !ReadVar N
+  15: !ScalarInt 2
+  16: !Sub
+  17: !Jump fib
+  18: !Add
+  19: !Return
+  20: !Jump fib_again
 lanes:
   main:
     # Assumes that N is pushed onto the stack before executing the program
     arguments:
       - N
     cards:
-      - !ReadVar N
-      - !Jump fib
-      - !SetGlobalVar result
+      - 1
+      - 2
+      - 3
 
   fib:
     arguments:
       - N
     cards:
-      - !ReadVar N
-      - !ScalarInt 2
-      - !ReadVar N
-      - !LessOrEq
-      - !IfElse 
-          then:
-            !Jump fib_again
-          else:
-            !ScalarInt 1
-      - !Return
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
 
   fib_again:
     arguments:
       - N
     cards:
-      - !ReadVar N
-      - !ScalarInt 1
-      - !Sub
-      - !Jump fib
-      - !ReadVar N
-      - !ScalarInt 2
-      - !Sub
-      - !Jump fib
-      - !Add
-      - !Return
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 17
+      - 18
+      - 19

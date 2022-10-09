@@ -1,24 +1,25 @@
 submodules: {}
 imports: []
+cards:
+  1: !ScalarInt 0
+  2: !SetGlobalVar a
+  3: !ScalarInt 1
+  4: !SetGlobalVar b
+  5: !ReadVar N
+  6: !Repeat "loop"
+  7: !ReadVar b
+  8: !CopyLast
+  9: !ReadVar a
+  10: !Add
+  11: !SetGlobalVar b
+  12: !SetGlobalVar a
 lanes:
   main:
     # Assumes that N is pushed onto the stack before executing the program
     arguments:
       - N
-    cards:
-      - !ScalarInt 0
-      - !SetGlobalVar a
-      - !ScalarInt 1
-      - !SetGlobalVar b
-      - !ReadVar N
-      - !Repeat "loop"
+    cards: [1, 2, 3, 4, 5, 6]
   loop:
     arguments:
       - i
-    cards:
-      - !ReadVar b
-      - !CopyLast
-      - !ReadVar a
-      - !Add
-      - !SetGlobalVar b
-      - !SetGlobalVar a
+    cards: [7, 8, 9, 10, 11, 12]
