@@ -53,11 +53,10 @@ pub fn basic_schema() -> Vec<JsValue> {
 ///
 #[wasm_bindgen]
 pub fn compile(
-    compilation_unit: JsValue,
+    compilation_unit: String,
     compile_options: Option<CompileOptions>,
 ) -> Result<JsValue, JsValue> {
-    let cu: caoc::CaoProgram =
-        serde_wasm_bindgen::from_value(compilation_unit).map_err(err_to_js)?;
+    let cu: caoc::CaoProgram = serde_json::from_str(&compilation_unit).map_err(err_to_js)?;
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
     let res = match caoc::compile(cu, ops) {

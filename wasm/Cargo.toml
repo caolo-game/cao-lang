@@ -5,6 +5,7 @@ serde_derive = "1.0.137"
 wasm-bindgen-futures = "0.4.30"
 wasm-logger = "0.2.0"
 serde-wasm-bindgen = "0.4"
+serde_json = "1.0.81"
 
 [dependencies.cao-lang]
 features = ["serde"]
