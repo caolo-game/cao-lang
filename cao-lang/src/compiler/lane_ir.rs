@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, rc::Rc};
+use std::rc::Rc;
 
-use super::{Card, CardId, Imports, NameSpace};
+use super::{CardId, Imports, ModuleCards, NameSpace};
 use crate::VarName;
 
 /// Intermediate lane data
@@ -15,5 +15,5 @@ pub struct LaneIr {
     /// TODO: we should compile modules instead of lanes, and pass import per module...
     pub imports: Rc<Imports>,
     // TODO: use a map reference?
-    pub card_impls: BTreeMap<CardId, Card>,
+    pub card_impls: ModuleCards,
 }
