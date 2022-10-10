@@ -6,7 +6,7 @@ use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hasher;
 use std::rc::Rc;
 use thiserror::Error;
@@ -25,7 +25,7 @@ pub enum IntoStreamError {
 pub type CaoProgram<'a> = Module<'a>;
 pub type CaoIdentifier<'a> = Cow<'a, str>;
 
-pub type ModuleCards = BTreeMap<CardId, super::Card>;
+pub type ModuleCards = HashMap<CardId, super::Card>;
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, PartialOrd, Ord, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -179,7 +179,7 @@ fn flatten_module<'a>(
 }
 
 fn lane_to_compiled_lane(
-    cards: &BTreeMap<CardId, super::Card>,
+    cards: &ModuleCards,
     lane: &Lane,
     namespace: &[&str],
     imports: Rc<Imports>,
@@ -271,5 +271,7 @@ mod tests {
         let pl = serde_json::to_string_pretty(&default_prog).unwrap();
 
         let _prog: Module<'_> = serde_json::from_str(&pl).unwrap();
+
+        assert_eq!(default_prog.cards.len(), _prog.cards.len());
     }
 }
