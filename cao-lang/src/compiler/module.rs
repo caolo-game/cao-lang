@@ -226,6 +226,18 @@ mod tests {
         use bincode::DefaultOptions;
         use serde::{Deserialize, Serialize};
 
+        let default_prog = prog();
+        let mut pl = vec![];
+        let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
+        default_prog.serialize(&mut s).unwrap();
+
+        let mut reader =
+            bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
+
+        let _prog = Module::deserialize(&mut reader).unwrap();
+    }
+
+    fn prog() -> Module<'static> {
         use crate::compiler::{Card, StringNode};
 
         let mut lanes = BTreeMap::new();
@@ -244,20 +256,20 @@ mod tests {
             ),
         ]
         .into();
-        let default_prog = CaoProgram {
+        Module {
             imports: Default::default(),
             submodules: Default::default(),
             lanes,
             cards,
-        };
+        }
+    }
 
-        let mut pl = vec![];
-        let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
-        default_prog.serialize(&mut s).unwrap();
+    #[test]
+    #[cfg(feature = "serde")]
+    fn module_json_serde_test() {
+        let default_prog = prog();
+        let pl = serde_json::to_string_pretty(&default_prog).unwrap();
 
-        let mut reader =
-            bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
-
-        let _prog = Module::deserialize(&mut reader).unwrap();
+        let _prog: Module<'_> = serde_json::from_str(&pl).unwrap();
     }
 }
