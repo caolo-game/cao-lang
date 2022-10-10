@@ -274,4 +274,26 @@ mod tests {
 
         assert_eq!(default_prog.cards.len(), _prog.cards.len());
     }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn can_parse_json_test() {
+        let json = r#"
+        {
+            "submodules": {},
+            "imports": [],
+            "cards": {
+                "1": {"Jump": "42" }
+            },
+            "lanes": {"main": {
+                "name": "main",
+                "arguments": [],
+                "cards": [ 1 ]
+            }}
+        }
+"#;
+        let _prog: Module<'_> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(1, _prog.cards.len());
+    }
 }

@@ -14,7 +14,7 @@ fn can_compile_simple_program() {
         "submodules": {},
         "imports": [],
         "cards": {
-            "1": {"ScalarInt": 69 }
+            "1": { "ScalarInt": 69 }
         },
         "lanes": {"main": {
             "name": "main",
@@ -35,7 +35,7 @@ fn compiler_returns_error_not_exception() {
         "submodules": {},
         "imports": [],
         "cards": {
-            "1":{"Jump": "42" }
+            "1": {"Jump": "42" }
         },
         "lanes": {"main": {
             "name": "main",
