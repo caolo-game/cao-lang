@@ -4,7 +4,6 @@
 
 use serde_json::json;
 use wasm_bindgen_test::*;
-use serde::Serialize;
 
 use cao_lang_wasm::{basic_schema, compile, run_program, CompileResult};
 
@@ -22,7 +21,7 @@ fn can_compile_simple_program() {
             "cards": [1]
         }}
     });
-    let result = compile(serde_wasm_bindgen::to_value(&cu).unwrap(), None);
+    let result = compile(serde_json::to_string(&cu).unwrap(), None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
 }
@@ -44,7 +43,7 @@ fn compiler_returns_error_not_exception() {
         }}
     });
     let output =
-        compile(serde_wasm_bindgen::to_value(&cu).unwrap(), None).expect("Compile returned error");
+        compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
     let output: CompileResult =
         serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
 
@@ -69,9 +68,7 @@ fn can_run_simple_program() {
             "cards": [ 1, 2 ]
         }}
     });
-    let ser = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
-    let cu = cu.serialize(&ser).unwrap();
-    let output = compile(cu, None).expect("failed to run compile");
+    let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("failed to run compile");
 
     let output: CompileResult =
         serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
