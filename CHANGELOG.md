@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.83
+
+
+### Features
+
+- Decouple cards and lanes, cards are no longer inlined in lanes
+
 ## v0.1.82
 
 
