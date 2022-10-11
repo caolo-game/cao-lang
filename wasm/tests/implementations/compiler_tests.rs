@@ -6,21 +6,19 @@ use serde_json::json;
 use wasm_bindgen_test::*;
 
 use cao_lang_wasm::{basic_schema, compile, run_program, CompileResult};
+use wasm_bindgen::JsValue;
 
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
-        "submodules": {},
-        "imports": [],
-        "cards": {
-            "1": { "ScalarInt": 69 }
-        },
-        "lanes": {"main": {
-            "name": "main",
-            "arguments": [],
-            "cards": [1]
-        }}
-    });
+          "submodules": {},
+          "imports": [],
+          "lanes": {"main": {
+              "name": "main",
+              "arguments": [],
+              "cards": [ {"ScalarInt": 69 } ]
+          }}
+      });
     let result = compile(serde_json::to_string(&cu).unwrap(), None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
@@ -31,21 +29,18 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
-        "submodules": {},
-        "imports": [],
-        "cards": {
-            "1": {"Jump": "42" }
-        },
-        "lanes": {"main": {
-            "name": "main",
-            "arguments": [],
-            "cards": [ 1 ]
-        }}
-    });
-    let output =
-        compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
-    let output: CompileResult =
-        serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
+          "submodules": {},
+          "imports": [],
+          "lanes": {"main": {
+              "name": "main",
+              "arguments": [],
+              "cards": [ {"Jump": "42" } ]
+          }}
+      });
+    let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
+    let output: CompileResult = output
+        .into_serde()
+        .expect("Failed to deserialize compiler output");
 
     match output {
         CompileResult::Program(_) => panic!("Expected a compile error"),
@@ -56,29 +51,29 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
-        "submodules": {},
-        "imports": [],
-        "cards": {
-            "1": { "StringLiteral": "Poggers" },
-            "2": { "SetGlobalVar": "g_pogman" }
-        },
-        "lanes": { "main": {
-            "name": "main",
-            "arguments": [],
-            "cards": [ 1, 2 ]
-        }}
-    });
+          "submodules": {},
+          "imports": [],
+          "lanes": { "main": {
+              "name": "main",
+              "arguments": [],
+              "cards": [
+              {  "StringLiteral": "Poggers" }
+              , { "SetGlobalVar": "g_pogman" }
+              ]
+          }}
+      });
     let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("failed to run compile");
 
-    let output: CompileResult =
-        serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
+    let output: CompileResult = output
+        .into_serde()
+        .expect("Failed to deserialize compiler output");
 
     let program = match output {
         CompileResult::Program(p) => p,
         CompileResult::CompileError(err) => panic!("Failed to compile {:?}", err),
     };
 
-    let prog_js = serde_wasm_bindgen::to_value(&program).expect("serialize");
+    let prog_js = JsValue::from_serde(&program).expect("serialize");
 
     run_program(prog_js).expect("Failed to run");
 }

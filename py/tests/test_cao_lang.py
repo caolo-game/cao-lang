@@ -10,30 +10,24 @@ def test_compile_and_run():
     """
 
     program_yaml = """
-cards:
-            1: !ScalarInt 5
-            2: !Add
-            3: !Jump "foo.bar"
 lanes:
     main: 
         arguments: []
         cards:
-            - 1
-            - 1
-            - 2
-            - 3
+            - !ScalarInt 5
+            - !ScalarInt 5
+            - !Add
+            - !Jump "foo.bar"
 imports: []
 submodules:
     foo:
         imports: []
         submodules: {}
-        cards:
-            1: !ScalarInt 42
         lanes:
             bar:
                 arguments: []
                 cards:
-                    - 1
+                    - !ScalarInt 42
 
 """
 
@@ -53,13 +47,12 @@ def test_get_version():
 def test_json():
     program_json = """
     {
-        "cards": {
-            "1": {  "Jump": "foo.bar" }
-        },
         "lanes": {
             "main": {
                 "arguments": [],
-                "cards": [ 1 ]
+                "cards": [
+                    {  "Jump": "foo.bar" }
+                ]
             }
         },
         "imports": [],
@@ -67,13 +60,12 @@ def test_json():
             "foo": {
                 "imports": [],
                 "submodules": {},
-                "cards": {
-                    "1": {  "Noop":null }
-                },
                 "lanes": {
                     "bar": {
                         "arguments": [],
-                        "cards": [ 1 ]
+                        "cards": [
+                            {  "Noop":null }
+                        ]
                     }
                 }
             }
@@ -106,17 +98,11 @@ def test_recursion_limit():
     program = {
         "imports": [],
         "submodules": {},
-        "cards": {},
         "lanes": {"main": {"arguments": [], "cards": []}},
     }
     _pr = program
     for _ in range(2):
-        _pr["submodules"]["foo"] = {
-            "imports": [],
-            "submodules": {},
-            "lanes": {},
-            "cards": {},
-        }
+        _pr["submodules"]["foo"] = {"imports": [], "submodules": {}, "lanes": {}}
         _pr = _pr["submodules"]["foo"]
 
     program = caoc.CompilationUnit.from_json(json.dumps(program))

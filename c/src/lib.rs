@@ -43,7 +43,6 @@ pub enum CompileResult {
     cao_CompileResult_RecursionLimitReached,
     cao_CompilationErrorPayload_BadImport,
     cao_CompilationErrorPayload_SuperLimitReached,
-    cao_CompilationErrorPayload_MissingCard,
 }
 
 #[allow(non_camel_case_types)]
@@ -206,9 +205,6 @@ pub unsafe extern "C" fn cao_compile_json(
             }
             CompilationErrorPayload::SuperLimitReached => {
                 return CompileResult::cao_CompilationErrorPayload_SuperLimitReached
-            }
-            CompilationErrorPayload::MissingCard { card_id: _ } => {
-                return CompileResult::cao_CompilationErrorPayload_MissingCard
             }
         },
     };

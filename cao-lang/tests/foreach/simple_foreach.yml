@@ -1,38 +1,39 @@
 submodules: {}
 imports: []
-cards:
-  1: !CreateTable
-  2: !SetVar t
-  3: !ReadVar t
-  4: !StringLiteral f1
-  5: !ScalarInt 3
-  6: !SetProperty
-  7: !ReadVar t
-  8: !StringLiteral f2
-  9: !ScalarInt 5
-  10: !SetProperty
-  11: !ReadVar t
-  12: !StringLiteral f3
-  13: !ScalarInt 7
-  14: !SetProperty
-  15: !ScalarInt 0
-  16: !SetGlobalVar g_result
-  17: !ForEach
-    lane: pog
-    variable: t
-  18: !ReadVar table
-  19: !ReadVar key
-  20: !GetProperty
-  21: !ReadVar g_result
-  22: !Add
-  23: !SetGlobalVar g_result
 lanes:
   main:
     arguments: []
-    cards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    cards:
+      # --- init the example table ---
+      - !CreateTable
+      - !SetVar t
+      - !ReadVar t
+      - !StringLiteral f1
+      - !ScalarInt 3
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f2
+      - !ScalarInt 5
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f3
+      - !ScalarInt 7
+      - !SetProperty
+      - !ScalarInt 0
+      - !SetGlobalVar g_result
+      # --- init done ---
+      - !ForEach
+          lane: pog
+          variable: t
 
   pog:
     arguments:
       - "key"
       - "table"
-    cards: [18, 19, 20, 21, 22, 23]
+    cards:
+      - !ReadVar table
+      - !ReadVar key
+      - !GetProperty
+      - !ReadVar g_result
+      - !Add
+      - !SetGlobalVar g_result

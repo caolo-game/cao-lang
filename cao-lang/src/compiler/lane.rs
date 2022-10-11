@@ -1,4 +1,4 @@
-use super::CardId;
+use super::Card;
 use crate::VarName;
 use std::str::FromStr;
 
@@ -7,7 +7,7 @@ use std::str::FromStr;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Lane {
     pub arguments: Vec<VarName>,
-    pub cards: Vec<CardId>,
+    pub cards: Vec<Card>,
 }
 
 impl Lane {
@@ -19,14 +19,14 @@ impl Lane {
     }
 
     #[must_use]
-    pub fn with_card(mut self, card: impl Into<CardId>) -> Self {
-        self.cards.push(card.into());
+    pub fn with_card(mut self, card: Card) -> Self {
+        self.cards.push(card);
         self
     }
 
     /// overrides the existing cards
     #[must_use]
-    pub fn with_cards<C: Into<Vec<CardId>>>(mut self, cards: C) -> Self {
+    pub fn with_cards<C: Into<Vec<Card>>>(mut self, cards: C) -> Self {
         self.cards = cards.into();
         self
     }

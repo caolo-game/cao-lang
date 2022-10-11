@@ -1,63 +1,63 @@
 submodules: {}
 imports: []
-cards:
-  1: !CreateTable
-  2: !SetVar t
-  3: !ReadVar t
-  4: !StringLiteral f1
-  5: !ScalarInt 3
-  6: !SetProperty
-  7: !ReadVar t
-  8: !StringLiteral f2
-  9: !ScalarInt 5
-  10: !SetProperty
-  11: !ReadVar t
-  12: !StringLiteral f3
-  13: !ScalarInt 7
-  14: !SetProperty # set result and g_iters to zero
-
-
-  15: !ScalarInt 0
-  16: !SetGlobalVar g_result
-  17: !ScalarInt 0
-  18: !SetGlobalVar g_iters
-  19: !ForEach
-    lane: outer_loop
-    variable: t
-  20: !ForEach
-    lane: inner_loop
-    variable: table
-  21: !ReadVar table
-  22: !ReadVar key
-  23: !GetProperty
-  24: !ReadVar g_result
-  25: !Add
-  26: !SetGlobalVar g_result
-  27: !ScalarInt 1
-  28: !ReadVar g_iters
-  29: !Add
-  30: !SetGlobalVar g_iters
 lanes:
   main:
     arguments: []
     cards:
-      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
       # --- init the example table ---
       # {
       #  f1: 3,
       #  f2: 5,
       #  f3: 7,
       # }
+      - !CreateTable
+      - !SetVar t
+      - !ReadVar t
+      - !StringLiteral f1
+      - !ScalarInt 3
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f2
+      - !ScalarInt 5
+      - !SetProperty
+      - !ReadVar t
+      - !StringLiteral f3
+      - !ScalarInt 7
+      - !SetProperty # set result and g_iters to zero
+
+      - !ScalarInt 0
+      - !SetGlobalVar g_result
+      - !ScalarInt 0
+      - !SetGlobalVar g_iters
+      # --- init done ---
+      - !ForEach
+        lane: outer_loop
+        variable: t
 
   outer_loop:
     arguments:
       - "key"
       - "table"
     cards:
-      - 20
+      - !ForEach
+        lane: inner_loop
+        variable: table
 
   inner_loop:
     arguments:
       - "key"
       - "table"
-    cards: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    cards:
+      # get table[key]
+      - !ReadVar table
+      - !ReadVar key
+      - !GetProperty # add table[key] to g_result
+
+      - !ReadVar g_result
+      - !Add
+      - !SetGlobalVar g_result
+        # add 1 to g_iters
+      - !ScalarInt 1
+      - !ReadVar g_iters
+      - !Add
+      - !SetGlobalVar g_iters

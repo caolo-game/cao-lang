@@ -40,11 +40,11 @@ pub enum Card {
     ScalarFloat(FloatNode),
     StringLiteral(StringNode),
     CallNative(Box<CallNode>),
-    IfTrue(CardId),
-    IfFalse(CardId),
+    IfTrue(Box<Card>),
+    IfFalse(Box<Card>),
     IfElse {
-        then: CardId,
-        r#else: CardId,
+        then: Box<Card>,
+        r#else: Box<Card>,
     },
     Jump(LaneNode),
     SetGlobalVar(VarNode),
@@ -60,7 +60,7 @@ pub enum Card {
     // TODO: move into struct and store a Box<CompositeCard> to reduce Card size?
     CompositeCard {
         name: Option<String>,
-        cards: Vec<CardId>,
+        cards: Vec<Card>,
     },
     /// Does nothing
     Noop,

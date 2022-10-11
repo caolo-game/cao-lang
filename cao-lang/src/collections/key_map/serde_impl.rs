@@ -108,6 +108,7 @@ mod tests {
     fn can_serialize_program_cbor() {
         let program = crate::compiler::compile(
             CaoProgram {
+                imports: Default::default(),
                 lanes: [(
                     "main".into(),
                     Lane {
@@ -116,7 +117,7 @@ mod tests {
                     },
                 )]
                 .into(),
-                ..Default::default()
+                submodules: Default::default(),
             },
             None,
         )

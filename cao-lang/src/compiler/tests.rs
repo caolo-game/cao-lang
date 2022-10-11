@@ -5,71 +5,42 @@ use super::*;
 #[test]
 fn composite_card_test() {
     let mut lanes = BTreeMap::new();
-    lanes.insert("main".into(), Lane::default().with_card(1));
+    lanes.insert(
+        "main".into(),
+        Lane::default().with_card(Card::CompositeCard {
+            name: "triplepog".to_string().into(),
+            cards: vec![
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+                Card::StringLiteral(StringNode("poggers".to_owned())),
+            ],
+        }),
+    );
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
         lanes,
-        cards: [
-            (
-                1.into(),
-                Card::CompositeCard {
-                    name: "triplepog".to_string().into(),
-                    cards: vec![2.into(), 2.into(), 2.into()],
-                },
-            ),
-            (
-                2.into(),
-                Card::StringLiteral(StringNode("poggers".to_owned())),
-            ),
-        ]
-        .into(),
     };
 
     compile(cu, None).unwrap();
 }
 
 #[test]
-fn missing_card_is_an_error() {
-    let mut lanes = BTreeMap::new();
-    lanes.insert("main".into(), Lane::default().with_card(1));
-    let cu = CaoProgram {
-        imports: Default::default(),
-        submodules: Default::default(),
-        lanes,
-        cards: [].into(),
-    };
-    let res = compile(cu, None).unwrap_err();
-    assert!(matches!(
-        res.payload,
-        CompilationErrorPayload::MissingCard { card_id: CardId(1) }
-    ));
-}
-
-#[test]
 fn empty_foreach_is_error_test() {
     let mut lanes = BTreeMap::new();
-    lanes.insert("main".into(), Lane::default().with_card(1));
+    lanes.insert(
+        "main".into(),
+        Lane::default().with_card(Card::CompositeCard {
+            name: "triplepog".to_string().into(),
+            cards: vec![Card::ForEach {
+                variable: VarNode::from_str_unchecked("pog"),
+                lane: LaneNode("".to_string()),
+            }],
+        }),
+    );
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        cards: [
-            (
-                1.into(),
-                Card::CompositeCard {
-                    name: "triplepog".to_string().into(),
-                    cards: vec![2.into()],
-                },
-            ),
-            (
-                2.into(),
-                Card::ForEach {
-                    variable: VarNode::from_str_unchecked("pog"),
-                    lane: LaneNode("".to_string()),
-                },
-            ),
-        ]
-        .into(),
         lanes,
     };
 
@@ -81,17 +52,13 @@ fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        cards: [
-            (
-                1.into(),
-                Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
-            ),
-            (2.into(), Card::Pass),
-        ]
-        .into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_cards(vec![1.into(), 2.into(), 2.into()]),
+            Lane::default().with_cards(vec![
+                Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
+                Card::Pass,
+                Card::Pass,
+            ]),
         )]
         .into(),
     };
@@ -108,12 +75,11 @@ fn empty_varname_is_error() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        cards: [(
-            CardId(1),
-            Card::SetGlobalVar(VarNode::from_str_unchecked("")),
+        lanes: [(
+            "main".into(),
+            Lane::default().with_cards(vec![Card::SetGlobalVar(VarNode::from_str_unchecked(""))]),
         )]
         .into(),
-        lanes: [("main".into(), Lane::default().with_cards(vec![1.into()]))].into(),
     };
 
     let err = compile(cu, CompileOptions::new()).unwrap_err();
@@ -129,16 +95,14 @@ fn empty_arity_in_foreach_is_an_error() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        cards: [(
-            CardId(1),
-            Card::ForEach {
-                variable: VarNode::default(),
-                lane: LaneNode("pooh".to_owned()),
-            },
-        )]
-        .into(),
         lanes: [
-            ("main".into(), Lane::default().with_card(1)),
+            (
+                "main".into(),
+                Lane::default().with_card(Card::ForEach {
+                    variable: VarNode::default(),
+                    lane: LaneNode("pooh".to_owned()),
+                }),
+            ),
             ("pooh".into(), Lane::default()),
         ]
         .into(),
@@ -157,16 +121,14 @@ fn arity_1_in_foreach_is_an_error() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        cards: [(
-            CardId(1),
-            Card::ForEach {
-                variable: VarNode::default(),
-                lane: LaneNode("pooh".to_owned()),
-            },
-        )]
-        .into(),
         lanes: BTreeMap::from([
-            ("main".into(), Lane::default().with_card(1)),
+            (
+                "main".into(),
+                Lane::default().with_card(Card::ForEach {
+                    variable: VarNode::default(),
+                    lane: LaneNode("pooh".to_owned()),
+                }),
+            ),
             ("pooh".into(), Lane::default().with_arg("asd")),
         ]),
     };
@@ -187,15 +149,16 @@ fn can_call_nested_function_test() {
         Module {
             imports: Default::default(),
             submodules: Default::default(),
-            cards: [(CardId(1), Card::Noop)].into(),
-            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(1))]),
+            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
         },
     );
     let prog = CaoProgram {
         imports: Default::default(),
         submodules,
-        cards: [(CardId(1), Card::Jump(LaneNode("coggers.pooh".to_string())))].into(),
-        lanes: BTreeMap::from([("main".into(), Lane::default().with_cards(vec![CardId(1)]))]),
+        lanes: BTreeMap::from([(
+            "main".into(),
+            Lane::default().with_cards(vec![Card::Jump(LaneNode("coggers.pooh".to_string()))]),
+        )]),
     };
 
     compile(prog, None).unwrap();
