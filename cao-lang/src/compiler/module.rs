@@ -4,7 +4,6 @@
 use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
-use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::hash::Hasher;
@@ -22,8 +21,8 @@ pub enum IntoStreamError {
     BadName(String),
 }
 
-pub type CaoProgram<'a> = Module<'a>;
-pub type CaoIdentifier<'a> = Cow<'a, str>;
+pub type CaoProgram = Module;
+pub type CaoIdentifier = String;
 
 pub type ModuleCards = HashMap<CardId, super::Card>;
 
@@ -54,13 +53,13 @@ impl std::str::FromStr for CardId {
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Module<'a> {
-    pub submodules: BTreeMap<CaoIdentifier<'a>, Module<'a>>,
-    pub lanes: BTreeMap<CaoIdentifier<'a>, Lane>,
+pub struct Module {
+    pub submodules: BTreeMap<CaoIdentifier, Module>,
+    pub lanes: BTreeMap<CaoIdentifier, Lane>,
     /// _lanes_ to import from submodules
     ///
     /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
-    pub imports: BTreeSet<CaoIdentifier<'a>>,
+    pub imports: BTreeSet<CaoIdentifier>,
 
     /// This field holds the actual card instances used by this module.
     /// This representation is more convenient for reordering/moving cards between lanes.
@@ -70,7 +69,7 @@ pub struct Module<'a> {
     pub cards: ModuleCards,
 }
 
-impl<'a> Module<'a> {
+impl Module {
     /// flatten this program into a vec of lanes
     pub(crate) fn into_ir_stream(
         mut self,
@@ -100,7 +99,7 @@ impl<'a> Module<'a> {
         let mut result = Imports::with_capacity(self.imports.len());
 
         for import in self.imports.iter() {
-            let import = import.as_ref();
+            let import = import.as_str();
 
             match import.rsplit_once('.') {
                 Some((_, name)) => {
@@ -127,11 +126,11 @@ impl<'a> Module<'a> {
 
 fn hash_module(hasher: &mut impl Hasher, module: &Module) {
     for (name, lane) in module.lanes.iter() {
-        hasher.write(name.as_ref().as_bytes());
+        hasher.write(name.as_str().as_bytes());
         hash_lane(hasher, lane);
     }
     for (name, submodule) in module.submodules.iter() {
-        hasher.write(name.as_ref().as_bytes());
+        hasher.write(name.as_str().as_bytes());
         hash_module(hasher, submodule);
     }
 }
@@ -237,7 +236,7 @@ mod tests {
         let _prog = Module::deserialize(&mut reader).unwrap();
     }
 
-    fn prog() -> Module<'static> {
+    fn prog() -> Module {
         use crate::compiler::{Card, StringNode};
 
         let mut lanes = BTreeMap::new();
@@ -270,7 +269,7 @@ mod tests {
         let default_prog = prog();
         let pl = serde_json::to_string_pretty(&default_prog).unwrap();
 
-        let _prog: Module<'_> = serde_json::from_str(&pl).unwrap();
+        let _prog: Module = serde_json::from_str(&pl).unwrap();
 
         assert_eq!(default_prog.cards.len(), _prog.cards.len());
     }
@@ -292,7 +291,7 @@ mod tests {
             }}
         }
 "#;
-        let _prog: Module<'_> = serde_json::from_str(&json).unwrap();
+        let _prog: Module = serde_json::from_str(&json).unwrap();
 
         assert_eq!(1, _prog.cards.len());
     }

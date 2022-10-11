@@ -10,7 +10,7 @@ use pyo3::{
 #[derive(Clone)]
 pub struct CompilationUnit {
     // wrap in an Arc, because clone might cause lifetime issues
-    inner: Arc<cao_lang::prelude::CaoProgram<'static>>,
+    inner: Arc<cao_lang::prelude::CaoProgram>,
 }
 
 #[pyclass]
