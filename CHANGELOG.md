@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.84
+
+
+### Refactor
+
+- Remove lifetimes from the public Module
+
 ## v0.1.83
 
 
