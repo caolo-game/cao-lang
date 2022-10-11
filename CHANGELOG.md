@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.85
+
+
+### Break
+
+- Revert card splitting, just inline cards...
+
 ## v0.1.84
 
 
