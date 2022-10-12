@@ -67,6 +67,95 @@ pub enum Card {
 }
 
 impl Card {
+    /// return list of nested cards inside this one, if any
+    pub fn sub_cards_mut(&mut self) -> Option<&mut [Card]> {
+        match self {
+            Card::CompositeCard { name: _, cards } => Some(cards),
+            Card::Pass
+            | Card::Add
+            | Card::Sub
+            | Card::Mul
+            | Card::Div
+            | Card::CopyLast
+            | Card::Less
+            | Card::LessOrEq
+            | Card::Equals
+            | Card::NotEquals
+            | Card::Pop
+            | Card::ClearStack
+            | Card::And
+            | Card::Or
+            | Card::Xor
+            | Card::Not
+            | Card::Return
+            | Card::ScalarNil
+            | Card::CreateTable
+            | Card::Abort
+            | Card::Len
+            | Card::SetProperty
+            | Card::GetProperty
+            | Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::CallNative(_)
+            | Card::IfTrue(_)
+            | Card::IfFalse(_)
+            | Card::IfElse { .. }
+            | Card::Jump(_)
+            | Card::SetGlobalVar(_)
+            | Card::SetVar(_)
+            | Card::ReadVar(_)
+            | Card::Repeat(_)
+            | Card::While(_)
+            | Card::ForEach { .. }
+            | Card::Noop => None,
+        }
+    }
+    /// return list of nested cards inside this one, if any
+    pub fn sub_cards(&self) -> Option<&[Card]> {
+        match self {
+            Card::CompositeCard { name: _, cards } => Some(cards),
+            Card::Pass
+            | Card::Add
+            | Card::Sub
+            | Card::Mul
+            | Card::Div
+            | Card::CopyLast
+            | Card::Less
+            | Card::LessOrEq
+            | Card::Equals
+            | Card::NotEquals
+            | Card::Pop
+            | Card::ClearStack
+            | Card::And
+            | Card::Or
+            | Card::Xor
+            | Card::Not
+            | Card::Return
+            | Card::ScalarNil
+            | Card::CreateTable
+            | Card::Abort
+            | Card::Len
+            | Card::SetProperty
+            | Card::GetProperty
+            | Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::CallNative(_)
+            | Card::IfTrue(_)
+            | Card::IfFalse(_)
+            | Card::IfElse { .. }
+            | Card::Jump(_)
+            | Card::SetGlobalVar(_)
+            | Card::SetVar(_)
+            | Card::ReadVar(_)
+            | Card::Repeat(_)
+            | Card::While(_)
+            | Card::ForEach { .. }
+            | Card::Noop => None,
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Card::SetVar(_) => "SetLocalVar",

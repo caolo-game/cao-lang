@@ -35,7 +35,77 @@ pub struct Module {
     pub imports: BTreeSet<CaoIdentifier>,
 }
 
+/// Uniquely index a card in a module
+#[derive(Debug, Clone)]
+pub struct CardIndex<'a> {
+    pub lane: &'a str,
+    pub card_index: LaneCardIndex,
+}
+
+#[derive(Debug, Clone)]
+pub struct LaneCardIndex {
+    pub card_index: usize,
+    pub sub_card_index: Option<Box<LaneCardIndex>>,
+}
+
+#[derive(Debug, Clone, Error)]
+pub enum CardFetchError {
+    #[error("Lane not found")]
+    LaneNotFound,
+    #[error("Card not found")]
+    CardNotFound,
+    #[error("The card has no nested lanes, but the index tried to fetch one")]
+    NoSubLane,
+}
+
 impl Module {
+    pub fn get_card_mut<'a>(
+        &'a mut self,
+        idx: &CardIndex,
+    ) -> Result<&'a mut super::Card, CardFetchError> {
+        let lane = self
+            .lanes
+            .get_mut(idx.lane)
+            .ok_or(CardFetchError::LaneNotFound)?;
+        let mut card = lane
+            .cards
+            .get_mut(idx.card_index.card_index)
+            .ok_or(CardFetchError::CardNotFound)?;
+
+        let mut card_idx = idx.card_index.sub_card_index.as_ref();
+        while let Some(sub_card_idx) = card_idx {
+            card = card
+                .sub_cards_mut()
+                .ok_or(CardFetchError::NoSubLane)?
+                .get_mut(sub_card_idx.card_index)
+                .ok_or(CardFetchError::CardNotFound)?;
+            card_idx = sub_card_idx.sub_card_index.as_ref();
+        }
+        Ok(card)
+    }
+
+    pub fn get_card<'a>(&'a self, idx: &CardIndex) -> Result<&'a super::Card, CardFetchError> {
+        let lane = self
+            .lanes
+            .get(idx.lane)
+            .ok_or(CardFetchError::LaneNotFound)?;
+        let mut card = lane
+            .cards
+            .get(idx.card_index.card_index)
+            .ok_or(CardFetchError::CardNotFound)?;
+
+        let mut card_idx = idx.card_index.sub_card_index.as_ref();
+        while let Some(sub_card_idx) = card_idx {
+            card = card
+                .sub_cards()
+                .ok_or(CardFetchError::NoSubLane)?
+                .get(sub_card_idx.card_index)
+                .ok_or(CardFetchError::CardNotFound)?;
+            card_idx = sub_card_idx.sub_card_index.as_ref();
+        }
+        Ok(card)
+    }
+
     /// flatten this program into a vec of lanes
     pub(crate) fn into_ir_stream(
         mut self,
@@ -238,5 +308,40 @@ mod tests {
         }
 "#;
         let _prog: Module = serde_json::from_str(&json).unwrap();
+    }
+
+    #[test]
+    fn module_card_fetch_test() {
+        let m = prog();
+
+        let comp_card = m
+            .get_card(&CardIndex {
+                lane: "main",
+                card_index: LaneCardIndex {
+                    card_index: 0,
+                    sub_card_index: None,
+                },
+            })
+            .expect("failed to fetch card");
+
+        assert!(matches!(
+            comp_card,
+            super::super::Card::CompositeCard { .. }
+        ));
+
+        let nested_card = m
+            .get_card(&CardIndex {
+                lane: "main",
+                card_index: LaneCardIndex {
+                    card_index: 0,
+                    sub_card_index: Some(Box::new(LaneCardIndex {
+                        card_index: 1,
+                        sub_card_index: None,
+                    })),
+                },
+            })
+            .expect("failed to fetch nested card");
+
+        assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
     }
 }
