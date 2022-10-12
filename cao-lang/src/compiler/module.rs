@@ -75,8 +75,9 @@ impl Module {
         let mut card_idx = idx.card_index.sub_card_index.as_ref();
         while let Some(sub_card_idx) = card_idx {
             card = card
-                .sub_cards_mut()
+                .as_composite_card_mut()
                 .ok_or(CardFetchError::NoSubLane)?
+                .cards
                 .get_mut(sub_card_idx.card_index)
                 .ok_or(CardFetchError::CardNotFound)?;
             card_idx = sub_card_idx.sub_card_index.as_ref();
@@ -97,8 +98,9 @@ impl Module {
         let mut card_idx = idx.card_index.sub_card_index.as_ref();
         while let Some(sub_card_idx) = card_idx {
             card = card
-                .sub_cards()
+                .as_composite_card()
                 .ok_or(CardFetchError::NoSubLane)?
+                .cards
                 .get(sub_card_idx.card_index)
                 .ok_or(CardFetchError::CardNotFound)?;
             card_idx = sub_card_idx.sub_card_index.as_ref();
@@ -267,14 +269,16 @@ mod tests {
         let mut lanes = BTreeMap::new();
         lanes.insert(
             "main".into(),
-            Lane::default().with_card(Card::CompositeCard {
-                name: "triplepog".to_string().into(),
-                cards: vec![
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                ],
-            }),
+            Lane::default().with_card(Card::CompositeCard(Box::new(
+                crate::compiler::CompositeCard {
+                    name: "triplepog".to_string().into(),
+                    cards: vec![
+                        Card::StringLiteral(StringNode("poggers".to_owned())),
+                        Card::StringLiteral(StringNode("poggers".to_owned())),
+                        Card::StringLiteral(StringNode("poggers".to_owned())),
+                    ],
+                },
+            ))),
         );
         let default_prog = CaoProgram {
             imports: Default::default(),

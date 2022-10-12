@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, LaneNode, Module, StringNode, VarNode},
+    compiler::{CallNode, CompositeCard, IntegerNode, LaneNode, Module, StringNode, VarNode},
     prelude::*,
 };
 
@@ -13,13 +13,13 @@ fn composite_card_test() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::CompositeCard {
+            Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
                 name: "triplepog".to_string().into(),
                 cards: vec![
                     Card::StringLiteral(StringNode("poggers".to_owned())),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                 ],
-            }),
+            }))),
         )]
         .into(),
     };
@@ -180,21 +180,25 @@ fn simple_if_statement_skips_if_false() {
             "main".into(),
             Lane::default()
                 .with_card(Card::ScalarInt(IntegerNode(0)))
-                .with_card(Card::IfTrue(Box::new(Card::CompositeCard {
-                    name: None,
-                    cards: vec![
-                        Card::ScalarInt(IntegerNode(69)),
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ],
-                })))
+                .with_card(Card::IfTrue(Box::new(Card::CompositeCard(Box::new(
+                    CompositeCard {
+                        name: None,
+                        cards: vec![
+                            Card::ScalarInt(IntegerNode(69)),
+                            Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                        ],
+                    },
+                )))))
                 .with_card(Card::ScalarInt(IntegerNode(1)))
-                .with_card(Card::IfFalse(Box::new(Card::CompositeCard {
-                    name: None,
-                    cards: vec![
-                        Card::ScalarInt(IntegerNode(42)),
-                        Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                    ],
-                }))),
+                .with_card(Card::IfFalse(Box::new(Card::CompositeCard(Box::new(
+                    CompositeCard {
+                        name: None,
+                        cards: vec![
+                            Card::ScalarInt(IntegerNode(42)),
+                            Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                        ],
+                    },
+                ))))),
         )]
         .into(),
     };

@@ -441,8 +441,8 @@ impl<'a> Compiler<'a> {
         }
         match card {
             Card::Noop => {}
-            Card::CompositeCard { cards, .. } => {
-                for card in cards.iter() {
+            Card::CompositeCard(comp) => {
+                for card in comp.cards.iter() {
                     self.process_card(nodeid, card)?;
                 }
             }

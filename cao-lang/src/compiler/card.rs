@@ -57,105 +57,12 @@ pub enum Card {
         lane: LaneNode,
     },
     /// Single card that decomposes into multiple cards
-    // TODO: move into struct and store a Box<CompositeCard> to reduce Card size?
-    CompositeCard {
-        name: Option<String>,
-        cards: Vec<Card>,
-    },
+    CompositeCard(Box<CompositeCard>),
     /// Does nothing
     Noop,
 }
 
 impl Card {
-    /// return list of nested cards inside this one, if any
-    pub fn sub_cards_mut(&mut self) -> Option<&mut [Card]> {
-        match self {
-            Card::CompositeCard { name: _, cards } => Some(cards),
-            Card::Pass
-            | Card::Add
-            | Card::Sub
-            | Card::Mul
-            | Card::Div
-            | Card::CopyLast
-            | Card::Less
-            | Card::LessOrEq
-            | Card::Equals
-            | Card::NotEquals
-            | Card::Pop
-            | Card::ClearStack
-            | Card::And
-            | Card::Or
-            | Card::Xor
-            | Card::Not
-            | Card::Return
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort
-            | Card::Len
-            | Card::SetProperty
-            | Card::GetProperty
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::CallNative(_)
-            | Card::IfTrue(_)
-            | Card::IfFalse(_)
-            | Card::IfElse { .. }
-            | Card::Jump(_)
-            | Card::SetGlobalVar(_)
-            | Card::SetVar(_)
-            | Card::ReadVar(_)
-            | Card::Repeat(_)
-            | Card::While(_)
-            | Card::ForEach { .. }
-            | Card::Noop => None,
-        }
-    }
-    /// return list of nested cards inside this one, if any
-    pub fn sub_cards(&self) -> Option<&[Card]> {
-        match self {
-            Card::CompositeCard { name: _, cards } => Some(cards),
-            Card::Pass
-            | Card::Add
-            | Card::Sub
-            | Card::Mul
-            | Card::Div
-            | Card::CopyLast
-            | Card::Less
-            | Card::LessOrEq
-            | Card::Equals
-            | Card::NotEquals
-            | Card::Pop
-            | Card::ClearStack
-            | Card::And
-            | Card::Or
-            | Card::Xor
-            | Card::Not
-            | Card::Return
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort
-            | Card::Len
-            | Card::SetProperty
-            | Card::GetProperty
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::CallNative(_)
-            | Card::IfTrue(_)
-            | Card::IfFalse(_)
-            | Card::IfElse { .. }
-            | Card::Jump(_)
-            | Card::SetGlobalVar(_)
-            | Card::SetVar(_)
-            | Card::ReadVar(_)
-            | Card::Repeat(_)
-            | Card::While(_)
-            | Card::ForEach { .. }
-            | Card::Noop => None,
-        }
-    }
-
     pub fn name(&self) -> &str {
         match self {
             Card::SetVar(_) => "SetLocalVar",
@@ -195,9 +102,11 @@ impl Card {
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
-            Card::CompositeCard { name, .. } => {
-                name.as_ref().map(|x| x.as_str()).unwrap_or("CompositeCard")
-            }
+            Card::CompositeCard(c) => c
+                .name
+                .as_ref()
+                .map(|x| x.as_str())
+                .unwrap_or("CompositeCard"),
             Card::Noop => "No-op",
         }
     }
@@ -296,6 +205,22 @@ impl Card {
             | Instruction::Pass => {}
         };
     }
+
+    pub fn as_composite_card(&self) -> Option<&CompositeCard> {
+        if let Self::CompositeCard(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_composite_card_mut(&mut self) -> Option<&mut CompositeCard> {
+        if let Self::CompositeCard(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
@@ -351,4 +276,11 @@ impl<'a> From<&'a LaneNode> for Handle {
     fn from(ln: &'a LaneNode) -> Self {
         Handle::from_str(ln.0.as_str()).unwrap()
     }
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CompositeCard {
+    pub name: Option<String>,
+    pub cards: Vec<Card>,
 }

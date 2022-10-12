@@ -7,14 +7,14 @@ fn composite_card_test() {
     let mut lanes = BTreeMap::new();
     lanes.insert(
         "main".into(),
-        Lane::default().with_card(Card::CompositeCard {
+        Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
             name: "triplepog".to_string().into(),
             cards: vec![
                 Card::StringLiteral(StringNode("poggers".to_owned())),
                 Card::StringLiteral(StringNode("poggers".to_owned())),
                 Card::StringLiteral(StringNode("poggers".to_owned())),
             ],
-        }),
+        }))),
     );
     let cu = CaoProgram {
         imports: Default::default(),
@@ -30,13 +30,13 @@ fn empty_foreach_is_error_test() {
     let mut lanes = BTreeMap::new();
     lanes.insert(
         "main".into(),
-        Lane::default().with_card(Card::CompositeCard {
+        Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
             name: "triplepog".to_string().into(),
             cards: vec![Card::ForEach {
                 variable: VarNode::from_str_unchecked("pog"),
                 lane: LaneNode("".to_string()),
             }],
-        }),
+        }))),
     );
     let cu = CaoProgram {
         imports: Default::default(),
