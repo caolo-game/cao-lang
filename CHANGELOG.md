@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.86
+
+
+### Features
+
+- Add Module query API to fetch concrete cards
+
 ## v0.1.85
 
 
