@@ -505,7 +505,7 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let index = self.add_local(&*var.0)?;
+                let index = self.add_local(&var.0)?;
                 self.push_instruction(Instruction::SetLocalVar);
                 write_to_vec(index, &mut self.program.bytecode);
             }

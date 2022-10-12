@@ -167,7 +167,7 @@ impl Handle {
     }
 
     pub fn from_i64(key: i64) -> Self {
-        const MASK: u64 = u64::MAX as u64;
+        const MASK: u64 = u64::MAX;
         let key = hash_u64(key as u64, MASK);
         Self(key)
     }

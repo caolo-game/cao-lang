@@ -102,11 +102,7 @@ impl Card {
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
-            Card::CompositeCard(c) => c
-                .name
-                .as_ref()
-                .map(|x| x.as_str())
-                .unwrap_or("CompositeCard"),
+            Card::CompositeCard(c) => c.name.as_deref().unwrap_or("CompositeCard"),
             Card::Noop => "No-op",
         }
     }
