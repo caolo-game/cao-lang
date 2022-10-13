@@ -36,16 +36,44 @@ pub struct Module {
 }
 
 /// Uniquely index a card in a module
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CardIndex<'a> {
     pub lane: &'a str,
     pub card_index: LaneCardIndex,
 }
 
-#[derive(Debug, Clone)]
+impl<'a> CardIndex<'a> {
+    pub fn new(lane: &'a str) -> Self {
+        Self {
+            lane,
+            card_index: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct LaneCardIndex {
     pub card_index: usize,
     pub sub_card_index: Option<Box<LaneCardIndex>>,
+}
+
+impl LaneCardIndex {
+    #[must_use]
+    pub fn new(card_index: usize) -> Self {
+        Self {
+            card_index,
+            sub_card_index: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_sub_index(mut self, card_index: usize) -> Self {
+        self.sub_card_index = Some(Box::new(Self {
+            card_index,
+            sub_card_index: None,
+        }));
+        self
+    }
 }
 
 #[derive(Debug, Clone, Error)]
