@@ -43,11 +43,27 @@ pub struct CardIndex<'a> {
 }
 
 impl<'a> CardIndex<'a> {
-    pub fn new(lane: &'a str) -> Self {
+    pub fn new(lane: &'a str, card_index: usize) -> Self {
         Self {
             lane,
-            card_index: Default::default(),
+            card_index: LaneCardIndex::new(card_index),
         }
+    }
+
+    /// pushes a new sub-index to the bottom layer
+    #[must_use]
+    pub fn with_sub_index(mut self, card_index: usize) -> Self {
+        let mut last = &mut self.card_index.sub_card_index;
+        while let Some(x) = last {
+            if x.sub_card_index.is_none() {
+                x.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
+                return self;
+            }
+            last = &mut x.sub_card_index;
+        }
+        // else
+        self.card_index.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
+        self
     }
 }
 
@@ -375,5 +391,31 @@ mod tests {
             .expect("failed to fetch nested card");
 
         assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
+    }
+
+    #[test]
+    fn construct_sub_index_test() {
+        let index = CardIndex::new("pog", 0);
+
+        assert!(index.card_index.sub_card_index.is_none());
+
+        let index = index.with_sub_index(1);
+
+        assert_eq!(
+            index.card_index.sub_card_index.as_ref().unwrap().card_index,
+            1
+        );
+
+        let index = index.with_sub_index(2);
+        assert_eq!(
+            index
+                .card_index
+                .sub_card_index
+                .unwrap()
+                .sub_card_index
+                .unwrap()
+                .card_index,
+            2
+        );
     }
 }
