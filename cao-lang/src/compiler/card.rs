@@ -217,6 +217,10 @@ impl Card {
             None
         }
     }
+
+    pub fn composite_card(name: Option<String>, cards: Vec<Card>) -> Self {
+        Self::CompositeCard(Box::new(CompositeCard { name, cards }))
+    }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
