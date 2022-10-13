@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.87
+
+
+### Features
+
+- Expand Card Index API
+
+
+### Refactor
+
+- Use a boxed struct for nested cards to reduce Card size
+
 ## v0.1.86
 
 
