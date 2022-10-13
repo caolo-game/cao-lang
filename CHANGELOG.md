@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.88
+
+
+### Features
+
+- Add composite_card ctor
+
+
+### Refactor
+
+- Nicer with_sub_index api
+
 ## v0.1.87
 
 
