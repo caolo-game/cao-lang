@@ -65,6 +65,24 @@ impl<'a> CardIndex<'a> {
         self.card_index.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
         self
     }
+
+    pub fn current_index(&self) -> &LaneCardIndex {
+        let mut res = &self.card_index;
+        while let Some(x) = res.sub_card_index.as_ref() {
+            res = x;
+        }
+        res
+    }
+
+    /// Replaces the card index of the leaf node
+    pub fn with_current_index(mut self, card_index: usize) -> Self {
+        let mut leaf = &mut self.card_index;
+        while let Some(x) = leaf.sub_card_index.as_mut() {
+            leaf = x;
+        }
+        leaf.card_index = card_index;
+        self
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
