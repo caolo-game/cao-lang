@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.89
+
+
+### Features
+
+- Current index api
+
 ## v0.1.88
 
 
