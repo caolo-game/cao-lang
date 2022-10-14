@@ -67,20 +67,12 @@ impl<'a> CardIndex<'a> {
     }
 
     pub fn current_index(&self) -> &LaneCardIndex {
-        let mut res = &self.card_index;
-        while let Some(x) = res.sub_card_index.as_ref() {
-            res = x;
-        }
-        res
+        self.card_index.current_index()
     }
 
     /// Replaces the card index of the leaf node
     pub fn with_current_index(mut self, card_index: usize) -> Self {
-        let mut leaf = &mut self.card_index;
-        while let Some(x) = leaf.sub_card_index.as_mut() {
-            leaf = x;
-        }
-        leaf.card_index = card_index;
+        self.card_index = self.card_index.with_current_index(card_index);
         self
     }
 }
@@ -106,6 +98,26 @@ impl LaneCardIndex {
             card_index,
             sub_card_index: None,
         }));
+        self
+    }
+
+    #[must_use]
+    pub fn current_index(&self) -> &Self {
+        let mut res = self;
+        while let Some(x) = res.sub_card_index.as_ref() {
+            res = x;
+        }
+        res
+    }
+
+    /// Replaces the card index of the leaf node
+    #[must_use]
+    pub fn with_current_index(mut self, card_index: usize) -> Self {
+        let mut leaf = &mut self;
+        while let Some(x) = leaf.sub_card_index.as_mut() {
+            leaf = x;
+        }
+        leaf.card_index = card_index;
         self
     }
 }
