@@ -1,4 +1,30 @@
 # Changelog
+## v0.1.90
+
+
+### Bug Fixes
+
+- Fix with_sub_index on LaneCardIndex
+
+
+### Features
+
+- Current index api for LaneCardIndex
+
+- All sub-cards are now indexable, not just CompositeCards
+
+
+### Refactor
+
+- Use owned string in CardIndex to simplify lifetimes
+
+- Simplify the card index data model
+
+
+### Break
+
+- Remove LaneCardIndex::default
+
 ## v0.1.89
 
 
