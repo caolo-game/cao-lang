@@ -256,75 +256,50 @@ impl Card {
         Self::CompositeCard(Box::new(CompositeCard { name, cards }))
     }
 
-    pub fn get_card_by_index_mut(
-        &mut self,
-        idx: &LaneCardIndex,
-    ) -> Result<&mut Card, CardFetchError> {
-        let mut res = self;
-        let mut idx = Some(idx);
-        let mut depth = 0;
-        while let Some(i) = idx {
-            match res {
-                Card::CompositeCard(c) => {
-                    res = c
-                        .cards
-                        .get_mut(i.card_index)
-                        .ok_or(CardFetchError::CardNotFound { depth })?
+    pub fn get_card_by_index_mut(&mut self, i: usize) -> Option<&mut Card> {
+        let res;
+        match self {
+            Card::CompositeCard(c) => res = c.cards.get_mut(i)?,
+            Card::IfTrue(c) | Card::IfFalse(c) => {
+                if i != 0 {
+                    return None;
                 }
-                Card::IfTrue(c) | Card::IfFalse(c) => {
-                    if i.card_index != 0 {
-                        return Err(CardFetchError::CardNotFound { depth });
-                    }
-                    res = c;
-                }
-                Card::IfElse { then, r#else } => {
-                    if i.card_index > 1 {}
-                    match i.card_index {
-                        0 => res = then.as_mut(),
-                        1 => res = r#else.as_mut(),
-                        _ => return Err(CardFetchError::CardNotFound { depth }),
-                    }
-                }
-                _ => return Err(CardFetchError::LaneNotFound),
+                res = c;
             }
-            depth += 1;
-            idx = i.sub_card_index.as_deref();
+            Card::IfElse { then, r#else } => {
+                if i > 1 {}
+                match i {
+                    0 => res = then.as_mut(),
+                    1 => res = r#else.as_mut(),
+                    _ => return None,
+                }
+            }
+            _ => return None,
         }
-        Ok(res)
+        Some(res)
     }
 
-    pub fn get_card_by_index(&self, idx: &LaneCardIndex) -> Result<&Card, CardFetchError> {
-        let mut res = self;
-        let mut idx = Some(idx);
-        let mut depth = 0;
-        while let Some(i) = idx {
-            match res {
-                Card::CompositeCard(c) => {
-                    res = c
-                        .cards
-                        .get(i.card_index)
-                        .ok_or(CardFetchError::CardNotFound { depth })?
+    pub fn get_card_by_index(&self, i: usize) -> Option<&Card> {
+        let res;
+        match self {
+            Card::CompositeCard(c) => res = c.cards.get(i)?,
+            Card::IfTrue(c) | Card::IfFalse(c) => {
+                if i != 0 {
+                    return None;
                 }
-                Card::IfTrue(c) | Card::IfFalse(c) => {
-                    if i.card_index != 0 {
-                        return Err(CardFetchError::CardNotFound { depth });
-                    }
-                    res = c;
-                }
-                Card::IfElse { then, r#else } => {
-                    if i.card_index > 1 {}
-                    match i.card_index {
-                        0 => res = then.as_ref(),
-                        1 => res = r#else.as_ref(),
-                        _ => return Err(CardFetchError::CardNotFound { depth }),
-                    }
-                }
-                _ => return Err(CardFetchError::LaneNotFound),
+                res = c;
             }
-            depth += 1;
-            idx = i.sub_card_index.as_deref();
+            Card::IfElse { then, r#else } => {
+                if i > 1 {}
+                match i {
+                    0 => res = then.as_ref(),
+                    1 => res = r#else.as_ref(),
+                    _ => return None,
+                }
+            }
+            _ => return None,
         }
-        Ok(res)
+        Some(res)
     }
 }
 

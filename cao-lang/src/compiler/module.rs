@@ -57,7 +57,7 @@ impl CardIndex {
         self
     }
 
-    pub fn current_index(&self) -> &LaneCardIndex {
+    pub fn current_index(&self) -> usize {
         self.card_index.current_index()
     }
 
@@ -70,52 +70,35 @@ impl CardIndex {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct LaneCardIndex {
-    pub card_index: usize,
-    pub sub_card_index: Option<Box<LaneCardIndex>>,
+    pub indices: SmallVec<[u32; 4]>,
 }
 
 impl LaneCardIndex {
     #[must_use]
     pub fn new(card_index: usize) -> Self {
         Self {
-            card_index,
-            sub_card_index: None,
+            indices: smallvec::smallvec![card_index as u32],
         }
     }
 
     /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
-        let mut last = &mut self.sub_card_index;
-        while let Some(x) = last {
-            if x.sub_card_index.is_none() {
-                x.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
-                return self;
-            }
-            last = &mut x.sub_card_index;
-        }
-        // else
-        self.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
+        self.indices.push(card_index as u32);
         self
     }
 
     #[must_use]
-    pub fn current_index(&self) -> &Self {
-        let mut res = self;
-        while let Some(x) = res.sub_card_index.as_ref() {
-            res = x;
-        }
-        res
+    pub fn current_index(&self) -> usize {
+        self.indices.last().copied().unwrap_or(0) as usize
     }
 
     /// Replaces the card index of the leaf node
     #[must_use]
     pub fn with_current_index(mut self, card_index: usize) -> Self {
-        let mut leaf = &mut self;
-        while let Some(x) = leaf.sub_card_index.as_mut() {
-            leaf = x;
+        if let Some(x) = self.indices.last_mut() {
+            *x = card_index as u32;
         }
-        leaf.card_index = card_index;
         self
     }
 }
@@ -128,6 +111,8 @@ pub enum CardFetchError {
     CardNotFound { depth: usize },
     #[error("The card at depth {depth} has no nested lanes, but the index tried to fetch one")]
     NoSubLane { depth: usize },
+    #[error("The provided index is not valid")]
+    InvalidIndex,
 }
 
 impl Module {
@@ -141,18 +126,18 @@ impl Module {
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
-            .get_mut(idx.card_index.card_index)
+            .get_mut(
+                *idx.card_index
+                    .indices
+                    .get(0)
+                    .ok_or(CardFetchError::InvalidIndex)? as usize,
+            )
             .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
-        if let Some(idx) = &idx.card_index.sub_card_index {
-            card = card.get_card_by_index_mut(&idx).map_err(|mut err| {
-                match &mut err {
-                    CardFetchError::LaneNotFound => {}
-                    CardFetchError::CardNotFound { depth }
-                    | CardFetchError::NoSubLane { depth } => *depth += 1,
-                }
-                err
-            })?;
+        for i in &idx.card_index.indices[1..] {
+            card = card
+                .get_card_by_index_mut(*i as usize)
+                .ok_or_else(|| CardFetchError::CardNotFound { depth: *i as usize })?;
         }
 
         Ok(card)
@@ -165,18 +150,18 @@ impl Module {
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
-            .get(idx.card_index.card_index)
+            .get(
+                *idx.card_index
+                    .indices
+                    .get(0)
+                    .ok_or(CardFetchError::InvalidIndex)? as usize,
+            )
             .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
-        if let Some(idx) = &idx.card_index.sub_card_index {
-            card = card.get_card_by_index(&idx).map_err(|mut err| {
-                match &mut err {
-                    CardFetchError::LaneNotFound => {}
-                    CardFetchError::CardNotFound { depth }
-                    | CardFetchError::NoSubLane { depth } => *depth += 1,
-                }
-                err
-            })?;
+        for i in &idx.card_index.indices[1..] {
+            card = card
+                .get_card_by_index(*i as usize)
+                .ok_or_else(|| CardFetchError::CardNotFound { depth: *i as usize })?;
         }
 
         Ok(card)
@@ -405,41 +390,11 @@ mod tests {
             .get_card(&CardIndex {
                 lane: "main".to_owned(),
                 card_index: LaneCardIndex {
-                    card_index: 0,
-                    sub_card_index: Some(Box::new(LaneCardIndex {
-                        card_index: 1,
-                        sub_card_index: None,
-                    })),
+                    indices: smallvec::smallvec![0, 1],
                 },
             })
             .expect("failed to fetch nested card");
 
         assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
-    }
-
-    #[test]
-    fn construct_sub_index_test() {
-        let index = CardIndex::new("pog", 0);
-
-        assert!(index.card_index.sub_card_index.is_none());
-
-        let index = index.with_sub_index(1);
-
-        assert_eq!(
-            index.card_index.sub_card_index.as_ref().unwrap().card_index,
-            1
-        );
-
-        let index = index.with_sub_index(2);
-        assert_eq!(
-            index
-                .card_index
-                .sub_card_index
-                .unwrap()
-                .sub_card_index
-                .unwrap()
-                .card_index,
-            2
-        );
     }
 }
