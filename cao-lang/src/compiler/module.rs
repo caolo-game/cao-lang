@@ -68,7 +68,7 @@ impl CardIndex {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LaneCardIndex {
     pub indices: SmallVec<[u32; 4]>,
 }
