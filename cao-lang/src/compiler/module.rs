@@ -124,10 +124,10 @@ impl LaneCardIndex {
 pub enum CardFetchError {
     #[error("Lane not found")]
     LaneNotFound,
-    #[error("Card not found")]
-    CardNotFound,
-    #[error("The card has no nested lanes, but the index tried to fetch one")]
-    NoSubLane,
+    #[error("Card at depth {depth} not found")]
+    CardNotFound { depth: usize },
+    #[error("The card at depth {depth} has no nested lanes, but the index tried to fetch one")]
+    NoSubLane { depth: usize },
 }
 
 impl Module {
@@ -142,18 +142,19 @@ impl Module {
         let mut card = lane
             .cards
             .get_mut(idx.card_index.card_index)
-            .ok_or(CardFetchError::CardNotFound)?;
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
-        let mut card_idx = idx.card_index.sub_card_index.as_ref();
-        while let Some(sub_card_idx) = card_idx {
-            card = card
-                .as_composite_card_mut()
-                .ok_or(CardFetchError::NoSubLane)?
-                .cards
-                .get_mut(sub_card_idx.card_index)
-                .ok_or(CardFetchError::CardNotFound)?;
-            card_idx = sub_card_idx.sub_card_index.as_ref();
+        if let Some(idx) = &idx.card_index.sub_card_index {
+            card = card.get_card_by_index_mut(&idx).map_err(|mut err| {
+                match &mut err {
+                    CardFetchError::LaneNotFound => {}
+                    CardFetchError::CardNotFound { depth }
+                    | CardFetchError::NoSubLane { depth } => *depth += 1,
+                }
+                err
+            })?;
         }
+
         Ok(card)
     }
 
@@ -165,18 +166,19 @@ impl Module {
         let mut card = lane
             .cards
             .get(idx.card_index.card_index)
-            .ok_or(CardFetchError::CardNotFound)?;
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
-        let mut card_idx = idx.card_index.sub_card_index.as_ref();
-        while let Some(sub_card_idx) = card_idx {
-            card = card
-                .as_composite_card()
-                .ok_or(CardFetchError::NoSubLane)?
-                .cards
-                .get(sub_card_idx.card_index)
-                .ok_or(CardFetchError::CardNotFound)?;
-            card_idx = sub_card_idx.sub_card_index.as_ref();
+        if let Some(idx) = &idx.card_index.sub_card_index {
+            card = card.get_card_by_index(&idx).map_err(|mut err| {
+                match &mut err {
+                    CardFetchError::LaneNotFound => {}
+                    CardFetchError::CardNotFound { depth }
+                    | CardFetchError::NoSubLane { depth } => *depth += 1,
+                }
+                err
+            })?;
         }
+
         Ok(card)
     }
 

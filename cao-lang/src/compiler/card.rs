@@ -202,6 +202,40 @@ impl Card {
         };
     }
 
+    /// If the card has sub-cards then return references to them in a list
+    pub fn as_card_list(&self) -> Option<smallvec::SmallVec<[&Card; 4]>> {
+        let mut res = smallvec::smallvec![];
+        match self {
+            Self::CompositeCard(c) => {
+                res.extend(c.cards.iter());
+            }
+            Self::IfTrue(c) | Self::IfFalse(c) => res.push(c.as_ref()),
+            Self::IfElse { then, r#else } => {
+                res.push(then.as_ref());
+                res.push(r#else.as_ref());
+            }
+            _ => return None,
+        }
+        Some(res)
+    }
+
+    /// If the card has sub-cards then return references to them in a list
+    pub fn as_card_list_mut(&mut self) -> Option<smallvec::SmallVec<[&mut Card; 4]>> {
+        let mut res = smallvec::smallvec![];
+        match self {
+            Self::CompositeCard(c) => {
+                res.extend(c.cards.iter_mut());
+            }
+            Self::IfTrue(c) | Self::IfFalse(c) => res.push(c.as_mut()),
+            Self::IfElse { then, r#else } => {
+                res.push(then.as_mut());
+                res.push(r#else.as_mut());
+            }
+            _ => return None,
+        }
+        Some(res)
+    }
+
     pub fn as_composite_card(&self) -> Option<&CompositeCard> {
         if let Self::CompositeCard(v) = self {
             Some(v)
@@ -220,6 +254,77 @@ impl Card {
 
     pub fn composite_card(name: Option<String>, cards: Vec<Card>) -> Self {
         Self::CompositeCard(Box::new(CompositeCard { name, cards }))
+    }
+
+    pub fn get_card_by_index_mut(
+        &mut self,
+        idx: &LaneCardIndex,
+    ) -> Result<&mut Card, CardFetchError> {
+        let mut res = self;
+        let mut idx = Some(idx);
+        let mut depth = 0;
+        while let Some(i) = idx {
+            match res {
+                Card::CompositeCard(c) => {
+                    res = c
+                        .cards
+                        .get_mut(i.card_index)
+                        .ok_or(CardFetchError::CardNotFound { depth })?
+                }
+                Card::IfTrue(c) | Card::IfFalse(c) => {
+                    if i.card_index != 0 {
+                        return Err(CardFetchError::CardNotFound { depth });
+                    }
+                    res = c;
+                }
+                Card::IfElse { then, r#else } => {
+                    if i.card_index > 1 {}
+                    match i.card_index {
+                        0 => res = then.as_mut(),
+                        1 => res = r#else.as_mut(),
+                        _ => return Err(CardFetchError::CardNotFound { depth }),
+                    }
+                }
+                _ => return Err(CardFetchError::LaneNotFound),
+            }
+            depth += 1;
+            idx = i.sub_card_index.as_deref();
+        }
+        Ok(res)
+    }
+
+    pub fn get_card_by_index(&self, idx: &LaneCardIndex) -> Result<&Card, CardFetchError> {
+        let mut res = self;
+        let mut idx = Some(idx);
+        let mut depth = 0;
+        while let Some(i) = idx {
+            match res {
+                Card::CompositeCard(c) => {
+                    res = c
+                        .cards
+                        .get(i.card_index)
+                        .ok_or(CardFetchError::CardNotFound { depth })?
+                }
+                Card::IfTrue(c) | Card::IfFalse(c) => {
+                    if i.card_index != 0 {
+                        return Err(CardFetchError::CardNotFound { depth });
+                    }
+                    res = c;
+                }
+                Card::IfElse { then, r#else } => {
+                    if i.card_index > 1 {}
+                    match i.card_index {
+                        0 => res = then.as_ref(),
+                        1 => res = r#else.as_ref(),
+                        _ => return Err(CardFetchError::CardNotFound { depth }),
+                    }
+                }
+                _ => return Err(CardFetchError::LaneNotFound),
+            }
+            depth += 1;
+            idx = i.sub_card_index.as_deref();
+        }
+        Ok(res)
     }
 }
 
