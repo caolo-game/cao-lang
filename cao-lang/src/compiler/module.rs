@@ -37,15 +37,15 @@ pub struct Module {
 
 /// Uniquely index a card in a module
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CardIndex<'a> {
-    pub lane: &'a str,
+pub struct CardIndex {
+    pub lane: String,
     pub card_index: LaneCardIndex,
 }
 
-impl<'a> CardIndex<'a> {
-    pub fn new(lane: &'a str, card_index: usize) -> Self {
+impl CardIndex {
+    pub fn new(lane: &str, card_index: usize) -> Self {
         Self {
-            lane,
+            lane: lane.to_owned(),
             card_index: LaneCardIndex::new(card_index),
         }
     }
@@ -137,7 +137,7 @@ impl Module {
     ) -> Result<&'a mut super::Card, CardFetchError> {
         let lane = self
             .lanes
-            .get_mut(idx.lane)
+            .get_mut(idx.lane.as_str())
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
@@ -160,7 +160,7 @@ impl Module {
     pub fn get_card<'a>(&'a self, idx: &CardIndex) -> Result<&'a super::Card, CardFetchError> {
         let lane = self
             .lanes
-            .get(idx.lane)
+            .get(idx.lane.as_str())
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
@@ -391,13 +391,7 @@ mod tests {
         let m = prog();
 
         let comp_card = m
-            .get_card(&CardIndex {
-                lane: "main",
-                card_index: LaneCardIndex {
-                    card_index: 0,
-                    sub_card_index: None,
-                },
-            })
+            .get_card(&CardIndex::new("main", 0))
             .expect("failed to fetch card");
 
         assert!(matches!(
@@ -407,7 +401,7 @@ mod tests {
 
         let nested_card = m
             .get_card(&CardIndex {
-                lane: "main",
+                lane: "main".to_owned(),
                 card_index: LaneCardIndex {
                     card_index: 0,
                     sub_card_index: Some(Box::new(LaneCardIndex {
