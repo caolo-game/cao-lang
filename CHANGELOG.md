@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.91
+
+
+### Features
+
+- Add `ty` to `CompositeCard` metadata
+
 ## v0.1.90
 
 
