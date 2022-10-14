@@ -53,16 +53,7 @@ impl<'a> CardIndex<'a> {
     /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
-        let mut last = &mut self.card_index.sub_card_index;
-        while let Some(x) = last {
-            if x.sub_card_index.is_none() {
-                x.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
-                return self;
-            }
-            last = &mut x.sub_card_index;
-        }
-        // else
-        self.card_index.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
+        self.card_index = self.card_index.with_sub_index(card_index);
         self
     }
 
@@ -92,12 +83,19 @@ impl LaneCardIndex {
         }
     }
 
+    /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
-        self.sub_card_index = Some(Box::new(Self {
-            card_index,
-            sub_card_index: None,
-        }));
+        let mut last = &mut self.sub_card_index;
+        while let Some(x) = last {
+            if x.sub_card_index.is_none() {
+                x.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
+                return self;
+            }
+            last = &mut x.sub_card_index;
+        }
+        // else
+        self.sub_card_index = Some(Box::new(LaneCardIndex::new(card_index)));
         self
     }
 
