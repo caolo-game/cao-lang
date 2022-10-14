@@ -14,7 +14,8 @@ fn composite_card_test() {
         lanes: [(
             "main".into(),
             Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
-                name: "triplepog".to_string().into(),
+                name: "triplepog".to_string(),
+                ty: "triplepog".to_string(),
                 cards: vec![
                     Card::StringLiteral(StringNode("poggers".to_owned())),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
@@ -182,7 +183,8 @@ fn simple_if_statement_skips_if_false() {
                 .with_card(Card::ScalarInt(IntegerNode(0)))
                 .with_card(Card::IfTrue(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
-                        name: None,
+                        name: "".to_string(),
+                        ty: "".to_string(),
                         cards: vec![
                             Card::ScalarInt(IntegerNode(69)),
                             Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
@@ -192,7 +194,8 @@ fn simple_if_statement_skips_if_false() {
                 .with_card(Card::ScalarInt(IntegerNode(1)))
                 .with_card(Card::IfFalse(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
-                        name: None,
+                        name: "".to_string(),
+                        ty: "".to_string(),
                         cards: vec![
                             Card::ScalarInt(IntegerNode(42)),
                             Card::SetGlobalVar(VarNode::from_str_unchecked("result")),

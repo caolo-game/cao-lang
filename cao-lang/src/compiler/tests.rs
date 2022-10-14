@@ -8,7 +8,8 @@ fn composite_card_test() {
     lanes.insert(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
-            name: "triplepog".to_string().into(),
+            name: "triplepog".to_string(),
+            ty: "triplepog".to_string(),
             cards: vec![
                 Card::StringLiteral(StringNode("poggers".to_owned())),
                 Card::StringLiteral(StringNode("poggers".to_owned())),
@@ -31,7 +32,8 @@ fn empty_foreach_is_error_test() {
     lanes.insert(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
-            name: "triplepog".to_string().into(),
+            name: "triplepog".to_string(),
+            ty: "triplepog".to_string(),
             cards: vec![Card::ForEach {
                 variable: VarNode::from_str_unchecked("pog"),
                 lane: LaneNode("".to_string()),

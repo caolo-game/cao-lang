@@ -102,7 +102,7 @@ impl Card {
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
-            Card::CompositeCard(c) => c.name.as_deref().unwrap_or("CompositeCard"),
+            Card::CompositeCard(c) => c.name.as_str(),
             Card::Noop => "No-op",
         }
     }
@@ -252,8 +252,8 @@ impl Card {
         }
     }
 
-    pub fn composite_card(name: Option<String>, cards: Vec<Card>) -> Self {
-        Self::CompositeCard(Box::new(CompositeCard { name, cards }))
+    pub fn composite_card(name: String, ty: String, cards: Vec<Card>) -> Self {
+        Self::CompositeCard(Box::new(CompositeCard { name, ty, cards }))
     }
 
     pub fn get_card_by_index_mut(&mut self, i: usize) -> Option<&mut Card> {
@@ -361,6 +361,9 @@ impl<'a> From<&'a LaneNode> for Handle {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CompositeCard {
-    pub name: Option<String>,
+    /// Name is meant to be used as the display name of the custom card
+    pub name: String,
+    /// Type is meant to be used internally for special types of cards in an application
+    pub ty: String,
     pub cards: Vec<Card>,
 }

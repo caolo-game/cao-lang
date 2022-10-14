@@ -330,7 +330,8 @@ mod tests {
             "main".into(),
             Lane::default().with_card(Card::CompositeCard(Box::new(
                 crate::compiler::CompositeCard {
-                    name: "triplepog".to_string().into(),
+                    name: "triplepog".to_string(),
+                    ty: "".to_string(),
                     cards: vec![
                         Card::StringLiteral(StringNode("poggers".to_owned())),
                         Card::StringLiteral(StringNode("poggers".to_owned())),
