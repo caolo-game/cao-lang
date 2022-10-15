@@ -195,6 +195,35 @@ impl Module {
             .ok_or(CardFetchError::CardNotFound { depth: len - 1 })
     }
 
+    pub fn insert_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
+        let lane = self
+            .lanes
+            .get_mut(idx.lane.as_str())
+            .ok_or(CardFetchError::LaneNotFound)?;
+        if idx.card_index.indices.len() == 1 {
+            if lane.cards.len() < idx.card_index.indices[0] as usize {
+                return Err(CardFetchError::CardNotFound { depth: 0 });
+            }
+            lane.cards.insert(idx.card_index.indices[0] as usize, child);
+            return Ok(());
+        }
+        let mut card = lane
+            .cards
+            .get_mut(idx.begin()?)
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+
+        // len is at least 1
+        let len = idx.card_index.indices.len();
+        for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            card = card
+                .get_card_by_index_mut(*i as usize)
+                .ok_or_else(|| CardFetchError::CardNotFound { depth: *i as usize })?;
+        }
+        let i = *idx.card_index.indices.last().unwrap() as usize;
+        card.insert_child(i, child)
+            .map_err(|_| CardFetchError::CardNotFound { depth: len - 1 })
+    }
+
     /// flatten this program into a vec of lanes
     pub(crate) fn into_ir_stream(
         mut self,
@@ -504,5 +533,52 @@ mod tests {
             }
             _ => panic!(),
         }
+    }
+
+    #[test]
+    fn insert_card_test() {
+        let mut program = CaoProgram::default();
+        program
+            .lanes
+            .insert("poggers".to_string(), Default::default());
+
+        program
+            .insert_card(&CardIndex::new("poggers", 0), Card::CreateTable)
+            .unwrap();
+        program
+            .insert_card(
+                &CardIndex::new("poggers", 1),
+                Card::composite_card("ye boi".to_string(), "pog".to_string(), vec![]),
+            )
+            .unwrap();
+        program
+            .insert_card(&CardIndex::new("poggers", 1).with_sub_index(0), Card::Abort)
+            .unwrap();
+
+        let json = serde_json::to_string_pretty(&program).unwrap();
+
+        const EXP: &str = r#"{
+  "submodules": {},
+  "lanes": {
+    "poggers": {
+      "arguments": [],
+      "cards": [
+        "CreateTable",
+        {
+          "CompositeCard": {
+            "name": "ye boi",
+            "ty": "pog",
+            "cards": [
+              "Abort"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "imports": []
+}"#;
+
+        assert_eq!(json, EXP);
     }
 }

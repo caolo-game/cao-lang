@@ -333,6 +333,37 @@ impl Card {
         }
         Some(res)
     }
+
+    /// insert a child at the specified index, if the Card is a list, or replace the child at the
+    /// index if not
+    ///
+    /// returns the inserted card on failure
+    pub fn insert_child(&mut self, i: usize, card: Self) -> Result<(), Self> {
+        match self {
+            Card::CompositeCard(c) => {
+                if c.cards.len() < i {
+                    return Err(card);
+                }
+                c.cards.insert(i, card);
+            }
+            Card::IfTrue(c) | Card::IfFalse(c) => {
+                if i != 0 {
+                    return Err(card);
+                }
+                *c.as_mut() = card;
+            }
+            Card::IfElse { then, r#else } => {
+                if i > 1 {}
+                match i {
+                    0 => *then.as_mut() = card,
+                    1 => *r#else.as_mut() = card,
+                    _ => return Err(card),
+                };
+            }
+            _ => return Err(card),
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
