@@ -66,6 +66,11 @@ impl CardIndex {
         self.card_index = self.card_index.with_current_index(card_index);
         self
     }
+
+    /// first card's index in the lane
+    pub fn begin(&self) -> Result<usize, CardFetchError> {
+        self.card_index.begin()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -101,6 +106,14 @@ impl LaneCardIndex {
         }
         self
     }
+
+    pub fn begin(&self) -> Result<usize, CardFetchError> {
+        let i = self
+            .indices
+            .get(0)
+            .ok_or_else(|| CardFetchError::InvalidIndex)?;
+        Ok(*i as usize)
+    }
 }
 
 #[derive(Debug, Clone, Error)]
@@ -123,12 +136,7 @@ impl Module {
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
-            .get_mut(
-                *idx.card_index
-                    .indices
-                    .get(0)
-                    .ok_or(CardFetchError::InvalidIndex)? as usize,
-            )
+            .get_mut(idx.begin()?)
             .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
         for i in &idx.card_index.indices[1..] {
@@ -147,12 +155,7 @@ impl Module {
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
-            .get(
-                *idx.card_index
-                    .indices
-                    .get(0)
-                    .ok_or(CardFetchError::InvalidIndex)? as usize,
-            )
+            .get(idx.begin()?)
             .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
         for i in &idx.card_index.indices[1..] {
@@ -177,12 +180,7 @@ impl Module {
         }
         let mut card = lane
             .cards
-            .get_mut(
-                *idx.card_index
-                    .indices
-                    .get(0)
-                    .ok_or(CardFetchError::InvalidIndex)? as usize,
-            )
+            .get_mut(idx.begin()?)
             .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
         // len is at least 1
