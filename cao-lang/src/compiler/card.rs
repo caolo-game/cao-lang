@@ -256,6 +256,10 @@ impl Card {
         Self::CompositeCard(Box::new(CompositeCard { name, ty, cards }))
     }
 
+    pub fn string_card(s: impl Into<String>) -> Self {
+        Self::StringLiteral(StringNode(s.into()))
+    }
+
     pub fn get_card_by_index_mut(&mut self, i: usize) -> Option<&mut Card> {
         let res;
         match self {
@@ -294,6 +298,34 @@ impl Card {
                 match i {
                     0 => res = then.as_ref(),
                     1 => res = r#else.as_ref(),
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        }
+        Some(res)
+    }
+
+    pub fn remove_child(&mut self, i: usize) -> Option<Card> {
+        let res;
+        match self {
+            Card::CompositeCard(c) => {
+                if c.cards.len() <= i {
+                    return None;
+                }
+                res = c.cards.remove(i);
+            }
+            Card::IfTrue(c) | Card::IfFalse(c) => {
+                if i != 0 {
+                    return None;
+                }
+                res = std::mem::replace::<Card>(c.as_mut(), Card::Noop);
+            }
+            Card::IfElse { then, r#else } => {
+                if i > 1 {}
+                match i {
+                    0 => res = std::mem::replace::<Card>(then.as_mut(), Card::Noop),
+                    1 => res = std::mem::replace::<Card>(r#else.as_mut(), Card::Noop),
                     _ => return None,
                 }
             }

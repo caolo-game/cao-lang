@@ -11,7 +11,7 @@ use std::rc::Rc;
 use thiserror::Error;
 
 use super::lane_ir::LaneIr;
-use super::Imports;
+use super::{Card, Imports};
 
 #[derive(Debug, Clone, Error)]
 pub enum IntoStreamError {
@@ -116,10 +116,7 @@ pub enum CardFetchError {
 }
 
 impl Module {
-    pub fn get_card_mut<'a>(
-        &'a mut self,
-        idx: &CardIndex,
-    ) -> Result<&'a mut super::Card, CardFetchError> {
+    pub fn get_card_mut<'a>(&'a mut self, idx: &CardIndex) -> Result<&'a mut Card, CardFetchError> {
         let lane = self
             .lanes
             .get_mut(idx.lane.as_str())
@@ -143,7 +140,7 @@ impl Module {
         Ok(card)
     }
 
-    pub fn get_card<'a>(&'a self, idx: &CardIndex) -> Result<&'a super::Card, CardFetchError> {
+    pub fn get_card<'a>(&'a self, idx: &CardIndex) -> Result<&'a Card, CardFetchError> {
         let lane = self
             .lanes
             .get(idx.lane.as_str())
@@ -165,6 +162,39 @@ impl Module {
         }
 
         Ok(card)
+    }
+
+    pub fn remove_card(&mut self, idx: &CardIndex) -> Result<Card, CardFetchError> {
+        let lane = self
+            .lanes
+            .get_mut(idx.lane.as_str())
+            .ok_or(CardFetchError::LaneNotFound)?;
+        if idx.card_index.indices.len() == 1 {
+            if lane.cards.len() <= idx.card_index.indices[0] as usize {
+                return Err(CardFetchError::CardNotFound { depth: 0 });
+            }
+            return Ok(lane.cards.remove(idx.card_index.indices[0] as usize));
+        }
+        let mut card = lane
+            .cards
+            .get_mut(
+                *idx.card_index
+                    .indices
+                    .get(0)
+                    .ok_or(CardFetchError::InvalidIndex)? as usize,
+            )
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+
+        // len is at least 1
+        let len = idx.card_index.indices.len();
+        for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            card = card
+                .get_card_by_index_mut(*i as usize)
+                .ok_or_else(|| CardFetchError::CardNotFound { depth: *i as usize })?;
+        }
+        let i = *idx.card_index.indices.last().unwrap() as usize;
+        card.remove_child(i)
+            .ok_or(CardFetchError::CardNotFound { depth: len - 1 })
     }
 
     /// flatten this program into a vec of lanes
@@ -323,7 +353,7 @@ mod tests {
     }
 
     fn prog() -> Module {
-        use crate::compiler::{Card, StringNode};
+        use crate::compiler::StringNode;
 
         let mut lanes = BTreeMap::new();
         lanes.insert(
@@ -397,5 +427,84 @@ mod tests {
             .expect("failed to fetch nested card");
 
         assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
+    }
+
+    #[test]
+    fn remove_card_from_compositve_test() {
+        use crate::compiler::StringNode;
+
+        let mut lanes = BTreeMap::new();
+        lanes.insert(
+            "main".into(),
+            Lane::default().with_card(Card::CompositeCard(Box::new(
+                crate::compiler::CompositeCard {
+                    name: "triplepog".to_string(),
+                    ty: "".to_string(),
+                    cards: vec![
+                        Card::StringLiteral(StringNode("winnie".to_owned())),
+                        Card::StringLiteral(StringNode("pooh".to_owned())),
+                        Card::StringLiteral(StringNode("tiggers".to_owned())),
+                    ],
+                },
+            ))),
+        );
+        let mut prog = CaoProgram {
+            imports: Default::default(),
+            submodules: Default::default(),
+            lanes,
+        };
+
+        let removed = prog
+            .remove_card(&CardIndex {
+                lane: "main".to_string(),
+                card_index: LaneCardIndex {
+                    indices: smallvec::smallvec![0, 1],
+                },
+            })
+            .unwrap();
+
+        match removed {
+            Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn remove_card_from_ifelse_test() {
+        let mut lanes = BTreeMap::new();
+        lanes.insert(
+            "main".into(),
+            Lane::default().with_card(Card::IfElse {
+                then: Box::new(Card::string_card("winnie")),
+                r#else: Box::new(Card::string_card("pooh")),
+            }),
+        );
+        let mut prog = CaoProgram {
+            imports: Default::default(),
+            submodules: Default::default(),
+            lanes,
+        };
+
+        let removed = prog
+            .remove_card(&CardIndex {
+                lane: "main".to_string(),
+                card_index: LaneCardIndex {
+                    indices: smallvec::smallvec![0, 1],
+                },
+            })
+            .unwrap();
+
+        match removed {
+            Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
+            _ => panic!(),
+        }
+
+        let ifelse = prog.get_card(&CardIndex::new("main", 0)).unwrap();
+        match ifelse {
+            Card::IfElse { then: _, r#else } => {
+                assert!(matches!(**r#else, Card::Noop));
+            }
+            _ => panic!(),
+        }
     }
 }
