@@ -195,6 +195,36 @@ impl Module {
             .ok_or(CardFetchError::CardNotFound { depth: len - 1 })
     }
 
+    pub fn set_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
+        let lane = self
+            .lanes
+            .get_mut(idx.lane.as_str())
+            .ok_or(CardFetchError::LaneNotFound)?;
+        if idx.card_index.indices.len() == 1 {
+            let c = lane
+                .cards
+                .get_mut(idx.card_index.indices[0] as usize)
+                .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            *c = child;
+            return Ok(());
+        }
+        let mut card = lane
+            .cards
+            .get_mut(idx.begin()?)
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+
+        // len is at least 1
+        let len = idx.card_index.indices.len();
+        for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            card = card
+                .get_card_by_index_mut(*i as usize)
+                .ok_or_else(|| CardFetchError::CardNotFound { depth: *i as usize })?;
+        }
+        let i = *idx.card_index.indices.last().unwrap() as usize;
+        card.replace_child(i, child)
+            .map_err(|_| CardFetchError::CardNotFound { depth: len - 1 })
+    }
+
     pub fn insert_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
         let lane = self
             .lanes

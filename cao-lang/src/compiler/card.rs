@@ -364,6 +364,31 @@ impl Card {
         }
         Ok(())
     }
+
+    pub fn replace_child(&mut self, i: usize, card: Self) -> Result<(), Self> {
+        match self {
+            Card::CompositeCard(c) => match c.cards.get_mut(i) {
+                Some(c) => *c = card,
+                None => return Err(card),
+            },
+            Card::IfTrue(c) | Card::IfFalse(c) => {
+                if i != 0 {
+                    return Err(card);
+                }
+                *c.as_mut() = card;
+            }
+            Card::IfElse { then, r#else } => {
+                if i > 1 {}
+                match i {
+                    0 => *then.as_mut() = card,
+                    1 => *r#else.as_mut() = card,
+                    _ => return Err(card),
+                };
+            }
+            _ => return Err(card),
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
