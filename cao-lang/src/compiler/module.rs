@@ -86,6 +86,10 @@ impl LaneCardIndex {
         }
     }
 
+    pub fn depth(&self) -> usize {
+        self.indices.len()
+    }
+
     /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
