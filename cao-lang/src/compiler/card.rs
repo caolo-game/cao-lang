@@ -365,29 +365,27 @@ impl Card {
         Ok(())
     }
 
-    pub fn replace_child(&mut self, i: usize, card: Self) -> Result<(), Self> {
-        match self {
+    /// Return Ok(old card) on success, return the input card in fail
+    pub fn replace_child(&mut self, i: usize, card: Self) -> Result<Self, Self> {
+        let res = match self {
             Card::CompositeCard(c) => match c.cards.get_mut(i) {
-                Some(c) => *c = card,
+                Some(c) => std::mem::replace(c, card),
                 None => return Err(card),
             },
             Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return Err(card);
                 }
-                *c.as_mut() = card;
+                std::mem::replace(c.as_mut(), card)
             }
-            Card::IfElse { then, r#else } => {
-                if i > 1 {}
-                match i {
-                    0 => *then.as_mut() = card,
-                    1 => *r#else.as_mut() = card,
-                    _ => return Err(card),
-                };
-            }
+            Card::IfElse { then, r#else } => match i {
+                0 => std::mem::replace(then.as_mut(), card),
+                1 => std::mem::replace(r#else.as_mut(), card),
+                _ => return Err(card),
+            },
             _ => return Err(card),
-        }
-        Ok(())
+        };
+        Ok(res)
     }
 }
 

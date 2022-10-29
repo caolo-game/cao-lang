@@ -199,7 +199,8 @@ impl Module {
             .ok_or(CardFetchError::CardNotFound { depth: len - 1 })
     }
 
-    pub fn set_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
+    /// Return the old card
+    pub fn replace_card(&mut self, idx: &CardIndex, child: Card) -> Result<Card, CardFetchError> {
         let lane = self
             .lanes
             .get_mut(idx.lane.as_str())
@@ -209,8 +210,8 @@ impl Module {
                 .cards
                 .get_mut(idx.card_index.indices[0] as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
-            *c = child;
-            return Ok(());
+            let res = std::mem::replace(c, child);
+            return Ok(res);
         }
         let mut card = lane
             .cards
