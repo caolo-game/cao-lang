@@ -1,4 +1,20 @@
 # Changelog
+## v0.1.92
+
+
+### Features
+
+- Remove cards by index
+
+- Insert card at index
+
+- Add set_card API
+
+
+### Refactor
+
+- Rename `replace_card` and return the old `Card` on success
+
 ## v0.1.91
 
 
