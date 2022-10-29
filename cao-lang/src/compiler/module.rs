@@ -71,6 +71,12 @@ impl CardIndex {
     pub fn begin(&self) -> Result<usize, CardFetchError> {
         self.card_index.begin()
     }
+
+    /// Return wether this index points to a 'top level' card in the lane.
+    /// Instead of a nested card.
+    pub fn is_lane_card(&self) -> bool {
+        self.card_index.indices.len() == 1
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
