@@ -167,7 +167,7 @@ fn remove_card_from_ifelse_test() {
     let ifelse = prog.get_card(&CardIndex::new("main", 0)).unwrap();
     match ifelse {
         Card::IfElse { then: _, r#else } => {
-            assert!(matches!(**r#else, Card::Noop));
+            assert!(matches!(**r#else, Card::Pass));
         }
         _ => panic!(),
     }

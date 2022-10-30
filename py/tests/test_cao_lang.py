@@ -64,7 +64,7 @@ def test_json():
                     "bar": {
                         "arguments": [],
                         "cards": [
-                            {  "Noop":null }
+                            {  "Pass":null }
                         ]
                     }
                 }

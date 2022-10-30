@@ -86,7 +86,6 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
             variable: Default::default(),
             lane: Default::default(),
         }),
-        get_desc(&Card::Noop),
     ]
 }
 
@@ -408,13 +407,5 @@ Order of parameters: Table, Property-Key, Value"#,
             []
         ),
 
-        Card::Noop => subprogram_description!(
-            "No-op",
-            "Does nothing",
-            SubProgramType::Instruction,
-            [],
-            [],
-            []
-        ),
     }
 }

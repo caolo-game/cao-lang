@@ -422,7 +422,6 @@ impl<'a> Compiler<'a> {
             self.push_instruction(instr);
         }
         match card {
-            Card::Noop => {}
             Card::CompositeCard(comp) => {
                 for (i, card) in comp.cards.iter().enumerate() {
                     self.current_index.push_subindex(i as u32);

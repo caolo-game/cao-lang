@@ -58,8 +58,6 @@ pub enum Card {
     },
     /// Single card that decomposes into multiple cards
     CompositeCard(Box<CompositeCard>),
-    /// Does nothing
-    Noop,
 }
 
 impl Card {
@@ -103,7 +101,6 @@ impl Card {
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.name.as_str(),
-            Card::Noop => "No-op",
         }
     }
 
@@ -117,8 +114,7 @@ impl Card {
             | Card::While(_)
             | Card::Repeat(_)
             | Card::ForEach { .. }
-            | Card::CompositeCard { .. }
-            | Card::Noop => None,
+            | Card::CompositeCard { .. } => None,
 
             Card::GetProperty => Some(Instruction::GetProperty),
             Card::SetProperty => Some(Instruction::SetProperty),
@@ -319,13 +315,13 @@ impl Card {
                 if i != 0 {
                     return None;
                 }
-                res = std::mem::replace::<Card>(c.as_mut(), Card::Noop);
+                res = std::mem::replace::<Card>(c.as_mut(), Card::Pass);
             }
             Card::IfElse { then, r#else } => {
                 if i > 1 {}
                 match i {
-                    0 => res = std::mem::replace::<Card>(then.as_mut(), Card::Noop),
-                    1 => res = std::mem::replace::<Card>(r#else.as_mut(), Card::Noop),
+                    0 => res = std::mem::replace::<Card>(then.as_mut(), Card::Pass),
+                    1 => res = std::mem::replace::<Card>(r#else.as_mut(), Card::Pass),
                     _ => return None,
                 }
             }

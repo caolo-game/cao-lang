@@ -151,7 +151,7 @@ fn can_call_nested_function_test() {
         Module {
             imports: Default::default(),
             submodules: Default::default(),
-            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Noop))]),
+            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Pass))]),
         },
     );
     let prog = CaoProgram {
