@@ -33,7 +33,7 @@ fn main() {
         .expect("Crate version wasn't valid semver");
 
     fs::write(
-        &dest_path,
+        dest_path,
         format!(
             r#"
 pub const VERSION_STR: &str = "{}";

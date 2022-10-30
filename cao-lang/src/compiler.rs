@@ -179,7 +179,7 @@ impl<'a> Compiler<'a> {
             self.current_index = CardIndex {
                 lane: main_lane.name.to_string(),
                 card_index: LaneCardIndex {
-                    indices: smallvec::smallvec![len as u32],
+                    indices: smallvec::smallvec![len],
                 },
             };
             self.scope_end();
