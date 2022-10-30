@@ -12,7 +12,6 @@ version = "^1.0"
 
 [dependencies]
 num_enum = "^0.5"
-smallvec = {version="^1.8", features=["serde"]}
 thiserror = "^1.0"
 
 [dependencies.arrayvec]
@@ -23,6 +22,10 @@ version = "^0.7"
 features = ["derive"]
 optional = true
 version = "^1.0"
+
+[dependencies.smallvec]
+features = ["serde"]
+version = "^1.8"
 
 [dependencies.tracing]
 default-features = false
@@ -58,4 +61,4 @@ license = "MIT"
 name = "cao-lang"
 readme = "../README.md"
 repository = "https://github.com/caolo-game/cao-lang.git"
-version = "0.1.92"
+version = "0.1.93"

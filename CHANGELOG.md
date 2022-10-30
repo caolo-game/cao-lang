@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.93
+
+
+### Features
+
+- Use the module level CardIndex for compile/runtime error tracing
+
+
+### Refactor
+
+- Remove the `noop` card. We already had `pass`...
+
+- Remove the `pass` instruction
+
 ## v0.1.92
 
 
