@@ -86,6 +86,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
             variable: Default::default(),
             lane: Default::default(),
         }),
+        get_desc(&Card::Noop),
     ]
 }
 
