@@ -383,7 +383,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_copy_last(self)
                         .map_err(|err| payload_to_error(err, instr_ptr))?;
                 }
-                Instruction::Pass => {}
                 Instruction::ScalarInt => {
                     self.runtime_data
                         .value_stack

@@ -23,8 +23,6 @@ pub(crate) enum Instruction {
     /// Writes the strings followed by the instruction to memory and pushes the pointer pointing to
     /// it onto the stack
     StringLiteral,
-    /// Empty instruction that has no effects
-    Pass,
     /// Clones the last element on the stack
     /// Does nothing if no elements are on the stack
     CopyLast,
@@ -106,7 +104,6 @@ pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Less
         | Instruction::LessOrEq
         | Instruction::Pop
-        | Instruction::Pass
         | Instruction::ScalarNil
         | Instruction::ClearStack
         | Instruction::CopyLast

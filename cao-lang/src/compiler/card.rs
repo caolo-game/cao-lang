@@ -114,6 +114,7 @@ impl Card {
             | Card::While(_)
             | Card::Repeat(_)
             | Card::ForEach { .. }
+            | Card::Pass
             | Card::CompositeCard { .. } => None,
 
             Card::GetProperty => Some(Instruction::GetProperty),
@@ -124,7 +125,6 @@ impl Card {
             Card::Not => Some(Instruction::Not),
             Card::Or => Some(Instruction::Or),
             Card::Xor => Some(Instruction::Xor),
-            Card::Pass => Some(Instruction::Pass),
             Card::Add => Some(Instruction::Add),
             Card::Sub => Some(Instruction::Sub),
             Card::Mul => Some(Instruction::Mul),
@@ -193,8 +193,7 @@ impl Card {
             | Instruction::Repeat
             | Instruction::BeginRepeat
             | Instruction::ForEach
-            | Instruction::BeginForEach
-            | Instruction::Pass => {}
+            | Instruction::BeginForEach => {}
         };
     }
 
