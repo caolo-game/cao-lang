@@ -3,7 +3,7 @@
 use std::fmt::Display;
 
 use crate::collections::key_map::Handle;
-use crate::prelude::TraceEntry;
+use crate::prelude::CardIndex;
 use crate::traits::VmFunction;
 use thiserror::Error;
 
@@ -50,11 +50,11 @@ pub enum ExecutionErrorPayload {
 #[derive(Debug, Clone, Error)]
 pub struct ExecutionError {
     pub payload: ExecutionErrorPayload,
-    pub trace: TraceEntry,
+    pub trace: CardIndex,
 }
 
 impl ExecutionError {
-    pub fn new(payload: ExecutionErrorPayload, trace: TraceEntry) -> Self {
+    pub fn new(payload: ExecutionErrorPayload, trace: CardIndex) -> Self {
         Self { payload, trace }
     }
 }

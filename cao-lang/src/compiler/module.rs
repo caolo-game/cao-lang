@@ -1,6 +1,9 @@
 //! The public representation of a program
 //!
 
+#[cfg(test)]
+mod tests;
+
 use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
@@ -36,7 +39,8 @@ pub struct Module {
 }
 
 /// Uniquely index a card in a module
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CardIndex {
     pub lane: String,
     pub card_index: LaneCardIndex,
@@ -48,6 +52,22 @@ impl CardIndex {
             lane: lane.to_owned(),
             card_index: LaneCardIndex::new(card_index),
         }
+    }
+
+    pub fn push_subindex(&mut self, i: u32) {
+        self.card_index.indices.push(i);
+    }
+
+    pub fn pop_subindex(&mut self) {
+        self.card_index.indices.pop();
+    }
+
+    pub fn as_handle(&self) -> crate::prelude::Handle {
+        let mut handle = crate::prelude::Handle::from_bytes(self.lane.as_bytes());
+        for i in self.card_index.indices.iter() {
+            handle = handle + crate::prelude::Handle::from_u32(*i);
+        }
+        handle
     }
 
     /// pushes a new sub-index to the bottom layer
@@ -79,7 +99,18 @@ impl CardIndex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+impl std::fmt::Display for CardIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.lane)?;
+        for i in self.card_index.indices.iter().copied() {
+            write!(f, ".{}", i)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LaneCardIndex {
     pub indices: SmallVec<[u32; 4]>,
 }
@@ -278,7 +309,7 @@ impl Module {
             .ok_or(CompilationErrorPayload::NoMain)?;
 
         let imports = self.execute_imports()?;
-        let first_fn = lane_to_compiled_lane(&first_fn, &["main"], Rc::new(imports));
+        let first_fn = lane_to_lane_ir(&first_fn, &["main"], Rc::new(imports));
         let mut result = vec![first_fn];
         result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
@@ -361,13 +392,13 @@ fn flatten_module<'a>(
             return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
         }
         namespace.push(name.as_ref());
-        out.push(lane_to_compiled_lane(lane, namespace, Rc::clone(&imports)));
+        out.push(lane_to_lane_ir(lane, namespace, Rc::clone(&imports)));
         namespace.pop();
     }
     Ok(())
 }
 
-fn lane_to_compiled_lane(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) -> LaneIr {
+fn lane_to_lane_ir(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
@@ -397,229 +428,4 @@ fn is_name_valid(name: &str) -> bool {
 
 fn flatten_name(namespace: &[&str]) -> String {
     namespace.join(".")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[cfg(feature = "serde")]
-    fn module_bincode_serde_test() {
-        use bincode::DefaultOptions;
-        use serde::{Deserialize, Serialize};
-
-        let default_prog = prog();
-        let mut pl = vec![];
-        let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
-        default_prog.serialize(&mut s).unwrap();
-
-        let mut reader =
-            bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
-
-        let _prog = Module::deserialize(&mut reader).unwrap();
-    }
-
-    fn prog() -> Module {
-        use crate::compiler::StringNode;
-
-        let mut lanes = BTreeMap::new();
-        lanes.insert(
-            "main".into(),
-            Lane::default().with_card(Card::CompositeCard(Box::new(
-                crate::compiler::CompositeCard {
-                    name: "triplepog".to_string(),
-                    ty: "".to_string(),
-                    cards: vec![
-                        Card::StringLiteral(StringNode("poggers".to_owned())),
-                        Card::StringLiteral(StringNode("poggers".to_owned())),
-                        Card::StringLiteral(StringNode("poggers".to_owned())),
-                    ],
-                },
-            ))),
-        );
-        let default_prog = CaoProgram {
-            imports: Default::default(),
-            submodules: Default::default(),
-            lanes,
-        };
-        default_prog
-    }
-
-    #[test]
-    #[cfg(feature = "serde")]
-    fn module_json_serde_test() {
-        let default_prog = prog();
-        let pl = serde_json::to_string_pretty(&default_prog).unwrap();
-
-        let _prog: Module = serde_json::from_str(&pl).unwrap();
-    }
-
-    #[test]
-    #[cfg(feature = "serde")]
-    fn can_parse_json_test() {
-        let json = r#"
-        {
-            "submodules": {},
-            "imports": [],
-            "lanes": {"main": {
-                "name": "main",
-                "arguments": [],
-                "cards": [ {"Jump": "42" } ]
-            }}
-        }
-"#;
-        let _prog: Module = serde_json::from_str(&json).unwrap();
-    }
-
-    #[test]
-    fn module_card_fetch_test() {
-        let m = prog();
-
-        let comp_card = m
-            .get_card(&CardIndex::new("main", 0))
-            .expect("failed to fetch card");
-
-        assert!(matches!(
-            comp_card,
-            super::super::Card::CompositeCard { .. }
-        ));
-
-        let nested_card = m
-            .get_card(&CardIndex {
-                lane: "main".to_owned(),
-                card_index: LaneCardIndex {
-                    indices: smallvec::smallvec![0, 1],
-                },
-            })
-            .expect("failed to fetch nested card");
-
-        assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
-    }
-
-    #[test]
-    fn remove_card_from_compositve_test() {
-        use crate::compiler::StringNode;
-
-        let mut lanes = BTreeMap::new();
-        lanes.insert(
-            "main".into(),
-            Lane::default().with_card(Card::CompositeCard(Box::new(
-                crate::compiler::CompositeCard {
-                    name: "triplepog".to_string(),
-                    ty: "".to_string(),
-                    cards: vec![
-                        Card::StringLiteral(StringNode("winnie".to_owned())),
-                        Card::StringLiteral(StringNode("pooh".to_owned())),
-                        Card::StringLiteral(StringNode("tiggers".to_owned())),
-                    ],
-                },
-            ))),
-        );
-        let mut prog = CaoProgram {
-            imports: Default::default(),
-            submodules: Default::default(),
-            lanes,
-        };
-
-        let removed = prog
-            .remove_card(&CardIndex {
-                lane: "main".to_string(),
-                card_index: LaneCardIndex {
-                    indices: smallvec::smallvec![0, 1],
-                },
-            })
-            .unwrap();
-
-        match removed {
-            Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
-            _ => panic!(),
-        }
-    }
-
-    #[test]
-    fn remove_card_from_ifelse_test() {
-        let mut lanes = BTreeMap::new();
-        lanes.insert(
-            "main".into(),
-            Lane::default().with_card(Card::IfElse {
-                then: Box::new(Card::string_card("winnie")),
-                r#else: Box::new(Card::string_card("pooh")),
-            }),
-        );
-        let mut prog = CaoProgram {
-            imports: Default::default(),
-            submodules: Default::default(),
-            lanes,
-        };
-
-        let removed = prog
-            .remove_card(&CardIndex {
-                lane: "main".to_string(),
-                card_index: LaneCardIndex {
-                    indices: smallvec::smallvec![0, 1],
-                },
-            })
-            .unwrap();
-
-        match removed {
-            Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
-            _ => panic!(),
-        }
-
-        let ifelse = prog.get_card(&CardIndex::new("main", 0)).unwrap();
-        match ifelse {
-            Card::IfElse { then: _, r#else } => {
-                assert!(matches!(**r#else, Card::Noop));
-            }
-            _ => panic!(),
-        }
-    }
-
-    #[test]
-    fn insert_card_test() {
-        let mut program = CaoProgram::default();
-        program
-            .lanes
-            .insert("poggers".to_string(), Default::default());
-
-        program
-            .insert_card(&CardIndex::new("poggers", 0), Card::CreateTable)
-            .unwrap();
-        program
-            .insert_card(
-                &CardIndex::new("poggers", 1),
-                Card::composite_card("ye boi".to_string(), "pog".to_string(), vec![]),
-            )
-            .unwrap();
-        program
-            .insert_card(&CardIndex::new("poggers", 1).with_sub_index(0), Card::Abort)
-            .unwrap();
-
-        let json = serde_json::to_string_pretty(&program).unwrap();
-
-        const EXP: &str = r#"{
-  "submodules": {},
-  "lanes": {
-    "poggers": {
-      "arguments": [],
-      "cards": [
-        "CreateTable",
-        {
-          "CompositeCard": {
-            "name": "ye boi",
-            "ty": "pog",
-            "cards": [
-              "Abort"
-            ]
-          }
-        }
-      ]
-    }
-  },
-  "imports": []
-}"#;
-
-        assert_eq!(json, EXP);
-    }
 }

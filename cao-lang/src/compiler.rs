@@ -16,8 +16,7 @@ use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::key_map::{Handle, KeyMap},
     compiled_program::{CaoCompiledProgram, Label},
-    prelude::TraceEntry,
-    Instruction, NodeId, VariableId,
+    Instruction, VariableId,
 };
 use std::convert::TryFrom;
 use std::mem;
@@ -53,8 +52,7 @@ pub struct Compiler<'a> {
     current_imports: Cow<'a, Imports>,
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
-    current_card: i32,
-    current_lane: Box<str>,
+    current_index: CardIndex,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -78,7 +76,7 @@ pub fn compile(
     let options = compile_options.into().unwrap_or_default();
     let compilation_unit = compilation_unit
         .into_ir_stream(options.recursion_limit)
-        .map_err(|err| CompilationError::with_loc(err, LaneNode::default(), 0))?;
+        .map_err(|err| CompilationError::with_loc(err, CardIndex::default()))?;
 
     let mut compiler = Compiler::new();
     compiler.compile(&compilation_unit, options)
@@ -100,8 +98,7 @@ impl<'a> Compiler<'a> {
             current_namespace: Default::default(),
             locals: Default::default(),
             scope_depth: 0,
-            current_card: -1,
-            current_lane: "".into(),
+            current_index: CardIndex::default(),
             current_imports: Default::default(),
         }
     }
@@ -115,8 +112,7 @@ impl<'a> Compiler<'a> {
         if compilation_unit.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
-                LaneNode::default(),
-                0,
+                self.current_index.clone(),
             ));
         }
         self.program = CaoCompiledProgram::default();
@@ -129,11 +125,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn error(&self, pl: CompilationErrorPayload) -> CompilationError {
-        CompilationError::with_loc(
-            pl,
-            LaneNode(self.current_lane.to_string()),
-            self.current_card,
-        )
+        CompilationError::with_loc(pl, self.current_index.clone())
     }
 
     /// build the jump table and consume the lane names
@@ -146,20 +138,12 @@ impl<'a> Compiler<'a> {
         };
 
         let mut num_cards = 0usize;
-        self.current_card = -1;
-        for (i, n) in compilation_unit.iter().enumerate() {
-            self.current_lane = n.name.clone();
+        for n in compilation_unit.iter() {
+            self.current_index.lane = n.name.to_string();
+            self.current_index.card_index.indices.clear();
             num_cards += n.cards.len();
 
-            let nodekey = Handle::from_u64(
-                NodeId {
-                    lane: i
-                        .try_into()
-                        .map_err(|_| self.error(CompilationErrorPayload::TooManyLanes))?,
-                    pos: 0,
-                }
-                .into(),
-            );
+            let nodekey = self.current_index.as_handle();
             self.add_lane(nodekey, n)?;
         }
 
@@ -189,23 +173,26 @@ impl<'a> Compiler<'a> {
                 Ok(i) => i,
                 Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
             };
+            self.current_index = CardIndex::new(&main_lane.name, 0);
             self.scope_begin();
-            self.process_lane(il, main_lane, 0)?;
-            let nodeid = NodeId {
-                lane: il as u32,
-                pos: len,
+            self.process_lane(il, main_lane)?;
+            self.current_index = CardIndex {
+                lane: main_lane.name.to_string(),
+                card_index: LaneCardIndex {
+                    indices: smallvec::smallvec![len as u32],
+                },
             };
             self.scope_end();
             // insert explicit exit after the first lane
-            self.process_card(nodeid, &Card::Abort)?;
+            self.process_card(&Card::Abort)?;
         }
 
         for (il, lane) in lanes {
-            let nodeid = NodeId {
-                lane: il as u32,
-                pos: 0,
+            self.current_index = CardIndex {
+                lane: lane.name.to_string(),
+                ..Default::default()
             };
-            let nodeid_hash = Handle::from_u64(nodeid.into());
+            let nodeid_hash = self.current_index.as_handle();
             let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
             self.program
@@ -216,7 +203,7 @@ impl<'a> Compiler<'a> {
 
             self.scope_begin();
 
-            self.process_lane(il, lane, 1)?;
+            self.process_lane(il, lane)?;
 
             self.scope_end();
             self.push_instruction(Instruction::Return);
@@ -265,16 +252,13 @@ impl<'a> Compiler<'a> {
         &mut self,
         il: usize,
         LaneIr {
-            name,
             arguments,
             cards,
             namespace,
             imports,
+            ..
         }: &'a LaneIr,
-        instruction_offset: i32,
     ) -> CompilationResult<()> {
-        self.current_lane = name.clone();
-        self.current_card = -1;
         self.current_namespace = Cow::Borrowed(namespace);
         self.current_imports = Cow::Borrowed(imports);
 
@@ -288,12 +272,10 @@ impl<'a> Compiler<'a> {
             self.add_local(param.as_str())?;
         }
         for (ic, card) in cards.iter().enumerate() {
-            self.current_card = ic as i32;
-            let nodeid = NodeId {
-                lane: il as u32,
-                pos: (ic as i32 + instruction_offset) as u32,
-            };
-            self.process_card(nodeid, card)?;
+            // valid indices always have 1 subindex, so replace that
+            self.current_index.pop_subindex();
+            self.current_index.push_subindex(ic as u32);
+            self.process_card(card)?;
         }
         Ok(())
     }
@@ -425,10 +407,10 @@ impl<'a> Compiler<'a> {
         Ok(None)
     }
 
-    fn process_card(&mut self, nodeid: NodeId, card: &'a Card) -> CompilationResult<()> {
+    fn process_card(&mut self, card: &'a Card) -> CompilationResult<()> {
         let handle = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
-        let nodeid_hash = Handle::from_u64(nodeid.into());
+        let nodeid_hash = self.current_index.as_handle();
         self.program
             .labels
             .0
@@ -442,8 +424,10 @@ impl<'a> Compiler<'a> {
         match card {
             Card::Noop => {}
             Card::CompositeCard(comp) => {
-                for card in comp.cards.iter() {
-                    self.process_card(nodeid, card)?;
+                for (i, card) in comp.cards.iter().enumerate() {
+                    self.current_index.push_subindex(i as u32);
+                    self.process_card(card)?;
+                    self.current_index.pop_subindex()
                 }
             }
             Card::ForEach { variable, lane } => {
@@ -538,25 +522,33 @@ impl<'a> Compiler<'a> {
                 r#else: else_card,
             } => {
                 let mut idx = 0;
+                self.current_index.push_subindex(0);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
-                    c.process_card(nodeid, then_card)?;
+                    c.process_card(then_card)?;
                     // jump over the `else` branch
                     c.push_instruction(Instruction::Goto);
                     idx = c.program.bytecode.len();
                     write_to_vec(0i32, &mut c.program.bytecode);
                     Ok(())
                 })?;
-                self.process_card(nodeid, else_card)?;
+                self.current_index.pop_subindex();
+                self.current_index.push_subindex(1);
+                self.process_card(else_card)?;
+                self.current_index.pop_subindex();
                 unsafe {
                     let ptr = self.program.bytecode.as_mut_ptr().add(idx) as *mut i32;
                     std::ptr::write_unaligned(ptr, self.program.bytecode.len() as i32);
                 }
             }
             Card::IfFalse(jmp) => {
-                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(nodeid, jmp))?
+                self.current_index.push_subindex(0);
+                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(jmp))?;
+                self.current_index.pop_subindex();
             }
             Card::IfTrue(jmp) => {
-                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(nodeid, jmp))?
+                self.current_index.push_subindex(0);
+                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(jmp))?;
+                self.current_index.pop_subindex();
             }
             Card::Jump(jmp) => self.encode_jump(jmp)?,
             Card::StringLiteral(c) => self.push_str(c.0.as_str()),
@@ -645,13 +637,9 @@ impl<'a> Compiler<'a> {
     }
 
     fn push_instruction(&mut self, instruction: Instruction) {
-        self.program.trace.insert(
-            self.program.bytecode.len(),
-            TraceEntry {
-                lane: self.current_lane.clone(),
-                card: self.current_card,
-            },
-        );
+        self.program
+            .trace
+            .insert(self.program.bytecode.len(), self.current_index.clone());
         self.program.bytecode.push(instruction as u8);
     }
 }

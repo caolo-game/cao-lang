@@ -1,20 +1,19 @@
 use std::fmt::Display;
 
-use super::{LaneNode, NodeId};
+use super::{CardIndex, LaneNode};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 pub struct CompilationError {
     pub payload: CompilationErrorPayload,
-    /// (lane, card)
-    pub loc: Option<(LaneNode, i32)>,
+    pub loc: Option<CardIndex>,
 }
 
 impl CompilationError {
-    pub fn with_loc(payload: CompilationErrorPayload, lane_id: LaneNode, card_id: i32) -> Self {
+    pub fn with_loc(payload: CompilationErrorPayload, index: CardIndex) -> Self {
         Self {
             payload,
-            loc: Some((lane_id, card_id)),
+            loc: Some(index),
         }
     }
 }
@@ -22,11 +21,7 @@ impl CompilationError {
 impl Display for CompilationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(loc) = self.loc.as_ref() {
-            write!(
-                f,
-                "CompilationError: [Lane: {} Card: {}], Error: {}",
-                loc.0, loc.1, self.payload
-            )
+            write!(f, "CompilationError: [{}], Error: {}", loc, self.payload)
         } else {
             write!(f, "{}", self.payload)
         }
@@ -55,9 +50,6 @@ pub enum CompilationErrorPayload {
 
     #[error("SubProgram: [{0}] was not found")]
     MissingSubProgram(String),
-
-    #[error("Program references node [{0:?}] but it was not found")]
-    MissingNode(NodeId),
 
     #[error("Jumping to {dst} can not be performed\n{msg:?}")]
     InvalidJump { dst: LaneNode, msg: Option<String> },

@@ -22,7 +22,7 @@ pub mod version {
     include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
 }
 
-use std::{cmp::Ordering, mem::size_of, str::FromStr};
+use std::{mem::size_of, str::FromStr};
 
 use crate::instruction::Instruction;
 use arrayvec::ArrayString;
@@ -37,36 +37,6 @@ impl FromStr for VariableId {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let inner = u32::from_str(s)?;
         Ok(VariableId(inner))
-    }
-}
-
-/// Unique id of each nodes in a single compilation
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct NodeId {
-    /// Index of the lane this node is in
-    pub lane: u32,
-    /// Index of the node relative to the lane
-    pub pos: u32,
-}
-
-impl From<NodeId> for u64 {
-    fn from(n: NodeId) -> u64 {
-        ((n.lane as u64) << 32) | n.pos as u64
-    }
-}
-
-impl PartialOrd for NodeId {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for NodeId {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.lane
-            .cmp(&other.lane)
-            .then_with(move || self.pos.cmp(&other.pos))
     }
 }
 

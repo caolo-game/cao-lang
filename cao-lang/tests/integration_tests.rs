@@ -55,14 +55,19 @@ fn test_trace_entry() {
         ]
         .into(),
     };
-    let program = compile(ir, None).unwrap();
+    let program = compile(ir.clone(), None).unwrap();
 
     let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     let err = vm.run(&program).expect_err("run");
 
     let trace = err.trace;
-    assert_eq!(trace.lane.as_ref(), "pooh");
-    assert_eq!(trace.card, 0);
+
+    let error_card = ir
+        .get_card(&trace)
+        .expect("Expected to find the errored card");
+
+    assert!(matches!(error_card, Card::CallNative(_)));
+    assert_eq!(trace.lane.as_str(), "pooh");
 }
 
 #[test]

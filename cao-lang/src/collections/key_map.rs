@@ -187,6 +187,14 @@ fn hash_u64(key: u64, mask: u64) -> u32 {
     ((key >> 32) ^ key).0 as u32
 }
 
+impl std::ops::Add for Handle {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
+    }
+}
+
 impl From<i64> for Handle {
     fn from(key: i64) -> Self {
         Self::from_i64(key)

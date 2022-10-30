@@ -2,6 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     collections::key_map::{Handle, KeyMap},
+    compiler::CardIndex,
     VarName,
 };
 use crate::{version, VariableId};
@@ -30,14 +31,6 @@ impl Label {
     }
 }
 
-/// Identifies a card in the program
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TraceEntry {
-    pub lane: Box<str>,
-    pub card: i32,
-}
-
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoCompiledProgram {
@@ -48,7 +41,7 @@ pub struct CaoCompiledProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
-    pub trace: HashMap<usize, TraceEntry>,
+    pub trace: HashMap<usize, CardIndex>,
 }
 
 impl CaoCompiledProgram {

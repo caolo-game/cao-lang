@@ -32,7 +32,6 @@ pub enum CompileResult {
     cao_CompileResult_TooManyCards,
     cao_CompileResult_DuplicateName,
     cao_CompileResult_MissingSubProgram,
-    cao_CompileResult_MissingNode,
     cao_CompileResult_InvalidJump,
     cao_CompileResult_InternalError,
     cao_CompileResult_TooManyLocals,
@@ -174,9 +173,6 @@ pub unsafe extern "C" fn cao_compile_json(
             }
             CompilationErrorPayload::MissingSubProgram(_) => {
                 return CompileResult::cao_CompileResult_MissingSubProgram
-            }
-            CompilationErrorPayload::MissingNode(_) => {
-                return CompileResult::cao_CompileResult_MissingNode
             }
             CompilationErrorPayload::InvalidJump { .. } => {
                 return CompileResult::cao_CompileResult_InvalidJump
