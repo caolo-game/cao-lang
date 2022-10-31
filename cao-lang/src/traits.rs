@@ -1,5 +1,5 @@
 use crate::{procedures::ExecutionErrorPayload, value::Value, vm::Vm};
-use std::convert::TryFrom;
+use std::{any::type_name, convert::TryFrom};
 
 pub const MAX_STR_LEN: usize = 256;
 
@@ -78,8 +78,16 @@ where
     }
 }
 
-fn conversion_error(suffix: &str) -> ExecutionErrorPayload {
-    ExecutionErrorPayload::invalid_argument(format!("Failed to convert function input {}", suffix))
+fn conversion_error(
+    function: &str,
+    input: usize,
+    expected: &str,
+    actual: &str,
+) -> ExecutionErrorPayload {
+    ExecutionErrorPayload::invalid_argument(format!(
+        "Failed to convert function ({}) input #{}: Expected: {}, Found: {}",
+        function, input, expected, actual
+    ))
 }
 
 impl<Aux, T1> VmFunction<Aux> for VmFunction1<Aux, T1>
@@ -88,7 +96,9 @@ where
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ShallowExecutionResult {
         let v1 = vm.stack_pop();
-        let v1 = T1::try_from(v1).map_err(|_| conversion_error("1"))?;
+        let v1 = T1::try_from(v1).map_err(|_| {
+            conversion_error(type_name::<Self>(), 1, type_name::<T1>(), v1.type_name())
+        })?;
         self(vm, v1)
     }
 }
@@ -100,9 +110,13 @@ where
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ShallowExecutionResult {
         let v2 = vm.stack_pop();
-        let v2 = T2::try_from(v2).map_err(|_| conversion_error("2"))?;
+        let v2 = T2::try_from(v2).map_err(|_| {
+            conversion_error(type_name::<Self>(), 2, type_name::<T2>(), v2.type_name())
+        })?;
         let v1 = vm.stack_pop();
-        let v1 = T1::try_from(v1).map_err(|_| conversion_error("1"))?;
+        let v1 = T1::try_from(v1).map_err(|_| {
+            conversion_error(type_name::<Self>(), 1, type_name::<T1>(), v1.type_name())
+        })?;
         self(vm, v1, v2)
     }
 }
@@ -115,11 +129,17 @@ where
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ShallowExecutionResult {
         let v3 = vm.stack_pop();
-        let v3 = T3::try_from(v3).map_err(|_| conversion_error("3"))?;
+        let v3 = T3::try_from(v3).map_err(|_| {
+            conversion_error(type_name::<Self>(), 3, type_name::<T3>(), v3.type_name())
+        })?;
         let v2 = vm.stack_pop();
-        let v2 = T2::try_from(v2).map_err(|_| conversion_error("2"))?;
+        let v2 = T2::try_from(v2).map_err(|_| {
+            conversion_error(type_name::<Self>(), 2, type_name::<T2>(), v2.type_name())
+        })?;
         let v1 = vm.stack_pop();
-        let v1 = T1::try_from(v1).map_err(|_| conversion_error("1"))?;
+        let v1 = T1::try_from(v1).map_err(|_| {
+            conversion_error(type_name::<Self>(), 1, type_name::<T1>(), v1.type_name())
+        })?;
         self(vm, v1, v2, v3)
     }
 }
@@ -134,13 +154,21 @@ where
 {
     fn call(&self, vm: &mut Vm<Aux>) -> ShallowExecutionResult {
         let v4 = vm.stack_pop();
-        let v4 = T4::try_from(v4).map_err(|_| conversion_error("4"))?;
+        let v4 = T4::try_from(v4).map_err(|_| {
+            conversion_error(type_name::<Self>(), 4, type_name::<T4>(), v4.type_name())
+        })?;
         let v3 = vm.stack_pop();
-        let v3 = T3::try_from(v3).map_err(|_| conversion_error("3"))?;
+        let v3 = T3::try_from(v3).map_err(|_| {
+            conversion_error(type_name::<Self>(), 3, type_name::<T3>(), v3.type_name())
+        })?;
         let v2 = vm.stack_pop();
-        let v2 = T2::try_from(v2).map_err(|_| conversion_error("2"))?;
+        let v2 = T2::try_from(v2).map_err(|_| {
+            conversion_error(type_name::<Self>(), 2, type_name::<T2>(), v2.type_name())
+        })?;
         let v1 = vm.stack_pop();
-        let v1 = T1::try_from(v1).map_err(|_| conversion_error("1"))?;
+        let v1 = T1::try_from(v1).map_err(|_| {
+            conversion_error(type_name::<Self>(), 1, type_name::<T1>(), v1.type_name())
+        })?;
         self(vm, v1, v2, v3, v4)
     }
 }

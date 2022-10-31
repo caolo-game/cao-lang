@@ -105,6 +105,17 @@ impl Value {
         }
     }
 
+    /// Typename of this value
+    pub fn type_name(self) -> &'static str {
+        match self {
+            Value::Nil => "Nil",
+            Value::String(_) => "String",
+            Value::Object(_) => "Table",
+            Value::Integer(_) => "Integer",
+            Value::Real(_) => "Real",
+        }
+    }
+
     #[inline]
     pub fn is_float(self) -> bool {
         matches!(self, Value::Real(_))
