@@ -408,13 +408,13 @@ impl<'a> Compiler<'a> {
     }
 
     fn process_card(&mut self, card: &'a Card) -> CompilationResult<()> {
-        let handle = u32::try_from(self.program.bytecode.len())
+        let card_byte_index = u32::try_from(self.program.bytecode.len())
             .expect("bytecode length to fit into 32 bits");
         let nodeid_hash = self.current_index.as_handle();
         self.program
             .labels
             .0
-            .insert(nodeid_hash, Label::new(handle))
+            .insert(nodeid_hash, Label::new(card_byte_index))
             .unwrap();
 
         if let Some(instr) = card.instruction() {
