@@ -409,7 +409,7 @@ impl<'a> Compiler<'a> {
 
     fn process_card(&mut self, card: &'a Card) -> CompilationResult<()> {
         let card_byte_index = u32::try_from(self.program.bytecode.len())
-            .expect("bytecode length to fit into 32 bits");
+            .expect("Expected bytecode length to fit into 32 bits");
         let nodeid_hash = self.current_index.as_handle();
         self.program
             .labels
