@@ -48,6 +48,11 @@ impl<T> BoundedStack<T> {
         (0..self.head).map(move |i| unsafe { &*(*ptr.add(i)).as_ptr() })
     }
 
+    pub fn iter_backwards(&self) -> impl Iterator<Item = &T> {
+        let ptr: *const MaybeUninit<T> = self.storage.as_ptr();
+        (0..self.head).map(move |i| unsafe { &*(*ptr.add(self.head - 1 - i)).as_ptr() })
+    }
+
     pub fn push(&mut self, val: T) -> Result<(), StackError> {
         if self.head >= self.capacity {
             return Err(StackError::Full);

@@ -50,11 +50,11 @@ pub enum ExecutionErrorPayload {
 #[derive(Debug, Clone, Error)]
 pub struct ExecutionError {
     pub payload: ExecutionErrorPayload,
-    pub trace: CardIndex,
+    pub trace: Vec<CardIndex>,
 }
 
 impl ExecutionError {
-    pub fn new(payload: ExecutionErrorPayload, trace: CardIndex) -> Self {
+    pub fn new(payload: ExecutionErrorPayload, trace: Vec<CardIndex>) -> Self {
         Self { payload, trace }
     }
 }

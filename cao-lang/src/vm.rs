@@ -199,24 +199,35 @@ impl<'a, Aux> Vm<'a, Aux> {
                 stack_offset: 0,
             })
             .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
-            .map_err(|pl| ExecutionError::new(pl, CardIndex::default()))?;
+            .map_err(|pl| ExecutionError::new(pl, Vec::new()))?;
 
         let len = program.bytecode.len();
         let mut remaining_iters = self.max_instr;
         let mut instr_ptr = 0;
         let bytecode_ptr = program.bytecode.as_ptr();
 
-        let payload_to_error = |err, instr_ptr| {
-            ExecutionError::new(
-                err,
-                program.trace.get(&instr_ptr).cloned().unwrap_or_default(),
-            )
-        };
+        let payload_to_error =
+            |err, instr_ptr, stack: &crate::collections::bounded_stack::BoundedStack<CallFrame>| {
+                let mut trace = Vec::with_capacity(stack.len() + 1);
+                if let Some(t) = program.trace.get(&instr_ptr).cloned() {
+                    trace.push(t);
+                }
+                for t in stack.iter_backwards() {
+                    if let Some(t) = program.trace.get(&t.instr_ptr) {
+                        trace.push(t.clone())
+                    }
+                }
+                ExecutionError::new(err, trace)
+            };
 
         while instr_ptr < len {
             remaining_iters -= 1;
             if remaining_iters == 0 {
-                return Err(payload_to_error(ExecutionErrorPayload::Timeout, instr_ptr));
+                return Err(payload_to_error(
+                    ExecutionErrorPayload::Timeout,
+                    instr_ptr,
+                    &self.runtime_data.call_stack,
+                ));
             }
             let instr: u8 = unsafe { *bytecode_ptr.add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
@@ -227,76 +238,89 @@ impl<'a, Aux> Vm<'a, Aux> {
             );
             match instr {
                 Instruction::InitTable => {
-                    let res = self
-                        .init_table()
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    let res = self.init_table().map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                     self.stack_push(Value::Object(res.as_ptr()))
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::GetProperty => {
-                    let handle = self
-                        .pop_key()
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    let handle = self.pop_key().map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                     let instance = self.stack_pop();
-                    let table = self
-                        .get_table(instance)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    let table = self.get_table(instance).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                     let result = table.get_value(handle).unwrap_or(Value::Nil);
-                    self.stack_push(result)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    self.stack_push(result).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::SetProperty => {
                     let [value, key, instance] = self.runtime_data.value_stack.pop_n::<3>();
-                    let table = self
-                        .get_table_mut(instance)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    let table = self.get_table_mut(instance).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                     table
                         .insert(key, value)
                         .map_err(|err| {
                             debug!("Failed to insert value {:?}", err);
                             ExecutionErrorPayload::OutOfMemory
                         })
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::BeginRepeat => {
-                    instr_execution::begin_repeat(self)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::begin_repeat(self).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::Repeat => {
-                    if instr_execution::repeat(self)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?
-                    {
+                    if instr_execution::repeat(self).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })? {
                         instr_execution::instr_jump(
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
                         )
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                     } else {
-                        self.stack_push(false)
-                            .map_err(|err| payload_to_error(err, instr_ptr))?; // assumes that the next instruction is GotoIfTrue
+                        self.stack_push(false).map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?; // assumes that the next instruction is GotoIfTrue
                         instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }
                 Instruction::BeginForEach => {
-                    instr_execution::begin_for_each(self)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::begin_for_each(self).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::ForEach => {
-                    if instr_execution::for_each(self)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?
-                    {
+                    if instr_execution::for_each(self).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })? {
                         instr_execution::instr_jump(
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
                         )
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                     } else {
-                        self.stack_push(false)
-                            .map_err(|err| payload_to_error(err, instr_ptr))?; // assumes that the next instruction is GotoIfTrue
-                                                                               // add the span of the jump instruction metadata to the instr_ptr
-                                                                               // to skip this instruction
+                        self.stack_push(false).map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?; // assumes that the next instruction is GotoIfTrue
+                             // add the span of the jump instruction metadata to the instr_ptr
+                             // to skip this instruction
                         instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
                     }
                 }
@@ -331,9 +355,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(b).unwrap();
                     self.stack_push(a).unwrap();
                 }
-                Instruction::ScalarNil => self
-                    .stack_push(Value::Nil)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
+                Instruction::ScalarNil => self.stack_push(Value::Nil).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
                 Instruction::ClearStack => {
                     self.runtime_data.value_stack.clear_until(
                         self.runtime_data
@@ -344,12 +368,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     );
                 }
                 Instruction::SetLocalVar => {
-                    instr_execution::set_local(self, &program.bytecode, &mut instr_ptr)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::set_local(self, &program.bytecode, &mut instr_ptr).map_err(
+                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    )?;
                 }
                 Instruction::ReadLocalVar => {
-                    instr_execution::get_local(self, &program.bytecode, &mut instr_ptr)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::get_local(self, &program.bytecode, &mut instr_ptr).map_err(
+                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    )?;
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
@@ -357,7 +383,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                         &program.bytecode,
                         &mut instr_ptr,
                     )
-                    .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::ReadGlobalVar => {
                     instr_execution::instr_read_var(
@@ -365,23 +393,29 @@ impl<'a, Aux> Vm<'a, Aux> {
                         &mut instr_ptr,
                         program,
                     )
-                    .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::Pop => {
                     self.stack_pop();
                 }
                 Instruction::CallLane => {
                     instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::Return => {
-                    instr_execution::instr_return(self, &mut instr_ptr)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::instr_return(self, &mut instr_ptr).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::Exit => return Ok(()),
                 Instruction::CopyLast => {
-                    instr_execution::instr_copy_last(self)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                    instr_execution::instr_copy_last(self).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::ScalarInt => {
                     self.runtime_data
@@ -390,7 +424,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                             instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::ScalarFloat => {
                     self.runtime_data
@@ -399,63 +435,79 @@ impl<'a, Aux> Vm<'a, Aux> {
                             instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
                         }))
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::Not => {
                     let value = self.stack_pop();
                     let value = !value.as_bool();
                     self.stack_push(Value::Integer(value as i64))
-                        .map_err(|err| payload_to_error(err, instr_ptr))?;
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::And => self
                     .binary_op(|a, b| Value::from(a.as_bool() && b.as_bool()))
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?,
                 Instruction::Or => self
                     .binary_op(|a, b| Value::from(a.as_bool() || b.as_bool()))
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?,
                 Instruction::Xor => self
                     .binary_op(|a, b| Value::from(a.as_bool() ^ b.as_bool()))
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Add => self
-                    .binary_op(|a, b| a + b)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Sub => self
-                    .binary_op(|a, b| a - b)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Mul => self
-                    .binary_op(|a, b| a * b)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Div => self
-                    .binary_op(|a, b| a / b)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Equals => self
-                    .binary_op(|a, b| (a == b).into())
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::NotEquals => self
-                    .binary_op(|a, b| (a != b).into())
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::Less => self
-                    .binary_op(|a, b| (a < b).into())
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
-                Instruction::LessOrEq => self
-                    .binary_op(|a, b| (a <= b).into())
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?,
+                Instruction::Add => self.binary_op(|a, b| a + b).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::Sub => self.binary_op(|a, b| a - b).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::Mul => self.binary_op(|a, b| a * b).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::Div => self.binary_op(|a, b| a / b).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::Equals => self.binary_op(|a, b| (a == b).into()).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::NotEquals => {
+                    self.binary_op(|a, b| (a != b).into()).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?
+                }
+                Instruction::Less => self.binary_op(|a, b| (a < b).into()).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
+                Instruction::LessOrEq => self.binary_op(|a, b| (a <= b).into()).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
                 Instruction::StringLiteral => {
-                    instr_execution::instr_string_literal(self, &mut instr_ptr, program)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?
+                    instr_execution::instr_string_literal(self, &mut instr_ptr, program).map_err(
+                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    )?
                 }
                 Instruction::Call => {
-                    instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode)
-                        .map_err(|err| payload_to_error(err, instr_ptr))?
+                    instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode).map_err(
+                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    )?
                 }
-                Instruction::Len => instr_execution::instr_len(self)
-                    .map_err(|err| payload_to_error(err, instr_ptr))?,
+                Instruction::Len => instr_execution::instr_len(self).map_err(|err| {
+                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                })?,
             }
         }
 
         Err(payload_to_error(
             ExecutionErrorPayload::UnexpectedEndOfInput,
             instr_ptr,
+            &self.runtime_data.call_stack,
         ))
     }
 
