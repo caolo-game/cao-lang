@@ -987,3 +987,66 @@ fn import_super_module_test() {
 
     assert_eq!(result, "poggers");
 }
+
+#[test]
+fn local_variable_regression_test() {
+    /*
+    In main:
+        In composite card:
+            set local var (1)
+
+    In other lane:
+        in composite card:
+            set another local var (2) (name can be different)
+        in another composite card:
+            read the local var
+
+    Bug: Reads the variable (1) from main
+    Should read variable (2)
+    */
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [
+            (
+                "main".into(),
+                Lane::default()
+                    .with_card(Card::composite_card(
+                        "asd",
+                        "asd",
+                        vec![Card::scalar_int(69), Card::set_var("pog").unwrap()],
+                    ))
+                    .with_card(Card::jump("tiggers")),
+            ),
+            (
+                "tiggers".into(),
+                Lane::default()
+                    .with_card(Card::composite_card(
+                        "basd",
+                        "basd",
+                        vec![Card::scalar_int(42), Card::set_var("foo").unwrap()],
+                    ))
+                    .with_card(Card::composite_card(
+                        "zasd",
+                        "zasd",
+                        vec![
+                            Card::read_var("foo").unwrap(),
+                            Card::set_global_var("pooh").unwrap(),
+                        ],
+                    )),
+            ),
+        ]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("pooh", &program.variables)
+        .expect("Failed to read pooh variable");
+
+    assert_eq!(result.as_int().unwrap(), 42);
+}
