@@ -63,11 +63,15 @@ impl CardIndex {
     }
 
     pub fn as_handle(&self) -> crate::prelude::Handle {
-        let mut handle = crate::prelude::Handle::from_bytes(self.lane.as_bytes());
-        for i in self.card_index.indices.iter() {
-            handle = handle + crate::prelude::Handle::from_u32(*i);
-        }
-        handle
+        let lane_handle = crate::prelude::Handle::from_bytes(self.lane.as_bytes());
+        let subindices = self.card_index.indices.as_slice();
+        let sub_handle = unsafe {
+            crate::prelude::Handle::from_bytes(std::slice::from_raw_parts(
+                subindices.as_ptr().cast(),
+                subindices.len() * 4,
+            ))
+        };
+        lane_handle + sub_handle
     }
 
     /// pushes a new sub-index to the bottom layer
