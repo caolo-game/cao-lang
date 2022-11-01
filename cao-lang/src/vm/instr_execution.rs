@@ -116,6 +116,7 @@ pub fn instr_string_literal<T>(
 }
 
 pub fn instr_jump(
+    src_ptr: usize,
     instr_ptr: &mut usize,
     program: &CaoCompiledProgram,
     runtime_data: &mut RuntimeData,
@@ -134,7 +135,7 @@ pub fn instr_jump(
     runtime_data
         .call_stack
         .push(CallFrame {
-            src_instr_ptr: (*instr_ptr as u32).saturating_sub(1),
+            src_instr_ptr: src_ptr as u32,
             dst_instr_ptr: *instr_ptr as u32,
             stack_offset: runtime_data
                 .value_stack

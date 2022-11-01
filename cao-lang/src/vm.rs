@@ -232,6 +232,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             let instr: u8 = unsafe { *bytecode_ptr.add(instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
+            let src_ptr = instr_ptr;
             instr_ptr += 1;
             debug!(
                 "Executing: {:?} instr_ptr: {} Stack: {}",
@@ -285,6 +286,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })? {
                         instr_execution::instr_jump(
+                            src_ptr,
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
@@ -309,6 +311,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })? {
                         instr_execution::instr_jump(
+                            src_ptr,
                             &mut instr_ptr,
                             program,
                             &mut self.runtime_data,
@@ -402,10 +405,15 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_pop();
                 }
                 Instruction::CallLane => {
-                    instr_execution::instr_jump(&mut instr_ptr, program, &mut self.runtime_data)
-                        .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?;
+                    instr_execution::instr_jump(
+                        src_ptr,
+                        &mut instr_ptr,
+                        program,
+                        &mut self.runtime_data,
+                    )
+                    .map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::Return => {
                     instr_execution::instr_return(self, &mut instr_ptr).map_err(|err| {
