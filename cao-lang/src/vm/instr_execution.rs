@@ -195,7 +195,7 @@ pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .runtime_data
         .call_stack
         .last()
-        .expect("Call stack is emtpy")
+        .expect("Call stack is empty")
         .stack_offset;
     let offset = offset as usize;
     let value = vm.runtime_data.value_stack.get(offset + handle as usize);
