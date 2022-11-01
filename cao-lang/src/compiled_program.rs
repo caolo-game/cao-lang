@@ -1,7 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
 use crate::{
-    collections::key_map::{Handle, KeyMap},
+    collections::handle_table::{Handle, HandleTable},
     compiler::CardIndex,
     VarName,
 };
@@ -9,13 +9,13 @@ use crate::{version, VariableId};
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Labels(pub KeyMap<Label>);
+pub struct Labels(pub HandleTable<Label>);
 
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Variables {
-    pub ids: KeyMap<VariableId>,
-    pub names: KeyMap<VarName>,
+    pub ids: HandleTable<VariableId>,
+    pub names: HandleTable<VarName>,
 }
 
 #[derive(Debug, Clone, Default)]

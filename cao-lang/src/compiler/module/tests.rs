@@ -11,8 +11,7 @@ fn module_bincode_serde_test() {
     let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
     default_prog.serialize(&mut s).unwrap();
 
-    let mut reader =
-        bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
+    let mut reader = bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
 
     let _prog = Module::deserialize(&mut reader).unwrap();
 }
@@ -219,4 +218,3 @@ fn insert_card_test() {
 
     assert_eq!(json, EXP);
 }
-

@@ -14,7 +14,7 @@ mod tests;
 
 use crate::{
     bytecode::{encode_str, write_to_vec},
-    collections::key_map::{Handle, KeyMap},
+    collections::handle_table::{Handle, HandleTable},
     compiled_program::{CaoCompiledProgram, Label},
     Instruction, VariableId,
 };
@@ -46,7 +46,7 @@ pub struct Compiler<'a> {
     next_var: VariableId,
 
     /// maps lanes to their metadata
-    jump_table: KeyMap<LaneMeta>,
+    jump_table: HandleTable<LaneMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, Imports>,
@@ -318,7 +318,7 @@ impl<'a> Compiler<'a> {
     // take jump_table by param because of lifetimes
     fn lookup_lane<'b>(
         &self,
-        jump_table: &'b KeyMap<LaneMeta>,
+        jump_table: &'b HandleTable<LaneMeta>,
         lane: &LaneNode,
     ) -> CompilationResult<&'b LaneMeta> {
         // attempt to look up the function by name

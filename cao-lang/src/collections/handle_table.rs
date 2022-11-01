@@ -35,7 +35,7 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Handle(u32);
 
-pub struct KeyMap<T, A = SysAllocator>
+pub struct HandleTable<T, A = SysAllocator>
 where
     A: Allocator,
 {
@@ -47,13 +47,13 @@ where
     alloc: A,
 }
 
-impl<T, A> Clone for KeyMap<T, A>
+impl<T, A> Clone for HandleTable<T, A>
 where
     T: Clone,
     A: Allocator + Clone,
 {
     fn clone(&self) -> Self {
-        let mut result = KeyMap::with_capacity(self.capacity, self.alloc.clone()).unwrap();
+        let mut result = HandleTable::with_capacity(self.capacity, self.alloc.clone()).unwrap();
 
         for (k, v) in self.iter() {
             result.insert(k, v.clone()).unwrap();
@@ -63,7 +63,7 @@ where
     }
 }
 
-impl<T, A: Allocator> std::fmt::Debug for KeyMap<T, A>
+impl<T, A: Allocator> std::fmt::Debug for HandleTable<T, A>
 where
     T: std::fmt::Debug,
 {
@@ -214,7 +214,7 @@ impl<'a> From<&'a str> for Handle {
     }
 }
 
-impl<T, A> Default for KeyMap<T, A>
+impl<T, A> Default for HandleTable<T, A>
 where
     A: Allocator + Default,
 {
@@ -223,7 +223,7 @@ where
     }
 }
 
-impl<T, A> Drop for KeyMap<T, A>
+impl<T, A> Drop for HandleTable<T, A>
 where
     A: Allocator,
 {
@@ -243,7 +243,7 @@ where
     }
 }
 
-impl<T, A> KeyMap<T, A>
+impl<T, A> HandleTable<T, A>
 where
     A: Allocator,
 {
@@ -518,7 +518,7 @@ where
     }
 }
 
-impl<T> Index<Handle> for KeyMap<T> {
+impl<T> Index<Handle> for HandleTable<T> {
     type Output = T;
 
     fn index(&self, key: Handle) -> &Self::Output {
@@ -532,7 +532,7 @@ impl<T> Index<Handle> for KeyMap<T> {
         }
     }
 }
-impl<T> IndexMut<Handle> for KeyMap<T> {
+impl<T> IndexMut<Handle> for HandleTable<T> {
     fn index_mut(&mut self, key: Handle) -> &mut Self::Output {
         let ind = self.find_ind(key);
         unsafe {
@@ -545,7 +545,7 @@ impl<T> IndexMut<Handle> for KeyMap<T> {
     }
 }
 
-impl<T> Index<u32> for KeyMap<T> {
+impl<T> Index<u32> for HandleTable<T> {
     type Output = T;
 
     fn index(&self, key: u32) -> &Self::Output {
@@ -554,14 +554,14 @@ impl<T> Index<u32> for KeyMap<T> {
     }
 }
 
-impl<T> IndexMut<u32> for KeyMap<T> {
+impl<T> IndexMut<u32> for HandleTable<T> {
     fn index_mut(&mut self, key: u32) -> &mut Self::Output {
         let key = Handle::from_u32(key);
         &mut self[key]
     }
 }
 
-impl<T> Index<&str> for KeyMap<T> {
+impl<T> Index<&str> for HandleTable<T> {
     type Output = T;
 
     fn index(&self, key: &str) -> &Self::Output {
@@ -570,14 +570,14 @@ impl<T> Index<&str> for KeyMap<T> {
     }
 }
 
-impl<T> IndexMut<&str> for KeyMap<T> {
+impl<T> IndexMut<&str> for HandleTable<T> {
     fn index_mut(&mut self, key: &str) -> &mut Self::Output {
         let key = Handle::from_str(key).unwrap();
         &mut self[key]
     }
 }
 
-impl<T> Index<&[u8]> for KeyMap<T> {
+impl<T> Index<&[u8]> for HandleTable<T> {
     type Output = T;
 
     fn index(&self, key: &[u8]) -> &Self::Output {
@@ -586,15 +586,15 @@ impl<T> Index<&[u8]> for KeyMap<T> {
     }
 }
 
-impl<T> IndexMut<&[u8]> for KeyMap<T> {
+impl<T> IndexMut<&[u8]> for HandleTable<T> {
     fn index_mut(&mut self, key: &[u8]) -> &mut Self::Output {
         let key = Handle::from_bytes(key);
         &mut self[key]
     }
 }
 
-unsafe impl<T, A> Send for KeyMap<T, A> where A: Allocator + Send {}
-unsafe impl<T, A> Sync for KeyMap<T, A> where A: Allocator + Sync {}
+unsafe impl<T, A> Send for HandleTable<T, A> where A: Allocator + Send {}
+unsafe impl<T, A> Sync for HandleTable<T, A> where A: Allocator + Sync {}
 
 #[inline]
 fn pad_pot(cap: usize) -> usize {

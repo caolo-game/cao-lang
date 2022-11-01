@@ -9,7 +9,7 @@ mod tests;
 
 use self::runtime::CallFrame;
 use crate::{
-    collections::key_map::{Handle, KeyMap},
+    collections::handle_table::{Handle, HandleTable},
     instruction::instruction_span,
     instruction::Instruction,
     prelude::*,
@@ -32,7 +32,7 @@ where
 
     pub runtime_data: RuntimeData,
 
-    callables: KeyMap<Procedure<Aux>>,
+    callables: HandleTable<Procedure<Aux>>,
     _m: std::marker::PhantomData<&'a ()>,
 }
 
@@ -40,7 +40,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload> {
         Ok(Self {
             auxiliary_data,
-            callables: KeyMap::default(),
+            callables: HandleTable::default(),
             runtime_data: RuntimeData::new(400 * 1024, 256, 256)?,
             max_instr: 1000,
             _m: Default::default(),

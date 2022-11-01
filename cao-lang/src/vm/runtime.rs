@@ -4,7 +4,7 @@ use crate::{
     alloc::{Allocator, BumpAllocator, BumpProxy},
     collections::{
         bounded_stack::BoundedStack,
-        key_map::{KeyMap, MapError},
+        handle_table::{HandleTable, MapError},
         value_stack::ValueStack,
     },
     prelude::*,
@@ -13,8 +13,8 @@ use crate::{
 use tracing::debug;
 
 pub struct FieldTable {
-    keys: KeyMap<Value, BumpProxy>,
-    values: KeyMap<Value, BumpProxy>,
+    keys: HandleTable<Value, BumpProxy>,
+    values: HandleTable<Value, BumpProxy>,
     alloc: BumpProxy,
 }
 
@@ -43,8 +43,8 @@ impl std::fmt::Debug for FieldTable {
 impl FieldTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {
-            keys: KeyMap::with_capacity(size, proxy.clone())?,
-            values: KeyMap::with_capacity(size, proxy.clone())?,
+            keys: HandleTable::with_capacity(size, proxy.clone())?,
+            values: HandleTable::with_capacity(size, proxy.clone())?,
             alloc: proxy,
         };
         Ok(res)

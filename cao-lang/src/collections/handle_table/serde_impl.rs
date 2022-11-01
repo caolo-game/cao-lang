@@ -1,7 +1,7 @@
 use super::*;
 use serde::{de::Visitor, ser::SerializeMap, Deserialize, Serialize};
 
-impl<T: Serialize> Serialize for KeyMap<T> {
+impl<T: Serialize> Serialize for HandleTable<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: ::serde::Serializer,
@@ -14,15 +14,15 @@ impl<T: Serialize> Serialize for KeyMap<T> {
     }
 }
 
-struct KeyMapVisitor<T> {
+struct HandleTableVisitor<T> {
     _m: std::marker::PhantomData<T>,
 }
 
-impl<'de, T: Deserialize<'de>> Visitor<'de> for KeyMapVisitor<T> {
-    type Value = KeyMap<T>;
+impl<'de, T: Deserialize<'de>> Visitor<'de> for HandleTableVisitor<T> {
+    type Value = HandleTable<T>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("struct KeyMap")
+        formatter.write_str("struct HandleTable")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -33,7 +33,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for KeyMapVisitor<T> {
         if !cap.is_power_of_two() {
             cap = cap.next_power_of_two();
         }
-        let mut res = KeyMap::with_capacity(cap, SysAllocator::default()).expect("oom");
+        let mut res = HandleTable::with_capacity(cap, SysAllocator::default()).expect("oom");
         while let Some((k, v)) = map.next_entry()? {
             res.insert(k, v).expect("oom");
         }
@@ -41,12 +41,12 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for KeyMapVisitor<T> {
     }
 }
 
-impl<'de, T: Deserialize<'de>> Deserialize<'de> for KeyMap<T> {
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for HandleTable<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: ::serde::Deserializer<'de>,
     {
-        deserializer.deserialize_map(KeyMapVisitor {
+        deserializer.deserialize_map(HandleTableVisitor {
             _m: Default::default(),
         })
     }
@@ -63,12 +63,12 @@ mod tests {
 
     #[test]
     fn can_serialize_json() {
-        let mut map = KeyMap::default();
+        let mut map = HandleTable::default();
         map.insert(Handle(123), 69).unwrap();
 
         let js = serde_json::to_string(&map).unwrap();
 
-        let map2: KeyMap<i32> = serde_json::from_str(&js).unwrap();
+        let map2: HandleTable<i32> = serde_json::from_str(&js).unwrap();
 
         let res = map2.get(Handle(123)).unwrap();
         assert_eq!(*res, 69);
@@ -76,13 +76,13 @@ mod tests {
 
     #[test]
     fn can_serialize_bincode() {
-        let mut map = KeyMap::default();
+        let mut map = HandleTable::default();
         map.insert(Handle(123), "poggers".to_string()).unwrap();
         map.insert(Handle(42), "coggers".to_string()).unwrap();
 
         let payload = bincode::serialize(&map).unwrap();
 
-        let map2: KeyMap<String> = bincode::deserialize(&payload).unwrap();
+        let map2: HandleTable<String> = bincode::deserialize(&payload).unwrap();
 
         let res = map2.get(Handle(123)).unwrap();
         assert_eq!(*res, "poggers");
@@ -92,13 +92,13 @@ mod tests {
 
     #[test]
     fn can_serialize_cbor() {
-        let mut map = KeyMap::default();
+        let mut map = HandleTable::default();
         map.insert(Handle(123), 69).unwrap();
 
         let mut payload = Vec::new();
         ciborium::ser::into_writer(&map, &mut payload).unwrap();
 
-        let map2: KeyMap<i32> = ciborium::de::from_reader(&payload[..]).unwrap();
+        let map2: HandleTable<i32> = ciborium::de::from_reader(&payload[..]).unwrap();
 
         let res = map2.get(Handle(123)).unwrap();
         assert_eq!(*res, 69);

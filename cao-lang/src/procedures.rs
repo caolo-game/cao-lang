@@ -2,7 +2,7 @@
 //!
 use std::fmt::Display;
 
-use crate::collections::key_map::Handle;
+use crate::collections::handle_table::Handle;
 use crate::prelude::CardIndex;
 use crate::traits::VmFunction;
 use thiserror::Error;

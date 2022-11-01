@@ -4,7 +4,7 @@ use tracing::debug;
 
 use crate::{
     bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
-    collections::key_map::Handle,
+    collections::handle_table::Handle,
     compiled_program::CaoCompiledProgram,
     procedures::ExecutionErrorPayload,
     traits::MAX_STR_LEN,
