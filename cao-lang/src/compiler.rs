@@ -636,9 +636,10 @@ impl<'a> Compiler<'a> {
     }
 
     fn push_instruction(&mut self, instruction: Instruction) {
-        self.program
-            .trace
-            .insert(self.program.bytecode.len(), self.current_index.clone());
+        self.program.trace.insert(
+            self.program.bytecode.len() as u32,
+            self.current_index.clone(),
+        );
         self.program.bytecode.push(instruction as u8);
     }
 }

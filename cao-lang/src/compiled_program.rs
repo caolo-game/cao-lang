@@ -41,7 +41,7 @@ pub struct CaoCompiledProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
-    pub trace: HashMap<usize, CardIndex>,
+    pub trace: HashMap<u32, CardIndex>,
 }
 
 impl CaoCompiledProgram {

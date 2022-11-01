@@ -128,18 +128,19 @@ pub fn instr_jump(
         .call_stack
         .last_mut()
         .expect("Call stack was empty")
-        .instr_ptr = *instr_ptr;
+        .dst_instr_ptr = *instr_ptr as u32;
 
     // init the new call frame
     runtime_data
         .call_stack
         .push(CallFrame {
-            instr_ptr: *instr_ptr,
+            src_instr_ptr: (*instr_ptr as u32).saturating_sub(1),
+            dst_instr_ptr: *instr_ptr as u32,
             stack_offset: runtime_data
                 .value_stack
                 .len()
                 .checked_sub(argcount as usize)
-                .ok_or(ExecutionErrorPayload::MissingArgument)?,
+                .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
         })
         .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
 
@@ -176,6 +177,7 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .last()
         .expect("Call stack is emtpy")
         .stack_offset;
+    let offset = offset as usize;
     let value = vm.runtime_data.value_stack.pop_w_offset(offset);
     vm.runtime_data
         .value_stack
@@ -194,6 +196,7 @@ pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
         .last()
         .expect("Call stack is emtpy")
         .stack_offset;
+    let offset = offset as usize;
     let value = vm.runtime_data.value_stack.get(offset + handle as usize);
     vm.stack_push(value)?;
     Ok(())
@@ -203,7 +206,10 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     // pop the current stack frame
     let value = match vm.runtime_data.call_stack.pop() {
         // return value
-        Some(rt) => vm.runtime_data.value_stack.clear_until(rt.stack_offset),
+        Some(rt) => vm
+            .runtime_data
+            .value_stack
+            .clear_until(rt.stack_offset as usize),
         None => {
             return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Call stack is empty".to_string(),
@@ -212,8 +218,10 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     };
     // read the previous frame
     match vm.runtime_data.call_stack.last_mut() {
-        Some(CallFrame { instr_ptr: ptr, .. }) => {
-            *instr_ptr = *ptr;
+        Some(CallFrame {
+            dst_instr_ptr: ptr, ..
+        }) => {
+            *instr_ptr = *ptr as usize;
         }
         None => {
             return Err(ExecutionErrorPayload::BadReturn {

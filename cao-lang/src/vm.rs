@@ -195,7 +195,8 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data
             .call_stack
             .push(CallFrame {
-                instr_ptr: 0,
+                src_instr_ptr: 0,
+                dst_instr_ptr: 0,
                 stack_offset: 0,
             })
             .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
@@ -209,11 +210,11 @@ impl<'a, Aux> Vm<'a, Aux> {
         let payload_to_error =
             |err, instr_ptr, stack: &crate::collections::bounded_stack::BoundedStack<CallFrame>| {
                 let mut trace = Vec::with_capacity(stack.len() + 1);
-                if let Some(t) = program.trace.get(&instr_ptr).cloned() {
+                if let Some(t) = program.trace.get(&(instr_ptr as u32)).cloned() {
                     trace.push(t);
                 }
                 for t in stack.iter_backwards() {
-                    if let Some(t) = program.trace.get(&t.instr_ptr) {
+                    if let Some(t) = program.trace.get(&t.src_instr_ptr) {
                         trace.push(t.clone())
                     }
                 }
@@ -364,7 +365,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                             .call_stack
                             .last()
                             .expect("No callframe available")
-                            .stack_offset,
+                            .stack_offset as usize,
                     );
                 }
                 Instruction::SetLocalVar => {
