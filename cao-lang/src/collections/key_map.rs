@@ -39,7 +39,7 @@ pub struct KeyMap<T, A = SysAllocator>
 where
     A: Allocator,
 {
-    keys: NonNull<Handle>,
+    handles: NonNull<Handle>,
     values: NonNull<T>,
     count: usize,
     capacity: usize,
@@ -231,7 +231,7 @@ where
         self.clear();
         unsafe {
             self.alloc.dealloc(
-                self.keys.cast(),
+                self.handles.cast(),
                 Layout::from_size_align(self.capacity * size_of::<Handle>(), align_of::<Handle>())
                     .unwrap(),
             );
@@ -251,7 +251,7 @@ where
         unsafe {
             let (keys, values) = Self::alloc_storage(&allocator, capacity)?;
             let res = Self {
-                keys,
+                handles: keys,
                 values,
                 alloc: allocator,
                 count: 0,
@@ -264,7 +264,7 @@ where
     pub fn clear(&mut self) {
         unsafe {
             for (i, k) in (0..self.capacity)
-                .map(|i| (i, &mut *self.keys.as_ptr().add(i)))
+                .map(|i| (i, &mut *self.handles.as_ptr().add(i)))
                 .filter(|(_, Handle(x))| *x != 0)
             {
                 if std::mem::needs_drop::<T>() {
@@ -292,9 +292,9 @@ where
         let ind = self.find_ind(key);
 
         let pl = unsafe {
-            if *self.keys.as_ptr().add(ind) != key {
+            if *self.handles.as_ptr().add(ind) != key {
                 EntryPayload::Vacant {
-                    key: &mut *self.keys.as_ptr().add(ind),
+                    key: &mut *self.handles.as_ptr().add(ind),
                     value: &mut *(self.values.as_ptr().add(ind) as *mut MaybeUninit<T>),
                     count: &mut self.count,
                 }
@@ -323,13 +323,13 @@ where
     #[inline]
     pub fn contains(&self, key: Handle) -> bool {
         let ind = self.find_ind(key);
-        unsafe { (*self.keys.as_ptr().add(ind)).0 != 0 }
+        unsafe { (*self.handles.as_ptr().add(ind)).0 != 0 }
     }
 
     pub fn get(&self, key: Handle) -> Option<&T> {
         let ind = self.find_ind(key);
         unsafe {
-            if (*self.keys.as_ptr().add(ind)).0 != 0 {
+            if (*self.handles.as_ptr().add(ind)).0 != 0 {
                 let r = self.values.as_ptr().add(ind);
                 Some(&*r)
             } else {
@@ -341,7 +341,7 @@ where
     pub fn get_mut(&mut self, key: Handle) -> Option<&mut T> {
         let ind = self.find_ind(key);
         unsafe {
-            if (*self.keys.as_ptr().add(ind)).0 != 0 {
+            if (*self.handles.as_ptr().add(ind)).0 != 0 {
                 let r = self.values.as_ptr().add(ind);
                 Some(&mut *r)
             } else {
@@ -362,7 +362,7 @@ where
         // improve uniformity via fibonacci hashing
         // in wasm sizeof usize is 4, so multiply our already 32 bit hash
         let mut ind = (needle.0.wrapping_mul(2654435769) as usize) & len_mask;
-        let ptr = self.keys.as_ptr();
+        let ptr = self.handles.as_ptr();
         loop {
             debug_assert!(ind < len);
             let k = unsafe { *ptr.add(ind) };
@@ -374,7 +374,7 @@ where
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Handle, &'_ T)> + '_ {
-        let keys = self.keys.as_ptr();
+        let keys = self.handles.as_ptr();
         let values = self.values.as_ptr();
         (0..self.capacity).filter_map(move |i| unsafe {
             let k = *keys.add(i);
@@ -383,7 +383,7 @@ where
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Handle, &'_ mut T)> + '_ {
-        let keys = self.keys.as_ptr();
+        let keys = self.handles.as_ptr();
         let values = self.values.as_ptr();
         (0..self.capacity).filter_map(move |i| unsafe {
             let k = *keys.add(i);
@@ -426,7 +426,7 @@ where
         let capacity = pad_pot(capacity).max(4); // allocate at least four items
         let (mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
 
-        swap(&mut self.keys, &mut keys);
+        swap(&mut self.handles, &mut keys);
         swap(&mut self.values, &mut values);
 
         let old_cap = self.capacity;
@@ -486,7 +486,7 @@ where
 
         debug_assert!(ind < self.capacity);
 
-        let is_new_key = unsafe { (*self.keys.as_ptr().add(ind)).0 == 0 };
+        let is_new_key = unsafe { (*self.handles.as_ptr().add(ind)).0 == 0 };
         self.count += is_new_key as usize;
 
         if std::mem::needs_drop::<T>() && !is_new_key {
@@ -496,7 +496,7 @@ where
         }
 
         unsafe {
-            std::ptr::write(self.keys.as_ptr().add(ind), key);
+            std::ptr::write(self.handles.as_ptr().add(ind), key);
             std::ptr::write(self.values.as_ptr().add(ind), value);
             &mut *self.values.as_ptr().add(ind)
         }
@@ -506,7 +506,7 @@ where
     pub fn remove(&mut self, key: Handle) -> Option<T> {
         let ind = self.find_ind(key);
         unsafe {
-            let kptr = self.keys.as_ptr().add(ind);
+            let kptr = self.handles.as_ptr().add(ind);
             if (*kptr).0 != 0 {
                 self.count -= 1;
                 *kptr = Handle(0);
@@ -524,7 +524,7 @@ impl<T> Index<Handle> for KeyMap<T> {
     fn index(&self, key: Handle) -> &Self::Output {
         let ind = self.find_ind(key);
         unsafe {
-            assert!((*self.keys.as_ptr().add(ind)).0 != 0);
+            assert!((*self.handles.as_ptr().add(ind)).0 != 0);
         }
         unsafe {
             let r = self.values.as_ptr().add(ind);
@@ -536,7 +536,7 @@ impl<T> IndexMut<Handle> for KeyMap<T> {
     fn index_mut(&mut self, key: Handle) -> &mut Self::Output {
         let ind = self.find_ind(key);
         unsafe {
-            assert!((*self.keys.as_ptr().add(ind)).0 != 0);
+            assert!((*self.handles.as_ptr().add(ind)).0 != 0);
         }
         unsafe {
             let r = self.values.as_ptr().add(ind);
