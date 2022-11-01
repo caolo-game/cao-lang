@@ -247,12 +247,43 @@ impl Card {
         }
     }
 
-    pub fn composite_card(name: String, ty: String, cards: Vec<Card>) -> Self {
-        Self::CompositeCard(Box::new(CompositeCard { name, ty, cards }))
+    pub fn composite_card(
+        name: impl Into<String>,
+        ty: impl Into<String>,
+        cards: Vec<Card>,
+    ) -> Self {
+        Self::CompositeCard(Box::new(CompositeCard {
+            name: name.into(),
+            ty: ty.into(),
+            cards,
+        }))
+    }
+
+    pub fn set_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
+        let c = Self::SetVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
+        Ok(c)
+    }
+
+    pub fn read_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
+        let c = Self::ReadVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
+        Ok(c)
+    }
+
+    pub fn set_global_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
+        let c = Self::SetGlobalVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
+        Ok(c)
+    }
+
+    pub fn scalar_int(i: i64) -> Self {
+        Card::ScalarInt(IntegerNode(i))
     }
 
     pub fn string_card(s: impl Into<String>) -> Self {
         Self::StringLiteral(StringNode(s.into()))
+    }
+
+    pub fn jump(s: impl Into<String>) -> Self {
+        Self::Jump(LaneNode(s.into()))
     }
 
     pub fn get_card_by_index_mut(&mut self, i: usize) -> Option<&mut Card> {
