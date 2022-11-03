@@ -240,6 +240,13 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         count as f32 > capacity as f32 * MAX_LOAD
     }
 
+    pub fn reserve(&mut self, additional_cap: usize) -> Result<(), MapError>
+    where
+        K: Eq,
+    {
+        unsafe { self.adjust_capacity(self.capacity + additional_cap) }
+    }
+
     fn grow(&mut self) -> Result<(), MapError>
     where
         K: Eq,
