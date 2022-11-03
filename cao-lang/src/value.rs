@@ -29,7 +29,7 @@ impl std::hash::Hash for Value {
             }
             Value::Real(f) => {
                 state.write("real".as_bytes());
-                unsafe { std::mem::transmute::<_, i64>(*f).hash(state) }
+                f.to_bits().hash(state);
             }
             Value::Object(o) => {
                 state.write("o".as_bytes());
