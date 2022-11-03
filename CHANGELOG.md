@@ -1,4 +1,13 @@
 # Changelog
+## v0.1.95
+
+
+### Features
+
+- Add stack trace to runtime errors
+
+- Allow field_tables to be queried by str and int
+
 ## v0.1.93
 
 
