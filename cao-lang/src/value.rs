@@ -14,7 +14,7 @@ pub enum Value {
 impl std::hash::Hash for Value {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Value::Nil => ().hash(state),
+            Value::Nil => 0u8.hash(state),
             Value::String(s) => unsafe {
                 if let Some(s) = s.get_str() {
                     s.hash(state);
