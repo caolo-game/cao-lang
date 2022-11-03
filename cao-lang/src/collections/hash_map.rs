@@ -35,6 +35,42 @@ pub struct CaoHashMap<K, V, A: Allocator = SysAllocator> {
     alloc: A,
 }
 
+unsafe impl<K, V, A: Allocator + Send> Send for CaoHashMap<K, V, A> {}
+unsafe impl<K, V, A: Allocator + Send> Sync for CaoHashMap<K, V, A> {}
+
+impl<K, V, A> std::fmt::Debug for CaoHashMap<K, V, A>
+where
+    K: std::fmt::Debug,
+    V: std::fmt::Debug,
+    A: Allocator,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut state = f.debug_map();
+        for (k, v) in self.iter() {
+            state.entry(k, v);
+        }
+        state.finish()
+    }
+}
+
+impl<K, V, A> Clone for CaoHashMap<K, V, A>
+where
+    K: Clone + Eq + Hash,
+    V: Clone,
+    A: Allocator + Clone,
+{
+    fn clone(&self) -> Self {
+        let mut result = CaoHashMap::with_capacity_in(self.capacity, self.alloc.clone()).unwrap();
+
+        // TODO: could use insert with hint
+        // or better yet, memcpy hashes, then clone the occupied entries
+        for (k, v) in self.iter() {
+            result.insert(k.clone(), v.clone()).unwrap();
+        }
+        result
+    }
+}
+
 impl<K, V, A: Allocator + Default> Default for CaoHashMap<K, V, A> {
     fn default() -> Self {
         CaoHashMap::with_capacity_in(0, A::default()).unwrap()
