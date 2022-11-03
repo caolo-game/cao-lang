@@ -4,15 +4,17 @@ mod serde_impl;
 #[cfg(test)]
 mod tests;
 
-use std::{alloc::Layout, mem::swap, num::Wrapping, ptr::NonNull, str::FromStr};
+use std::{
+    alloc::Layout,
+    borrow::Borrow,
+    hash::{Hash, Hasher},
+    mem::swap,
+    ptr::NonNull,
+};
 
 use crate::alloc::{Allocator, SysAllocator};
 
 pub(crate) const MAX_LOAD: f32 = 0.7;
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
-pub struct HashValue(u32);
 
 type ArrayTriplet<K, V> = (NonNull<u8>, NonNull<K>, NonNull<V>);
 
@@ -40,7 +42,7 @@ impl<K, V, A: Allocator + Default> Default for CaoHashMap<K, V, A> {
 }
 
 pub struct Entry<'a, K, V> {
-    hash: HashValue,
+    hash: u64,
     key: K,
     pl: EntryPayload<'a, K, V>,
 }
@@ -48,7 +50,7 @@ pub struct Entry<'a, K, V> {
 enum EntryPayload<'a, K, V> {
     Occupied(&'a mut V),
     Vacant {
-        hash: &'a mut HashValue,
+        hash: &'a mut u64,
         key: *mut K,
         value: *mut V,
         count: &'a mut usize,
@@ -132,7 +134,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     }
 
     fn layout(cap: usize) -> (Layout, [usize; 2]) {
-        let hash_layout = Layout::array::<HashValue>(cap).unwrap();
+        let hash_layout = Layout::array::<u64>(cap).unwrap();
         let keys_layout = Layout::array::<K>(cap).unwrap();
         let values_layout = Layout::array::<V>(cap).unwrap();
 
@@ -143,7 +145,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     }
 
     pub fn clear(&mut self) {
-        let handles = self.data.cast::<HashValue>().as_ptr();
+        let handles = self.data.cast::<u64>().as_ptr();
         let keys = self.keys.as_ptr();
         let values = self.values.as_ptr();
 
@@ -154,27 +156,21 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         self.count = 0;
     }
 
-    pub fn insert(&mut self, key: K, value: V) -> Result<HashValue, MapError>
+    pub fn insert(&mut self, key: K, value: V) -> Result<u64, MapError>
     where
-        for<'a> HashValue: From<&'a K>,
-        for<'a> &'a K: PartialEq,
+        K: Eq + Hash,
     {
-        let h = HashValue::from(&key);
+        let h = hash(&key);
         unsafe { self.insert_with_hint(h, key, value).map(|_| h) }
     }
 
     /// # Safety
     /// Caller must ensure that the hash is correct for the key
-    pub unsafe fn insert_with_hint(
-        &mut self,
-        h: HashValue,
-        key: K,
-        value: V,
-    ) -> Result<(), MapError>
+    pub unsafe fn insert_with_hint(&mut self, h: u64, key: K, value: V) -> Result<(), MapError>
     where
-        for<'a> &'a K: PartialEq,
+        K: Eq,
     {
-        debug_assert!(h.0 != 0, "Bad handle, 0 values are reserved");
+        debug_assert!(h != 0, "Bad handle, 0 values are reserved");
 
         // find the bucket
         let hashes = self.hashes();
@@ -182,7 +178,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         let values = self.values.as_ptr();
 
         let i = self.find_ind(h, &key);
-        if hashes[i].0 != 0 {
+        if hashes[i] != 0 {
             debug_assert_eq!(hashes[i], h);
             // delete the old entry
             if std::mem::needs_drop::<K>() {
@@ -210,7 +206,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
 
     fn grow(&mut self) -> Result<(), MapError>
     where
-        for<'a> &'a K: PartialEq,
+        K: Eq,
     {
         let new_cap = (self.capacity.max(2) * 3) / 2;
         debug_assert!(new_cap > self.capacity);
@@ -219,7 +215,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
 
     unsafe fn adjust_capacity(&mut self, capacity: usize) -> Result<(), MapError>
     where
-        for<'a> &'a K: PartialEq,
+        K: Eq,
     {
         let (mut data, mut keys, mut values) = Self::alloc_storage(&self.alloc, capacity)?;
         swap(&mut self.data, &mut data);
@@ -230,8 +226,8 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         let count = std::mem::replace(&mut self.count, 0); // insert will increment count
                                                            // copy over the existing values
         for i in 0..capacity {
-            let hash = *data.as_ptr().cast::<HashValue>().add(i);
-            if hash != HashValue(0) {
+            let hash = *data.as_ptr().cast::<u64>().add(i);
+            if hash != 0 {
                 let key = std::ptr::read(keys.as_ptr().add(i));
                 let val = std::ptr::read(values.as_ptr().add(i));
                 self.insert_with_hint(hash, key, val)?;
@@ -250,99 +246,124 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         Ok(())
     }
 
-    pub fn remove(&mut self, key: &K) -> Option<V>
+    pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
     where
-        for<'a> &'a K: Into<HashValue>,
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq + Hash,
     {
-        let hash = key.into();
+        let hash = hash(key);
         unsafe { self.remove_with_hint(hash, key) }
     }
 
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn remove_with_hint(&mut self, hash: HashValue, key: &K) -> Option<V>
+    pub unsafe fn remove_with_hint<Q: ?Sized>(&mut self, hash: u64, key: &Q) -> Option<V>
     where
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq,
     {
         let i = self.find_ind(hash, key);
-        if self.hashes()[i].0 != 0 {
+        if self.hashes()[i] != 0 {
             if std::mem::needs_drop::<K>() {
                 std::ptr::drop_in_place(self.keys.as_ptr().add(i));
             }
 
             let result = std::ptr::read(self.values.as_ptr().add(i));
-            self.hashes_mut()[i] = HashValue(0);
+            self.hashes_mut()[i] = 0;
             return Some(result);
         }
         None
     }
 
-    pub fn get(&self, key: &K) -> Option<&V>
+    pub fn contains<Q: ?Sized>(&self, key: &Q) -> bool
     where
-        for<'a> &'a K: Into<HashValue>,
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq + Hash,
     {
-        let hash = key.into();
+        let hash = hash(key);
+        unsafe { self.contains_with_hint(hash, key) }
+    }
+
+    /// # Safety
+    ///
+    /// Hash must be produced from the key
+    pub unsafe fn contains_with_hint<Q: ?Sized>(&self, h: u64, k: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Eq + Hash,
+    {
+        let i = self.find_ind(h, k);
+        self.hashes()[i] != 0
+    }
+
+    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Eq + Hash,
+    {
+        let hash = hash(key);
         unsafe { self.get_with_hint(hash, key) }
     }
 
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn get_with_hint(&self, h: HashValue, k: &K) -> Option<&V>
+    pub unsafe fn get_with_hint<Q: ?Sized>(&self, h: u64, k: &Q) -> Option<&V>
     where
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq,
     {
         let i = self.find_ind(h, k);
-        if self.hashes()[i] != HashValue(0) {
+        if self.hashes()[i] != 0 {
             Some(&*self.values.as_ptr().add(i))
         } else {
             None
         }
     }
 
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V>
+    pub fn get_mut<Q: ?Sized>(&mut self, key: &Q) -> Option<&mut V>
     where
-        for<'a> &'a K: Into<HashValue>,
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq + Hash,
     {
-        let hash = key.into();
+        let hash = hash(key);
         unsafe { self.get_with_hint_mut(hash, key) }
     }
 
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn get_with_hint_mut(&mut self, h: HashValue, k: &K) -> Option<&mut V>
+    pub unsafe fn get_with_hint_mut<Q: ?Sized>(&mut self, h: u64, k: &Q) -> Option<&mut V>
     where
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq + Hash,
     {
         let i = self.find_ind(h, k);
-        if self.hashes()[i] != HashValue(0) {
+        if self.hashes()[i] != 0 {
             Some(&mut *self.values.as_ptr().add(i))
         } else {
             None
         }
     }
 
-    fn find_ind(&self, needle: HashValue, k: &K) -> usize
+    fn find_ind<Q: ?Sized>(&self, needle: u64, k: &Q) -> usize
     where
-        for<'a> &'a K: PartialEq,
+        K: Borrow<Q>,
+        Q: Eq,
     {
         let len = self.capacity;
 
         // improve uniformity via fibonacci hashing
         // in wasm sizeof usize is 4, so multiply our already 32 bit hash
-        let mut ind = (needle.0.wrapping_mul(2654435769) as usize) % len;
+        let mut ind = (needle.wrapping_mul(2654435769) as usize) % len;
         let hashes = self.hashes();
         let keys = self.keys.as_ptr();
         loop {
             unsafe {
                 debug_assert!(ind < len);
                 let h = hashes[ind];
-                if h.0 == 0 || (h == needle && (&*keys.add(ind)) == k) {
+                if h == 0 || (h == needle && (&*keys.add(ind)).borrow() == k.borrow()) {
                     return ind;
                 }
             }
@@ -350,11 +371,11 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         }
     }
 
-    pub fn hashes(&self) -> &[HashValue] {
+    fn hashes(&self) -> &[u64] {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.capacity) }
     }
 
-    pub fn hashes_mut(&mut self) -> &mut [HashValue] {
+    fn hashes_mut(&mut self) -> &mut [u64] {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_ptr().cast(), self.capacity) }
     }
 
@@ -362,20 +383,19 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     ///
     /// Call this function after a fresh alloc of the data buffer
     fn zero_hashes(&mut self) {
-        self.hashes_mut().fill(HashValue(0));
+        self.hashes_mut().fill(0u64);
     }
 
     /// This method eagerly allocated new buffers, if inserting via the entry
     /// would grow the buffer beyong its max load
     pub fn entry(&mut self, key: K) -> Result<Entry<K, V>, MapError>
     where
-        for<'a> HashValue: From<&'a K>,
-        for<'a> &'a K: PartialEq,
+        K: Eq + Hash,
     {
-        let hash = HashValue::from(&key);
+        let hash = hash(&key);
         let i = self.find_ind(hash, &key);
         let pl;
-        if self.hashes()[i].0 != 0 {
+        if self.hashes()[i] != 0 {
             pl = EntryPayload::Occupied(unsafe { &mut *self.values.as_ptr().add(i) });
         } else {
             // if it would need to grow on insert, then allocate the new buffer now
@@ -384,7 +404,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
             }
             unsafe {
                 pl = EntryPayload::Vacant {
-                    hash: &mut *self.data.cast::<HashValue>().as_ptr().add(i),
+                    hash: &mut *self.data.cast::<u64>().as_ptr().add(i),
                     key: self.keys.as_ptr().add(i),
                     value: self.values.as_ptr().add(i),
                     count: &mut self.count,
@@ -400,13 +420,13 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
 
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
         (0..self.capacity)
-            .filter(|i| self.hashes()[*i].0 != 0)
+            .filter(|i| self.hashes()[*i] != 0)
             .map(|i| unsafe { (&*self.keys.as_ptr().add(i), &*self.values.as_ptr().add(i)) })
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&K, &mut V)> {
         (0..self.capacity)
-            .filter(|i| self.hashes()[*i].0 != 0)
+            .filter(|i| self.hashes()[*i] != 0)
             .map(|i| unsafe {
                 (
                     &*self.keys.as_ptr().add(i),
@@ -416,122 +436,45 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     }
 }
 
-impl FromStr for HashValue {
-    type Err = std::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::from_bytes(s.as_bytes()))
+struct CaoHasher(u64);
+impl Default for CaoHasher {
+    fn default() -> Self {
+        Self(2166136261)
     }
 }
 
-impl HashValue {
-    pub fn from_bytes(key: &[u8]) -> Self {
-        let hash = hash_bytes(2166136261, key);
-        debug_assert!(hash != 0);
-        Self(hash as u32)
+impl Hasher for CaoHasher {
+    fn finish(&self) -> u64 {
+        self.0
     }
 
-    pub fn from_slice<'a, T>(keys: &'a [T]) -> Self
-    where
-        &'a T: Into<&'a [u8]>,
-    {
-        let mut hash = 2166136261;
-        for key in keys {
-            hash = hash_bytes(hash, key.into());
-        }
-        debug_assert!(hash != 0);
-        Self(hash as u32)
-    }
-
-    pub fn from_bytes_iter<'a>(keys: impl Iterator<Item = &'a [u8]>) -> Self {
-        let mut hash = 2166136261;
-        for key in keys {
-            hash = hash_bytes(hash, key);
-        }
-        debug_assert!(hash != 0);
-        Self(hash as u32)
-    }
-
-    pub fn from_u32(key: u32) -> Self {
+    fn write(&mut self, bytes: &[u8]) {
         const MASK: u64 = u32::MAX as u64;
-        let key = hash_u64(key as u64, MASK);
-        Self(key)
-    }
-
-    pub fn from_u64(key: u64) -> Self {
-        const MASK: u64 = u64::MAX;
-        let key = hash_u64(key, MASK);
-        Self(key)
-    }
-
-    pub fn from_i64(key: i64) -> Self {
-        const MASK: u64 = u64::MAX;
-        let key = hash_u64(key as u64, MASK);
-        Self(key)
+        let mut hash = self.0;
+        for byte in bytes {
+            hash ^= *byte as u64;
+            hash &= MASK;
+            hash *= 16777619;
+        }
+        self.0 = hash & MASK;
     }
 }
 
-fn hash_bytes(mut hash: u64, key: &[u8]) -> u64 {
-    const MASK: u64 = u32::MAX as u64;
-    for byte in key {
-        hash ^= *byte as u64;
-        hash &= MASK;
-        hash *= 16777619;
-    }
-    hash & MASK
-}
-
-// FNV-1a
-#[inline]
-fn hash_u64(key: u64, mask: u64) -> u32 {
-    let key = key + mask * (key == 0) as u64; // to ensure non-zero keys
-
-    let mut key = Wrapping(key);
-    let mask = Wrapping(mask);
-    key = (((key >> 16) ^ key) * Wrapping(0x45d0f3b)) & mask;
-    key = (((key >> 16) ^ key) * Wrapping(0x45d0f3b)) & mask;
-    key = ((key >> 16) ^ key) & mask;
-    debug_assert!(key.0 != 0);
-    ((key >> 32) ^ key).0 as u32
-}
-
-impl From<i64> for HashValue {
-    fn from(key: i64) -> Self {
-        Self::from_i64(key)
-    }
-}
-
-impl From<u32> for HashValue {
-    fn from(key: u32) -> Self {
-        Self::from_u32(key)
-    }
-}
-
-impl From<i32> for HashValue {
-    fn from(key: i32) -> Self {
-        Self::from_i64(key as i64)
-    }
-}
-
-impl From<&'_ i32> for HashValue {
-    fn from(key: &'_ i32) -> Self {
-        Self::from_i64(*key as i64)
-    }
-}
-
-impl<'a> From<&'a str> for HashValue {
-    fn from(key: &'a str) -> Self {
-        <Self as FromStr>::from_str(key).unwrap()
-    }
+fn hash<T: ?Sized + Hash>(t: &T) -> u64 {
+    let mut hasher = CaoHasher::default();
+    t.hash(&mut hasher);
+    let result = hasher.finish();
+    debug_assert_ne!(result, 0, "0 hash is reserved");
+    result
 }
 
 /// # Safety
 ///
 /// Must be called with valid arrays in a CaoHashMap
-unsafe fn clear_arrays<K, V>(handles: *mut HashValue, keys: *mut K, values: *mut V, count: usize) {
+unsafe fn clear_arrays<K, V>(handles: *mut u64, keys: *mut K, values: *mut V, count: usize) {
     for i in 0..count {
-        if (*handles.add(i)).0 != 0 {
-            *handles.add(i) = HashValue(0);
+        if (*handles.add(i)) != 0 {
+            *handles.add(i) = 0;
             if std::mem::needs_drop::<K>() {
                 std::ptr::drop_in_place(keys.add(i));
             }

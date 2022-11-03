@@ -18,10 +18,8 @@ struct HashMapVisitor<K, V> {
     _m: std::marker::PhantomData<(K, V)>,
 }
 
-impl<'de, K: Deserialize<'de> + std::cmp::PartialEq, V: Deserialize<'de>> Visitor<'de>
+impl<'de, K: Deserialize<'de> + Eq + Hash, V: Deserialize<'de>> Visitor<'de>
     for HashMapVisitor<K, V>
-where
-    HashValue: for<'a> From<&'a K>,
 {
     type Value = CaoHashMap<K, V>;
 
@@ -45,10 +43,8 @@ where
     }
 }
 
-impl<'de, K: Deserialize<'de> + std::cmp::PartialEq, V: Deserialize<'de>> Deserialize<'de>
+impl<'de, K: Deserialize<'de> + Hash + Eq, V: Deserialize<'de>> Deserialize<'de>
     for CaoHashMap<K, V>
-where
-    HashValue: for<'a> From<&'a K>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
