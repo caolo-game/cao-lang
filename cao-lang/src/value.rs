@@ -14,25 +14,19 @@ pub enum Value {
 impl std::hash::Hash for Value {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Value::Nil => state.write("nil".as_bytes()),
-            Value::String(s) => {
-                state.write("str".as_bytes());
-                unsafe {
-                    if let Some(s) = s.get_str() {
-                        s.hash(state);
-                    }
+            Value::Nil => ().hash(state),
+            Value::String(s) => unsafe {
+                if let Some(s) = s.get_str() {
+                    s.hash(state);
                 }
-            }
+            },
             Value::Integer(i) => {
-                state.write("int".as_bytes());
                 i.hash(state);
             }
             Value::Real(f) => {
-                state.write("real".as_bytes());
                 f.to_bits().hash(state);
             }
             Value::Object(o) => {
-                state.write("o".as_bytes());
                 for (k, v) in unsafe { (**o).iter() } {
                     k.hash(state);
                     v.hash(state);
