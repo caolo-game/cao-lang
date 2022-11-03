@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+mod serde_impl;
+
 #[cfg(test)]
 mod tests;
 
@@ -28,6 +31,12 @@ pub struct CaoHashMap<K, V, A: Allocator = SysAllocator> {
     capacity: usize,
 
     alloc: A,
+}
+
+impl<K, V, A: Allocator + Default> Default for CaoHashMap<K, V, A> {
+    fn default() -> Self {
+        CaoHashMap::with_capacity_in(0, A::default()).unwrap()
+    }
 }
 
 pub struct Entry<'a, K, V> {
@@ -94,6 +103,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     }
 
     pub fn with_capacity_in(capacity: usize, alloc: A) -> Result<Self, MapError> {
+        let capacity = capacity.max(1);
         let (data, keys, values) = unsafe { Self::alloc_storage(&alloc, capacity)? };
         let mut result = Self {
             data,
