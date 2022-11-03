@@ -30,6 +30,44 @@ pub struct CaoHashMap<K, V, A: Allocator = SysAllocator> {
     alloc: A,
 }
 
+pub struct Entry<'a, K, V> {
+    hash: HashValue,
+    key: K,
+    pl: EntryPayload<'a, K, V>,
+}
+
+enum EntryPayload<'a, K, V> {
+    Occupied(&'a mut V),
+    Vacant {
+        hash: &'a mut HashValue,
+        key: *mut K,
+        value: *mut V,
+        count: &'a mut usize,
+    },
+}
+
+impl<'a, K, V> Entry<'a, K, V> {
+    pub fn or_insert_with<F: FnOnce() -> V>(self, fun: F) -> &'a mut V {
+        match self.pl {
+            EntryPayload::Occupied(res) => res,
+            EntryPayload::Vacant {
+                hash,
+                key,
+                value,
+                count,
+            } => {
+                *hash = self.hash;
+                unsafe {
+                    std::ptr::write(key, self.key);
+                    std::ptr::write(value, fun());
+                    *count += 1;
+                    &mut *value
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum MapError {
     #[error("Failed to allocate memory {0}")]
@@ -150,10 +188,14 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         std::ptr::write(keys.add(i), key);
         std::ptr::write(values.add(i), value);
         // delaying grow so that no grow is triggered if the key overrides an existing value
-        if self.count as f32 > self.capacity as f32 * MAX_LOAD {
+        if Self::needs_grow(self.count, self.capacity) {
             self.grow()?;
         }
         Ok(())
+    }
+
+    fn needs_grow(count: usize, capacity: usize) -> bool {
+        count as f32 > capacity as f32 * MAX_LOAD
     }
 
     fn grow(&mut self) -> Result<(), MapError>
@@ -311,6 +353,39 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     /// Call this function after a fresh alloc of the data buffer
     fn zero_hashes(&mut self) {
         self.hashes_mut().fill(HashValue(0));
+    }
+
+    /// This method eagerly allocated new buffers, if inserting via the entry
+    /// would grow the buffer beyong its max load
+    pub fn entry(&mut self, key: K) -> Result<Entry<K, V>, MapError>
+    where
+        for<'a> HashValue: From<&'a K>,
+        for<'a> &'a K: PartialEq,
+    {
+        let hash = HashValue::from(&key);
+        let i = self.find_ind(hash, &key);
+        let pl;
+        if self.hashes()[i].0 != 0 {
+            pl = EntryPayload::Occupied(unsafe { &mut *self.values.as_ptr().add(i) });
+        } else {
+            // if it would need to grow on insert, then allocate the new buffer now
+            if Self::needs_grow(self.count + 1, self.capacity) {
+                self.grow()?;
+            }
+            unsafe {
+                pl = EntryPayload::Vacant {
+                    hash: &mut *self.data.cast::<HashValue>().as_ptr().add(i),
+                    key: self.keys.as_ptr().add(i),
+                    value: self.values.as_ptr().add(i),
+                    count: &mut self.count,
+                }
+            }
+        }
+        Ok(Entry { hash, key, pl })
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity
     }
 }
 

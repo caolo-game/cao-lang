@@ -1,6 +1,42 @@
 use super::*;
 
 #[test]
+fn occupied_entry_test() {
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+
+    map.insert(42, 69).unwrap();
+
+    let entry = map.entry(42).unwrap();
+
+    let x = entry.or_insert_with(|| panic!("Shouldn't insert new"));
+
+    assert_eq!(*x, 69);
+}
+
+#[test]
+fn vacant_entry_inserts_test() {
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+
+    let cap = map.capacity();
+    assert_eq!(
+        cap, 1,
+        "Test code assumes that the capacity is 1 at this point"
+    );
+
+    let entry = map.entry(42).unwrap();
+
+    let mut called = false;
+    let x = entry.or_insert_with(|| {
+        called = true;
+        69
+    });
+
+    assert_eq!(*x, 69);
+    assert!(called);
+    assert!(map.capacity() > cap);
+}
+
+#[test]
 fn can_grow() {
     let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
 
