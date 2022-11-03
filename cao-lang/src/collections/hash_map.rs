@@ -406,7 +406,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
             unsafe {
                 debug_assert!(ind < len);
                 let h = hashes[ind];
-                if h == 0 || (h == needle && (&*keys.add(ind)).borrow() == k.borrow()) {
+                if h == 0 || (h == needle && (*keys.add(ind)).borrow() == k.borrow()) {
                     return ind;
                 }
             }
