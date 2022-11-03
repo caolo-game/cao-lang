@@ -416,3 +416,21 @@ impl Div for Value {
         binary_op!(self, other, /)
     }
 }
+
+impl std::borrow::Borrow<str> for Value {
+    fn borrow(&self) -> &str {
+        match self {
+            Value::String(s) => unsafe { s.get_str().unwrap_or("") },
+            _ => "",
+        }
+    }
+}
+
+impl std::borrow::Borrow<i64> for Value {
+    fn borrow(&self) -> &i64 {
+        match self {
+            Value::Integer(i) => i,
+            _ => &(!0),
+        }
+    }
+}

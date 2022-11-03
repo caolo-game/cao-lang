@@ -194,3 +194,22 @@ impl RuntimeData {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn field_table_can_be_queried_by_str_test() {
+        let mut vm = Vm::new(()).unwrap();
+
+        let s = vm.init_string("poggers").unwrap();
+        let o = unsafe { vm.init_table().unwrap().as_mut() };
+
+        o.insert(Value::String(s), Value::Integer(42)).unwrap();
+
+        let res = o.get("poggers").unwrap();
+
+        assert_eq!(res, &Value::Integer(42));
+    }
+}
