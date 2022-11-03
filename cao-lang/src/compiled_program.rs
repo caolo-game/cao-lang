@@ -1,7 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use crate::{
-    collections::handle_table::{Handle, HandleTable},
+    collections::{
+        handle_table::{Handle, HandleTable},
+        hash_map::CaoHashMap,
+    },
     compiler::CardIndex,
     VarName,
 };
@@ -41,7 +44,7 @@ pub struct CaoCompiledProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
-    pub trace: HashMap<u32, CardIndex>,
+    pub trace: CaoHashMap<u32, CardIndex>,
 }
 
 impl CaoCompiledProgram {
