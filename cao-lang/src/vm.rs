@@ -249,14 +249,12 @@ impl<'a, Aux> Vm<'a, Aux> {
                         })?;
                 }
                 Instruction::GetProperty => {
-                    let handle = self.pop_key().map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
+                    let key = self.stack_pop();
                     let instance = self.stack_pop();
                     let table = self.get_table(instance).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
-                    let result = table.get_value(handle).unwrap_or(Value::Nil);
+                    let result = table.get(&key).copied().unwrap_or(Value::Nil);
                     self.stack_push(result).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
@@ -530,23 +528,5 @@ impl<'a, Aux> Vm<'a, Aux> {
             .push(op(a, b))
             .map_err(|_| ExecutionErrorPayload::Stackoverflow)?;
         Ok(())
-    }
-
-    fn pop_key(&mut self) -> Result<Handle, ExecutionErrorPayload> {
-        let handle = self.stack_pop();
-        let handle = match handle {
-            Value::Nil => Handle::default(),
-            Value::String(s) => {
-                let s = unsafe {
-                    s.get_str().ok_or_else(|| {
-                        ExecutionErrorPayload::invalid_argument("String not found".to_string())
-                    })?
-                };
-                Handle::from_str(s).unwrap()
-            }
-            Value::Integer(i) => Handle::from(i),
-            Value::Real(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
-        };
-        Ok(handle)
     }
 }

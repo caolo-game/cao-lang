@@ -104,3 +104,18 @@ fn drops_values() {
     }
     assert_eq!(*drops, 3, "Drops the 2 items still in the map")
 }
+
+#[test]
+fn insert_duplicate_test() {
+    let mut map = CaoHashMap::<&str, i32>::default();
+
+    map.insert("asd", 42).unwrap();
+    map.insert("asd", 31).unwrap();
+    map.insert("asd", 92).unwrap();
+    map.insert("asd", 22).unwrap();
+    map.insert("asd", 82).unwrap();
+    map.insert("asd", 12).unwrap();
+    map.insert("asd", 82).unwrap();
+
+    assert_eq!(map.len(), 1);
+}

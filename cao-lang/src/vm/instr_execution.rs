@@ -314,7 +314,7 @@ pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
 
     let should_continue = 0 <= i && i < n;
     if should_continue {
-        let key = obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
+        let key = *obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
             ExecutionErrorPayload::invalid_argument(format!(
                 "ForEach can not find the `i`th argument. i: {} n: {}\nDid you remove items during iteration?",
                 i, n

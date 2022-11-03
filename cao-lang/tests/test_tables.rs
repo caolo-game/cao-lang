@@ -1,4 +1,4 @@
-use std::{convert::TryInto, str::FromStr};
+use std::convert::TryInto;
 use test_log::test;
 
 use cao_lang::{
@@ -73,8 +73,8 @@ fn test_native_w_table_input() {
     }
 
     let myboi = move |vm: &mut Vm<State>, table: &FieldTable| {
-        let key = Handle::from_str("boi").unwrap();
-        let res = table.get_value(key).unwrap_or_default();
+        let key = vm.init_string("boi").unwrap();
+        let res = table.get(&Value::String(key)).copied().unwrap_or_default();
         if let Value::Integer(i) = res {
             vm.get_aux_mut().param = i;
         } else {
