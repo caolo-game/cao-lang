@@ -2,7 +2,7 @@ use crate::{vm::runtime::FieldTable, StrPointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialOrd)]
 pub enum Value {
     Nil,
     String(StrPointer),
@@ -10,6 +10,72 @@ pub enum Value {
     Integer(i64),
     Real(f64),
 }
+
+impl std::hash::Hash for Value {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Value::Nil => state.write("nil".as_bytes()),
+            Value::String(s) => {
+                state.write("str".as_bytes());
+                unsafe {
+                    if let Some(s) = s.get_str() {
+                        s.hash(state);
+                    }
+                }
+            }
+            Value::Integer(i) => {
+                state.write("int".as_bytes());
+                i.hash(state);
+            }
+            Value::Real(f) => {
+                state.write("real".as_bytes());
+                unsafe { std::mem::transmute::<_, i64>(*f).hash(state) }
+            }
+            Value::Object(o) => {
+                state.write("o".as_bytes());
+                for (k, v) in unsafe { (**o).iter() } {
+                    k.hash(state);
+                    v.hash(state);
+                }
+            }
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (*self, *other) {
+            (Value::Nil, Value::Nil) => true,
+            (Value::String(lhs), Value::String(rhs)) => unsafe { lhs.get_str() == rhs.get_str() },
+            (Value::Object(lhs), Value::Object(rhs)) => unsafe {
+                // same objects, including null,
+                // are trivially equal
+                if lhs == rhs {
+                    return true;
+                }
+                if lhs.is_null() || rhs.is_null() {
+                    return false;
+                }
+                let lhs = &*lhs;
+                let rhs = &*rhs;
+                if lhs.len() != rhs.len() {
+                    return false;
+                }
+                for ((kl, vl), (kr, vr)) in lhs.iter().zip(rhs.iter()) {
+                    if kl != kr || vl != vr {
+                        return false;
+                    }
+                }
+                true
+            },
+            (Value::Integer(lhs), Value::Integer(rhs)) => lhs == rhs,
+            (Value::Real(lhs), Value::Real(rhs)) => lhs == rhs,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
 
 /// Intended for saving `Values` after the program has finished executing
 ///
@@ -76,8 +142,8 @@ impl From<Value> for OwnedValue {
                 unsafe { &*ptr }
                     .iter()
                     .map(|(k, v)| OwnedEntry {
-                        key: k.into(),
-                        value: v.into(),
+                        key: (*k).into(),
+                        value: (*v).into(),
                     })
                     .collect()
             }),

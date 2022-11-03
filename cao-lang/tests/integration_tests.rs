@@ -666,12 +666,12 @@ fn len_test_happy() {
                 // same property as above
                 .with_card(Card::ReadVar(t.clone()))
                 .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarInt(IntegerNode(69)))
                 .with_card(Card::SetProperty)
                 // new property
                 .with_card(Card::ReadVar(t.clone()))
                 .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarInt(IntegerNode(89)))
                 .with_card(Card::SetProperty)
                 // len
                 .with_card(Card::ReadVar(t.clone()))

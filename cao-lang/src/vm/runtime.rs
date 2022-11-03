@@ -1,10 +1,10 @@
-use std::{alloc::Layout, ptr::NonNull, str::FromStr};
+use std::{alloc::Layout, ptr::NonNull};
 
 use crate::{
     alloc::{Allocator, BumpAllocator, BumpProxy},
     collections::{
         bounded_stack::BoundedStack,
-        handle_table::{HandleTable, MapError},
+        hash_map::{CaoHashMap, MapError},
         value_stack::ValueStack,
     },
     prelude::*,
@@ -13,29 +13,20 @@ use crate::{
 use tracing::debug;
 
 pub struct FieldTable {
-    keys: HandleTable<Value, BumpProxy>,
-    values: HandleTable<Value, BumpProxy>,
+    map: CaoHashMap<Value, Value, BumpProxy>,
     alloc: BumpProxy,
 }
 
 impl Clone for FieldTable {
     fn clone(&self) -> Self {
-        Self::from_iter(self.iter(), self.alloc.clone()).unwrap()
+        Self::from_iter(self.iter().map(|(k, v)| (*k, *v)), self.alloc.clone()).unwrap()
     }
 }
 
 impl std::fmt::Debug for FieldTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
-            .entries(
-                self.keys
-                    .iter()
-                    .zip(self.values.iter())
-                    .map(|((h1, k), (h2, v))| {
-                        debug_assert!(h1 == h2);
-                        (k, v)
-                    }),
-            )
+            .entries(self.map.iter().map(|(k, v)| (k, v)))
             .finish()
     }
 }
@@ -43,31 +34,18 @@ impl std::fmt::Debug for FieldTable {
 impl FieldTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {
-            keys: HandleTable::with_capacity(size, proxy.clone())?,
-            values: HandleTable::with_capacity(size, proxy.clone())?,
+            map: CaoHashMap::with_capacity_in(size, proxy.clone())?,
             alloc: proxy,
         };
         Ok(res)
     }
 
     pub fn len(&self) -> usize {
-        self.keys.len()
+        self.map.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.keys.is_empty()
-    }
-
-    // keys can not be mutated
-    pub fn get_key(&self, handle: Handle) -> Option<Value> {
-        self.keys.get(handle).copied()
-    }
-
-    pub fn get_value(&self, handle: Handle) -> Option<Value> {
-        self.values.get(handle).copied()
-    }
-    pub fn get_value_mut(&mut self, handle: Handle) -> Option<&mut Value> {
-        self.values.get_mut(handle)
+        self.map.is_empty()
     }
 
     pub fn from_iter(
@@ -85,52 +63,27 @@ impl FieldTable {
     }
 
     pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionErrorPayload> {
-        let handle = Self::hash_value(key)?;
-        self.keys
-            .insert(handle, key)
-            .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
-        self.values
-            .insert(handle, value)
+        self.map
+            .insert(key, value)
             .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
 
         Ok(())
     }
 
-    fn hash_value(key: Value) -> Result<Handle, ExecutionErrorPayload> {
-        let handle = match key {
-            Value::Nil => Handle::default(),
-            Value::String(s) => {
-                let s = unsafe {
-                    s.get_str().ok_or_else(|| {
-                        ExecutionErrorPayload::invalid_argument("String not found".to_string())
-                    })?
-                };
-                Handle::from_str(s).unwrap()
-            }
-            Value::Integer(i) => Handle::from(i),
-            Value::Real(_) | Value::Object(_) => return Err(ExecutionErrorPayload::Unhashable),
-        };
-        Ok(handle)
+    pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + '_ {
+        self.map.iter()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Value, Value)> + '_ {
-        self.keys
-            .iter()
-            .zip(self.values.iter())
-            .map(|((k1, k), (k2, v))| {
-                debug_assert!(k1 == k2);
-                (*k, *v)
-            })
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Value, &mut Value)> + '_ {
+        self.map.iter_mut()
     }
+}
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Value, &mut Value)> + '_ {
-        self.keys
-            .iter()
-            .zip(self.values.iter_mut())
-            .map(|((k1, k), (k2, v))| {
-                debug_assert!(k1 == k2);
-                (*k, v)
-            })
+impl std::ops::Deref for FieldTable {
+    type Target = CaoHashMap<Value, Value, BumpProxy>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.map
     }
 }
 
