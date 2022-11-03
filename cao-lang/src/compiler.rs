@@ -14,7 +14,7 @@ mod tests;
 
 use crate::{
     bytecode::{encode_str, write_to_vec},
-    collections::handle_table::{Handle, HandleTable},
+    collections::{handle_table::Handle, hash_map::CaoHashMap},
     compiled_program::{CaoCompiledProgram, Label},
     Instruction, VariableId,
 };
@@ -46,7 +46,7 @@ pub struct Compiler<'a> {
     next_var: VariableId,
 
     /// maps lanes to their metadata
-    jump_table: HandleTable<LaneMeta>,
+    jump_table: CaoHashMap<String, LaneMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, Imports>,
@@ -156,11 +156,12 @@ impl<'a> Compiler<'a> {
             hash_key: nodekey,
             arity: n.arguments.len() as u32,
         };
-        let namekey = Handle::from_str(n.name.as_ref()).expect("Failed to hash lane name");
-        if self.jump_table.contains(namekey) {
+        if self.jump_table.contains(n.name.as_ref()) {
             return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.to_string())));
         }
-        self.jump_table.insert(namekey, metadata).unwrap();
+        self.jump_table
+            .insert(n.name.to_string(), metadata)
+            .unwrap();
         Ok(())
     }
 
@@ -318,22 +319,23 @@ impl<'a> Compiler<'a> {
     // take jump_table by param because of lifetimes
     fn lookup_lane<'b>(
         &self,
-        jump_table: &'b HandleTable<LaneMeta>,
+        jump_table: &'b CaoHashMap<String, LaneMeta>,
         lane: &LaneNode,
     ) -> CompilationResult<&'b LaneMeta> {
         // attempt to look up the function by name
-        let mut to = jump_table.get(Handle::from(lane));
+        let mut to = jump_table.get(&lane.0);
         if to.is_none() {
             // attempt to look up the function in the current namespace
 
             // current_namespace.join('.').push('.').push_str(lane.0)
-            let handle = Handle::from_bytes_iter(
-                self.current_namespace
-                    .iter()
-                    .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
-                    .chain(std::iter::once(lane.0.as_bytes())),
-            );
-            to = jump_table.get(handle);
+            let name = self
+                .current_namespace
+                .iter()
+                .flat_map(|x| [x.as_ref(), "."])
+                .chain(std::iter::once(lane.0.as_str()))
+                .collect::<String>();
+
+            to = jump_table.get(&name);
         }
         if to.is_none() {
             // attempt to look up function in the imports
@@ -343,14 +345,15 @@ impl<'a> Compiler<'a> {
                 .find(|(import, _)| *import == &lane.0)
             {
                 let (super_depth, suffix) = super_depth(alias);
-                let handle = Handle::from_bytes_iter(
-                    self.current_namespace
-                        .iter()
-                        .take(self.current_namespace.len() - super_depth)
-                        .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
-                        .chain(std::iter::once(suffix.unwrap_or(alias).as_bytes())),
-                );
-                to = jump_table.get(handle);
+                let name = self
+                    .current_namespace
+                    .iter()
+                    .take(self.current_namespace.len() - super_depth)
+                    .flat_map(|x| [x.as_ref(), "."])
+                    .chain(std::iter::once(suffix.unwrap_or(alias)))
+                    .collect::<String>();
+
+                to = jump_table.get(&name);
             }
         }
         if to.is_none() {
@@ -363,22 +366,16 @@ impl<'a> Compiler<'a> {
                 {
                     // namespace.alias.suffix
                     let (super_depth, s) = super_depth(alias);
-                    let handle = Handle::from_bytes_iter(
-                        self.current_namespace
-                            .iter()
-                            .take(self.current_namespace.len() - super_depth)
-                            .flat_map(|x| [x.as_bytes(), ".".as_bytes()])
-                            .chain(
-                                [
-                                    alias.as_bytes(),
-                                    ".".as_bytes(),
-                                    s.unwrap_or(suffix).as_bytes(),
-                                ]
-                                .iter()
-                                .copied(),
-                            ),
-                    );
-                    to = jump_table.get(handle);
+
+                    let name = self
+                        .current_namespace
+                        .iter()
+                        .take(self.current_namespace.len() - super_depth)
+                        .flat_map(|x| [x.as_ref(), "."])
+                        .chain([alias.as_str(), ".", s.unwrap_or(suffix)].iter().copied())
+                        .collect::<String>();
+
+                    to = jump_table.get(&name);
                 }
             }
         }
@@ -430,8 +427,7 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::ForEach { variable, lane } => {
-                let target_lane = Handle::from(lane);
-                let arity = match self.jump_table.get(target_lane) {
+                let arity = match self.jump_table.get(&lane.0) {
                     Some(x) => x.arity,
                     None => {
                         return Err(self.error(CompilationErrorPayload::InvalidJump {
@@ -460,8 +456,7 @@ impl<'a> Compiler<'a> {
                 return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
             }
             Card::Repeat(repeat) => {
-                let target_lane = Handle::from(repeat);
-                let arity = match self.jump_table.get(target_lane) {
+                let arity = match self.jump_table.get(&repeat.0) {
                     Some(x) => x.arity,
                     None => {
                         return Err(self.error(CompilationErrorPayload::InvalidJump {
