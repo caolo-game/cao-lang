@@ -387,6 +387,23 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     pub fn capacity(&self) -> usize {
         self.capacity
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
+        (0..self.capacity)
+            .filter(|i| self.hashes()[*i].0 != 0)
+            .map(|i| unsafe { (&*self.keys.as_ptr().add(i), &*self.values.as_ptr().add(i)) })
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&K, &mut V)> {
+        (0..self.capacity)
+            .filter(|i| self.hashes()[*i].0 != 0)
+            .map(|i| unsafe {
+                (
+                    &*self.keys.as_ptr().add(i),
+                    &mut *self.values.as_ptr().add(i),
+                )
+            })
+    }
 }
 
 impl FromStr for HashValue {
