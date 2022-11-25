@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.96
+
+
+### Bug Fixes
+
+- Fix assigning to the same local variable multiple times
+
+
+### Features
+
+- Add while card
+
 ## v0.1.95
 
 
