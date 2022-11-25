@@ -451,9 +451,21 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::GotoIfTrue);
                 write_to_vec(block_begin, &mut self.program.bytecode);
             }
-            // TODO: blocked by lane ABI
-            Card::While(_) => {
-                return Err(self.error(CompilationErrorPayload::Unimplemented("While cards")))
+            Card::While { condition, body } => {
+                let block_begin = self.program.bytecode.len() as i32;
+                self.current_index.push_subindex(0);
+                self.process_card(condition)?;
+                self.current_index.pop_subindex();
+                self.current_index.push_subindex(1);
+                // if false jump over the body block
+                self.encode_if_then(Instruction::GotoIfFalse, |c| {
+                    // if true execute body and jump to block_begin
+                    c.process_card(body)?;
+                    c.push_instruction(Instruction::Goto);
+                    write_to_vec(block_begin, &mut c.program.bytecode);
+                    Ok(())
+                })?;
+                self.current_index.pop_subindex();
             }
             Card::Repeat(repeat) => {
                 let arity = match self.jump_table.get(&repeat.0) {

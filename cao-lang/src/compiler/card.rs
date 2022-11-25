@@ -51,7 +51,10 @@ pub enum Card {
     SetVar(VarNode),
     ReadVar(VarNode),
     Repeat(LaneNode),
-    While(LaneNode),
+    While {
+        condition: Box<Card>,
+        body: Box<Card>,
+    },
     ForEach {
         variable: VarNode,
         lane: LaneNode,
@@ -95,7 +98,7 @@ impl Card {
             Card::ScalarNil => "ScalarNil",
             Card::Return => "Return",
             Card::Repeat(_) => "Repeat",
-            Card::While(_) => "While",
+            Card::While { .. } => "While",
             Card::IfElse { .. } => "IfElse",
             Card::GetProperty => "GetProperty",
             Card::SetProperty => "SetProperty",
@@ -111,7 +114,7 @@ impl Card {
             Card::IfElse { .. }
             | Card::ReadVar(_)
             | Card::SetVar(_)
-            | Card::While(_)
+            | Card::While { .. }
             | Card::Repeat(_)
             | Card::ForEach { .. }
             | Card::Pass

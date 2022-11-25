@@ -81,7 +81,10 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
         get_desc(&Card::SetVar(Default::default())),
         get_desc(&Card::ReadVar(Default::default())),
         get_desc(&Card::Repeat(Default::default())),
-        get_desc(&Card::While(Default::default())),
+        get_desc(&Card::While {
+            condition: Default::default(),
+            body: Default::default(),
+        }),
         get_desc(&Card::ForEach {
             variable: Default::default(),
             lane: Default::default(),
@@ -380,9 +383,9 @@ Order of parameters: Table, Property-Key, Value"#,
             [PropertyName::Text.to_str()]
         ),
 
-        Card::While(_) => subprogram_description!(
+        Card::While{..} => subprogram_description!(
             "While",
-            "Repeat a lane until the lane's last value is 0",
+            "Repeat `body` until the condition is `false`",
             SubProgramType::Branch,
             [],
             [],

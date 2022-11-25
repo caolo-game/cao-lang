@@ -365,55 +365,6 @@ fn local_variable_doesnt_leak_out_of_scope() {
 }
 
 #[test]
-fn simple_while_loop() {
-    let program = CaoProgram {
-        imports: Default::default(),
-        submodules: Default::default(),
-        lanes: [
-            (
-                "main".into(),
-                Lane::default()
-                    .with_card(Card::ScalarInt(IntegerNode(69)))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result")))
-                    .with_card(Card::While(LaneNode("pooh".to_string()))),
-            ),
-            (
-                "pooh".into(),
-                Lane::default().with_cards(vec![
-                    // Add 1 to the global 'result' variable in each iteration
-                    Card::ReadVar(VarNode::from_str_unchecked("result")),
-                    Card::ScalarInt(IntegerNode(1)),
-                    Card::Sub,
-                    Card::CopyLast, // return `result`
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ]),
-            ),
-        ]
-        .into(),
-    };
-    /*let program =*/
-    match compile(program, Some(CompileOptions::new())).map_err(|e| e.payload) {
-        Ok(_) => {
-            panic!("Expected error, update this test pls")
-        }
-        Err(CompilationErrorPayload::Unimplemented(_)) => {}
-        Err(err) => {
-            panic!("Expected unimplemented error, instead got: {}", err)
-        }
-    }
-
-    // Compilation was successful
-    // TODO: once while is implemented
-
-    // let mut vm = Vm::new(()).with_max_iter(10000);
-    // let exit_code = vm.run(&program).unwrap();
-    // assert_eq!(exit_code, 0);
-    //
-    // let varid = program.variable_id("result").unwrap();
-    // assert_eq!(vm.read_var(varid).unwrap(), Scalar::Integer(0));
-}
-
-#[test]
 fn simple_for_loop() {
     let program = CaoProgram {
         imports: Default::default(),
@@ -1049,4 +1000,52 @@ fn local_variable_regression_test() {
         .expect("Failed to read pooh variable");
 
     assert_eq!(result.as_int().unwrap(), 42);
+}
+
+#[test]
+fn simple_while_test() {
+    const N: i64 = 42;
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [(
+            "main".to_string(),
+            Lane::default()
+                .with_card(Card::ScalarInt(IntegerNode(N)))
+                .with_card(Card::SetVar(VarNode::from_str_unchecked("i")))
+                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")))
+                .with_card(Card::While {
+                    condition: Box::new(Card::ReadVar(VarNode::from_str_unchecked("i"))),
+                    body: Box::new(Card::composite_card(
+                        "body",
+                        "",
+                        vec![
+                            // Increment pooh
+                            Card::ScalarInt(IntegerNode(1)),
+                            Card::ReadVar(VarNode::from_str_unchecked("pooh")),
+                            Card::Add,
+                            Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")),
+                            // decrement loop counter
+                            Card::ReadVar(VarNode::from_str_unchecked("i")),
+                            Card::ScalarInt(IntegerNode(1)),
+                            Card::Sub,
+                            Card::SetVar(VarNode::from_str_unchecked("i")),
+                        ],
+                    )),
+                }),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("pooh", &program.variables)
+        .expect("Failed to read pooh variable");
+
+    assert_eq!(result.as_int().unwrap(), N);
 }
