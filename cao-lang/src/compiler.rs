@@ -483,7 +483,11 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let index = self.add_local(&var.0)?;
+                let index = match self.resolve_var(var.0.as_str())? {
+                    Some(i) => i as u32,
+                    None => self.add_local(&var.0)?,
+                };
+
                 self.push_instruction(Instruction::SetLocalVar);
                 write_to_vec(index, &mut self.program.bytecode);
             }
@@ -587,9 +591,9 @@ impl<'a> Compiler<'a> {
     fn read_var_card(&mut self, variable: &VarNode) -> CompilationResult<()> {
         let scope = self.resolve_var(variable.0.as_str())?;
         match scope {
-            Some(scope) => {
+            Some(index) => {
                 //local
-                self.read_local_var(scope as u32);
+                self.read_local_var(index as u32);
             }
             None => {
                 // global
