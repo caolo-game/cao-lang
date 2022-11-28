@@ -80,7 +80,10 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
         get_desc(&Card::SetGlobalVar(Default::default())),
         get_desc(&Card::SetVar(Default::default())),
         get_desc(&Card::ReadVar(Default::default())),
-        get_desc(&Card::Repeat(Default::default())),
+        get_desc(&Card::Repeat {
+            i: None,
+            body: Default::default(),
+        }),
         get_desc(&Card::While {
             condition: Default::default(),
             body: Default::default(),
@@ -374,9 +377,9 @@ Order of parameters: Table, Property-Key, Value"#,
             []
         ),
 
-        Card::Repeat(_) => subprogram_description!(
+        Card::Repeat{..} => subprogram_description!(
             "Repeat",
-            "Repeat a lane the input number of times",
+            "Repeat the given card the input number of times",
             SubProgramType::Branch,
             [PropertyName::Number.to_str()],
             [],

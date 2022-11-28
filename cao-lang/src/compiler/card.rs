@@ -50,7 +50,11 @@ pub enum Card {
     SetGlobalVar(VarNode),
     SetVar(VarNode),
     ReadVar(VarNode),
-    Repeat(LaneNode),
+    Repeat {
+        /// Loop variable is written into this variable
+        i: Option<VarNode>,
+        body: Box<Card>,
+    },
     While {
         condition: Box<Card>,
         body: Box<Card>,
@@ -97,7 +101,7 @@ impl Card {
             Card::ClearStack => "ClearStack",
             Card::ScalarNil => "ScalarNil",
             Card::Return => "Return",
-            Card::Repeat(_) => "Repeat",
+            Card::Repeat { .. } => "Repeat",
             Card::While { .. } => "While",
             Card::IfElse { .. } => "IfElse",
             Card::GetProperty => "GetProperty",
@@ -115,7 +119,7 @@ impl Card {
             | Card::ReadVar(_)
             | Card::SetVar(_)
             | Card::While { .. }
-            | Card::Repeat(_)
+            | Card::Repeat { .. }
             | Card::ForEach { .. }
             | Card::Pass
             | Card::CompositeCard { .. } => None,
@@ -193,8 +197,6 @@ impl Card {
             | Instruction::Goto
             | Instruction::GotoIfTrue
             | Instruction::GotoIfFalse
-            | Instruction::Repeat
-            | Instruction::BeginRepeat
             | Instruction::ForEach
             | Instruction::BeginForEach => {}
         };

@@ -378,7 +378,17 @@ fn simple_for_loop() {
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
                     Card::ScalarInt(IntegerNode(5)),
-                    Card::Repeat(LaneNode("Loop".to_string())),
+                    Card::Repeat {
+                        i: Some(VarNode::from_str_unchecked("i")),
+                        body: Box::new(Card::composite_card(
+                            "",
+                            "",
+                            vec![
+                                Card::ReadVar(VarNode::from_str_unchecked("i")),
+                                Card::Jump(LaneNode("Loop".to_string())),
+                            ],
+                        )),
+                    },
                 ]),
             ),
             (

@@ -467,29 +467,50 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.current_index.pop_subindex();
             }
-            Card::Repeat(repeat) => {
-                let arity = match self.jump_table.get(&repeat.0) {
-                    Some(x) => x.arity,
-                    None => {
-                        return Err(self.error(CompilationErrorPayload::InvalidJump {
-                            dst: repeat.clone(),
-                            msg: Some("ForEach target lane not found".to_string()),
-                        }))
+            Card::Repeat { i, body: repeat } => {
+                self.scope_begin();
+                let loop_n_index = self.add_local("$$n")?;
+                let loop_counter_index = self.add_local("$$i")?;
+                let i_index = match i {
+                    Some(var) => {
+                        let index = self.add_local(&var.0)?;
+                        Some(index)
                     }
+                    None => None,
                 };
-                if arity != 1 {
-                    return Err(self.error(CompilationErrorPayload::InvalidJump {
-                        dst: repeat.clone(),
-                        msg: Some("Repeat lanes need to have 1 parameter".to_string()),
-                    }));
-                }
-                self.push_instruction(Instruction::BeginRepeat);
+                self.write_local_var(loop_n_index);
+                // init counter to 0
+                self.process_card(&Card::ScalarInt(IntegerNode(0)))?;
+                self.write_local_var(loop_counter_index);
+
                 let block_begin = self.program.bytecode.len() as i32;
-                self.push_instruction(Instruction::Repeat);
-                self.encode_jump(repeat)?;
-                // return to the repeat instruction
-                self.push_instruction(Instruction::GotoIfTrue);
-                write_to_vec(block_begin, &mut self.program.bytecode);
+                // loop condition
+                self.read_local_var(loop_counter_index);
+                self.read_local_var(loop_n_index);
+                self.process_card(&Card::Less)?;
+                // loop body
+                self.encode_if_then(Instruction::GotoIfFalse, |c| {
+                    match i_index {
+                        Some(i_index) => {
+                            c.read_local_var(loop_counter_index);
+                            c.write_local_var(i_index);
+                        }
+                        None => {}
+                    }
+                    c.current_index.push_subindex(0);
+                    c.process_card(repeat)?;
+                    c.current_index.pop_subindex();
+                    // i = i + 1
+                    c.process_card(&Card::ScalarInt(IntegerNode(1)))?;
+                    c.read_local_var(loop_counter_index);
+                    c.process_card(&Card::Add)?;
+                    c.write_local_var(loop_counter_index);
+                    // return to the repeat instruction
+                    c.push_instruction(Instruction::Goto);
+                    write_to_vec(block_begin, &mut c.program.bytecode);
+                    Ok(())
+                })?;
+                self.scope_end();
             }
             Card::ReadVar(variable) => {
                 self.read_var_card(variable)?;
@@ -636,6 +657,11 @@ impl<'a> Compiler<'a> {
 
     fn read_local_var(&mut self, index: u32) {
         self.push_instruction(Instruction::ReadLocalVar);
+        write_to_vec(index, &mut self.program.bytecode);
+    }
+
+    fn write_local_var(&mut self, index: u32) {
+        self.push_instruction(Instruction::SetLocalVar);
         write_to_vec(index, &mut self.program.bytecode);
     }
 

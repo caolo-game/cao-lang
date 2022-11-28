@@ -11,14 +11,15 @@ lanes:
       - !ScalarInt 1
       - !SetGlobalVar b
       - !ReadVar N
-      - !Repeat "loop"
-  loop:
-    arguments:
-      - i
-    cards:
-      - !ReadVar b
-      - !CopyLast
-      - !ReadVar a
-      - !Add
-      - !SetGlobalVar b
-      - !SetGlobalVar a
+      - !Repeat
+        i: null
+        body: !CompositeCard
+          ty: ""
+          name: "loop body"
+          cards:
+            - !ReadVar b
+            - !CopyLast
+            - !ReadVar a
+            - !Add
+            - !SetGlobalVar b
+            - !SetGlobalVar a

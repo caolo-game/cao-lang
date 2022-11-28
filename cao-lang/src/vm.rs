@@ -274,31 +274,6 @@ impl<'a, Aux> Vm<'a, Aux> {
                             payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
-                Instruction::BeginRepeat => {
-                    instr_execution::begin_repeat(self).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
-                }
-                Instruction::Repeat => {
-                    if instr_execution::repeat(self).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })? {
-                        instr_execution::instr_jump(
-                            src_ptr,
-                            &mut instr_ptr,
-                            program,
-                            &mut self.runtime_data,
-                        )
-                        .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?;
-                    } else {
-                        self.stack_push(false).map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?; // assumes that the next instruction is GotoIfTrue
-                        instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
-                    }
-                }
                 Instruction::BeginForEach => {
                     instr_execution::begin_for_each(self).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)

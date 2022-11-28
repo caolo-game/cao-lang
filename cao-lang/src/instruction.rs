@@ -82,10 +82,6 @@ pub(crate) enum Instruction {
     /// Errors if the top Value is not a Table
     Len,
 
-    /// Must be called before the first call to Repeat in a loop
-    BeginRepeat,
-    Repeat,
-
     BeginForEach,
     ForEach,
 }
@@ -114,7 +110,6 @@ pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Xor
         | Instruction::InitTable
         | Instruction::Len
-        | Instruction::BeginRepeat
         | Instruction::BeginForEach
         | Instruction::Not => 1,
         //
@@ -129,6 +124,6 @@ pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::ReadGlobalVar => 5,
         //
         Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
-        Instruction::ForEach | Instruction::Repeat | Instruction::CallLane => 9,
+        Instruction::ForEach | Instruction::CallLane => 9,
     }
 }
