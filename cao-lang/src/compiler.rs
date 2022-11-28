@@ -239,6 +239,10 @@ impl<'a> Compiler<'a> {
     /// return its index
     fn add_local(&mut self, name: &'a str) -> CompilationResult<u32> {
         self.validate_var_name(name)?;
+        self.add_local_unchecked(name)
+    }
+
+    fn add_local_unchecked(&mut self, name: &'a str) -> CompilationResult<u32> {
         let result = self.locals.len();
         self.locals
             .try_push(Local {
@@ -469,8 +473,8 @@ impl<'a> Compiler<'a> {
             }
             Card::Repeat { i, body: repeat } => {
                 self.scope_begin();
-                let loop_n_index = self.add_local("$$n")?;
-                let loop_counter_index = self.add_local("$$i")?;
+                let loop_n_index = self.add_local_unchecked("")?;
+                let loop_counter_index = self.add_local_unchecked("")?;
                 let i_index = match i {
                     Some(var) => {
                         let index = self.add_local(&var.0)?;
