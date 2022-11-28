@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::{Card, Imports, NameSpace};
+use super::{Card, ImportsIr, NameSpace};
 use crate::VarName;
 
 /// Intermediate lane data
@@ -13,5 +13,5 @@ pub struct LaneIr {
     /// aliases this lane sees
     ///
     /// TODO: we should compile modules instead of lanes, and pass import per module...
-    pub imports: Rc<Imports>,
+    pub imports: Rc<ImportsIr>,
 }

@@ -14,7 +14,7 @@ use std::rc::Rc;
 use thiserror::Error;
 
 use super::lane_ir::LaneIr;
-use super::{Card, Imports};
+use super::{Card, ImportsIr};
 
 #[derive(Debug, Clone, Error)]
 pub enum IntoStreamError {
@@ -26,16 +26,19 @@ pub enum IntoStreamError {
 
 pub type CaoProgram = Module;
 pub type CaoIdentifier = String;
+pub type Imports = BTreeSet<CaoIdentifier>;
+pub type Lanes = BTreeMap<CaoIdentifier, Lane>;
+pub type Submodules = BTreeMap<CaoIdentifier, Module>;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Module {
-    pub submodules: BTreeMap<CaoIdentifier, Module>,
-    pub lanes: BTreeMap<CaoIdentifier, Lane>,
+    pub submodules: Submodules,
+    pub lanes: Lanes,
     /// _lanes_ to import from submodules
     ///
     /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
-    pub imports: BTreeSet<CaoIdentifier>,
+    pub imports: Imports,
 }
 
 /// Uniquely index a card in a module
@@ -322,8 +325,8 @@ impl Module {
         Ok(result)
     }
 
-    fn execute_imports(&self) -> Result<Imports, CompilationErrorPayload> {
-        let mut result = Imports::with_capacity(self.imports.len());
+    fn execute_imports(&self) -> Result<ImportsIr, CompilationErrorPayload> {
+        let mut result = ImportsIr::with_capacity(self.imports.len());
 
         for import in self.imports.iter() {
             let import = import.as_str();
@@ -399,7 +402,7 @@ fn flatten_module<'a>(
     Ok(())
 }
 
-fn lane_to_lane_ir(lane: &Lane, namespace: &[&str], imports: Rc<Imports>) -> LaneIr {
+fn lane_to_lane_ir(lane: &Lane, namespace: &[&str], imports: Rc<ImportsIr>) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"

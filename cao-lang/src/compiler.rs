@@ -38,7 +38,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 /// Execution will begin with the first Lane
 pub(crate) type LaneSlice<'a> = &'a [LaneIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
-pub(crate) type Imports = std::collections::HashMap<String, String>;
+pub(crate) type ImportsIr = std::collections::HashMap<String, String>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -49,7 +49,7 @@ pub struct Compiler<'a> {
     jump_table: CaoHashMap<String, LaneMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
-    current_imports: Cow<'a, Imports>,
+    current_imports: Cow<'a, ImportsIr>,
     locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
     scope_depth: i32,
     current_index: CardIndex,
