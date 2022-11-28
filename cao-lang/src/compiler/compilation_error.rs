@@ -75,6 +75,9 @@ pub enum CompilationErrorPayload {
     #[error("Import '{0}' is not valid")]
     BadImport(String),
 
+    #[error("Import '{0}' is ambigous")]
+    AmbigousImport(String),
+
     #[error("Too many `super.` calls.")]
     SuperLimitReached,
 }

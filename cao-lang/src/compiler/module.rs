@@ -8,7 +8,7 @@ use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::hash::Hasher;
 use std::rc::Rc;
 use thiserror::Error;
@@ -26,7 +26,7 @@ pub enum IntoStreamError {
 
 pub type CaoProgram = Module;
 pub type CaoIdentifier = String;
-pub type Imports = BTreeSet<CaoIdentifier>;
+pub type Imports = Vec<CaoIdentifier>;
 pub type Lanes = BTreeMap<CaoIdentifier, Lane>;
 pub type Submodules = BTreeMap<CaoIdentifier, Module>;
 
@@ -333,6 +333,9 @@ impl Module {
 
             match import.rsplit_once('.') {
                 Some((_, name)) => {
+                    if result.contains_key(name) {
+                        return Err(CompilationErrorPayload::AmbigousImport(import.to_string()));
+                    }
                     result.insert(name.to_string(), import.to_string());
                 }
                 None => {
