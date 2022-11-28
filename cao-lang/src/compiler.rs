@@ -490,12 +490,9 @@ impl<'a> Compiler<'a> {
                 self.process_card(&Card::Less)?;
                 // loop body
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
-                    match i_index {
-                        Some(i_index) => {
-                            c.read_local_var(loop_counter_index);
-                            c.write_local_var(i_index);
-                        }
-                        None => {}
+                    if let Some(i_index) = i_index {
+                        c.read_local_var(loop_counter_index);
+                        c.write_local_var(i_index);
                     }
                     c.current_index.push_subindex(0);
                     c.process_card(repeat)?;
