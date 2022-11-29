@@ -437,7 +437,10 @@ impl<'a> Compiler<'a> {
                 variable,
                 body,
             } => {
-                self.read_var_card(variable)?;
+                self.current_index.push_subindex(0);
+                self.process_card(variable)?;
+                self.current_index.pop_subindex();
+
                 self.scope_begin();
                 let loop_var = self.add_local_unchecked("")?;
                 let loop_item = self.add_local_unchecked("")?;
@@ -466,7 +469,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(k, &mut self.program.bytecode);
                 write_to_vec(o, &mut self.program.bytecode);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
-                    c.current_index.push_subindex(0);
+                    c.current_index.push_subindex(1);
                     c.process_card(body)?;
                     c.current_index.pop_subindex();
                     // return to the foreach instruction

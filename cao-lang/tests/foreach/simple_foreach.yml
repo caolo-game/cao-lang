@@ -32,7 +32,7 @@ lanes:
             - !ReadVar key
             - !ReadVar table
             - !Jump pog
-        variable: t
+        variable: !ReadVar t
 
   pog:
     arguments:

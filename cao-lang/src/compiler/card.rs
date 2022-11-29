@@ -67,7 +67,7 @@ pub enum Card {
         /// The object is written into this variable
         o: Option<VarNode>,
         /// Variable that is iterated on
-        variable: VarNode,
+        variable: Box<Card>,
         body: Box<Card>,
     },
     /// Single card that decomposes into multiple cards
