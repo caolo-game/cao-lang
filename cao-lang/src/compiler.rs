@@ -431,6 +431,7 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::ForEach { variable, lane } => {
+                self.scope_begin();
                 let arity = match self.jump_table.get(&lane.0) {
                     Some(x) => x.arity,
                     None => {
@@ -447,13 +448,20 @@ impl<'a> Compiler<'a> {
                     }));
                 }
                 self.read_var_card(variable)?;
+                let loop_var = self.add_local_unchecked("")?;
+                let loop_item = self.add_local_unchecked("")?;
                 self.push_instruction(Instruction::BeginForEach);
+                write_to_vec(loop_var, &mut self.program.bytecode);
+                write_to_vec(loop_item, &mut self.program.bytecode);
                 let block_begin = self.program.bytecode.len() as i32;
                 self.push_instruction(Instruction::ForEach);
+                write_to_vec(loop_var, &mut self.program.bytecode);
+                write_to_vec(loop_item, &mut self.program.bytecode);
                 self.encode_jump(lane)?;
                 // return to the repeat instruction
                 self.push_instruction(Instruction::GotoIfTrue);
                 write_to_vec(block_begin, &mut self.program.bytecode);
+                self.scope_end();
             }
             Card::While { condition, body } => {
                 let block_begin = self.program.bytecode.len() as i32;

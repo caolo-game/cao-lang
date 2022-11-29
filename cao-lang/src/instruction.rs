@@ -110,13 +110,11 @@ pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::Xor
         | Instruction::InitTable
         | Instruction::Len
-        | Instruction::BeginForEach
         | Instruction::Not => 1,
         //
         Instruction::ScalarInt | Instruction::ScalarFloat => 9,
-        Instruction::StringLiteral => 5,
-        //
-        Instruction::SetLocalVar
+        Instruction::StringLiteral
+        | Instruction::SetLocalVar
         | Instruction::ReadLocalVar
         | Instruction::SetProperty
         | Instruction::GetProperty
@@ -124,6 +122,6 @@ pub(crate) const fn instruction_span(instr: Instruction) -> i32 {
         | Instruction::ReadGlobalVar => 5,
         //
         Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => 5,
-        Instruction::ForEach | Instruction::CallLane => 9,
+        Instruction::ForEach | Instruction::BeginForEach | Instruction::CallLane => 9,
     }
 }

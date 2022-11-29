@@ -170,16 +170,7 @@ pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -
     res
 }
 
-pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
-    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
-    let offset = vm
-        .runtime_data
-        .call_stack
-        .last()
-        .expect("Call stack is emtpy")
-        .stack_offset;
-    let offset = offset as usize;
-    let value = vm.runtime_data.value_stack.pop_w_offset(offset);
+fn write_local_var<T>(vm: &mut Vm<T>, handle: u32, value: Value, offset: usize) -> ExecutionResult {
     vm.runtime_data
         .value_stack
         .set(offset + handle as usize, value)
@@ -189,16 +180,32 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     Ok(())
 }
 
-pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
-    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+fn stack_offset<T>(vm: &Vm<T>) -> usize {
     let offset = vm
         .runtime_data
         .call_stack
         .last()
-        .expect("Call stack is empty")
+        .expect("Call stack is emtpy")
         .stack_offset;
-    let offset = offset as usize;
+    offset as usize
+}
+
+pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let offset = stack_offset(vm);
+    let value = vm.runtime_data.value_stack.pop_w_offset(offset);
+    write_local_var(vm, handle, value, offset)
+}
+
+fn read_local_var<T>(vm: &mut Vm<T>, handle: u32) -> Result<Value, ExecutionErrorPayload> {
+    let offset = stack_offset(vm);
     let value = vm.runtime_data.value_stack.get(offset + handle as usize);
+    Ok(value)
+}
+
+pub fn get_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let value = read_local_var(vm, handle)?;
     vm.stack_push(value)?;
     Ok(())
 }
@@ -246,31 +253,44 @@ pub fn instr_copy_last<T>(vm: &mut Vm<T>) -> ExecutionResult {
 }
 
 /// push `i=0` onto the stack
-pub fn begin_for_each<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let item = vm.runtime_data.value_stack.last();
+pub fn begin_for_each<T>(
+    vm: &mut Vm<T>,
+    bytecode: &[u8],
+    instr_ptr: &mut usize,
+) -> ExecutionResult {
+    let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let t_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let item_val = vm.runtime_data.value_stack.last();
     // test if the input is a table
-    let _item = vm.get_table(item)?;
-    debug!("Starting for-each on table {:?}", _item);
-
-    vm.stack_push(0)?; // i, this should be incremented by `for_each`
+    let item = vm.get_table_mut(item_val)?;
+    debug!("Starting for-each on table {:?}", item);
+    item.rebuild_keys();
+    let offset = stack_offset(vm);
+    write_local_var(vm, i_handle, Value::Integer(0), offset)?;
+    write_local_var(vm, t_handle, item_val, offset)?;
 
     Ok(())
 }
 
 /// Assumes that [begin_for_each](begin_for_each) was called once to set up the loop
 ///
-/// Requires `i`, and the object to be on the stack.
-///
 /// Pushes the next key and the object onto the stack. Assumes that the lane takes these as
 /// parameters.
-pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
-    let i = vm.stack_pop();
-    let obj_val = vm.runtime_data.value_stack.peek_last(0);
+pub fn for_each<T>(
+    vm: &mut Vm<T>,
+    bytecode: &[u8],
+    instr_ptr: &mut usize,
+) -> Result<bool, ExecutionErrorPayload> {
+    let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let t_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let offset = stack_offset(vm);
+    let i = read_local_var(vm, i_handle)?;
+    let obj_val = read_local_var(vm, t_handle)?;
 
-    let mut i = i64::try_from(i).expect("Repeat input #0 must be an integer");
+    let mut i = i64::try_from(i).expect("ForEach i must be an integer");
     let obj = vm
         .get_table(obj_val)
-        .expect("Repeat input #2 must be a table");
+        .expect("ForEach input must be a table");
 
     debug_assert!(0 <= i, "for_each overflow");
 
@@ -278,21 +298,14 @@ pub fn for_each<T>(vm: &mut Vm<T>) -> Result<bool, ExecutionErrorPayload> {
 
     let should_continue = 0 <= i && i < n;
     if should_continue {
-        let key = *obj.iter().nth(i as usize).map(|(k, _)| k).ok_or_else(|| {
-            ExecutionErrorPayload::invalid_argument(format!(
-                "ForEach can not find the `i`th argument. i: {} n: {}\nDid you remove items during iteration?",
-                i, n
-            ))
-        })?;
+        let key = obj.nth_key(i as usize);
         i += 1;
 
         // restore the variable
-        vm.stack_push(i)?;
+        write_local_var(vm, i_handle, Value::Integer(i), offset)?;
         // push lane arguments
         vm.stack_push(key)?;
         vm.stack_push(obj_val)?;
-    } else {
-        vm.stack_pop(); // clean up the object
     }
 
     Ok(should_continue)

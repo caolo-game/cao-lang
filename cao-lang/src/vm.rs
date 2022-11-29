@@ -275,14 +275,15 @@ impl<'a, Aux> Vm<'a, Aux> {
                         })?;
                 }
                 Instruction::BeginForEach => {
-                    instr_execution::begin_for_each(self).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
+                    instr_execution::begin_for_each(self, &program.bytecode, &mut instr_ptr)
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::ForEach => {
-                    if instr_execution::for_each(self).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })? {
+                    if instr_execution::for_each(self, &program.bytecode, &mut instr_ptr).map_err(
+                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    )? {
                         instr_execution::instr_jump(
                             src_ptr,
                             &mut instr_ptr,

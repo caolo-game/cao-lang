@@ -14,6 +14,7 @@ use tracing::debug;
 
 pub struct FieldTable {
     map: CaoHashMap<Value, Value, BumpProxy>,
+    keys: Vec<Value>,
     alloc: BumpProxy,
 }
 
@@ -35,6 +36,7 @@ impl FieldTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {
             map: CaoHashMap::with_capacity_in(size, proxy.clone())?,
+            keys: Vec::default(),
             alloc: proxy,
         };
         Ok(res)
@@ -66,8 +68,28 @@ impl FieldTable {
         self.map
             .insert(key, value)
             .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
+        self.keys.push(key);
 
         Ok(())
+    }
+
+    pub fn remove(&mut self, key: Value) -> Result<(), ExecutionErrorPayload> {
+        self.map.remove(&key);
+        // key is not removed from `keys`
+        // TODO: gc should rebuild the keys?
+        Ok(())
+    }
+
+    pub fn rebuild_keys(&mut self) {
+        self.keys.clear();
+        self.keys.extend(self.map.iter().map(|(k, _)| *k));
+    }
+
+    pub fn nth_key(&self, i: usize) -> Value {
+        if i >= self.keys.len() {
+            return Value::Nil;
+        }
+        self.keys[i]
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + '_ {
