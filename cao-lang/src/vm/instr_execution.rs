@@ -107,7 +107,7 @@ pub fn instr_string_literal<T>(
 ) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let payload = read_str(&mut (handle as usize), program.data.as_slice())
-        .ok_or_else(|| ExecutionErrorPayload::invalid_argument(None))?;
+        .ok_or_else(|| ExecutionErrorPayload::InvalidArgument { context: None })?;
 
     let ptr = vm.init_string(payload)?;
     vm.stack_push(Value::String(ptr))?;
@@ -279,16 +279,23 @@ pub fn begin_for_each<T>(
 ///
 /// Pushes should_continue on top of the stack
 pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
-    let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let loop_variable: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let t_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+
+    let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let k_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let o_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+
     let offset = stack_offset(vm);
-    let i = read_local_var(vm, i_handle)?;
+    let i = read_local_var(vm, loop_variable)?;
     let obj_val = read_local_var(vm, t_handle)?;
 
-    let mut i = i64::try_from(i).expect("ForEach i must be an integer");
-    let obj = vm
-        .get_table(obj_val)
-        .expect("ForEach input must be a table");
+    let mut i = i64::try_from(i).map_err(|_| {
+        ExecutionErrorPayload::AssertionError("ForEach i must be an integer. This error can be caused by stack corruption. Check your function calls!".to_string())
+    })?;
+    let obj = vm.get_table(obj_val).map_err(|_| {
+        ExecutionErrorPayload::AssertionError("ForEach value is not an object. This error can be caused by stack corruption. Check your function calls!".to_string())
+    })?;
 
     debug_assert!(0 <= i, "for_each overflow");
 
@@ -299,11 +306,11 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
         let key = obj.nth_key(i as usize);
         i += 1;
 
-        // restore the variable
+        write_local_var(vm, o_handle, obj_val, offset)?;
+        write_local_var(vm, k_handle, key, offset)?;
         write_local_var(vm, i_handle, Value::Integer(i), offset)?;
-        // push lane arguments
-        vm.stack_push(key)?;
-        vm.stack_push(obj_val)?;
+        // store the loop variable
+        write_local_var(vm, loop_variable, Value::Integer(i), offset)?;
     }
     vm.stack_push(should_continue)?;
 

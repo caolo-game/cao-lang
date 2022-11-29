@@ -60,7 +60,13 @@ pub enum Card {
         body: Box<Card>,
     },
     ForEach {
-        // TODO: loop variable like in repeat
+        /// Loop variable is written into this variable
+        i: Option<VarNode>,
+        /// The key is written into this variable
+        k: Option<VarNode>,
+        /// The object is written into this variable
+        o: Option<VarNode>,
+        /// Variable that is iterated on
         variable: VarNode,
         body: Box<Card>,
     },

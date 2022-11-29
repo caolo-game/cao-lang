@@ -68,6 +68,7 @@ pub enum ExecutionResult {
     cao_ExecutionResult_Stackoverflow,
     cao_ExecutionResult_BadReturn,
     cao_ExecutionResult_Unhashable,
+    cao_ExecutionResult_AssertionError,
 }
 
 /// # Safety
@@ -287,6 +288,9 @@ pub unsafe extern "C" fn cao_run_program(
             }
             cao_lang::procedures::ExecutionErrorPayload::Unhashable => {
                 return ExecutionResult::cao_ExecutionResult_Unhashable
+            }
+            cao_lang::procedures::ExecutionErrorPayload::AssertionError(_) => {
+                return ExecutionResult::cao_ExecutionResult_AssertionError
             }
         },
     }

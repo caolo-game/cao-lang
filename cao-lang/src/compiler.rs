@@ -431,25 +431,45 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::ForEach {
+                i,
+                k,
+                o,
                 variable,
                 body,
             } => {
-                self.scope_begin();
                 self.read_var_card(variable)?;
+                self.scope_begin();
                 let loop_var = self.add_local_unchecked("")?;
                 let loop_item = self.add_local_unchecked("")?;
+                // ForEach instruction will push these values on the stack
+                let o = match o {
+                    Some(o) => self.add_local(&o.0)?,
+                    None => self.add_local_unchecked("")?,
+                };
+                let k = match k {
+                    Some(k) => self.add_local(&k.0)?,
+                    None => self.add_local_unchecked("")?,
+                };
+                let i = match i {
+                    Some(i) => self.add_local(&i.0)?,
+                    None => self.add_local_unchecked("")?,
+                };
                 self.push_instruction(Instruction::BeginForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
+
                 let block_begin = self.program.bytecode.len() as i32;
                 self.push_instruction(Instruction::ForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
+                write_to_vec(i, &mut self.program.bytecode);
+                write_to_vec(k, &mut self.program.bytecode);
+                write_to_vec(o, &mut self.program.bytecode);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.current_index.push_subindex(0);
                     c.process_card(body)?;
                     c.current_index.pop_subindex();
-                    // return to the repeat instruction
+                    // return to the foreach instruction
                     c.push_instruction(Instruction::Goto);
                     write_to_vec(block_begin, &mut c.program.bytecode);
                     Ok(())
@@ -523,8 +543,7 @@ impl<'a> Compiler<'a> {
                     None => self.add_local(&var.0)?,
                 };
 
-                self.push_instruction(Instruction::SetLocalVar);
-                write_to_vec(index, &mut self.program.bytecode);
+                self.write_local_var(index);
             }
             Card::SetGlobalVar(variable) => {
                 let next_var = &mut self.next_var;

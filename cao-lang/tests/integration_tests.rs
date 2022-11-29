@@ -1059,3 +1059,21 @@ fn simple_while_test() {
 
     assert_eq!(result.as_int().unwrap(), N);
 }
+
+#[test]
+fn set_var_to_empty_test() {
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [(
+            "main".to_string(),
+            Lane::default().with_card(Card::SetVar(VarNode::from_str_unchecked("i"))),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+}

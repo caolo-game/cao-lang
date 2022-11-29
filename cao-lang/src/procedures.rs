@@ -45,6 +45,8 @@ pub enum ExecutionErrorPayload {
     BadReturn { reason: String },
     #[error("Trying to hash an unhashable object")]
     Unhashable,
+    #[error("Assertion failed: {0}")]
+    AssertionError(String),
 }
 
 #[derive(Debug, Clone, Error)]
@@ -68,10 +70,10 @@ impl Display for ExecutionError {
 impl ExecutionErrorPayload {
     pub fn invalid_argument<S>(reason: S) -> Self
     where
-        S: Into<Option<String>>,
+        S: Into<String>,
     {
         Self::InvalidArgument {
-            context: reason.into(),
+            context: Some(reason.into()),
         }
     }
 }

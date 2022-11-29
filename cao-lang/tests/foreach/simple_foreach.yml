@@ -23,8 +23,16 @@ lanes:
       - !SetGlobalVar g_result
       # --- init done ---
       - !ForEach
-          body: !Jump pog
-          variable: t
+        k: key
+        o: table
+        body: !CompositeCard
+          name: ""
+          ty: ""
+          cards:
+            - !ReadVar key
+            - !ReadVar table
+            - !Jump pog
+        variable: t
 
   pog:
     arguments:
