@@ -1,4 +1,29 @@
 # Changelog
+## v0.1.97
+
+
+### Bug Fixes
+
+- Raise error on ambigous error
+
+
+### Features
+
+- Repeat cards take a sub-card as input
+
+- Take Card as ForEach body
+
+- Allow specifying the `i` `k` and `o` parameters of ForEach
+
+- Take a sub-card as input for ForEach
+
+
+### Refactor
+
+- Use vector for imports collection
+
+- Use vector for imports collection
+
 ## v0.1.96
 
 
