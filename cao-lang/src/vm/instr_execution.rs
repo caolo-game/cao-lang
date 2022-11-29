@@ -107,7 +107,7 @@ pub fn instr_string_literal<T>(
 ) -> ExecutionResult {
     let handle: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
     let payload = read_str(&mut (handle as usize), program.data.as_slice())
-        .ok_or_else(|| ExecutionErrorPayload::InvalidArgument { context: None })?;
+        .ok_or(ExecutionErrorPayload::InvalidArgument { context: None })?;
 
     let ptr = vm.init_string(payload)?;
     vm.stack_push(Value::String(ptr))?;
