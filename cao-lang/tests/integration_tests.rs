@@ -14,7 +14,6 @@ fn composite_card_test() {
         lanes: [(
             "main".into(),
             Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
-                name: "triplepog".to_string(),
                 ty: "triplepog".to_string(),
                 cards: vec![
                     Card::StringLiteral(StringNode("poggers".to_owned())),
@@ -187,7 +186,6 @@ fn simple_if_statement_skips_if_false() {
                 .with_card(Card::ScalarInt(IntegerNode(0)))
                 .with_card(Card::IfTrue(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
-                        name: "".to_string(),
                         ty: "".to_string(),
                         cards: vec![
                             Card::ScalarInt(IntegerNode(69)),
@@ -198,7 +196,6 @@ fn simple_if_statement_skips_if_false() {
                 .with_card(Card::ScalarInt(IntegerNode(1)))
                 .with_card(Card::IfFalse(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
-                        name: "".to_string(),
                         ty: "".to_string(),
                         cards: vec![
                             Card::ScalarInt(IntegerNode(42)),
@@ -381,7 +378,6 @@ fn simple_for_loop() {
                     Card::Repeat {
                         i: Some(VarNode::from_str_unchecked("i")),
                         body: Box::new(Card::composite_card(
-                            "",
                             "",
                             vec![
                                 Card::ReadVar(VarNode::from_str_unchecked("i")),
@@ -974,7 +970,6 @@ fn local_variable_regression_test() {
                 Lane::default()
                     .with_card(Card::composite_card(
                         "asd",
-                        "asd",
                         vec![Card::scalar_int(69), Card::set_var("pog").unwrap()],
                     ))
                     .with_card(Card::jump("tiggers")),
@@ -984,11 +979,9 @@ fn local_variable_regression_test() {
                 Lane::default()
                     .with_card(Card::composite_card(
                         "basd",
-                        "basd",
                         vec![Card::scalar_int(42), Card::set_var("foo").unwrap()],
                     ))
                     .with_card(Card::composite_card(
-                        "zasd",
                         "zasd",
                         vec![
                             Card::read_var("foo").unwrap(),
@@ -1029,7 +1022,6 @@ fn simple_while_test() {
                     condition: Box::new(Card::ReadVar(VarNode::from_str_unchecked("i"))),
                     body: Box::new(Card::composite_card(
                         "body",
-                        "",
                         vec![
                             // Increment pooh
                             Card::ScalarInt(IntegerNode(1)),

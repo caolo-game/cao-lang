@@ -24,7 +24,6 @@ fn prog() -> Module {
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
-                name: "triplepog".to_string(),
                 ty: "".to_string(),
                 cards: vec![
                     Card::StringLiteral(StringNode("poggers".to_owned())),
@@ -59,7 +58,6 @@ fn can_parse_json_test() {
             "submodules": {},
             "imports": [],
             "lanes": {"main": {
-                "name": "main",
                 "arguments": [],
                 "cards": [ {"Jump": "42" } ]
             }}
@@ -102,7 +100,6 @@ fn remove_card_from_compositve_test() {
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
-                name: "triplepog".to_string(),
                 ty: "".to_string(),
                 cards: vec![
                     Card::StringLiteral(StringNode("winnie".to_owned())),
@@ -185,7 +182,7 @@ fn insert_card_test() {
     program
         .insert_card(
             &CardIndex::new("poggers", 1),
-            Card::composite_card("ye boi".to_string(), "pog".to_string(), vec![]),
+            Card::composite_card("pog".to_string(), vec![]),
         )
         .unwrap();
     program
@@ -203,7 +200,6 @@ fn insert_card_test() {
         "CreateTable",
         {
           "CompositeCard": {
-            "name": "ye boi",
             "ty": "pog",
             "cards": [
               "Abort"
