@@ -27,29 +27,6 @@ fn composite_card_test() {
 }
 
 #[test]
-fn empty_foreach_is_error_test() {
-    let mut lanes = BTreeMap::new();
-    lanes.insert(
-        "main".into(),
-        Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
-            name: "triplepog".to_string(),
-            ty: "triplepog".to_string(),
-            cards: vec![Card::ForEach {
-                variable: VarNode::from_str_unchecked("pog"),
-                lane: LaneNode("".to_string()),
-            }],
-        }))),
-    );
-    let cu = CaoProgram {
-        imports: Default::default(),
-        submodules: Default::default(),
-        lanes,
-    };
-
-    compile(cu, None).unwrap_err();
-}
-
-#[test]
 fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         imports: Default::default(),
@@ -89,57 +66,6 @@ fn empty_varname_is_error() {
     assert!(matches!(
         err.payload,
         CompilationErrorPayload::EmptyVariable
-    ));
-}
-
-#[test]
-fn empty_arity_in_foreach_is_an_error() {
-    let cu = CaoProgram {
-        imports: Default::default(),
-        submodules: Default::default(),
-        lanes: [
-            (
-                "main".into(),
-                Lane::default().with_card(Card::ForEach {
-                    variable: VarNode::default(),
-                    lane: LaneNode("pooh".to_owned()),
-                }),
-            ),
-            ("pooh".into(), Lane::default()),
-        ]
-        .into(),
-    };
-
-    let err = compile(cu, CompileOptions::new()).unwrap_err();
-
-    assert!(matches!(
-        err.payload,
-        CompilationErrorPayload::InvalidJump { .. }
-    ));
-}
-
-#[test]
-fn arity_1_in_foreach_is_an_error() {
-    let cu = CaoProgram {
-        imports: Default::default(),
-        submodules: Default::default(),
-        lanes: BTreeMap::from([
-            (
-                "main".into(),
-                Lane::default().with_card(Card::ForEach {
-                    variable: VarNode::default(),
-                    lane: LaneNode("pooh".to_owned()),
-                }),
-            ),
-            ("pooh".into(), Lane::default().with_arg("asd")),
-        ]),
-    };
-
-    let err = compile(cu, CompileOptions::new()).unwrap_err();
-
-    assert!(matches!(
-        err.payload,
-        CompilationErrorPayload::InvalidJump { .. }
     ));
 }
 

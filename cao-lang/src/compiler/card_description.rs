@@ -90,7 +90,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
         }),
         get_desc(&Card::ForEach {
             variable: Default::default(),
-            lane: Default::default(),
+            body: Default::default(),
         }),
     ]
 }

@@ -23,7 +23,7 @@ lanes:
       - !SetGlobalVar g_result
       # --- init done ---
       - !ForEach
-          lane: pog
+          body: !Jump pog
           variable: t
 
   pog:

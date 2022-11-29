@@ -60,8 +60,9 @@ pub enum Card {
         body: Box<Card>,
     },
     ForEach {
+        // TODO: loop variable like in repeat
         variable: VarNode,
-        lane: LaneNode,
+        body: Box<Card>,
     },
     /// Single card that decomposes into multiple cards
     CompositeCard(Box<CompositeCard>),

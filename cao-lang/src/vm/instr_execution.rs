@@ -276,11 +276,9 @@ pub fn begin_for_each<T>(
 ///
 /// Pushes the next key and the object onto the stack. Assumes that the lane takes these as
 /// parameters.
-pub fn for_each<T>(
-    vm: &mut Vm<T>,
-    bytecode: &[u8],
-    instr_ptr: &mut usize,
-) -> Result<bool, ExecutionErrorPayload> {
+///
+/// Pushes should_continue on top of the stack
+pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let t_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let offset = stack_offset(vm);
@@ -307,6 +305,7 @@ pub fn for_each<T>(
         vm.stack_push(key)?;
         vm.stack_push(obj_val)?;
     }
+    vm.stack_push(should_continue)?;
 
-    Ok(should_continue)
+    Ok(())
 }

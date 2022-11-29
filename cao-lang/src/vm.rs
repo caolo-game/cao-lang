@@ -10,7 +10,6 @@ mod tests;
 use self::runtime::CallFrame;
 use crate::{
     collections::handle_table::{Handle, HandleTable},
-    instruction::instruction_span,
     instruction::Instruction,
     prelude::*,
     value::Value,
@@ -281,26 +280,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                         })?;
                 }
                 Instruction::ForEach => {
-                    if instr_execution::for_each(self, &program.bytecode, &mut instr_ptr).map_err(
+                    instr_execution::for_each(self, &program.bytecode, &mut instr_ptr).map_err(
                         |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
-                    )? {
-                        instr_execution::instr_jump(
-                            src_ptr,
-                            &mut instr_ptr,
-                            program,
-                            &mut self.runtime_data,
-                        )
-                        .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?;
-                    } else {
-                        self.stack_push(false).map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?; // assumes that the next instruction is GotoIfTrue
-                             // add the span of the jump instruction metadata to the instr_ptr
-                             // to skip this instruction
-                        instr_ptr += instruction_span(Instruction::CallLane) as usize - 1;
-                    }
+                    )?;
                 }
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.value_stack.pop();

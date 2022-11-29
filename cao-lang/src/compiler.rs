@@ -430,23 +430,11 @@ impl<'a> Compiler<'a> {
                     self.current_index.pop_subindex()
                 }
             }
-            Card::ForEach { variable, lane } => {
+            Card::ForEach {
+                variable,
+                body,
+            } => {
                 self.scope_begin();
-                let arity = match self.jump_table.get(&lane.0) {
-                    Some(x) => x.arity,
-                    None => {
-                        return Err(self.error(CompilationErrorPayload::InvalidJump {
-                            dst: lane.clone(),
-                            msg: Some("ForEach target lane not found".to_string()),
-                        }))
-                    }
-                };
-                if arity != 2 {
-                    return Err(self.error(CompilationErrorPayload::InvalidJump {
-                        dst: lane.clone(),
-                        msg: Some("ForEach lanes need to have 2 parameters".to_string()),
-                    }));
-                }
                 self.read_var_card(variable)?;
                 let loop_var = self.add_local_unchecked("")?;
                 let loop_item = self.add_local_unchecked("")?;
@@ -457,10 +445,15 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::ForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
-                self.encode_jump(lane)?;
-                // return to the repeat instruction
-                self.push_instruction(Instruction::GotoIfTrue);
-                write_to_vec(block_begin, &mut self.program.bytecode);
+                self.encode_if_then(Instruction::GotoIfFalse, |c| {
+                    c.current_index.push_subindex(0);
+                    c.process_card(body)?;
+                    c.current_index.pop_subindex();
+                    // return to the repeat instruction
+                    c.push_instruction(Instruction::Goto);
+                    write_to_vec(block_begin, &mut c.program.bytecode);
+                    Ok(())
+                })?;
                 self.scope_end();
             }
             Card::While { condition, body } => {
