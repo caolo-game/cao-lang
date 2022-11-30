@@ -209,64 +209,6 @@ impl Card {
         };
     }
 
-    /// If the card has sub-cards then return references to them in a list
-    pub fn as_card_list(&self) -> Option<smallvec::SmallVec<[&Card; 4]>> {
-        let mut res = smallvec::smallvec![];
-        match self {
-            Self::CompositeCard(c) => {
-                res.extend(c.cards.iter());
-            }
-            Self::IfTrue(c) | Self::IfFalse(c) => res.push(c.as_ref()),
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            }
-            | Self::IfElse { then: a, r#else: b } => {
-                res.push(a.as_ref());
-                res.push(b.as_ref());
-            }
-            _ => return None,
-        }
-        Some(res)
-    }
-
-    /// If the card has sub-cards then return references to them in a list
-    pub fn as_card_list_mut(&mut self) -> Option<smallvec::SmallVec<[&mut Card; 4]>> {
-        let mut res = smallvec::smallvec![];
-        match self {
-            Self::CompositeCard(c) => {
-                res.extend(c.cards.iter_mut());
-            }
-            Card::Repeat { i: _, body: c } | Self::IfTrue(c) | Self::IfFalse(c) => {
-                res.push(c.as_mut())
-            }
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            }
-            | Self::IfElse { then: a, r#else: b } => {
-                res.push(a.as_mut());
-                res.push(b.as_mut());
-            }
-            _ => return None,
-        }
-        Some(res)
-    }
-
     pub fn as_composite_card(&self) -> Option<&CompositeCard> {
         if let Self::CompositeCard(v) = self {
             Some(v)
