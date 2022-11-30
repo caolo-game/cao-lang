@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.99
+
+
+### Refactor
+
+- Drop Object var and add the Value var for ForEach
+
 ## v0.1.98
 
 
