@@ -1,4 +1,11 @@
 # Changelog
+## v0.1.98
+
+
+### Refactor
+
+- Remove the `name` property of `CompositeCard`s
+
 ## v0.1.97
 
 
