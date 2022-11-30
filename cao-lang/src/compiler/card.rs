@@ -36,7 +36,7 @@ pub enum Card {
     Len,
     SetProperty,
     GetProperty,
-    ScalarInt(IntegerNode),
+    ScalarInt(i64),
     ScalarFloat(FloatNode),
     StringLiteral(StringNode),
     CallNative(Box<CallNode>),
@@ -245,7 +245,7 @@ impl Card {
     }
 
     pub fn scalar_int(i: i64) -> Self {
-        Card::ScalarInt(IntegerNode(i))
+        Card::ScalarInt(i)
     }
 
     pub fn string_card(s: impl Into<String>) -> Self {
@@ -435,10 +435,6 @@ impl Card {
         Ok(res)
     }
 }
-
-#[derive(Debug, Clone, Default, Copy)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct IntegerNode(pub i64);
 
 #[derive(Debug, Clone, Default, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

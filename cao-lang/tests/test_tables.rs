@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, IntegerNode, StringNode, VarNode},
+    compiler::{CallNode, StringNode, VarNode},
     prelude::*,
 };
 
@@ -44,7 +44,7 @@ fn test_get_set() {
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::StringLiteral(StringNode("bar".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
                 .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::StringLiteral(StringNode("bar".to_string())))
@@ -96,7 +96,7 @@ fn test_native_w_table_input() {
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
                 .with_card(Card::StringLiteral(StringNode("boi".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
                 .with_card(Card::CallNative(Box::new(CallNode(
                     InputString::from("boii").unwrap(),

@@ -509,7 +509,7 @@ impl<'a> Compiler<'a> {
                 };
                 self.write_local_var(loop_n_index);
                 // init counter to 0
-                self.process_card(&Card::ScalarInt(IntegerNode(0)))?;
+                self.process_card(&Card::ScalarInt(0))?;
                 self.write_local_var(loop_counter_index);
 
                 let block_begin = self.program.bytecode.len() as i32;
@@ -527,7 +527,7 @@ impl<'a> Compiler<'a> {
                     c.process_card(repeat)?;
                     c.current_index.pop_subindex();
                     // i = i + 1
-                    c.process_card(&Card::ScalarInt(IntegerNode(1)))?;
+                    c.process_card(&Card::ScalarInt(1))?;
                     c.read_local_var(loop_counter_index);
                     c.process_card(&Card::Add)?;
                     c.write_local_var(loop_counter_index);
@@ -613,7 +613,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(key, &mut self.program.bytecode);
             }
             Card::ScalarInt(s) => {
-                write_to_vec(s.0, &mut self.program.bytecode);
+                write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
                 write_to_vec(s.0, &mut self.program.bytecode);

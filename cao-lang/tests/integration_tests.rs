@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, CompositeCard, IntegerNode, LaneNode, Module, StringNode, VarNode},
+    compiler::{CallNode, CompositeCard, LaneNode, Module, StringNode, VarNode},
     prelude::*,
 };
 
@@ -149,7 +149,7 @@ fn simple_if_statement() {
             (
                 "main".into(),
                 Lane::default()
-                    .with_card(Card::ScalarInt(IntegerNode(42)))
+                    .with_card(Card::ScalarInt(42))
                     .with_card(Card::IfTrue(Box::new(Card::Jump(LaneNode(
                         "pooh".to_owned(),
                     ))))),
@@ -157,7 +157,7 @@ fn simple_if_statement() {
             (
                 "pooh".into(),
                 Lane::default().with_cards(vec![
-                    Card::ScalarInt(IntegerNode(69)),
+                    Card::ScalarInt(69),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                 ]),
             ),
@@ -183,22 +183,22 @@ fn simple_if_statement_skips_if_false() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::ScalarInt(0))
                 .with_card(Card::IfTrue(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
                         ty: "".to_string(),
                         cards: vec![
-                            Card::ScalarInt(IntegerNode(69)),
+                            Card::ScalarInt(69),
                             Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                         ],
                     },
                 )))))
-                .with_card(Card::ScalarInt(IntegerNode(1)))
+                .with_card(Card::ScalarInt(1))
                 .with_card(Card::IfFalse(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
                         ty: "".to_string(),
                         cards: vec![
-                            Card::ScalarInt(IntegerNode(42)),
+                            Card::ScalarInt(42),
                             Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                         ],
                     },
@@ -235,7 +235,7 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
                         Card::Jump(LaneNode("pooh".to_string())),
                         Card::Jump(LaneNode("tiggers".to_string())),
                     ])))
-                    .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
+                    .with_card(Card::ScalarInt(0xbeef))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
             ),
             (
@@ -276,9 +276,9 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
 #[test]
 fn simple_if_else_statement_test_then() {
     if_else_test(
-        Card::ScalarInt(IntegerNode(1)),
-        Card::ScalarInt(IntegerNode(42)),
-        Card::ScalarInt(IntegerNode(69)),
+        Card::ScalarInt(1),
+        Card::ScalarInt(42),
+        Card::ScalarInt(69),
         Value::Integer(42),
     );
 }
@@ -286,9 +286,9 @@ fn simple_if_else_statement_test_then() {
 #[test]
 fn simple_if_else_statement_test_else() {
     if_else_test(
-        Card::ScalarInt(IntegerNode(0)),
-        Card::ScalarInt(IntegerNode(42)),
-        Card::ScalarInt(IntegerNode(69)),
+        Card::ScalarInt(0),
+        Card::ScalarInt(42),
+        Card::ScalarInt(69),
         Value::Integer(69),
     );
 }
@@ -302,10 +302,10 @@ fn test_local_variable() {
             "main".into(),
             Lane::default()
                 // init the global variable
-                .with_card(Card::ScalarInt(IntegerNode(420)))
+                .with_card(Card::ScalarInt(420))
                 .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
                 // set another value in local var
-                .with_card(Card::ScalarInt(IntegerNode(123)))
+                .with_card(Card::ScalarInt(123))
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
                 // read the var and set the global variable
                 .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
@@ -336,7 +336,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
             (
                 "main".into(),
                 Lane::default()
-                    .with_card(Card::ScalarInt(IntegerNode(123)))
+                    .with_card(Card::ScalarInt(123))
                     .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
                     .with_card(Card::Jump(LaneNode("bar".to_string()))),
             ),
@@ -371,10 +371,10 @@ fn simple_for_loop() {
                 "main".into(),
                 Lane::default().with_cards(vec![
                     // init the result variable
-                    Card::ScalarInt(IntegerNode(0)),
+                    Card::ScalarInt(0),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                     // loop
-                    Card::ScalarInt(IntegerNode(5)),
+                    Card::ScalarInt(5),
                     Card::Repeat {
                         i: Some(VarNode::from_str_unchecked("i")),
                         body: Box::new(Card::composite_card(
@@ -534,7 +534,7 @@ fn jump_lane_w_params_test() {
             (
                 "main".into(),
                 Lane::default()
-                    .with_card(Card::ScalarInt(IntegerNode(42)))
+                    .with_card(Card::ScalarInt(42))
                     .with_card(Card::StringLiteral(StringNode(
                         "winnie the pooh".to_owned(),
                     )))
@@ -618,17 +618,17 @@ fn len_test_happy() {
                 // first property
                 .with_card(Card::ReadVar(t.clone()))
                 .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(42)))
+                .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty)
                 // same property as above
                 .with_card(Card::ReadVar(t.clone()))
                 .with_card(Card::StringLiteral(StringNode("asd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(69)))
+                .with_card(Card::ScalarInt(69))
                 .with_card(Card::SetProperty)
                 // new property
                 .with_card(Card::ReadVar(t.clone()))
                 .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
-                .with_card(Card::ScalarInt(IntegerNode(89)))
+                .with_card(Card::ScalarInt(89))
                 .with_card(Card::SetProperty)
                 // len
                 .with_card(Card::ReadVar(t.clone()))
@@ -1014,9 +1014,9 @@ fn simple_while_test() {
         lanes: [(
             "main".to_string(),
             Lane::default()
-                .with_card(Card::ScalarInt(IntegerNode(N)))
+                .with_card(Card::ScalarInt(N))
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("i")))
-                .with_card(Card::ScalarInt(IntegerNode(0)))
+                .with_card(Card::ScalarInt(0))
                 .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")))
                 .with_card(Card::While(Box::new([
                     Card::ReadVar(VarNode::from_str_unchecked("i")),
@@ -1024,13 +1024,13 @@ fn simple_while_test() {
                         "body",
                         vec![
                             // Increment pooh
-                            Card::ScalarInt(IntegerNode(1)),
+                            Card::ScalarInt(1),
                             Card::ReadVar(VarNode::from_str_unchecked("pooh")),
                             Card::Add,
                             Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")),
                             // decrement loop counter
                             Card::ReadVar(VarNode::from_str_unchecked("i")),
-                            Card::ScalarInt(IntegerNode(1)),
+                            Card::ScalarInt(1),
                             Card::Sub,
                             Card::SetVar(VarNode::from_str_unchecked("i")),
                         ],
