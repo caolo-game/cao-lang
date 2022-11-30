@@ -42,10 +42,8 @@ pub enum Card {
     CallNative(Box<CallNode>),
     IfTrue(Box<Card>),
     IfFalse(Box<Card>),
-    IfElse {
-        then: Box<Card>,
-        r#else: Box<Card>,
-    },
+    /// Children = [then, else]
+    IfElse(Box<[Card; 2]>),
     Jump(LaneNode),
     SetGlobalVar(VarNode),
     SetVar(VarNode),
@@ -59,6 +57,7 @@ pub enum Card {
         condition: Box<Card>,
         body: Box<Card>,
     },
+    // TODO: move the entire variant into a struct
     ForEach {
         /// Loop variable is written into this variable
         i: Option<VarNode>,
@@ -279,8 +278,7 @@ impl Card {
                 v: _,
                 variable: a,
                 body: b,
-            }
-            | Card::IfElse { then: a, r#else: b } => {
+            } => {
                 if i > 1 {}
                 match i {
                     0 => res = a.as_mut(),
@@ -288,6 +286,7 @@ impl Card {
                     _ => return None,
                 }
             }
+            Card::IfElse(children) => return children.get_mut(i),
             _ => return None,
         }
         Some(res)
@@ -313,8 +312,7 @@ impl Card {
                 v: _,
                 variable: a,
                 body: b,
-            }
-            | Card::IfElse { then: a, r#else: b } => {
+            } => {
                 if i > 1 {}
                 match i {
                     0 => res = a.as_ref(),
@@ -322,6 +320,7 @@ impl Card {
                     _ => return None,
                 }
             }
+            Card::IfElse(children) => return children.get(i),
             _ => return None,
         }
         Some(res)
@@ -353,14 +352,19 @@ impl Card {
                 v: _,
                 variable: a,
                 body: b,
-            }
-            | Card::IfElse { then: a, r#else: b } => {
+            } => {
                 if i > 1 {}
                 match i {
                     0 => res = std::mem::replace::<Card>(a.as_mut(), Card::Pass),
                     1 => res = std::mem::replace::<Card>(b.as_mut(), Card::Pass),
                     _ => return None,
                 }
+            }
+            Card::IfElse(children) => {
+                let Some(c) = children.get_mut(i) else {
+                    return None
+                };
+                res = std::mem::replace(c, Card::Pass);
             }
             _ => return None,
         }
@@ -396,14 +400,18 @@ impl Card {
                 v: _,
                 variable: a,
                 body: b,
-            }
-            | Card::IfElse { then: a, r#else: b } => {
+            } => {
                 if i > 1 {}
                 match i {
                     0 => *a.as_mut() = card,
                     1 => *b.as_mut() = card,
                     _ => return Err(card),
                 };
+            }
+            Card::IfElse(children) => {
+                if let Some(c) = children.get_mut(i) {
+                    *c = card;
+                }
             }
             _ => return Err(card),
         }
@@ -433,12 +441,17 @@ impl Card {
                 v: _,
                 variable: a,
                 body: b,
-            }
-            | Card::IfElse { then: a, r#else: b } => match i {
+            } => match i {
                 0 => std::mem::replace(a.as_mut(), card),
                 1 => std::mem::replace(b.as_mut(), card),
                 _ => return Err(card),
             },
+            Card::IfElse(children) => {
+                let Some(c) = children.get_mut(i) else {
+                    return Err(card);
+                };
+                std::mem::replace(c, card)
+            }
             _ => return Err(card),
         };
         Ok(res)

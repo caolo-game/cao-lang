@@ -135,10 +135,10 @@ fn remove_card_from_ifelse_test() {
     let mut lanes = BTreeMap::new();
     lanes.insert(
         "main".into(),
-        Lane::default().with_card(Card::IfElse {
-            then: Box::new(Card::string_card("winnie")),
-            r#else: Box::new(Card::string_card("pooh")),
-        }),
+        Lane::default().with_card(Card::IfElse(Box::new([
+            Card::string_card("winnie"),
+            Card::string_card("pooh"),
+        ]))),
     );
     let mut prog = CaoProgram {
         imports: Default::default(),
@@ -162,8 +162,8 @@ fn remove_card_from_ifelse_test() {
 
     let ifelse = prog.get_card(&CardIndex::new("main", 0)).unwrap();
     match ifelse {
-        Card::IfElse { then: _, r#else } => {
-            assert!(matches!(**r#else, Card::Pass));
+        Card::IfElse(children) => {
+            assert!(matches!(children[1], Card::Pass));
         }
         _ => panic!(),
     }

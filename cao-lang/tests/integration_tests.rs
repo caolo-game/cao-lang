@@ -231,10 +231,10 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
                 "main".into(),
                 Lane::default()
                     .with_card(condition)
-                    .with_card(Card::IfElse {
-                        then: Box::new(Card::Jump(LaneNode("pooh".to_string()))),
-                        r#else: Box::new(Card::Jump(LaneNode("tiggers".to_string()))),
-                    })
+                    .with_card(Card::IfElse(Box::new([
+                        Card::Jump(LaneNode("pooh".to_string())),
+                        Card::Jump(LaneNode("tiggers".to_string())),
+                    ])))
                     .with_card(Card::ScalarInt(IntegerNode(0xbeef)))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
             ),

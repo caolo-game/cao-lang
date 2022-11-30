@@ -55,15 +55,14 @@ TEST(Compile, MultiLaneProgram) {
           "Equals": null
         },
         {
-          "IfElse": {
-            "then":{ 
+          "IfElse": [
+            { 
                 "Jump":"mine_success"
-              }
-            ,
-            "else":  {
+            }
+            , {
                 "Jump":"approach_resource"
-              }
-          }
+            }
+          ]
         }
       ]
     },

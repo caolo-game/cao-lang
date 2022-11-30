@@ -19,10 +19,8 @@ lanes:
       - !ReadVar N
       - !LessOrEq
       - !IfElse 
-          then:
-            !Jump fib_again
-          else:
-            !ScalarInt 1
+        - !Jump fib_again
+        - !ScalarInt 1
       - !Return
 
   fib_again:

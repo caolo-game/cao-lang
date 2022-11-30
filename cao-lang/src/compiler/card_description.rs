@@ -72,10 +72,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
         get_desc(&Card::StringLiteral(Default::default())),
         get_desc(&Card::IfTrue(Default::default())),
         get_desc(&Card::IfFalse(Default::default())),
-        get_desc(&Card::IfElse {
-            then: Default::default(),
-            r#else: Default::default(),
-        }),
+        get_desc(&Card::IfElse(Default::default())),
         get_desc(&Card::Jump(Default::default())),
         get_desc(&Card::SetGlobalVar(Default::default())),
         get_desc(&Card::SetVar(Default::default())),

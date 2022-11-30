@@ -572,10 +572,9 @@ impl<'a> Compiler<'a> {
                     .or_insert_with(move || *variable.0);
                 write_to_vec(*id, &mut self.program.bytecode);
             }
-            Card::IfElse {
-                then: then_card,
-                r#else: else_card,
-            } => {
+            Card::IfElse(children) => {
+                let [then_card, else_card] = &**children;
+
                 let mut idx = 0;
                 self.current_index.push_subindex(0);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
