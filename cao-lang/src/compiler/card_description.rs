@@ -81,10 +81,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
             i: None,
             body: Default::default(),
         }),
-        get_desc(&Card::While {
-            condition: Default::default(),
-            body: Default::default(),
-        }),
+        get_desc(&Card::While(Default::default())),
         get_desc(&Card::ForEach {
             i: None,
             k: None,

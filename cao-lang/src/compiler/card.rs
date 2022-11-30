@@ -53,10 +53,8 @@ pub enum Card {
         i: Option<VarNode>,
         body: Box<Card>,
     },
-    While {
-        condition: Box<Card>,
-        body: Box<Card>,
-    },
+    /// Children = [condition, body]
+    While(Box<[Card; 2]>),
     // TODO: move the entire variant into a struct
     ForEach {
         /// Loop variable is written into this variable
@@ -268,11 +266,7 @@ impl Card {
                 }
                 res = c;
             }
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
+            Card::ForEach {
                 i: _,
                 k: _,
                 v: _,
@@ -286,7 +280,7 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => return children.get_mut(i),
+            Card::While(children) | Card::IfElse(children) => return children.get_mut(i),
             _ => return None,
         }
         Some(res)
@@ -302,11 +296,7 @@ impl Card {
                 }
                 res = c;
             }
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
+            Card::ForEach {
                 i: _,
                 k: _,
                 v: _,
@@ -320,7 +310,7 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => return children.get(i),
+            Card::While(children) | Card::IfElse(children) => return children.get(i),
             _ => return None,
         }
         Some(res)
@@ -342,11 +332,7 @@ impl Card {
                 res = std::mem::replace::<Card>(c.as_mut(), Card::Pass);
             }
 
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
+            Card::ForEach {
                 i: _,
                 k: _,
                 v: _,
@@ -360,7 +346,7 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => {
+            Card::While(children) | Card::IfElse(children) => {
                 let Some(c) = children.get_mut(i) else {
                     return None
                 };
@@ -390,11 +376,7 @@ impl Card {
                 *c.as_mut() = card;
             }
 
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
+            Card::ForEach {
                 i: _,
                 k: _,
                 v: _,
@@ -408,7 +390,7 @@ impl Card {
                     _ => return Err(card),
                 };
             }
-            Card::IfElse(children) => {
+            Card::While(children) | Card::IfElse(children) => {
                 if let Some(c) = children.get_mut(i) {
                     *c = card;
                 }
@@ -431,11 +413,7 @@ impl Card {
                 }
                 std::mem::replace(c.as_mut(), card)
             }
-            Card::While {
-                condition: a,
-                body: b,
-            }
-            | Card::ForEach {
+            Card::ForEach {
                 i: _,
                 k: _,
                 v: _,
@@ -446,7 +424,7 @@ impl Card {
                 1 => std::mem::replace(b.as_mut(), card),
                 _ => return Err(card),
             },
-            Card::IfElse(children) => {
+            Card::While(children) | Card::IfElse(children) => {
                 let Some(c) = children.get_mut(i) else {
                     return Err(card);
                 };

@@ -1018,9 +1018,9 @@ fn simple_while_test() {
                 .with_card(Card::SetVar(VarNode::from_str_unchecked("i")))
                 .with_card(Card::ScalarInt(IntegerNode(0)))
                 .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")))
-                .with_card(Card::While {
-                    condition: Box::new(Card::ReadVar(VarNode::from_str_unchecked("i"))),
-                    body: Box::new(Card::composite_card(
+                .with_card(Card::While(Box::new([
+                    Card::ReadVar(VarNode::from_str_unchecked("i")),
+                    Card::composite_card(
                         "body",
                         vec![
                             // Increment pooh
@@ -1034,8 +1034,8 @@ fn simple_while_test() {
                             Card::Sub,
                             Card::SetVar(VarNode::from_str_unchecked("i")),
                         ],
-                    )),
-                }),
+                    ),
+                ]))),
         )]
         .into(),
     };

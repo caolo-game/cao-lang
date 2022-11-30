@@ -479,7 +479,8 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.scope_end();
             }
-            Card::While { condition, body } => {
+            Card::While(children) => {
+                let [condition, body] = &**children;
                 let block_begin = self.program.bytecode.len() as i32;
                 self.current_index.push_subindex(0);
                 self.process_card(condition)?;
