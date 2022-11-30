@@ -217,9 +217,20 @@ impl Card {
                 res.extend(c.cards.iter());
             }
             Self::IfTrue(c) | Self::IfFalse(c) => res.push(c.as_ref()),
-            Self::IfElse { then, r#else } => {
-                res.push(then.as_ref());
-                res.push(r#else.as_ref());
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Self::IfElse { then: a, r#else: b } => {
+                res.push(a.as_ref());
+                res.push(b.as_ref());
             }
             _ => return None,
         }
@@ -233,10 +244,23 @@ impl Card {
             Self::CompositeCard(c) => {
                 res.extend(c.cards.iter_mut());
             }
-            Self::IfTrue(c) | Self::IfFalse(c) => res.push(c.as_mut()),
-            Self::IfElse { then, r#else } => {
-                res.push(then.as_mut());
-                res.push(r#else.as_mut());
+            Card::Repeat { i: _, body: c } | Self::IfTrue(c) | Self::IfFalse(c) => {
+                res.push(c.as_mut())
+            }
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Self::IfElse { then: a, r#else: b } => {
+                res.push(a.as_mut());
+                res.push(b.as_mut());
             }
             _ => return None,
         }
@@ -293,21 +317,32 @@ impl Card {
         Self::Jump(LaneNode(s.into()))
     }
 
-    pub fn get_card_by_index_mut(&mut self, i: usize) -> Option<&mut Card> {
+    pub fn get_child_mut(&mut self, i: usize) -> Option<&mut Card> {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get_mut(i)?,
-            Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
                 res = c;
             }
-            Card::IfElse { then, r#else } => {
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Card::IfElse { then: a, r#else: b } => {
                 if i > 1 {}
                 match i {
-                    0 => res = then.as_mut(),
-                    1 => res = r#else.as_mut(),
+                    0 => res = a.as_mut(),
+                    1 => res = b.as_mut(),
                     _ => return None,
                 }
             }
@@ -316,21 +351,32 @@ impl Card {
         Some(res)
     }
 
-    pub fn get_card_by_index(&self, i: usize) -> Option<&Card> {
+    pub fn get_child(&self, i: usize) -> Option<&Card> {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get(i)?,
-            Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
                 res = c;
             }
-            Card::IfElse { then, r#else } => {
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Card::IfElse { then: a, r#else: b } => {
                 if i > 1 {}
                 match i {
-                    0 => res = then.as_ref(),
-                    1 => res = r#else.as_ref(),
+                    0 => res = a.as_ref(),
+                    1 => res = b.as_ref(),
                     _ => return None,
                 }
             }
@@ -348,17 +394,29 @@ impl Card {
                 }
                 res = c.cards.remove(i);
             }
-            Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
                 res = std::mem::replace::<Card>(c.as_mut(), Card::Pass);
             }
-            Card::IfElse { then, r#else } => {
+
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Card::IfElse { then: a, r#else: b } => {
                 if i > 1 {}
                 match i {
-                    0 => res = std::mem::replace::<Card>(then.as_mut(), Card::Pass),
-                    1 => res = std::mem::replace::<Card>(r#else.as_mut(), Card::Pass),
+                    0 => res = std::mem::replace::<Card>(a.as_mut(), Card::Pass),
+                    1 => res = std::mem::replace::<Card>(b.as_mut(), Card::Pass),
                     _ => return None,
                 }
             }
@@ -379,17 +437,29 @@ impl Card {
                 }
                 c.cards.insert(i, card);
             }
-            Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return Err(card);
                 }
                 *c.as_mut() = card;
             }
-            Card::IfElse { then, r#else } => {
+
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Card::IfElse { then: a, r#else: b } => {
                 if i > 1 {}
                 match i {
-                    0 => *then.as_mut() = card,
-                    1 => *r#else.as_mut() = card,
+                    0 => *a.as_mut() = card,
+                    1 => *b.as_mut() = card,
                     _ => return Err(card),
                 };
             }
@@ -405,15 +475,26 @@ impl Card {
                 Some(c) => std::mem::replace(c, card),
                 None => return Err(card),
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return Err(card);
                 }
                 std::mem::replace(c.as_mut(), card)
             }
-            Card::IfElse { then, r#else } => match i {
-                0 => std::mem::replace(then.as_mut(), card),
-                1 => std::mem::replace(r#else.as_mut(), card),
+            Card::While {
+                condition: a,
+                body: b,
+            }
+            | Card::ForEach {
+                i: _,
+                k: _,
+                v: _,
+                variable: a,
+                body: b,
+            }
+            | Card::IfElse { then: a, r#else: b } => match i {
+                0 => std::mem::replace(a.as_mut(), card),
+                1 => std::mem::replace(b.as_mut(), card),
                 _ => return Err(card),
             },
             _ => return Err(card),

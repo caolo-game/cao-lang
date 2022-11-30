@@ -186,7 +186,7 @@ impl Module {
 
         for i in &idx.card_index.indices[1..] {
             card = card
-                .get_card_by_index_mut(*i as usize)
+                .get_child_mut(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
         }
 
@@ -205,7 +205,7 @@ impl Module {
 
         for i in &idx.card_index.indices[1..] {
             card = card
-                .get_card_by_index(*i as usize)
+                .get_child(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
         }
 
@@ -232,7 +232,7 @@ impl Module {
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
             card = card
-                .get_card_by_index_mut(*i as usize)
+                .get_child_mut(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
@@ -263,7 +263,7 @@ impl Module {
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
             card = card
-                .get_card_by_index_mut(*i as usize)
+                .get_child_mut(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
@@ -292,7 +292,7 @@ impl Module {
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
             card = card
-                .get_card_by_index_mut(*i as usize)
+                .get_child_mut(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
