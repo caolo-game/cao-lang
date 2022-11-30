@@ -433,7 +433,7 @@ impl<'a> Compiler<'a> {
             Card::ForEach {
                 i,
                 k,
-                o,
+                v,
                 variable,
                 body,
             } => {
@@ -445,7 +445,7 @@ impl<'a> Compiler<'a> {
                 let loop_var = self.add_local_unchecked("")?;
                 let loop_item = self.add_local_unchecked("")?;
                 // ForEach instruction will push these values on the stack
-                let o = match o {
+                let v = match v {
                     Some(o) => self.add_local(&o.0)?,
                     None => self.add_local_unchecked("")?,
                 };
@@ -467,7 +467,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(loop_item, &mut self.program.bytecode);
                 write_to_vec(i, &mut self.program.bytecode);
                 write_to_vec(k, &mut self.program.bytecode);
-                write_to_vec(o, &mut self.program.bytecode);
+                write_to_vec(v, &mut self.program.bytecode);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.current_index.push_subindex(1);
                     c.process_card(body)?;

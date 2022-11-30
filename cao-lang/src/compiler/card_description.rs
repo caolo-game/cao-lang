@@ -91,7 +91,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
         get_desc(&Card::ForEach {
             i: None,
             k: None,
-            o: None,
+            v: None,
             variable: Default::default(),
             body: Default::default(),
         }),

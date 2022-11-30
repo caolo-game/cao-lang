@@ -64,8 +64,8 @@ pub enum Card {
         i: Option<VarNode>,
         /// The key is written into this variable
         k: Option<VarNode>,
-        /// The object is written into this variable
-        o: Option<VarNode>,
+        /// The value is written into this variable
+        v: Option<VarNode>,
         /// Variable that is iterated on
         variable: Box<Card>,
         body: Box<Card>,

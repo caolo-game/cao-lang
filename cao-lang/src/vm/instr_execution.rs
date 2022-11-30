@@ -284,7 +284,7 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
 
     let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let k_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
-    let o_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let v_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
 
     let offset = stack_offset(vm);
     let i = read_local_var(vm, loop_variable)?;
@@ -304,9 +304,10 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     let should_continue = 0 <= i && i < n;
     if should_continue {
         let key = obj.nth_key(i as usize);
+        let val = obj.get(&key).copied().unwrap_or(Value::Nil);
         i += 1;
 
-        write_local_var(vm, o_handle, obj_val, offset)?;
+        write_local_var(vm, v_handle, val, offset)?;
         write_local_var(vm, k_handle, key, offset)?;
         write_local_var(vm, i_handle, Value::Integer(i), offset)?;
         // store the loop variable

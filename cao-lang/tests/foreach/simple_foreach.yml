@@ -24,13 +24,12 @@ lanes:
       # --- init done ---
       - !ForEach
         k: key
-        o: table
         body: !CompositeCard
           name: ""
           ty: ""
           cards:
             - !ReadVar key
-            - !ReadVar table
+            - !ReadVar t
             - !Jump pog
         variable: !ReadVar t
 
