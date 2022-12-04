@@ -92,7 +92,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
     ]
 }
 
-pub fn get_desc(node: &Card) -> SubProgramDescription {
+fn get_desc(node: &Card) -> SubProgramDescription {
     match node {
         Card::CompositeCard { .. } | Card::CallNative(_) => unreachable!(),
         Card::GetProperty => subprogram_description!(
