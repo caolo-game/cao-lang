@@ -1,4 +1,22 @@
 # Changelog
+## v0.1.100
+
+
+### Bug Fixes
+
+- Fix child indexing of loop cards
+
+
+### Refactor
+
+- Remove as_card_list functions
+
+- Use child array for IfElse
+
+- Use child array for While cards
+
+- Remove the IntegerNode
+
 ## v0.1.99
 
 
