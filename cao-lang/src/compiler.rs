@@ -616,7 +616,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
-                write_to_vec(s.0, &mut self.program.bytecode);
+                write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::ScalarNil
             | Card::Return

@@ -37,7 +37,7 @@ pub enum Card {
     SetProperty,
     GetProperty,
     ScalarInt(i64),
-    ScalarFloat(FloatNode),
+    ScalarFloat(f64),
     StringLiteral(StringNode),
     CallNative(Box<CallNode>),
     IfTrue(Box<Card>),
@@ -435,10 +435,6 @@ impl Card {
         Ok(res)
     }
 }
-
-#[derive(Debug, Clone, Default, Copy)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FloatNode(pub f64);
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
