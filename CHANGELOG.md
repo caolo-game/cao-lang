@@ -1,4 +1,15 @@
 # Changelog
+## v0.1.101
+
+
+### Refactor
+
+- Simplify Float scalars
+
+- Use vectors for submodules
+
+- Use vectors for lanes
+
 ## v0.1.100
 
 
