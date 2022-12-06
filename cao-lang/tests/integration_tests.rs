@@ -498,9 +498,8 @@ fn test_function_registry() {
 submodules: []
 imports: []
 lanes:
-    main:
-        name: main
-        arguments: []
+    - - main
+      - arguments: []
         cards:
             - !CallNative "func0"
             - !ScalarInt 42

@@ -11,8 +11,8 @@ def test_compile_and_run():
 
     program_yaml = """
 lanes:
-    main: 
-        arguments: []
+    - - main
+      - arguments: []
         cards:
             - !ScalarInt 5
             - !ScalarInt 5
@@ -20,12 +20,12 @@ lanes:
             - !Jump "foo.bar"
 imports: []
 submodules:
-    foo:
-        imports: []
-        submodules: {}
+    - - foo
+      - imports: []
+        submodules: []
         lanes:
-            bar:
-                arguments: []
+            - - bar
+              - arguments: []
                 cards:
                     - !ScalarInt 42
 
@@ -47,29 +47,29 @@ def test_get_version():
 def test_json():
     program_json = """
     {
-        "lanes": {
-            "main": {
+        "lanes": [
+            ["main", {
                 "arguments": [],
                 "cards": [
                     {  "Jump": "foo.bar" }
                 ]
-            }
-        },
+            }]
+        ],
         "imports": [],
-        "submodules": {
-            "foo": {
+        "submodules": [
+            ["foo", {
                 "imports": [],
-                "submodules": {},
-                "lanes": {
-                    "bar": {
+                "submodules": [],
+                "lanes": [
+                    ["bar", {
                         "arguments": [],
                         "cards": [
                             {  "Pass":null }
                         ]
-                    }
-                }
-            }
-        }
+                    }]
+                ]
+            }]
+        ]
     }
     """
     program = caoc.CompilationUnit.from_json(program_json)
@@ -83,11 +83,11 @@ def test_json():
 def test_bad_json_is_value_error():
     program_json = """
     {
-        "lanes": {
-            "main": {
+        "lanes": [
+            ["main", {
                 "cards": [ {} ]
-            }
-        }
+            }]
+        ]
     }
     """
     with pytest.raises(ValueError):
@@ -97,13 +97,15 @@ def test_bad_json_is_value_error():
 def test_recursion_limit():
     program = {
         "imports": [],
-        "submodules": {},
-        "lanes": {"main": {"arguments": [], "cards": []}},
+        "submodules": [],
+        "lanes": [["main", {"arguments": [], "cards": []}]],
     }
     _pr = program
     for _ in range(2):
-        _pr["submodules"]["foo"] = {"imports": [], "submodules": {}, "lanes": {}}
-        _pr = _pr["submodules"]["foo"]
+        _pr["submodules"].append(
+            ["foo", {"imports": [], "submodules": [], "lanes": []}]
+        )
+        _pr = _pr["submodules"][0][1]
 
     program = caoc.CompilationUnit.from_json(json.dumps(program))
     options = caoc.CompilationOptions()

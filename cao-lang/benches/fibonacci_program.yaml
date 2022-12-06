@@ -1,25 +1,25 @@
 submodules: []
 imports: []
 lanes:
-  main:
-    # Assumes that N is pushed onto the stack before executing the program
-    arguments:
-      - N
-    cards:
-      - !ScalarInt 0
-      - !SetGlobalVar a
-      - !ScalarInt 1
-      - !SetGlobalVar b
-      - !ReadVar N
-      - !Repeat
-        i: null
-        body: !CompositeCard
-          ty: ""
-          name: "loop body"
-          cards:
-            - !ReadVar b
-            - !CopyLast
-            - !ReadVar a
-            - !Add
-            - !SetGlobalVar b
-            - !SetGlobalVar a
+  # Assumes that N is pushed onto the stack before executing the program
+  - - main
+    - arguments:
+        - N
+      cards:
+        - !ScalarInt 0
+        - !SetGlobalVar a
+        - !ScalarInt 1
+        - !SetGlobalVar b
+        - !ReadVar N
+        - !Repeat
+          i: null
+          body: !CompositeCard
+            ty: ""
+            name: "loop body"
+            cards:
+              - !ReadVar b
+              - !CopyLast
+              - !ReadVar a
+              - !Add
+              - !SetGlobalVar b
+              - !SetGlobalVar a

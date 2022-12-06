@@ -138,8 +138,8 @@ impl<'a> Compiler<'a> {
         };
 
         let mut num_cards = 0usize;
-        for n in compilation_unit.iter() {
-            self.current_index.lane = n.name.to_string();
+        for (i, n) in compilation_unit.iter().enumerate() {
+            self.current_index.lane = i;
             self.current_index.card_index.indices.clear();
             num_cards += n.cards.len();
 
@@ -174,11 +174,11 @@ impl<'a> Compiler<'a> {
                 Ok(i) => i,
                 Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
             };
-            self.current_index = CardIndex::new(&main_lane.name, 0);
+            self.current_index = CardIndex::new(il, 0);
             self.scope_begin();
             self.process_lane(il, main_lane)?;
             self.current_index = CardIndex {
-                lane: main_lane.name.to_string(),
+                lane: il,
                 card_index: LaneCardIndex {
                     indices: smallvec::smallvec![len],
                 },
@@ -190,7 +190,7 @@ impl<'a> Compiler<'a> {
 
         for (il, lane) in lanes {
             self.current_index = CardIndex {
-                lane: lane.name.to_string(),
+                lane: il,
                 ..Default::default()
             };
             let nodeid_hash = self.current_index.as_handle();

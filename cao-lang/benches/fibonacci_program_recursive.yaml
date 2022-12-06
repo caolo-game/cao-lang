@@ -1,39 +1,38 @@
 submodules: []
 imports: []
 lanes:
-  main:
-    # Assumes that N is pushed onto the stack before executing the program
-    arguments:
-      - N
-    cards:
-      - !ReadVar N
-      - !Jump fib
-      - !SetGlobalVar result
+  - - main
+    - arguments:
+        - N
+      cards:
+        - !ReadVar N
+        - !Jump fib
+        - !SetGlobalVar result
 
-  fib:
-    arguments:
-      - N
-    cards:
-      - !ReadVar N
-      - !ScalarInt 2
-      - !ReadVar N
-      - !LessOrEq
-      - !IfElse 
-        - !Jump fib_again
+  - - fib
+    - arguments:
+        - N
+      cards:
+        - !ReadVar N
+        - !ScalarInt 2
+        - !ReadVar N
+        - !LessOrEq
+        - !IfElse
+          - !Jump fib_again
+          - !ScalarInt 1
+        - !Return
+
+  - - fib_again
+    - arguments:
+        - N
+      cards:
+        - !ReadVar N
         - !ScalarInt 1
-      - !Return
-
-  fib_again:
-    arguments:
-      - N
-    cards:
-      - !ReadVar N
-      - !ScalarInt 1
-      - !Sub
-      - !Jump fib
-      - !ReadVar N
-      - !ScalarInt 2
-      - !Sub
-      - !Jump fib
-      - !Add
-      - !Return
+        - !Sub
+        - !Jump fib
+        - !ReadVar N
+        - !ScalarInt 2
+        - !Sub
+        - !Jump fib
+        - !Add
+        - !Return

@@ -1,11 +1,8 @@
-use std::collections::BTreeMap;
-
 use super::*;
 
 #[test]
 fn composite_card_test() {
-    let mut lanes = BTreeMap::new();
-    lanes.insert(
+    let lanes = vec![(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
             ty: "triplepog".to_string(),
@@ -15,7 +12,7 @@ fn composite_card_test() {
                 Card::StringLiteral(StringNode("poggers".to_owned())),
             ],
         }))),
-    );
+    )];
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
@@ -75,16 +72,16 @@ fn can_call_nested_function_test() {
         Module {
             imports: Default::default(),
             submodules: Default::default(),
-            lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Pass))]),
+            lanes: vec![("pooh".into(), Lane::default().with_card(Card::Pass))],
         },
     )];
     let prog = CaoProgram {
         imports: Default::default(),
         submodules,
-        lanes: BTreeMap::from([(
+        lanes: vec![(
             "main".into(),
             Lane::default().with_cards(vec![Card::Jump(LaneNode("coggers.pooh".to_string()))]),
-        )]),
+        )],
     };
 
     compile(prog, None).unwrap();
@@ -99,6 +96,21 @@ fn duplicate_module_is_error_test() {
         ]
         .into(),
         lanes: [("main".into(), Lane::default())].into(),
+        ..Default::default()
+    };
+
+    let _ = compile(m, None).unwrap_err();
+}
+
+#[test]
+fn duplicate_lane_is_error_test() {
+    let m = Module {
+        submodules: [].into(),
+        lanes: [
+            ("main".into(), Lane::default()),
+            ("main".into(), Lane::default()),
+        ]
+        .into(),
         ..Default::default()
     };
 

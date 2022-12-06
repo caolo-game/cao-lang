@@ -8,7 +8,6 @@ use crate::compiler::Lane;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeMap;
 use std::hash::Hasher;
 use std::rc::Rc;
 use thiserror::Error;
@@ -27,7 +26,7 @@ pub enum IntoStreamError {
 pub type CaoProgram = Module;
 pub type CaoIdentifier = String;
 pub type Imports = Vec<CaoIdentifier>;
-pub type Lanes = BTreeMap<CaoIdentifier, Lane>;
+pub type Lanes = Vec<(CaoIdentifier, Lane)>;
 pub type Submodules = Vec<(CaoIdentifier, Module)>;
 
 #[derive(Debug, Clone, Default)]
@@ -45,14 +44,14 @@ pub struct Module {
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CardIndex {
-    pub lane: String,
+    pub lane: usize,
     pub card_index: LaneCardIndex,
 }
 
 impl CardIndex {
-    pub fn new(lane: &str, card_index: usize) -> Self {
+    pub fn new(lane: usize, card_index: usize) -> Self {
         Self {
-            lane: lane.to_owned(),
+            lane,
             card_index: LaneCardIndex::new(card_index),
         }
     }
@@ -66,7 +65,7 @@ impl CardIndex {
     }
 
     pub fn as_handle(&self) -> crate::prelude::Handle {
-        let lane_handle = crate::prelude::Handle::from_bytes(self.lane.as_bytes());
+        let lane_handle = crate::prelude::Handle::from_u64(self.lane as u64);
         let subindices = self.card_index.indices.as_slice();
         let sub_handle = unsafe {
             crate::prelude::Handle::from_bytes(std::slice::from_raw_parts(
@@ -175,9 +174,9 @@ pub enum CardFetchError {
 
 impl Module {
     pub fn get_card_mut<'a>(&'a mut self, idx: &CardIndex) -> Result<&'a mut Card, CardFetchError> {
-        let lane = self
+        let (_, lane) = self
             .lanes
-            .get_mut(idx.lane.as_str())
+            .get_mut(idx.lane)
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
@@ -194,9 +193,9 @@ impl Module {
     }
 
     pub fn get_card<'a>(&'a self, idx: &CardIndex) -> Result<&'a Card, CardFetchError> {
-        let lane = self
+        let (_, lane) = self
             .lanes
-            .get(idx.lane.as_str())
+            .get(idx.lane)
             .ok_or(CardFetchError::LaneNotFound)?;
         let mut card = lane
             .cards
@@ -213,9 +212,9 @@ impl Module {
     }
 
     pub fn remove_card(&mut self, idx: &CardIndex) -> Result<Card, CardFetchError> {
-        let lane = self
+        let (_, lane) = self
             .lanes
-            .get_mut(idx.lane.as_str())
+            .get_mut(idx.lane)
             .ok_or(CardFetchError::LaneNotFound)?;
         if idx.card_index.indices.len() == 1 {
             if lane.cards.len() <= idx.card_index.indices[0] as usize {
@@ -242,9 +241,9 @@ impl Module {
 
     /// Return the old card
     pub fn replace_card(&mut self, idx: &CardIndex, child: Card) -> Result<Card, CardFetchError> {
-        let lane = self
+        let (_, lane) = self
             .lanes
-            .get_mut(idx.lane.as_str())
+            .get_mut(idx.lane)
             .ok_or(CardFetchError::LaneNotFound)?;
         if idx.card_index.indices.len() == 1 {
             let c = lane
@@ -272,9 +271,9 @@ impl Module {
     }
 
     pub fn insert_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
-        let lane = self
+        let (_, lane) = self
             .lanes
-            .get_mut(idx.lane.as_str())
+            .get_mut(idx.lane)
             .ok_or(CardFetchError::LaneNotFound)?;
         if idx.card_index.indices.len() == 1 {
             if lane.cards.len() < idx.card_index.indices[0] as usize {
@@ -308,10 +307,14 @@ impl Module {
         self.ensure_invariants(&mut Default::default())?;
         // the first lane is special
         //
-        let first_fn = self
+        let (main_index, _) = self
             .lanes
-            .remove("main")
+            .iter()
+            .enumerate()
+            .find(|(_, (name, _))| name == "main")
             .ok_or(CompilationErrorPayload::NoMain)?;
+
+        let (_, first_fn) = self.lanes.swap_remove(main_index);
 
         let imports = self.execute_imports()?;
         let first_fn = lane_to_lane_ir(&first_fn, &["main"], Rc::new(imports));

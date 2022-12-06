@@ -1,79 +1,79 @@
 submodules: []
 imports: []
 lanes:
-  main:
-    arguments: []
-    cards:
-      # --- init the example table ---
-      # {
-      #  f1: 3,
-      #  f2: 5,
-      #  f3: 7,
-      # }
-      - !CreateTable
-      - !SetVar t
-      - !ReadVar t
-      - !StringLiteral f1
-      - !ScalarInt 3
-      - !SetProperty
-      - !ReadVar t
-      - !StringLiteral f2
-      - !ScalarInt 5
-      - !SetProperty
-      - !ReadVar t
-      - !StringLiteral f3
-      - !ScalarInt 7
-      - !SetProperty # set result and g_iters to zero
+  - - main
+    - arguments: []
+      cards:
+        # --- init the example table ---
+        # {
+        #  f1: 3,
+        #  f2: 5,
+        #  f3: 7,
+        # }
+        - !CreateTable
+        - !SetVar t
+        - !ReadVar t
+        - !StringLiteral f1
+        - !ScalarInt 3
+        - !SetProperty
+        - !ReadVar t
+        - !StringLiteral f2
+        - !ScalarInt 5
+        - !SetProperty
+        - !ReadVar t
+        - !StringLiteral f3
+        - !ScalarInt 7
+        - !SetProperty # set result and g_iters to zero
 
 
-      - !ScalarInt 0
-      - !SetGlobalVar g_result
-      - !ScalarInt 0
-      - !SetGlobalVar g_iters
-      # --- init done ---
-      - !ForEach
-        k: key
-        body: !CompositeCard
-          name: ""
-          ty: ""
-          cards:
-            - !ReadVar key
-            - !ReadVar t
-            - !Jump outer_loop
-        variable: !ReadVar t
+        - !ScalarInt 0
+        - !SetGlobalVar g_result
+        - !ScalarInt 0
+        - !SetGlobalVar g_iters
+        # --- init done ---
+        - !ForEach
+          k: key
+          body: !CompositeCard
+            name: ""
+            ty: ""
+            cards:
+              - !ReadVar key
+              - !ReadVar t
+              - !Jump outer_loop
+          variable: !ReadVar t
 
-  outer_loop:
-    arguments:
-      - "key"
-      - "table"
-    cards:
-      - !ForEach
-        k: key
-        body: !CompositeCard
-          name: ""
-          ty: ""
-          cards:
-            - !ReadVar table
-            - !ReadVar key
-            - !Jump inner_loop
-        variable: !ReadVar table
+  - - outer_loop
+    - arguments:
+        - "key"
+        - "table"
+      cards:
+        - !ForEach
+          k: key
+          body: !CompositeCard
+            name: ""
+            ty: ""
+            cards:
+              - !ReadVar table
+              - !ReadVar key
+              - !Jump inner_loop
+          variable: !ReadVar table
 
-  inner_loop:
-    arguments:
-      - "key"
-      - "table"
-    cards:
-      # get table[key]
-      - !ReadVar key
-      - !ReadVar table
-      - !GetProperty # add table[key] to g_result
+  - - inner_loop
+    - arguments:
+        - "key"
+        - "table"
+      cards:
+        # get table[key]
+        - !ReadVar key
+        - !ReadVar table
+        - !GetProperty # add table[key] to g_result
 
 
-      - !ReadVar g_result
-      - !Add
-      - !SetGlobalVar g_result
-        # add 1 to g_iters
-      - !ScalarInt 1
-      - !ReadVar g_iters
-      - !Add
-      - !SetGlobalVar g_iters
+        - !ReadVar g_result
+        - !Add
+        - !SetGlobalVar g_result
+          # add 1 to g_iters
+        - !ScalarInt 1
+        - !ReadVar g_iters
+        - !Add
+        - !SetGlobalVar g_iters

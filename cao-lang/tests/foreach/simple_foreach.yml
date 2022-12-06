@@ -1,46 +1,46 @@
 submodules: []
 imports: []
 lanes:
-  main:
-    arguments: []
-    cards:
-      # --- init the example table ---
-      - !CreateTable
-      - !SetVar t
-      - !ReadVar t
-      - !StringLiteral f1
-      - !ScalarInt 3
-      - !SetProperty
-      - !ReadVar t
-      - !StringLiteral f2
-      - !ScalarInt 5
-      - !SetProperty
-      - !ReadVar t
-      - !StringLiteral f3
-      - !ScalarInt 7
-      - !SetProperty
-      - !ScalarInt 0
-      - !SetGlobalVar g_result
-      # --- init done ---
-      - !ForEach
-        k: key
-        body: !CompositeCard
-          name: ""
-          ty: ""
-          cards:
-            - !ReadVar key
-            - !ReadVar t
-            - !Jump pog
-        variable: !ReadVar t
+  - - main
+    - arguments: []
+      cards:
+        # --- init the example table ---
+        - !CreateTable
+        - !SetVar t
+        - !ReadVar t
+        - !StringLiteral f1
+        - !ScalarInt 3
+        - !SetProperty
+        - !ReadVar t
+        - !StringLiteral f2
+        - !ScalarInt 5
+        - !SetProperty
+        - !ReadVar t
+        - !StringLiteral f3
+        - !ScalarInt 7
+        - !SetProperty
+        - !ScalarInt 0
+        - !SetGlobalVar g_result
+        # --- init done ---
+        - !ForEach
+          k: key
+          body: !CompositeCard
+            name: ""
+            ty: ""
+            cards:
+              - !ReadVar key
+              - !ReadVar t
+              - !Jump pog
+          variable: !ReadVar t
 
-  pog:
-    arguments:
-      - "key"
-      - "table"
-    cards:
-      - !ReadVar table
-      - !ReadVar key
-      - !GetProperty
-      - !ReadVar g_result
-      - !Add
-      - !SetGlobalVar g_result
+  - - pog
+    - arguments:
+        - "key"
+        - "table"
+      cards:
+        - !ReadVar table
+        - !ReadVar key
+        - !GetProperty
+        - !ReadVar g_result
+        - !Add
+        - !SetGlobalVar g_result

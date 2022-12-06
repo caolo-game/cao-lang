@@ -9,8 +9,8 @@ TEST(Compile, MultiLaneProgram) {
 {
   "submodules": [],
   "imports": [],
-  "lanes": {
-    "main": {
+  "lanes": [
+    ["main", {
       "arguments": [],
       "cards": [
         {
@@ -65,8 +65,8 @@ TEST(Compile, MultiLaneProgram) {
           ]
         }
       ]
-    },
-    "approach_resource": {
+    }],
+    ["approach_resource", {
       "arguments": [
         "resource"
       ],
@@ -87,8 +87,8 @@ TEST(Compile, MultiLaneProgram) {
           "CallNative": "console_log"
         }
       ]
-    },
-    "resource_error": {
+    }],
+    ["resource_error", {
       "arguments": [],
       "cards": [
         {
@@ -101,8 +101,8 @@ TEST(Compile, MultiLaneProgram) {
           "Abort": null
         }
       ]
-    },
-    "mine_success": {
+    }],
+    ["mine_success", {
       "arguments": [],
       "cards": [
         {
@@ -112,8 +112,8 @@ TEST(Compile, MultiLaneProgram) {
           "CallNative": "console_log"
         }
       ]
-    }
-}
+    }]
+]
 }
 )prog";
 
@@ -131,13 +131,13 @@ TEST(Runs, EmptyProgram) {
 {
   "submodules": [],
   "imports": [],
-  "lanes": {
-    "main": {
+  "lanes": [
+    ["main", {
       "arguments": [],
       "cards": [
       ]
-    }
-  }
+    }]
+  ]
 }
 )prog";
 

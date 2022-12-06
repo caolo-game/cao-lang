@@ -11,14 +11,14 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
     let cu = json!({
-          "submodules": {},
-          "imports": [],
-          "lanes": {"main": {
-              "name": "main",
-              "arguments": [],
-              "cards": [ {"ScalarInt": 69 } ]
-          }}
-      });
+        "submodules": [],
+        "imports": [],
+        "lanes": [["main", {
+            "name": "main",
+            "arguments": [],
+            "cards": [ {"ScalarInt": 69 } ]
+        }]]
+    });
     let result = compile(serde_json::to_string(&cu).unwrap(), None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
@@ -29,15 +29,16 @@ fn can_compile_simple_program() {
 #[wasm_bindgen_test]
 fn compiler_returns_error_not_exception() {
     let cu = json!({
-          "submodules": {},
-          "imports": [],
-          "lanes": {"main": {
-              "name": "main",
-              "arguments": [],
-              "cards": [ {"Jump": "42" } ]
-          }}
-      });
-    let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
+        "submodules": [],
+        "imports": [],
+        "lanes": [["main", {
+            "name": "main",
+            "arguments": [],
+            "cards": [ {"Jump": "42" } ]
+        }]]
+    });
+    let output =
+        compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
     let output: CompileResult = output
         .into_serde()
         .expect("Failed to deserialize compiler output");
@@ -51,17 +52,17 @@ fn compiler_returns_error_not_exception() {
 #[wasm_bindgen_test]
 fn can_run_simple_program() {
     let cu = json!({
-          "submodules": {},
-          "imports": [],
-          "lanes": { "main": {
-              "name": "main",
-              "arguments": [],
-              "cards": [
-              {  "StringLiteral": "Poggers" }
-              , { "SetGlobalVar": "g_pogman" }
-              ]
-          }}
-      });
+        "submodules": [],
+        "imports": [],
+        "lanes": [[ "main", {
+            "name": "main",
+            "arguments": [],
+            "cards": [
+            {  "StringLiteral": "Poggers" }
+            , { "SetGlobalVar": "g_pogman" }
+            ]
+        }]]
+    });
     let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("failed to run compile");
 
     let output: CompileResult = output
