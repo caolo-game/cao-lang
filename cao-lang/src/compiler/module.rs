@@ -28,7 +28,7 @@ pub type CaoProgram = Module;
 pub type CaoIdentifier = String;
 pub type Imports = Vec<CaoIdentifier>;
 pub type Lanes = BTreeMap<CaoIdentifier, Lane>;
-pub type Submodules = BTreeMap<CaoIdentifier, Module>;
+pub type Submodules = Vec<(CaoIdentifier, Module)>;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -305,6 +305,7 @@ impl Module {
         mut self,
         recursion_limit: u32,
     ) -> Result<Vec<LaneIr>, CompilationErrorPayload> {
+        self.ensure_invariants(&mut Default::default())?;
         // the first lane is special
         //
         let first_fn = self
@@ -323,6 +324,24 @@ impl Module {
         flatten_module(&self, recursion_limit, &mut namespace, &mut result)?;
 
         Ok(result)
+    }
+
+    fn ensure_invariants<'a>(
+        &'a self,
+        aux: &mut std::collections::HashSet<&'a str>,
+    ) -> Result<(), CompilationErrorPayload> {
+        // test that submodule names are unique
+        for (name, _) in self.submodules.iter() {
+            if aux.contains(name.as_str()) {
+                return Err(CompilationErrorPayload::DuplicateModule(name.to_string()));
+            }
+            aux.insert(name.as_str());
+        }
+        for (_, module) in self.submodules.iter() {
+            aux.clear();
+            module.ensure_invariants(aux)?;
+        }
+        Ok(())
     }
 
     fn execute_imports(&self) -> Result<ImportsIr, CompilationErrorPayload> {

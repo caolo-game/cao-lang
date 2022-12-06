@@ -495,7 +495,7 @@ fn test_function_registry() {
     vm.register_function("func3", into_f3(myfunc3));
 
     const PROG: &str = r#"
-submodules: {}
+submodules: []
 imports: []
 lanes:
     main:

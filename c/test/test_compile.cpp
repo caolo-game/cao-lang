@@ -7,7 +7,7 @@ extern "C" {
 TEST(Compile, MultiLaneProgram) {
   const char *program_json = R"prog(
 {
-  "submodules": {},
+  "submodules": [],
   "imports": [],
   "lanes": {
     "main": {
@@ -129,7 +129,7 @@ TEST(Compile, MultiLaneProgram) {
 TEST(Runs, EmptyProgram) {
   const uint8_t *program_json = (uint8_t *)R"prog(
 {
-  "submodules": {},
+  "submodules": [],
   "imports": [],
   "lanes": {
     "main": {

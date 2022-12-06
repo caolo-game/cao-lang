@@ -55,7 +55,7 @@ fn module_json_serde_test() {
 fn can_parse_json_test() {
     let json = r#"
         {
-            "submodules": {},
+            "submodules": [],
             "imports": [],
             "lanes": {"main": {
                 "arguments": [],
@@ -192,7 +192,7 @@ fn insert_card_test() {
     let json = serde_json::to_string_pretty(&program).unwrap();
 
     const EXP: &str = r#"{
-  "submodules": {},
+  "submodules": [],
   "lanes": {
     "poggers": {
       "arguments": [],

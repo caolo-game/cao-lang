@@ -40,9 +40,10 @@ pub enum CompileResult {
     cao_CompileResult_NoMain,
     cao_CompileResult_BadLaneName,
     cao_CompileResult_RecursionLimitReached,
-    cao_CompilationErrorPayload_BadImport,
-    cao_CompilationErrorPayload_SuperLimitReached,
-    cao_CompilationErrorPayload_AmbigousImport,
+    cao_CompileResult_BadImport,
+    cao_CompileResult_SuperLimitReached,
+    cao_CompileResult_AmbigousImport,
+    cao_CompileResult_DuplicateModule,
 }
 
 #[allow(non_camel_case_types)]
@@ -199,13 +200,16 @@ pub unsafe extern "C" fn cao_compile_json(
                 return CompileResult::cao_CompileResult_RecursionLimitReached
             }
             CompilationErrorPayload::BadImport(_) => {
-                return CompileResult::cao_CompilationErrorPayload_BadImport
+                return CompileResult::cao_CompileResult_BadImport
             }
             CompilationErrorPayload::SuperLimitReached => {
-                return CompileResult::cao_CompilationErrorPayload_SuperLimitReached
+                return CompileResult::cao_CompileResult_SuperLimitReached
             }
             CompilationErrorPayload::AmbigousImport(_) => {
-                return CompileResult::cao_CompilationErrorPayload_AmbigousImport
+                return CompileResult::cao_CompileResult_AmbigousImport
+            }
+            CompilationErrorPayload::DuplicateModule(_) => {
+                return CompileResult::cao_CompileResult_DuplicateModule;
             }
         },
     };

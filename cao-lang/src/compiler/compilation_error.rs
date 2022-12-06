@@ -48,6 +48,9 @@ pub enum CompilationErrorPayload {
     #[error("Lane names must be unique. Found duplicated name: {0}")]
     DuplicateName(String),
 
+    #[error("Module names must be unique. Found duplicated name: {0}")]
+    DuplicateModule(String),
+
     #[error("SubProgram: [{0}] was not found")]
     MissingSubProgram(String),
 

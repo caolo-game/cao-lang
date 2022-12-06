@@ -70,15 +70,14 @@ fn empty_varname_is_error() {
 
 #[test]
 fn can_call_nested_function_test() {
-    let mut submodules = BTreeMap::new();
-    submodules.insert(
+    let submodules = vec![(
         "coggers".into(),
         Module {
             imports: Default::default(),
             submodules: Default::default(),
             lanes: BTreeMap::from([("pooh".into(), Lane::default().with_card(Card::Pass))]),
         },
-    );
+    )];
     let prog = CaoProgram {
         imports: Default::default(),
         submodules,
@@ -89,4 +88,19 @@ fn can_call_nested_function_test() {
     };
 
     compile(prog, None).unwrap();
+}
+
+#[test]
+fn duplicate_module_is_error_test() {
+    let m = Module {
+        submodules: [
+            ("main".into(), Default::default()),
+            ("main".into(), Default::default()),
+        ]
+        .into(),
+        lanes: [("main".into(), Lane::default())].into(),
+        ..Default::default()
+    };
+
+    let _ = compile(m, None).unwrap_err();
 }
