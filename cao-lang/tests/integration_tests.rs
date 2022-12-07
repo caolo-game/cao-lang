@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, CompositeCard, LaneNode, Module, VarNode},
+    compiler::{CallNode, CompositeCard, Module, VarNode},
     prelude::*,
 };
 
@@ -43,7 +43,7 @@ fn test_trace_entry() {
         lanes: [
             (
                 "main".into(),
-                Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+                Lane::default().with_card(Card::Jump("pooh".to_owned())),
             ),
             (
                 "pooh".into(),
@@ -150,9 +150,7 @@ fn simple_if_statement() {
                 "main".into(),
                 Lane::default()
                     .with_card(Card::ScalarInt(42))
-                    .with_card(Card::IfTrue(Box::new(Card::Jump(LaneNode(
-                        "pooh".to_owned(),
-                    ))))),
+                    .with_card(Card::IfTrue(Box::new(Card::Jump("pooh".to_owned())))),
             ),
             (
                 "pooh".into(),
@@ -232,8 +230,8 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
                 Lane::default()
                     .with_card(condition)
                     .with_card(Card::IfElse(Box::new([
-                        Card::Jump(LaneNode("pooh".to_string())),
-                        Card::Jump(LaneNode("tiggers".to_string())),
+                        Card::Jump("pooh".to_string()),
+                        Card::Jump("tiggers".to_string()),
                     ])))
                     .with_card(Card::ScalarInt(0xbeef))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
@@ -338,7 +336,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
                 Lane::default()
                     .with_card(Card::ScalarInt(123))
                     .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                    .with_card(Card::Jump(LaneNode("bar".to_string()))),
+                    .with_card(Card::Jump("bar".to_string())),
             ),
             (
                 "bar".into(),
@@ -381,7 +379,7 @@ fn simple_for_loop() {
                             "",
                             vec![
                                 Card::ReadVar(VarNode::from_str_unchecked("i")),
-                                Card::Jump(LaneNode("Loop".to_string())),
+                                Card::Jump("Loop".to_string()),
                             ],
                         )),
                     },
@@ -535,7 +533,7 @@ fn jump_lane_w_params_test() {
                 Lane::default()
                     .with_card(Card::ScalarInt(42))
                     .with_card(Card::StringLiteral("winnie the pooh".to_owned()))
-                    .with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+                    .with_card(Card::Jump("pooh".to_owned())),
             ),
             (
                 "pooh".into(),
@@ -659,7 +657,7 @@ fn nested_module_can_call_self_test() {
                 lanes: [
                     (
                         "win".into(),
-                        Lane::default().with_card(Card::Jump(LaneNode("nie".to_owned()))),
+                        Lane::default().with_card(Card::Jump("nie".to_owned())),
                     ),
                     (
                         "nie".into(),
@@ -674,7 +672,7 @@ fn nested_module_can_call_self_test() {
         .into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("winnie.win".to_owned()))),
+            Lane::default().with_card(Card::Jump("winnie.win".to_owned())),
         )]
         .into(),
     };
@@ -700,7 +698,7 @@ fn invalid_import_is_error_test() {
         imports: ["winnie..pooh".into()].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default().with_card(Card::Jump("pooh".to_owned())),
         )]
         .into(),
     };
@@ -715,7 +713,7 @@ fn non_existent_import_is_error_test() {
         imports: ["winnie..pooh".into()].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default().with_card(Card::Jump("pooh".to_owned())),
         )]
         .into(),
     };
@@ -751,7 +749,7 @@ fn import_in_submodule_test() {
         imports: ["winnie.pooh".into()].into(),
         lanes: [(
             "run".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default().with_card(Card::Jump("pooh".to_owned())),
         )]
         .into(),
     };
@@ -760,7 +758,7 @@ fn import_in_submodule_test() {
         submodules: [("foo".into(), cu)].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("run".to_owned()))),
+            Lane::default().with_card(Card::Jump("run".to_owned())),
         )]
         .into(),
     };
@@ -800,7 +798,7 @@ fn can_import_submodule_test() {
         imports: ["winnie.pooh".into()].into(),
         lanes: [(
             "run".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pooh".to_owned()))),
+            Lane::default().with_card(Card::Jump("pooh".to_owned())),
         )]
         .into(),
     };
@@ -809,7 +807,7 @@ fn can_import_submodule_test() {
         submodules: [("foo".into(), cu)].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("winnie.pooh".to_owned()))),
+            Lane::default().with_card(Card::Jump("winnie.pooh".to_owned())),
         )]
         .into(),
     };
@@ -835,7 +833,7 @@ fn can_import_function_from_super_module_test() {
         submodules: Default::default(),
         lanes: [(
             "pooh".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("pog".to_owned()))),
+            Lane::default().with_card(Card::Jump("pog".to_owned())),
         )]
         .into(),
     };
@@ -850,7 +848,7 @@ fn can_import_function_from_super_module_test() {
         lanes: [
             (
                 "run".into(),
-                Lane::default().with_card(Card::Jump(LaneNode("winnie.pooh".to_owned()))),
+                Lane::default().with_card(Card::Jump("winnie.pooh".to_owned())),
             ),
             (
                 "pog".into(),
@@ -866,7 +864,7 @@ fn can_import_function_from_super_module_test() {
         submodules: [("bar".into(), bar)].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("bar.run".to_owned()))),
+            Lane::default().with_card(Card::Jump("bar.run".to_owned())),
         )]
         .into(),
     };
@@ -892,7 +890,7 @@ fn import_super_module_test() {
         submodules: Default::default(),
         lanes: [(
             "pooh".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("bar.pog".to_owned()))),
+            Lane::default().with_card(Card::Jump("bar.pog".to_owned())),
         )]
         .into(),
     };
@@ -907,7 +905,7 @@ fn import_super_module_test() {
         lanes: [
             (
                 "run".into(),
-                Lane::default().with_card(Card::Jump(LaneNode("winnie.pooh".to_owned()))),
+                Lane::default().with_card(Card::Jump("winnie.pooh".to_owned())),
             ),
             (
                 "pog".into(),
@@ -923,7 +921,7 @@ fn import_super_module_test() {
         submodules: [("bar".into(), bar)].into(),
         lanes: [(
             "main".into(),
-            Lane::default().with_card(Card::Jump(LaneNode("bar.run".to_owned()))),
+            Lane::default().with_card(Card::Jump("bar.run".to_owned())),
         )]
         .into(),
     };

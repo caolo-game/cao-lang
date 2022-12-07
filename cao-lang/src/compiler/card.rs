@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use super::*;
 use crate::InputString;
 use crate::VarName;
@@ -44,7 +42,8 @@ pub enum Card {
     IfFalse(Box<Card>),
     /// Children = [then, else]
     IfElse(Box<[Card; 2]>),
-    Jump(LaneNode),
+    /// Lane name
+    Jump(String),
     SetGlobalVar(VarNode),
     SetVar(VarNode),
     ReadVar(VarNode),
@@ -253,7 +252,7 @@ impl Card {
     }
 
     pub fn jump(s: impl Into<String>) -> Self {
-        Self::Jump(LaneNode(s.into()))
+        Self::Jump(s.into())
     }
 
     pub fn get_child_mut(&mut self, i: usize) -> Option<&mut Card> {
@@ -450,28 +449,6 @@ impl VarNode {
         Self(Box::new(
             VarName::from(s).expect("Failed to parse variable name"),
         ))
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LaneNode(pub String);
-
-impl Display for LaneNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<LaneNode> for Handle {
-    fn from(ln: LaneNode) -> Self {
-        Self::from(&ln)
-    }
-}
-
-impl<'a> From<&'a LaneNode> for Handle {
-    fn from(ln: &'a LaneNode) -> Self {
-        Handle::from_str(ln.0.as_str()).unwrap()
     }
 }
 

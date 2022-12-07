@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{CardIndex, LaneNode};
+use super::CardIndex;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
@@ -55,7 +55,7 @@ pub enum CompilationErrorPayload {
     MissingSubProgram(String),
 
     #[error("Jumping to {dst} can not be performed\n{msg:?}")]
-    InvalidJump { dst: LaneNode, msg: Option<String> },
+    InvalidJump { dst: String, msg: Option<String> },
 
     #[error("Internal failure during compilation")]
     InternalError,

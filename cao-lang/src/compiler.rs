@@ -313,7 +313,7 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn encode_jump(&mut self, lane: &LaneNode) -> CompilationResult<()> {
+    fn encode_jump(&mut self, lane: &str) -> CompilationResult<()> {
         let to = self.lookup_lane(&self.jump_table, lane)?;
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
@@ -324,10 +324,10 @@ impl<'a> Compiler<'a> {
     fn lookup_lane<'b>(
         &self,
         jump_table: &'b CaoHashMap<String, LaneMeta>,
-        lane: &LaneNode,
+        lane: &str,
     ) -> CompilationResult<&'b LaneMeta> {
         // attempt to look up the function by name
-        let mut to = jump_table.get(&lane.0);
+        let mut to = jump_table.get(lane);
         if to.is_none() {
             // attempt to look up the function in the current namespace
 
@@ -336,7 +336,7 @@ impl<'a> Compiler<'a> {
                 .current_namespace
                 .iter()
                 .flat_map(|x| [x.as_ref(), "."])
-                .chain(std::iter::once(lane.0.as_str()))
+                .chain(std::iter::once(lane))
                 .collect::<String>();
 
             to = jump_table.get(&name);
@@ -346,7 +346,7 @@ impl<'a> Compiler<'a> {
             if let Some((_, alias)) = self
                 .current_imports
                 .iter()
-                .find(|(import, _)| *import == &lane.0)
+                .find(|(import, _)| *import == lane)
             {
                 let (super_depth, suffix) = super_depth(alias);
                 let name = self
@@ -362,7 +362,7 @@ impl<'a> Compiler<'a> {
         }
         if to.is_none() {
             // attempt to look up by imported module
-            if let Some((prefix, suffix)) = lane.0.as_str().split_once('.') {
+            if let Some((prefix, suffix)) = lane.split_once('.') {
                 if let Some((_, alias)) = self
                     .current_imports
                     .iter()
@@ -385,7 +385,7 @@ impl<'a> Compiler<'a> {
         }
         to.ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
-                dst: lane.clone(),
+                dst: lane.to_string(),
                 msg: None,
             })
         })

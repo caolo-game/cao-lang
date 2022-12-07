@@ -80,7 +80,7 @@ fn can_call_nested_function_test() {
         submodules,
         lanes: vec![(
             "main".into(),
-            Lane::default().with_cards(vec![Card::Jump(LaneNode("coggers.pooh".to_string()))]),
+            Lane::default().with_cards(vec![Card::Jump("coggers.pooh".to_string())]),
         )],
     };
 
