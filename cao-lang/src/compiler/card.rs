@@ -442,10 +442,6 @@ pub struct CallNode(pub InputString);
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SubProgramNode(pub InputString);
-
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VarNode(pub Box<VarName>);
 
 impl VarNode {
