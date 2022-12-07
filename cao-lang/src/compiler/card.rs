@@ -38,7 +38,7 @@ pub enum Card {
     GetProperty,
     ScalarInt(i64),
     ScalarFloat(f64),
-    StringLiteral(StringNode),
+    StringLiteral(String),
     CallNative(Box<CallNode>),
     IfTrue(Box<Card>),
     IfFalse(Box<Card>),
@@ -249,7 +249,7 @@ impl Card {
     }
 
     pub fn string_card(s: impl Into<String>) -> Self {
-        Self::StringLiteral(StringNode(s.into()))
+        Self::StringLiteral(s.into())
     }
 
     pub fn jump(s: impl Into<String>) -> Self {
@@ -443,10 +443,6 @@ pub struct CallNode(pub InputString);
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SubProgramNode(pub InputString);
-
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct StringNode(pub String);
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

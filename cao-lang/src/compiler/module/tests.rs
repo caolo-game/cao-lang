@@ -17,17 +17,15 @@ fn module_bincode_serde_test() {
 }
 
 fn prog() -> Module {
-    use crate::compiler::StringNode;
-
     let lanes = vec![(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
                 ty: "".to_string(),
                 cards: vec![
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
+                    Card::StringLiteral("poggers".to_owned()),
+                    Card::StringLiteral("poggers".to_owned()),
+                    Card::StringLiteral("poggers".to_owned()),
                 ],
             },
         ))),
@@ -92,17 +90,15 @@ fn module_card_fetch_test() {
 
 #[test]
 fn remove_card_from_compositve_test() {
-    use crate::compiler::StringNode;
-
     let lanes = vec![(
         "main".into(),
         Lane::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
                 ty: "".to_string(),
                 cards: vec![
-                    Card::StringLiteral(StringNode("winnie".to_owned())),
-                    Card::StringLiteral(StringNode("pooh".to_owned())),
-                    Card::StringLiteral(StringNode("tiggers".to_owned())),
+                    Card::StringLiteral("winnie".to_owned()),
+                    Card::StringLiteral("pooh".to_owned()),
+                    Card::StringLiteral("tiggers".to_owned()),
                 ],
             },
         ))),
@@ -123,7 +119,7 @@ fn remove_card_from_compositve_test() {
         .unwrap();
 
     match removed {
-        Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
+        Card::StringLiteral(s) => assert_eq!(s, "pooh"),
         _ => panic!(),
     }
 }
@@ -153,7 +149,7 @@ fn remove_card_from_ifelse_test() {
         .unwrap();
 
     match removed {
-        Card::StringLiteral(s) => assert_eq!(s.0, "pooh"),
+        Card::StringLiteral(s) => assert_eq!(s, "pooh"),
         _ => panic!(),
     }
 

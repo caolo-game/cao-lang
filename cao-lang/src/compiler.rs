@@ -606,7 +606,7 @@ impl<'a> Compiler<'a> {
                 self.current_index.pop_subindex();
             }
             Card::Jump(jmp) => self.encode_jump(jmp)?,
-            Card::StringLiteral(c) => self.push_str(c.0.as_str()),
+            Card::StringLiteral(c) => self.push_str(c.as_str()),
             Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Handle::from_str(name.as_str()).unwrap();

@@ -2,7 +2,7 @@ use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, CompositeCard, LaneNode, Module, StringNode, VarNode},
+    compiler::{CallNode, CompositeCard, LaneNode, Module, VarNode},
     prelude::*,
 };
 
@@ -16,7 +16,7 @@ fn composite_card_test() {
             Lane::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
                 ty: "triplepog".to_string(),
                 cards: vec![
-                    Card::StringLiteral(StringNode("poggers".to_owned())),
+                    Card::StringLiteral("poggers".to_owned()),
                     Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
                 ],
             }))),
@@ -77,7 +77,7 @@ fn test_string_w_utf8() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+                .with_card(Card::StringLiteral(test_str.to_string()))
                 .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result"))),
         )]
         .into(),
@@ -124,7 +124,7 @@ fn test_string_param() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::StringLiteral(StringNode(test_str.to_string())))
+                .with_card(Card::StringLiteral(test_str.to_string()))
                 .with_card(Card::CallNative(Box::new(CallNode(
                     InputString::from(name).unwrap(),
                 )))),
@@ -534,9 +534,7 @@ fn jump_lane_w_params_test() {
                 "main".into(),
                 Lane::default()
                     .with_card(Card::ScalarInt(42))
-                    .with_card(Card::StringLiteral(StringNode(
-                        "winnie the pooh".to_owned(),
-                    )))
+                    .with_card(Card::StringLiteral("winnie the pooh".to_owned()))
                     .with_card(Card::Jump(LaneNode("pooh".to_owned()))),
             ),
             (
@@ -616,17 +614,17 @@ fn len_test_happy() {
                 .with_card(Card::SetVar(t.clone()))
                 // first property
                 .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+                .with_card(Card::StringLiteral("asd".to_string()))
                 .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty)
                 // same property as above
                 .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("asd".to_string())))
+                .with_card(Card::StringLiteral("asd".to_string()))
                 .with_card(Card::ScalarInt(69))
                 .with_card(Card::SetProperty)
                 // new property
                 .with_card(Card::ReadVar(t.clone()))
-                .with_card(Card::StringLiteral(StringNode("basdasd".to_string())))
+                .with_card(Card::StringLiteral("basdasd".to_string()))
                 .with_card(Card::ScalarInt(89))
                 .with_card(Card::SetProperty)
                 // len
@@ -666,7 +664,7 @@ fn nested_module_can_call_self_test() {
                     (
                         "nie".into(),
                         Lane::default()
-                            .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                            .with_card(Card::StringLiteral("poggers".to_owned()))
                             .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
                     ),
                 ]
@@ -743,7 +741,7 @@ fn import_in_submodule_test() {
                 lanes: [(
                     "pooh".into(),
                     Lane::default()
-                        .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                        .with_card(Card::StringLiteral("poggers".to_owned()))
                         .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
                 )]
                 .into(),
@@ -792,7 +790,7 @@ fn can_import_submodule_test() {
                 lanes: [(
                     "pooh".into(),
                     Lane::default()
-                        .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                        .with_card(Card::StringLiteral("poggers".to_owned()))
                         .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
                 )]
                 .into(),
@@ -857,7 +855,7 @@ fn can_import_function_from_super_module_test() {
             (
                 "pog".into(),
                 Lane::default()
-                    .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                    .with_card(Card::StringLiteral("poggers".to_owned()))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
             ),
         ]
@@ -914,7 +912,7 @@ fn import_super_module_test() {
             (
                 "pog".into(),
                 Lane::default()
-                    .with_card(Card::StringLiteral(StringNode("poggers".to_owned())))
+                    .with_card(Card::StringLiteral("poggers".to_owned()))
                     .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
             ),
         ]
