@@ -1,3 +1,5 @@
+use crate::VarName;
+
 use super::*;
 
 #[test]
@@ -209,4 +211,105 @@ fn insert_card_test() {
 }"#;
 
     assert_eq!(json, EXP, "actual:\n{json}\nexpected:\n{EXP}");
+}
+
+#[test]
+fn lookup_jump_target_test() {
+    let mut program = CaoProgram::default();
+    program.submodules.push((
+        "foo".to_string(),
+        CaoProgram {
+            submodules: vec![(
+                "bar".to_string(),
+                CaoProgram {
+                    lanes: vec![(
+                        "poggers".to_string(),
+                        Lane {
+                            arguments: vec![
+                                VarName::from("winnie").unwrap(),
+                                VarName::from("pooh").unwrap(),
+                                VarName::from("tiggers").unwrap(),
+                            ],
+                            cards: vec![],
+                        },
+                    )],
+                    ..Default::default()
+                },
+            )],
+            ..Default::default()
+        },
+    ));
+
+    let lane = program.lookup_lane("foo.bar.poggers").unwrap();
+
+    assert_eq!(
+        lane.arguments,
+        &[
+            VarName::from("winnie").unwrap(),
+            VarName::from("pooh").unwrap(),
+            VarName::from("tiggers").unwrap(),
+        ]
+    );
+}
+
+#[test]
+fn lookup_jump_target_invalid_submodule_is_none_test() {
+    let mut program = CaoProgram::default();
+    program.submodules.push((
+        "foo".to_string(),
+        CaoProgram {
+            submodules: vec![(
+                "bar".to_string(),
+                CaoProgram {
+                    lanes: vec![(
+                        "poggers".to_string(),
+                        Lane {
+                            arguments: vec![
+                                VarName::from("winnie").unwrap(),
+                                VarName::from("pooh").unwrap(),
+                                VarName::from("tiggers").unwrap(),
+                            ],
+                            cards: vec![],
+                        },
+                    )],
+                    ..Default::default()
+                },
+            )],
+            ..Default::default()
+        },
+    ));
+
+    let lane = program.lookup_lane("foo.baz.poggers");
+    assert!(lane.is_none());
+}
+
+#[test]
+fn lookup_jump_target_invalid_lane_is_none_test() {
+    let mut program = CaoProgram::default();
+    program.submodules.push((
+        "foo".to_string(),
+        CaoProgram {
+            submodules: vec![(
+                "bar".to_string(),
+                CaoProgram {
+                    lanes: vec![(
+                        "poggers".to_string(),
+                        Lane {
+                            arguments: vec![
+                                VarName::from("winnie").unwrap(),
+                                VarName::from("pooh").unwrap(),
+                                VarName::from("tiggers").unwrap(),
+                            ],
+                            cards: vec![],
+                        },
+                    )],
+                    ..Default::default()
+                },
+            )],
+            ..Default::default()
+        },
+    ));
+
+    let lane = program.lookup_lane("foo.bar.poogers");
+    assert!(lane.is_none());
 }

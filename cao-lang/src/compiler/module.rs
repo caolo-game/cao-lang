@@ -377,6 +377,26 @@ impl Module {
         hash_module(&mut hasher, self);
         hasher.finish()
     }
+
+    pub fn lookup_submodule(&self, target: &str) -> Option<&Module> {
+        let mut current = self;
+        for submodule_name in target.split(".") {
+            current = current
+                .submodules
+                .iter()
+                .find(|(name, _)| name == submodule_name)
+                .map(|(_, m)| m)?;
+        }
+        Some(current)
+    }
+
+    pub fn lookup_lane(&self, target: &str) -> Option<&Lane> {
+        let Some((submodule, lane)) = target.rsplit_once(".") else {
+            return self.lanes.iter().find(|(name, _)|name==target).map(|(_, l)| l)
+        };
+        let module = self.lookup_submodule(submodule)?;
+        module.lookup_lane(lane)
+    }
 }
 
 fn hash_module(hasher: &mut impl Hasher, module: &Module) {
