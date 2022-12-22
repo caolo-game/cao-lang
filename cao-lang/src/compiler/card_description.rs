@@ -1,4 +1,4 @@
-use super::Card;
+use super::{Card, ForEach};
 use crate::{subprogram_description, SubProgramDescription, SubProgramType};
 
 #[derive(Debug, Clone, Copy)]
@@ -82,13 +82,16 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
             body: Default::default(),
         }),
         get_desc(&Card::While(Default::default())),
-        get_desc(&Card::ForEach {
-            i: None,
-            k: None,
-            v: None,
-            variable: Default::default(),
-            body: Default::default(),
-        }),
+        get_desc(
+            &ForEach {
+                i: None,
+                k: None,
+                v: None,
+                variable: Default::default(),
+                body: Default::default(),
+            }
+            .into(),
+        ),
     ]
 }
 

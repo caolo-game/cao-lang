@@ -430,13 +430,14 @@ impl<'a> Compiler<'a> {
                     self.current_index.pop_subindex()
                 }
             }
-            Card::ForEach {
-                i,
-                k,
-                v,
-                variable,
-                body,
-            } => {
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i,
+                    k,
+                    v,
+                    variable,
+                    body,
+                } = fe.as_ref();
                 self.current_index.push_subindex(0);
                 self.process_card(variable)?;
                 self.current_index.pop_subindex();

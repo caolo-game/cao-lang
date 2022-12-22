@@ -54,20 +54,29 @@ pub enum Card {
     },
     /// Children = [condition, body]
     While(Box<[Card; 2]>),
-    // TODO: move the entire variant into a struct
-    ForEach {
-        /// Loop variable is written into this variable
-        i: Option<VarNode>,
-        /// The key is written into this variable
-        k: Option<VarNode>,
-        /// The value is written into this variable
-        v: Option<VarNode>,
-        /// Variable that is iterated on
-        variable: Box<Card>,
-        body: Box<Card>,
-    },
+    ForEach(Box<ForEach>),
     /// Single card that decomposes into multiple cards
     CompositeCard(Box<CompositeCard>),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ForEach {
+    /// Loop variable is written into this variable
+    pub i: Option<VarNode>,
+    /// The key is written into this variable
+    pub k: Option<VarNode>,
+    /// The value is written into this variable
+    pub v: Option<VarNode>,
+    /// Variable that is iterated on
+    pub variable: Box<Card>,
+    pub body: Box<Card>,
+}
+
+impl From<ForEach> for Card {
+    fn from(value: ForEach) -> Self {
+        Card::ForEach(Box::new(value))
+    }
 }
 
 impl Card {
@@ -265,13 +274,14 @@ impl Card {
                 }
                 res = c;
             }
-            Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            } => {
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i: _,
+                    k: _,
+                    v: _,
+                    variable: a,
+                    body: b,
+                } = fe.as_mut();
                 if i > 1 {}
                 match i {
                     0 => res = a.as_mut(),
@@ -295,13 +305,14 @@ impl Card {
                 }
                 res = c;
             }
-            Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            } => {
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i: _,
+                    k: _,
+                    v: _,
+                    variable: a,
+                    body: b,
+                } = fe.as_ref();
                 if i > 1 {}
                 match i {
                     0 => res = a.as_ref(),
@@ -331,13 +342,14 @@ impl Card {
                 res = std::mem::replace::<Card>(c.as_mut(), Card::Pass);
             }
 
-            Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            } => {
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i: _,
+                    k: _,
+                    v: _,
+                    variable: a,
+                    body: b,
+                } = fe.as_mut();
                 if i > 1 {}
                 match i {
                     0 => res = std::mem::replace::<Card>(a.as_mut(), Card::Pass),
@@ -375,13 +387,14 @@ impl Card {
                 *c.as_mut() = card;
             }
 
-            Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            } => {
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i: _,
+                    k: _,
+                    v: _,
+                    variable: a,
+                    body: b,
+                } = fe.as_mut();
                 if i > 1 {}
                 match i {
                     0 => *a.as_mut() = card,
@@ -412,17 +425,20 @@ impl Card {
                 }
                 std::mem::replace(c.as_mut(), card)
             }
-            Card::ForEach {
-                i: _,
-                k: _,
-                v: _,
-                variable: a,
-                body: b,
-            } => match i {
-                0 => std::mem::replace(a.as_mut(), card),
-                1 => std::mem::replace(b.as_mut(), card),
-                _ => return Err(card),
-            },
+            Card::ForEach(fe) => {
+                let ForEach {
+                    i: _,
+                    k: _,
+                    v: _,
+                    variable: a,
+                    body: b,
+                } = fe.as_mut();
+                match i {
+                    0 => std::mem::replace(a.as_mut(), card),
+                    1 => std::mem::replace(b.as_mut(), card),
+                    _ => return Err(card),
+                }
+            }
             Card::While(children) | Card::IfElse(children) => {
                 let Some(c) = children.get_mut(i) else {
                     return Err(card);
@@ -458,4 +474,10 @@ pub struct CompositeCard {
     /// Type is meant to be used by the implementation to store metadata
     pub ty: String,
     pub cards: Vec<Card>,
+}
+
+impl From<CompositeCard> for Card {
+    fn from(value: CompositeCard) -> Self {
+        Card::CompositeCard(Box::new(value))
+    }
 }
