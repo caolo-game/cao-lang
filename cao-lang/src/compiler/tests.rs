@@ -30,7 +30,7 @@ fn can_binary_de_serialize_output() {
         lanes: [(
             "main".into(),
             Lane::default().with_cards(vec![
-                Card::SetGlobalVar(VarNode::from_str_unchecked("asdsdad")),
+                Card::set_global_var("asdsdad"),
                 Card::Pass,
                 Card::Pass,
             ]),
@@ -52,7 +52,7 @@ fn empty_varname_is_error() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default().with_cards(vec![Card::SetGlobalVar(VarNode::from_str_unchecked(""))]),
+            Lane::default().with_cards(vec![Card::set_global_var("")]),
         )]
         .into(),
     };

@@ -37,19 +37,19 @@ pub enum Card {
     ScalarInt(i64),
     ScalarFloat(f64),
     StringLiteral(String),
-    CallNative(Box<CallNode>),
+    CallNative(CallNode),
     IfTrue(Box<Card>),
     IfFalse(Box<Card>),
     /// Children = [then, else]
     IfElse(Box<[Card; 2]>),
     /// Lane name
     Jump(String),
-    SetGlobalVar(VarNode),
-    SetVar(VarNode),
-    ReadVar(VarNode),
+    SetGlobalVar(VarName),
+    SetVar(VarName),
+    ReadVar(VarName),
     Repeat {
         /// Loop variable is written into this variable
-        i: Option<VarNode>,
+        i: Option<VarName>,
         body: Box<Card>,
     },
     /// Children = [condition, body]
@@ -63,11 +63,11 @@ pub enum Card {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ForEach {
     /// Loop variable is written into this variable
-    pub i: Option<VarNode>,
+    pub i: Option<VarName>,
     /// The key is written into this variable
-    pub k: Option<VarNode>,
+    pub k: Option<VarName>,
     /// The value is written into this variable
-    pub v: Option<VarNode>,
+    pub v: Option<VarName>,
     /// Variable that is iterated on
     pub variable: Box<Card>,
     pub body: Box<Card>,
@@ -237,19 +237,20 @@ impl Card {
         }))
     }
 
-    pub fn set_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
-        let c = Self::SetVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
-        Ok(c)
+    pub fn set_var(s: impl Into<String>) -> Self {
+        Self::SetVar(s.into())
     }
 
-    pub fn read_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
-        let c = Self::ReadVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
-        Ok(c)
+    pub fn call_native(s: impl Into<InputString>) -> Self {
+        Self::CallNative(CallNode(s.into()))
     }
 
-    pub fn set_global_var(s: &str) -> Result<Self, arrayvec::CapacityError> {
-        let c = Self::SetGlobalVar(VarNode(Box::new(arrayvec::ArrayString::from_str(s)?)));
-        Ok(c)
+    pub fn read_var(s: impl Into<String>) -> Self {
+        Self::ReadVar(s.into())
+    }
+
+    pub fn set_global_var(s: impl Into<String>) -> Self {
+        Self::SetGlobalVar(s.into())
     }
 
     pub fn scalar_int(i: i64) -> Self {
@@ -454,19 +455,6 @@ impl Card {
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CallNode(pub InputString);
-
-#[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct VarNode(pub Box<VarName>);
-
-impl VarNode {
-    /// panics if the string is too long
-    pub fn from_str_unchecked(s: &str) -> Self {
-        Self(Box::new(
-            VarName::from(s).expect("Failed to parse variable name"),
-        ))
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

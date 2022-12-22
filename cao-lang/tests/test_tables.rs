@@ -1,10 +1,7 @@
 use std::convert::TryInto;
 use test_log::test;
 
-use cao_lang::{
-    compiler::{CallNode, VarNode},
-    prelude::*,
-};
+use cao_lang::prelude::*;
 
 #[test]
 fn test_init_table() {
@@ -15,7 +12,7 @@ fn test_init_table() {
             "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo"))),
+                .with_card(Card::set_global_var("g_foo")),
         )]
         .into(),
     };
@@ -41,15 +38,15 @@ fn test_get_set() {
             "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::set_var("foo"))
+                .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("bar".to_string()))
                 .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("bar".to_string()))
                 .with_card(Card::GetProperty)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("scoobie"))),
+                .with_card(Card::set_global_var("scoobie")),
         )]
         .into(),
     };
@@ -93,14 +90,12 @@ fn test_native_w_table_input() {
             "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::set_var("foo"))
+                .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("boi".to_string()))
                 .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::CallNative(Box::new(CallNode(
-                    InputString::from("boii").unwrap(),
-                )))),
+                .with_card(Card::call_native("boii")),
         )]
         .into(),
     };

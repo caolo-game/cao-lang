@@ -226,9 +226,9 @@ fn lookup_jump_target_test() {
                         "poggers".to_string(),
                         Lane {
                             arguments: vec![
-                                VarName::from("winnie").unwrap(),
-                                VarName::from("pooh").unwrap(),
-                                VarName::from("tiggers").unwrap(),
+                                VarName::from("winnie"),
+                                VarName::from("pooh"),
+                                VarName::from("tiggers"),
                             ],
                             cards: vec![],
                         },
@@ -245,9 +245,9 @@ fn lookup_jump_target_test() {
     assert_eq!(
         lane.arguments,
         &[
-            VarName::from("winnie").unwrap(),
-            VarName::from("pooh").unwrap(),
-            VarName::from("tiggers").unwrap(),
+            VarName::from("winnie"),
+            VarName::from("pooh"),
+            VarName::from("tiggers"),
         ]
     );
 }
@@ -265,9 +265,9 @@ fn lookup_jump_target_invalid_submodule_is_none_test() {
                         "poggers".to_string(),
                         Lane {
                             arguments: vec![
-                                VarName::from("winnie").unwrap(),
-                                VarName::from("pooh").unwrap(),
-                                VarName::from("tiggers").unwrap(),
+                                VarName::from("winnie"),
+                                VarName::from("pooh"),
+                                VarName::from("tiggers"),
                             ],
                             cards: vec![],
                         },
@@ -296,9 +296,9 @@ fn lookup_jump_target_invalid_lane_is_none_test() {
                         "poggers".to_string(),
                         Lane {
                             arguments: vec![
-                                VarName::from("winnie").unwrap(),
-                                VarName::from("pooh").unwrap(),
-                                VarName::from("tiggers").unwrap(),
+                                VarName::from("winnie"),
+                                VarName::from("pooh"),
+                                VarName::from("tiggers"),
                             ],
                             cards: vec![],
                         },

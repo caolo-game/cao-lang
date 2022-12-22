@@ -447,15 +447,15 @@ impl<'a> Compiler<'a> {
                 let loop_item = self.add_local_unchecked("")?;
                 // ForEach instruction will push these values on the stack
                 let v = match v {
-                    Some(o) => self.add_local(&o.0)?,
+                    Some(o) => self.add_local(&o)?,
                     None => self.add_local_unchecked("")?,
                 };
                 let k = match k {
-                    Some(k) => self.add_local(&k.0)?,
+                    Some(k) => self.add_local(&k)?,
                     None => self.add_local_unchecked("")?,
                 };
                 let i = match i {
-                    Some(i) => self.add_local(&i.0)?,
+                    Some(i) => self.add_local(&i)?,
                     None => self.add_local_unchecked("")?,
                 };
                 self.push_instruction(Instruction::BeginForEach);
@@ -503,7 +503,7 @@ impl<'a> Compiler<'a> {
                 let loop_counter_index = self.add_local_unchecked("")?;
                 let i_index = match i {
                     Some(var) => {
-                        let index = self.add_local(&var.0)?;
+                        let index = self.add_local(&var)?;
                         Some(index)
                     }
                     None => None,
@@ -543,19 +543,19 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let index = match self.resolve_var(var.0.as_str())? {
+                let index = match self.resolve_var(var.as_str())? {
                     Some(i) => i as u32,
-                    None => self.add_local(&var.0)?,
+                    None => self.add_local(&var)?,
                 };
 
                 self.write_local_var(index);
             }
             Card::SetGlobalVar(variable) => {
                 let next_var = &mut self.next_var;
-                if variable.0.is_empty() {
+                if variable.is_empty() {
                     return Err(self.error(CompilationErrorPayload::EmptyVariable));
                 }
-                let varhash = Handle::from_bytes(variable.0.as_bytes());
+                let varhash = Handle::from_bytes(variable.as_bytes());
 
                 let id = self
                     .program
@@ -571,7 +571,7 @@ impl<'a> Compiler<'a> {
                     .variables
                     .names
                     .entry(Handle::from_u32(id.0))
-                    .or_insert_with(move || *variable.0);
+                    .or_insert_with(move || variable.to_string());
                 write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse(children) => {
@@ -646,8 +646,8 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn read_var_card(&mut self, variable: &VarNode) -> CompilationResult<()> {
-        let scope = self.resolve_var(variable.0.as_str())?;
+    fn read_var_card(&mut self, variable: &str) -> CompilationResult<()> {
+        let scope = self.resolve_var(variable)?;
         match scope {
             Some(index) => {
                 //local
@@ -656,7 +656,7 @@ impl<'a> Compiler<'a> {
             None => {
                 // global
                 let next_var = &mut self.next_var;
-                let varhash = Handle::from_bytes(variable.0.as_bytes());
+                let varhash = Handle::from_bytes(variable.as_bytes());
                 let id = self
                     .program
                     .variables
@@ -672,7 +672,7 @@ impl<'a> Compiler<'a> {
                     .variables
                     .names
                     .entry(Handle::from_u32(id.0))
-                    .or_insert_with(|| *variable.0);
+                    .or_insert_with(|| variable.to_string());
                 self.push_instruction(Instruction::ReadGlobalVar);
                 write_to_vec(id, &mut self.program.bytecode);
             }

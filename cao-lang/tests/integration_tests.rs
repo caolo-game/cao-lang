@@ -1,8 +1,7 @@
-use std::str::FromStr;
 use test_log::test;
 
 use cao_lang::{
-    compiler::{CallNode, CompositeCard, Module, VarNode},
+    compiler::{CompositeCard, Module},
     prelude::*,
 };
 
@@ -17,7 +16,7 @@ fn composite_card_test() {
                 ty: "triplepog".to_string(),
                 cards: vec![
                     Card::StringLiteral("poggers".to_owned()),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::set_global_var("result"),
                 ],
             }))),
         )]
@@ -47,9 +46,7 @@ fn test_trace_entry() {
             ),
             (
                 "pooh".into(),
-                Lane::default().with_card(Card::CallNative(Box::new(CallNode(
-                    InputString::from_str("non-existent-function").unwrap(),
-                )))),
+                Lane::default().with_card(Card::call_native("non-existent-function")),
             ),
         ]
         .into(),
@@ -78,7 +75,7 @@ fn test_string_w_utf8() {
             "main".into(),
             Lane::default()
                 .with_card(Card::StringLiteral(test_str.to_string()))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result"))),
+                .with_card(Card::set_global_var("result")),
         )]
         .into(),
     };
@@ -125,9 +122,7 @@ fn test_string_param() {
             "main".into(),
             Lane::default()
                 .with_card(Card::StringLiteral(test_str.to_string()))
-                .with_card(Card::CallNative(Box::new(CallNode(
-                    InputString::from(name).unwrap(),
-                )))),
+                .with_card(Card::call_native(name)),
         )]
         .into(),
     };
@@ -154,10 +149,8 @@ fn simple_if_statement() {
             ),
             (
                 "pooh".into(),
-                Lane::default().with_cards(vec![
-                    Card::ScalarInt(69),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ]),
+                Lane::default()
+                    .with_cards(vec![Card::ScalarInt(69), Card::set_global_var("result")]),
             ),
         ]
         .into(),
@@ -185,20 +178,14 @@ fn simple_if_statement_skips_if_false() {
                 .with_card(Card::IfTrue(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
                         ty: "".to_string(),
-                        cards: vec![
-                            Card::ScalarInt(69),
-                            Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                        ],
+                        cards: vec![Card::ScalarInt(69), Card::set_global_var("result")],
                     },
                 )))))
                 .with_card(Card::ScalarInt(1))
                 .with_card(Card::IfFalse(Box::new(Card::CompositeCard(Box::new(
                     CompositeCard {
                         ty: "".to_string(),
-                        cards: vec![
-                            Card::ScalarInt(42),
-                            Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                        ],
+                        cards: vec![Card::ScalarInt(42), Card::set_global_var("result")],
                     },
                 ))))),
         )]
@@ -234,21 +221,15 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
                         Card::Jump("tiggers".to_string()),
                     ])))
                     .with_card(Card::ScalarInt(0xbeef))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("result2"))),
+                    .with_card(Card::set_global_var("result2")),
             ),
             (
                 "pooh".into(),
-                Lane::default().with_cards(vec![
-                    true_res,
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ]),
+                Lane::default().with_cards(vec![true_res, Card::set_global_var("result")]),
             ),
             (
                 "tiggers".into(),
-                Lane::default().with_cards(vec![
-                    false_res,
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
-                ]),
+                Lane::default().with_cards(vec![false_res, Card::set_global_var("result")]),
             ),
         ]
         .into(),
@@ -301,13 +282,13 @@ fn test_local_variable() {
             Lane::default()
                 // init the global variable
                 .with_card(Card::ScalarInt(420))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar")))
+                .with_card(Card::set_global_var("bar"))
                 // set another value in local var
                 .with_card(Card::ScalarInt(123))
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+                .with_card(Card::set_var("foo"))
                 // read the var and set the global variable
-                .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("bar"))),
+                .with_card(Card::read_var("foo"))
+                .with_card(Card::set_global_var("bar")),
         )]
         .into(),
     };
@@ -335,12 +316,12 @@ fn local_variable_doesnt_leak_out_of_scope() {
                 "main".into(),
                 Lane::default()
                     .with_card(Card::ScalarInt(123))
-                    .with_card(Card::SetVar(VarNode::from_str_unchecked("foo")))
+                    .with_card(Card::set_var("foo"))
                     .with_card(Card::Jump("bar".to_string())),
             ),
             (
                 "bar".into(),
-                Lane::default().with_card(Card::ReadVar(VarNode::from_str_unchecked("foo"))),
+                Lane::default().with_card(Card::read_var("foo")),
             ),
         ]
         .into(),
@@ -370,17 +351,14 @@ fn simple_for_loop() {
                 Lane::default().with_cards(vec![
                     // init the result variable
                     Card::ScalarInt(0),
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::set_global_var("result"),
                     // loop
                     Card::ScalarInt(5),
                     Card::Repeat {
-                        i: Some(VarNode::from_str_unchecked("i")),
+                        i: Some("i".to_string()),
                         body: Box::new(Card::composite_card(
                             "",
-                            vec![
-                                Card::ReadVar(VarNode::from_str_unchecked("i")),
-                                Card::Jump("Loop".to_string()),
-                            ],
+                            vec![Card::read_var("i"), Card::Jump("Loop".to_string())],
                         )),
                     },
                 ]),
@@ -389,10 +367,10 @@ fn simple_for_loop() {
                 "Loop".into(),
                 Lane::default().with_arg("i").with_cards(vec![
                     // Add i to the global 'result' variable in each iteration
-                    Card::ReadVar(VarNode::from_str_unchecked("i")),
-                    Card::ReadVar(VarNode::from_str_unchecked("result")),
+                    Card::read_var("i"),
+                    Card::read_var("result"),
                     Card::Add,
-                    Card::SetGlobalVar(VarNode::from_str_unchecked("result")),
+                    Card::set_global_var("result"),
                 ]),
             ),
         ]
@@ -419,9 +397,7 @@ fn call_native_test() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default().with_cards(vec![Card::CallNative(Box::new(CallNode(
-                InputString::from(name).unwrap(),
-            )))]),
+            Lane::default().with_cards(vec![Card::call_native(name)]),
         )]
         .into(),
     };
@@ -540,10 +516,10 @@ fn jump_lane_w_params_test() {
                 Lane::default()
                     .with_arg("foo")
                     .with_arg("bar")
-                    .with_card(Card::ReadVar(VarNode::from_str_unchecked("foo")))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_foo")))
-                    .with_card(Card::ReadVar(VarNode::from_str_unchecked("bar")))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_bar"))),
+                    .with_card(Card::read_var("foo"))
+                    .with_card(Card::set_global_var("g_foo"))
+                    .with_card(Card::read_var("bar"))
+                    .with_card(Card::set_global_var("g_bar")),
             ),
         ]
         .into(),
@@ -581,7 +557,7 @@ fn len_test_empty() {
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::Len)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                .with_card(Card::set_global_var("g_result")),
         )]
         .into(),
     };
@@ -601,7 +577,7 @@ fn len_test_empty() {
 #[test]
 fn len_test_happy() {
     // happy path
-    let t = VarNode::from_str_unchecked("t");
+    let t = "t";
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
@@ -609,26 +585,26 @@ fn len_test_happy() {
             "main".into(),
             Lane::default()
                 .with_card(Card::CreateTable)
-                .with_card(Card::SetVar(t.clone()))
+                .with_card(Card::set_var(t))
                 // first property
-                .with_card(Card::ReadVar(t.clone()))
+                .with_card(Card::read_var(t))
                 .with_card(Card::StringLiteral("asd".to_string()))
                 .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty)
                 // same property as above
-                .with_card(Card::ReadVar(t.clone()))
+                .with_card(Card::read_var(t))
                 .with_card(Card::StringLiteral("asd".to_string()))
                 .with_card(Card::ScalarInt(69))
                 .with_card(Card::SetProperty)
                 // new property
-                .with_card(Card::ReadVar(t.clone()))
+                .with_card(Card::read_var(t))
                 .with_card(Card::StringLiteral("basdasd".to_string()))
                 .with_card(Card::ScalarInt(89))
                 .with_card(Card::SetProperty)
                 // len
-                .with_card(Card::ReadVar(t.clone()))
+                .with_card(Card::read_var(t))
                 .with_card(Card::Len)
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                .with_card(Card::set_global_var("g_result")),
         )]
         .into(),
     };
@@ -663,7 +639,7 @@ fn nested_module_can_call_self_test() {
                         "nie".into(),
                         Lane::default()
                             .with_card(Card::StringLiteral("poggers".to_owned()))
-                            .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                            .with_card(Card::set_global_var("g_result")),
                     ),
                 ]
                 .into(),
@@ -740,7 +716,7 @@ fn import_in_submodule_test() {
                     "pooh".into(),
                     Lane::default()
                         .with_card(Card::StringLiteral("poggers".to_owned()))
-                        .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                        .with_card(Card::set_global_var("g_result")),
                 )]
                 .into(),
             },
@@ -789,7 +765,7 @@ fn can_import_submodule_test() {
                     "pooh".into(),
                     Lane::default()
                         .with_card(Card::StringLiteral("poggers".to_owned()))
-                        .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                        .with_card(Card::set_global_var("g_result")),
                 )]
                 .into(),
             },
@@ -854,7 +830,7 @@ fn can_import_function_from_super_module_test() {
                 "pog".into(),
                 Lane::default()
                     .with_card(Card::StringLiteral("poggers".to_owned()))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                    .with_card(Card::set_global_var("g_result")),
             ),
         ]
         .into(),
@@ -911,7 +887,7 @@ fn import_super_module_test() {
                 "pog".into(),
                 Lane::default()
                     .with_card(Card::StringLiteral("poggers".to_owned()))
-                    .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("g_result"))),
+                    .with_card(Card::set_global_var("g_result")),
             ),
         ]
         .into(),
@@ -965,7 +941,7 @@ fn local_variable_regression_test() {
                 Lane::default()
                     .with_card(Card::composite_card(
                         "asd",
-                        vec![Card::scalar_int(69), Card::set_var("pog").unwrap()],
+                        vec![Card::scalar_int(69), Card::set_var("pog")],
                     ))
                     .with_card(Card::jump("tiggers")),
             ),
@@ -974,14 +950,11 @@ fn local_variable_regression_test() {
                 Lane::default()
                     .with_card(Card::composite_card(
                         "basd",
-                        vec![Card::scalar_int(42), Card::set_var("foo").unwrap()],
+                        vec![Card::scalar_int(42), Card::set_var("foo")],
                     ))
                     .with_card(Card::composite_card(
                         "zasd",
-                        vec![
-                            Card::read_var("foo").unwrap(),
-                            Card::set_global_var("pooh").unwrap(),
-                        ],
+                        vec![Card::read_var("foo"), Card::set_global_var("pooh")],
                     )),
             ),
         ]
@@ -1010,24 +983,24 @@ fn simple_while_test() {
             "main".to_string(),
             Lane::default()
                 .with_card(Card::ScalarInt(N))
-                .with_card(Card::SetVar(VarNode::from_str_unchecked("i")))
+                .with_card(Card::set_var("i"))
                 .with_card(Card::ScalarInt(0))
-                .with_card(Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")))
+                .with_card(Card::set_global_var("pooh"))
                 .with_card(Card::While(Box::new([
-                    Card::ReadVar(VarNode::from_str_unchecked("i")),
+                    Card::read_var("i"),
                     Card::composite_card(
                         "body",
                         vec![
                             // Increment pooh
                             Card::ScalarInt(1),
-                            Card::ReadVar(VarNode::from_str_unchecked("pooh")),
+                            Card::read_var("pooh"),
                             Card::Add,
-                            Card::SetGlobalVar(VarNode::from_str_unchecked("pooh")),
+                            Card::set_global_var("pooh"),
                             // decrement loop counter
-                            Card::ReadVar(VarNode::from_str_unchecked("i")),
+                            Card::read_var("i"),
                             Card::ScalarInt(1),
                             Card::Sub,
-                            Card::SetVar(VarNode::from_str_unchecked("i")),
+                            Card::set_var("i"),
                         ],
                     ),
                 ]))),
@@ -1054,7 +1027,7 @@ fn set_var_to_empty_test() {
         submodules: [].into(),
         lanes: [(
             "main".to_string(),
-            Lane::default().with_card(Card::SetVar(VarNode::from_str_unchecked("i"))),
+            Lane::default().with_card(Card::set_var("i")),
         )]
         .into(),
     };

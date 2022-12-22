@@ -25,7 +25,6 @@ pub mod version {
 use std::{mem::size_of, str::FromStr};
 
 use crate::instruction::Instruction;
-use arrayvec::ArrayString;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -60,10 +59,8 @@ impl StrPointer {
     }
 }
 
-pub(crate) const INPUT_STR_LEN_IN_BYTES: usize = 255;
-
-pub type InputString = ArrayString<INPUT_STR_LEN_IN_BYTES>;
-pub type VarName = ArrayString<64>;
+pub type InputString = String;
+pub type VarName = String;
 
 /// Metadata about a subprogram in the program.
 /// Subprograms consume their inputs and produce outputs.
