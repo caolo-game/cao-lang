@@ -1,4 +1,23 @@
 # Changelog
+## v0.1.103
+
+
+### Features
+
+- Add _mut lookup methods
+
+
+### Refactor
+
+- Factor out ForEach card body
+
+- Use Strings in cards to simplify the interface
+
+
+### Break
+
+- Swap function argument popping, first argument is popped last. This is consistent with native function calls.
+
 ## v0.1.102
 
 
