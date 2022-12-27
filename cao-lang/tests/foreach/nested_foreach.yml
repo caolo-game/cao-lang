@@ -37,8 +37,8 @@ lanes:
             name: ""
             ty: ""
             cards:
-              - !ReadVar key
               - !ReadVar t
+              - !ReadVar key
               - !Jump outer_loop
           variable: !ReadVar t
 
@@ -53,8 +53,8 @@ lanes:
             name: ""
             ty: ""
             cards:
-              - !ReadVar table
               - !ReadVar key
+              - !ReadVar table
               - !Jump inner_loop
           variable: !ReadVar table
 

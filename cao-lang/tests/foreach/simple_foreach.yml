@@ -28,8 +28,8 @@ lanes:
             name: ""
             ty: ""
             cards:
-              - !ReadVar key
               - !ReadVar t
+              - !ReadVar key
               - !Jump pog
           variable: !ReadVar t
 

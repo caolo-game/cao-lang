@@ -507,8 +507,8 @@ fn jump_lane_w_params_test() {
             (
                 "main".into(),
                 Lane::default()
-                    .with_card(Card::ScalarInt(42))
                     .with_card(Card::StringLiteral("winnie the pooh".to_owned()))
+                    .with_card(Card::ScalarInt(42))
                     .with_card(Card::Jump("pooh".to_owned())),
             ),
             (

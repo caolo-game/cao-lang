@@ -272,8 +272,8 @@ impl<'a> Compiler<'a> {
             Ok(i) => i,
             Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
         };
-        // at runtime: pop arguments in the same order as the variables were declared
-        for param in arguments.iter() {
+        // at runtime: pop arguments reverse order as the variables were declared
+        for param in arguments.iter().rev() {
             self.add_local(param.as_str())?;
         }
         for (ic, card) in cards.iter().enumerate() {
