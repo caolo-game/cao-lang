@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.104
+
+
+### Features
+
+- Add Function values, redefine Jump card in terms of Function value
+
+- DynamicJump card
+
+
+### Refactor
+
+- Manual PartialOrd impl for Value
+
 ## v0.1.103
 
 
