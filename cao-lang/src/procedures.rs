@@ -19,7 +19,7 @@ pub enum ExecutionErrorPayload {
     ExitCode(i32),
     #[error("Got an invalid instruction code {0}")]
     InvalidInstruction(u8),
-    #[error("Got an invalid argument to function call; {}",
+    #[error("Got an invalid argument: {}",
         .context.as_ref().map(|x|x.as_str()).unwrap_or_else(|| ""))]
     InvalidArgument { context: Option<String> },
     #[error("Variable {0} was not found!")]
