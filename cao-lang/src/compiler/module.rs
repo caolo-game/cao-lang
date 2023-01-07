@@ -49,6 +49,13 @@ pub struct CardIndex {
 }
 
 impl CardIndex {
+    pub fn lane(lane: usize) -> Self {
+        Self {
+            lane,
+            ..Default::default()
+        }
+    }
+
     pub fn new(lane: usize, card_index: usize) -> Self {
         Self {
             lane,

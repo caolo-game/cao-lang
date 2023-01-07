@@ -189,17 +189,14 @@ impl<'a> Compiler<'a> {
         }
 
         for (il, lane) in lanes {
-            self.current_index = CardIndex {
-                lane: il,
-                ..Default::default()
-            };
-            let nodeid_hash = self.current_index.as_handle();
+            self.current_index = CardIndex::lane(il);
+            let nodeid_handle = self.current_index.as_handle();
             let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
             self.program
                 .labels
                 .0
-                .insert(nodeid_hash, Label::new(handle))
+                .insert(nodeid_handle, Label::new(handle))
                 .unwrap();
 
             self.scope_begin();
