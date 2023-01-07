@@ -2,13 +2,29 @@ use crate::{vm::runtime::FieldTable, StrPointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug, Clone, Copy, PartialOrd)]
+#[derive(Debug, Clone, Copy)]
 pub enum Value {
     Nil,
     String(StrPointer),
     Object(*mut FieldTable),
     Integer(i64),
     Real(f64),
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let (this, other) = self.cast_match(*other);
+        match (this, other) {
+            (Value::String(a), Value::String(b)) => unsafe {
+                let a = a.get_str()?;
+                let b = b.get_str()?;
+                a.partial_cmp(b)
+            },
+            (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(&b),
+            (Value::Real(a), Value::Real(b)) => a.partial_cmp(&b),
+            _ => None,
+        }
+    }
 }
 
 impl std::hash::Hash for Value {
