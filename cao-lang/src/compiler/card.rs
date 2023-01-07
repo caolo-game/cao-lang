@@ -61,6 +61,8 @@ pub enum Card {
     ForEach(Box<ForEach>),
     /// Single card that decomposes into multiple cards
     CompositeCard(Box<CompositeCard>),
+    /// Jump to the function that's on the top of the stack
+    DynamicJump,
 }
 
 #[derive(Debug, Clone)]
@@ -125,6 +127,7 @@ impl Card {
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
+            Card::DynamicJump => "Dynamic Jump",
         }
     }
 
@@ -172,6 +175,7 @@ impl Card {
             Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return => Some(Instruction::Return),
             Card::Len => Some(Instruction::Len),
+            Card::DynamicJump => Some(Instruction::CallLane),
         }
     }
 
@@ -270,6 +274,10 @@ impl Card {
 
     pub fn jump(s: impl Into<String>) -> Self {
         Self::Jump(s.into())
+    }
+
+    pub fn function_value(s: impl Into<String>) -> Self {
+        Self::Function(s.into())
     }
 
     pub fn get_child_mut(&mut self, i: usize) -> Option<&mut Card> {

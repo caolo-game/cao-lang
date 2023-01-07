@@ -1037,3 +1037,55 @@ fn set_var_to_empty_test() {
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
 }
+
+#[test]
+fn callback_test() {
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [
+            (
+                "main".to_string(),
+                Lane::default().with_cards(vec![
+                    Card::ScalarInt(0),
+                    Card::set_global_var("i"),
+                    Card::function_value("callback"),
+                    Card::jump("call_callback"),
+                    Card::function_value("callback"),
+                    Card::jump("call_callback"),
+                    Card::function_value("callback"),
+                    Card::jump("call_callback"),
+                    Card::function_value("callback"),
+                    Card::jump("call_callback"),
+                ]),
+            ),
+            (
+                "call_callback".to_string(),
+                Lane::default()
+                    .with_arg("cb")
+                    .with_cards(vec![Card::read_var("cb"), Card::DynamicJump]),
+            ),
+            (
+                "callback".to_string(),
+                Lane::default().with_cards(vec![
+                    Card::read_var("i"),
+                    Card::ScalarInt(1),
+                    Card::Add,
+                    Card::set_global_var("i"),
+                ]),
+            ),
+        ]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("i", &program.variables)
+        .expect("Failed to read pooh variable");
+
+    assert_eq!(result.as_int().unwrap(), 4);
+}

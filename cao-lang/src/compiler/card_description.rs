@@ -423,6 +423,14 @@ Order of parameters: Table, Property-Key, Value"#,
             [],
             [PropertyName::Function.to_str()],
             []
+        ),
+        Card::DynamicJump => subprogram_description!(
+            "Dynamic Jump",
+            "Jump to the function on top of the stack",
+            SubProgramType::Instruction,
+            [],
+            [],
+            []
         )
 
     }
