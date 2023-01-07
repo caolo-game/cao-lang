@@ -115,6 +115,35 @@ pub fn instr_string_literal<T>(
     Ok(())
 }
 
+pub fn push_call_frame(
+    arity: usize,
+    src_ptr: u32,
+    instr_ptr: u32,
+    runtime_data: &mut RuntimeData,
+) -> ExecutionResult {
+    // remember the location after this jump
+    runtime_data
+        .call_stack
+        .last_mut()
+        .expect("Call stack was empty")
+        .dst_instr_ptr = instr_ptr;
+
+    // init the new call frame
+    runtime_data
+        .call_stack
+        .push(CallFrame {
+            src_instr_ptr: src_ptr,
+            dst_instr_ptr: instr_ptr,
+            stack_offset: runtime_data
+                .value_stack
+                .len()
+                .checked_sub(arity as usize)
+                .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
+        })
+        .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
+    Ok(())
+}
+
 pub fn instr_jump(
     src_ptr: usize,
     instr_ptr: &mut usize,
@@ -125,26 +154,12 @@ pub fn instr_jump(
         return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function argument"));
     };
 
-    // remember the location after this jump
-    runtime_data
-        .call_stack
-        .last_mut()
-        .expect("Call stack was empty")
-        .dst_instr_ptr = *instr_ptr as u32;
-
-    // init the new call frame
-    runtime_data
-        .call_stack
-        .push(CallFrame {
-            src_instr_ptr: src_ptr as u32,
-            dst_instr_ptr: *instr_ptr as u32,
-            stack_offset: runtime_data
-                .value_stack
-                .len()
-                .checked_sub(arity as usize)
-                .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
-        })
-        .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
+    push_call_frame(
+        arity as usize,
+        src_ptr as u32,
+        *instr_ptr as u32,
+        runtime_data,
+    )?;
 
     // set the instr_ptr to the new lane's beginning
     *instr_ptr = program.labels.0.get(label).expect("Label not found").pos as usize;
