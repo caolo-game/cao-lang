@@ -67,6 +67,10 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             OwnedValue::Integer(x) => Value::Integer(*x),
             OwnedValue::Real(x) => Value::Real(*x),
+            OwnedValue::Function { hash, arity } => Value::Function {
+                hash: *hash,
+                arity: *arity,
+            },
         };
         Ok(res)
     }
@@ -381,6 +385,22 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_copy_last(self).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
+                }
+                Instruction::FunctionPointer => {
+                    self.runtime_data
+                        .value_stack
+                        .push(Value::Function {
+                            hash: unsafe {
+                                instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            },
+                            arity: unsafe {
+                                instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            },
+                        })
+                        .map_err(|_| ExecutionErrorPayload::Stackoverflow)
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::ScalarInt => {
                     self.runtime_data

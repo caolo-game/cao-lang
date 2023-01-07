@@ -44,6 +44,10 @@ pub enum Card {
     IfElse(Box<[Card; 2]>),
     /// Lane name
     Jump(String),
+    /// Lane name
+    ///
+    /// Creates a pointer to the given cao-lang function
+    Function(String),
     SetGlobalVar(VarName),
     SetVar(VarName),
     ReadVar(VarName),
@@ -120,6 +124,7 @@ impl Card {
             Card::SetProperty => "SetProperty",
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.ty.as_str(),
+            Card::Function(_) => "Function",
         }
     }
 
@@ -156,10 +161,11 @@ impl Card {
             Card::Pop => Some(Instruction::Pop),
             Card::ScalarInt(_) => Some(Instruction::ScalarInt),
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
+            Card::Function(_) => Some(Instruction::FunctionPointer),
             Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
-            Card::Jump(_) => Some(Instruction::CallLane),
+            Card::Jump(_) => None,
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ClearStack => Some(Instruction::ClearStack),
@@ -210,6 +216,7 @@ impl Card {
             | Instruction::GotoIfTrue
             | Instruction::GotoIfFalse
             | Instruction::ForEach
+            | Instruction::FunctionPointer
             | Instruction::BeginForEach => {}
         };
     }

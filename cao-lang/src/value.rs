@@ -1,3 +1,4 @@
+use crate::prelude::Handle;
 use crate::{vm::runtime::FieldTable, StrPointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
@@ -9,6 +10,7 @@ pub enum Value {
     Object(*mut FieldTable),
     Integer(i64),
     Real(f64),
+    Function { hash: Handle, arity: u32 },
 }
 
 impl PartialOrd for Value {
@@ -47,6 +49,10 @@ impl std::hash::Hash for Value {
                     k.hash(state);
                     v.hash(state);
                 }
+            }
+            Value::Function { hash, arity } => {
+                hash.value().hash(state);
+                arity.hash(state);
             }
         }
     }
@@ -128,6 +134,7 @@ pub enum OwnedValue {
     Object(Vec<OwnedEntry>),
     Integer(i64),
     Real(f64),
+    Function { hash: Handle, arity: u32 },
 }
 
 #[derive(Debug, Clone)]
@@ -159,6 +166,7 @@ impl From<Value> for OwnedValue {
             }),
             Value::Integer(x) => Self::Integer(x),
             Value::Real(x) => Self::Real(x),
+            Value::Function { hash, arity } => Self::Function { hash, arity },
         }
     }
 }
@@ -178,6 +186,7 @@ impl Value {
             Value::Integer(i) => i != 0,
             Value::Real(i) => i != 0.0,
             Value::Nil => false,
+            Value::Function { .. } => true,
         }
     }
 
@@ -189,6 +198,7 @@ impl Value {
             Value::Object(_) => "Table",
             Value::Integer(_) => "Integer",
             Value::Real(_) => "Real",
+            Value::Function { .. } => "Function",
         }
     }
 

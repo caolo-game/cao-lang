@@ -35,6 +35,12 @@ pub(crate) const MAX_LOAD: f32 = 0.69;
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
 pub struct Handle(u32);
 
+impl Handle {
+    pub fn value(self) -> u32 {
+        self.0
+    }
+}
+
 pub struct HandleTable<T, A = SysAllocator>
 where
     A: Allocator,

@@ -84,4 +84,6 @@ pub(crate) enum Instruction {
 
     BeginForEach,
     ForEach,
+
+    FunctionPointer,
 }

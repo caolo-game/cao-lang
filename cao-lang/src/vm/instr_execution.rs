@@ -82,7 +82,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let val = vm.stack_pop();
     let len = match val {
         Value::Nil => 0,
-        Value::Integer(_) | Value::Real(_) => 1,
+        Value::Function { .. } | Value::Integer(_) | Value::Real(_) => 1,
         Value::String(s) => {
             let st = unsafe {
                 s.get_str().ok_or_else(|| {
@@ -121,8 +121,9 @@ pub fn instr_jump(
     program: &CaoCompiledProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
-    let label: Handle = unsafe { decode_value(&program.bytecode, instr_ptr) };
-    let argcount: u32 = unsafe { decode_value(&program.bytecode, instr_ptr) };
+    let Value::Function { hash: label, arity } = runtime_data.value_stack.pop() else{
+        return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function argument"));
+    };
 
     // remember the location after this jump
     runtime_data
@@ -140,7 +141,7 @@ pub fn instr_jump(
             stack_offset: runtime_data
                 .value_stack
                 .len()
-                .checked_sub(argcount as usize)
+                .checked_sub(arity as usize)
                 .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
         })
         .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;

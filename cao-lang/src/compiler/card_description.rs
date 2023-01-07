@@ -11,6 +11,7 @@ pub enum PropertyName {
     Variable,
     Object,
     Boolean,
+    Function,
 }
 
 impl PropertyName {
@@ -25,6 +26,7 @@ impl PropertyName {
             PropertyName::Variable,
             PropertyName::Object,
             PropertyName::Boolean,
+            PropertyName::Function,
         ]
     }
 
@@ -38,6 +40,7 @@ impl PropertyName {
             PropertyName::Variable => "Variable",
             PropertyName::Object => "Object",
             PropertyName::Boolean => "Boolean",
+            PropertyName::Function => "Function",
         }
     }
 }
@@ -92,6 +95,7 @@ pub fn get_instruction_descriptions() -> Vec<SubProgramDescription> {
             }
             .into(),
         ),
+        get_desc(&Card::Function(Default::default())),
     ]
 }
 
@@ -412,6 +416,14 @@ Order of parameters: Table, Property-Key, Value"#,
             [PropertyName::Number.to_str()],
             []
         ),
+        Card::Function(_) => subprogram_description!(
+            "Function",
+            "Creates a function pointer and pushes it onto the stack",
+            SubProgramType::Instruction,
+            [],
+            [PropertyName::Function.to_str()],
+            []
+        )
 
     }
 }

@@ -603,7 +603,13 @@ impl<'a> Compiler<'a> {
                 self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(jmp))?;
                 self.current_index.pop_subindex();
             }
-            Card::Jump(jmp) => self.encode_jump(jmp)?,
+            Card::Jump(jmp) => {
+                self.current_index.push_subindex(0);
+                self.push_instruction(Instruction::FunctionPointer);
+                self.encode_jump(jmp)?;
+                self.current_index.pop_subindex();
+                self.push_instruction(Instruction::CallLane);
+            }
             Card::StringLiteral(c) => self.push_str(c.as_str()),
             Card::CallNative(c) => {
                 let name = &c.0;
@@ -615,6 +621,9 @@ impl<'a> Compiler<'a> {
             }
             Card::ScalarFloat(s) => {
                 write_to_vec(*s, &mut self.program.bytecode);
+            }
+            Card::Function(fname) => {
+                self.encode_jump(fname)?;
             }
             Card::ScalarNil
             | Card::Return
