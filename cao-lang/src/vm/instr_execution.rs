@@ -162,7 +162,12 @@ pub fn instr_jump(
     )?;
 
     // set the instr_ptr to the new lane's beginning
-    *instr_ptr = program.labels.0.get(label).expect("Label not found").pos as usize;
+    *instr_ptr = program
+        .labels
+        .0
+        .get(label)
+        .ok_or_else(|| ExecutionErrorPayload::ProcedureNotFound(label))?
+        .pos as usize;
     Ok(())
 }
 
