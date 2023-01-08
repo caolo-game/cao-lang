@@ -15,6 +15,7 @@ pub mod procedures;
 pub mod traits;
 pub mod value;
 pub mod vm;
+pub mod stdlib;
 
 mod bytecode;
 

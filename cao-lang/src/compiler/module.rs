@@ -311,6 +311,10 @@ impl Module {
         mut self,
         recursion_limit: u32,
     ) -> Result<Vec<LaneIr>, CompilationErrorPayload> {
+        // inject the standard library
+        self.submodules
+            .push(("std".to_string(), crate::stdlib::standard_library()));
+
         self.ensure_invariants(&mut Default::default())?;
         // the first lane is special
         //
