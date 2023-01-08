@@ -430,7 +430,7 @@ impl<'a> Compiler<'a> {
                     i,
                     k,
                     v,
-                    variable,
+                    iterable: variable,
                     body,
                 } = fe.as_ref();
                 self.current_index.push_subindex(0);

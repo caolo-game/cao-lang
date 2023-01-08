@@ -51,6 +51,7 @@ pub enum Card {
     SetGlobalVar(VarName),
     SetVar(VarName),
     ReadVar(VarName),
+    /// Pops the stack for an Integer N and repeats the `body` N times
     Repeat {
         /// Loop variable is written into this variable
         i: Option<VarName>,
@@ -74,8 +75,8 @@ pub struct ForEach {
     pub k: Option<VarName>,
     /// The value is written into this variable
     pub v: Option<VarName>,
-    /// Variable that is iterated on
-    pub variable: Box<Card>,
+    /// Table that is iterated on
+    pub iterable: Box<Card>,
     pub body: Box<Card>,
 }
 
@@ -295,7 +296,7 @@ impl Card {
                     i: _,
                     k: _,
                     v: _,
-                    variable: a,
+                    iterable: a,
                     body: b,
                 } = fe.as_mut();
                 if i > 1 {}
@@ -326,7 +327,7 @@ impl Card {
                     i: _,
                     k: _,
                     v: _,
-                    variable: a,
+                    iterable: a,
                     body: b,
                 } = fe.as_ref();
                 if i > 1 {}
@@ -363,7 +364,7 @@ impl Card {
                     i: _,
                     k: _,
                     v: _,
-                    variable: a,
+                    iterable: a,
                     body: b,
                 } = fe.as_mut();
                 if i > 1 {}
@@ -408,7 +409,7 @@ impl Card {
                     i: _,
                     k: _,
                     v: _,
-                    variable: a,
+                    iterable: a,
                     body: b,
                 } = fe.as_mut();
                 if i > 1 {}
@@ -446,7 +447,7 @@ impl Card {
                     i: _,
                     k: _,
                     v: _,
-                    variable: a,
+                    iterable: a,
                     body: b,
                 } = fe.as_mut();
                 match i {

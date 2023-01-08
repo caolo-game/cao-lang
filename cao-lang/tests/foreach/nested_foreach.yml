@@ -40,7 +40,7 @@ lanes:
               - !ReadVar t
               - !ReadVar key
               - !Jump outer_loop
-          variable: !ReadVar t
+          iterable: !ReadVar t
 
   - - outer_loop
     - arguments:
@@ -56,7 +56,7 @@ lanes:
               - !ReadVar key
               - !ReadVar table
               - !Jump inner_loop
-          variable: !ReadVar table
+          iterable: !ReadVar table
 
   - - inner_loop
     - arguments:
