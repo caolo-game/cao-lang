@@ -1,16 +1,17 @@
 use std::fmt::Display;
 
-use super::CardIndex;
+use crate::prelude::Trace;
+
 use thiserror::Error;
 
 #[derive(Debug, Clone, Error)]
 pub struct CompilationError {
     pub payload: CompilationErrorPayload,
-    pub loc: Option<CardIndex>,
+    pub loc: Option<Trace>,
 }
 
 impl CompilationError {
-    pub fn with_loc(payload: CompilationErrorPayload, index: CardIndex) -> Self {
+    pub fn with_loc(payload: CompilationErrorPayload, index: Trace) -> Self {
         Self {
             payload,
             loc: Some(index),
