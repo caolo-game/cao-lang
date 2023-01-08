@@ -75,7 +75,7 @@ pub fn compile(
     let options = compile_options.into().unwrap_or_default();
     let compilation_unit = compilation_unit
         .into_ir_stream(options.recursion_limit)
-        .map_err(|err| CompilationError::with_loc(err, CardIndex::default()))?;
+        .map_err(|err| CompilationError::with_loc(err, Trace::default()))?;
 
     let mut compiler = Compiler::new();
     compiler.compile(&compilation_unit, options)
@@ -102,6 +102,13 @@ impl<'a> Compiler<'a> {
         }
     }
 
+    fn trace(&self) -> Trace {
+        Trace {
+            namespace: self.current_namespace.to_owned().into_owned(),
+            index: self.current_index.clone(),
+        }
+    }
+
     pub fn compile(
         &mut self,
         compilation_unit: LaneSlice<'a>,
@@ -111,7 +118,7 @@ impl<'a> Compiler<'a> {
         if compilation_unit.is_empty() {
             return Err(CompilationError::with_loc(
                 CompilationErrorPayload::EmptyProgram,
-                self.current_index.clone(),
+                self.trace(),
             ));
         }
         self.program = CaoCompiledProgram::default();
@@ -124,7 +131,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn error(&self, pl: CompilationErrorPayload) -> CompilationError {
-        CompilationError::with_loc(pl, self.current_index.clone())
+        CompilationError::with_loc(pl, self.trace())
     }
 
     /// build the jump table and consume the lane names
@@ -706,13 +713,7 @@ impl<'a> Compiler<'a> {
     fn push_instruction(&mut self, instruction: Instruction) {
         self.program
             .trace
-            .insert(
-                self.program.bytecode.len() as u32,
-                Trace {
-                    namespace: self.current_namespace.to_owned().into_owned(),
-                    index: self.current_index.clone(),
-                },
-            )
+            .insert(self.program.bytecode.len() as u32, self.trace())
             .unwrap();
         self.program.bytecode.push(instruction as u8);
     }

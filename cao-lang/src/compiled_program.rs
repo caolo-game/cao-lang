@@ -41,6 +41,15 @@ pub struct Trace {
     pub index: CardIndex,
 }
 
+impl std::fmt::Display for Trace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for ns in self.namespace.iter() {
+            write!(f, "{ns}.")?;
+        }
+        write!(f, "{}", self.index)
+    }
+}
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoCompiledProgram {
