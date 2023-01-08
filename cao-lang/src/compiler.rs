@@ -6,8 +6,6 @@ mod compile_options;
 mod lane;
 mod module;
 
-pub mod card_description;
-
 mod lane_ir;
 #[cfg(test)]
 mod tests;

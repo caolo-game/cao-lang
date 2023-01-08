@@ -5,7 +5,7 @@
 use serde_json::json;
 use wasm_bindgen_test::*;
 
-use cao_lang_wasm::{basic_schema, compile, run_program, CompileResult};
+use cao_lang_wasm::{compile, run_program, CompileResult};
 use wasm_bindgen::JsValue;
 
 #[wasm_bindgen_test]
@@ -77,10 +77,4 @@ fn can_run_simple_program() {
     let prog_js = JsValue::from_serde(&program).expect("serialize");
 
     run_program(prog_js).expect("Failed to run");
-}
-
-#[wasm_bindgen_test]
-fn can_query_the_schema() {
-    // smoke test
-    let _res = basic_schema();
 }

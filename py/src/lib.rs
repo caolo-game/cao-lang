@@ -91,21 +91,11 @@ fn native_version() -> PyResult<String> {
     Ok(cao_lang::version::VERSION_STR.to_string())
 }
 
-/// Return a list of types that can appear on Property descriptions
-#[pyfunction]
-fn cao_lang_prop_types() -> Vec<String> {
-    cao_lang::compiler::card_description::PropertyName::all_props()
-        .iter()
-        .map(|x| x.to_str().to_string())
-        .collect()
-}
-
 #[pymodule]
 fn cao_lang_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_function(wrap_pyfunction!(native_version, m)?)?;
-    m.add_function(wrap_pyfunction!(cao_lang_prop_types, m)?)?;
 
     m.add_class::<CompilationUnit>()?;
     m.add_class::<CompilationOptions>()?;
