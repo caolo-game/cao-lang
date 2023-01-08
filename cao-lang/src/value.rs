@@ -460,3 +460,24 @@ impl std::borrow::Borrow<i64> for Value {
         }
     }
 }
+
+/// We can't implement TryFrom<Value> for Option<T>'s, you can use this wrapper in functions to
+/// take an optional value
+pub struct Nilable<T>(pub Option<T>);
+
+impl<T> TryFrom<Value> for Nilable<T>
+where
+    T: TryFrom<Value>,
+{
+    type Error = Value;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Nil => Ok(Nilable(None)),
+            _ => {
+                let res = value.try_into().map_err(|_| value)?;
+                Ok(Nilable(Some(res)))
+            }
+        }
+    }
+}
