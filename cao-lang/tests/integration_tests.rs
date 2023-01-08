@@ -59,7 +59,7 @@ fn test_trace_entry() {
     let trace = err.trace;
 
     let error_card = ir
-        .get_card(&trace[0])
+        .get_card(&trace[0].index)
         .expect("Expected to find the errored card");
 
     assert!(matches!(error_card, Card::CallNative(_)));
