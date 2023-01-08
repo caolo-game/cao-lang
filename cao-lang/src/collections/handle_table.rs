@@ -15,6 +15,8 @@ mod serde_impl;
 #[cfg(test)]
 mod tests;
 
+use bytemuck::{Pod, Zeroable};
+
 use crate::alloc::{Allocator, SysAllocator};
 
 #[cfg(feature = "serde")]
@@ -31,8 +33,9 @@ use std::{
 
 pub(crate) const MAX_LOAD: f32 = 0.69;
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Pod, Zeroable, Debug, Clone, Copy, Default, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(::serde::Serialize, ::serde::Deserialize))]
+#[repr(C)]
 pub struct Handle(u32);
 
 impl Handle {

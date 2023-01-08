@@ -24,10 +24,13 @@ pub mod version {
 
 use std::{mem::size_of, str::FromStr};
 
+use bytemuck::{Pod, Zeroable};
+
 use crate::instruction::Instruction;
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Pod, Zeroable, Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct VariableId(u32);
 
 impl FromStr for VariableId {

@@ -1,9 +1,7 @@
+use bytemuck::Pod;
 use std::convert::TryInto;
 
-pub trait TriviallyEncodable: Sized + Copy {}
-impl<T: Sized + Copy> TriviallyEncodable for T {}
-
-pub fn write_to_vec<T: TriviallyEncodable>(val: T, out: &mut Vec<u8>) {
+pub fn write_to_vec<T: Pod>(val: T, out: &mut Vec<u8>) {
     let len = out.len();
     let size = std::mem::size_of::<T>();
     out.resize(len + size, 0);
@@ -14,7 +12,7 @@ pub fn write_to_vec<T: TriviallyEncodable>(val: T, out: &mut Vec<u8>) {
 }
 
 /// return the number of bytes read
-pub fn read_from_bytes<T: TriviallyEncodable>(bts: &[u8]) -> Option<(usize, T)> {
+pub fn read_from_bytes<T: Pod>(bts: &[u8]) -> Option<(usize, T)> {
     let size = std::mem::size_of::<T>();
     if bts.len() < size {
         return None;

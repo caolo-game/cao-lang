@@ -1,9 +1,10 @@
 use std::convert::TryFrom;
 
+use bytemuck::Pod;
 use tracing::debug;
 
 use crate::{
-    bytecode::{decode_str, read_from_bytes, TriviallyEncodable},
+    bytecode::{decode_str, read_from_bytes},
     collections::handle_table::Handle,
     compiled_program::CaoCompiledProgram,
     procedures::ExecutionErrorPayload,
@@ -29,7 +30,7 @@ pub fn read_str<'a>(instr_ptr: &mut usize, program: &'a [u8]) -> Option<&'a str>
 ///
 /// Assumes that the underlying data is safely decodable to the given type
 ///
-pub unsafe fn decode_value<T: TriviallyEncodable>(bytes: &[u8], instr_ptr: &mut usize) -> T {
+pub unsafe fn decode_value<T: Pod>(bytes: &[u8], instr_ptr: &mut usize) -> T {
     let (len, val) = read_from_bytes(&bytes[*instr_ptr..]).expect("Failed to read data");
     *instr_ptr += len;
     val

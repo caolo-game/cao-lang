@@ -13,6 +13,7 @@ version = "^1.0"
 [dependencies]
 num_enum = "^0.5"
 thiserror = "^1.0"
+bytemuck = { version = "1.12.3", features = ["derive"] }
 
 [dependencies.arrayvec]
 features = ["serde"]
