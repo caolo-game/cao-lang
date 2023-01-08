@@ -32,6 +32,8 @@ pub enum Card {
     CreateTable,
     Abort,
     Len,
+    /// Pop the table, key, value from the stack
+    /// Insert value at key into the table
     SetProperty,
     GetProperty,
     ScalarInt(i64),
