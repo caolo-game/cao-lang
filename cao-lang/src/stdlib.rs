@@ -133,4 +133,19 @@ mod tests {
         let res = compile(program, None);
         assert!(res.is_err());
     }
+
+    #[test]
+    fn stdlib_can_be_imported_in_submodule_test() {
+        let submodule = Module {
+            imports: vec!["std.filter".to_string()],
+            ..Default::default()
+        };
+        let program = Module {
+            lanes: vec![("main".to_string(), Default::default())],
+            submodules: vec![("foo".to_string(), submodule)],
+            ..Default::default()
+        };
+
+        let _ = compile(program, None).unwrap();
+    }
 }
