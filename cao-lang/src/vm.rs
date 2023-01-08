@@ -202,7 +202,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 stack_offset: 0,
             })
             .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
-            .map_err(|pl| ExecutionError::new(pl, Vec::new()))?;
+            .map_err(|pl| ExecutionError::new(pl, Default::default()))?;
 
         let len = program.bytecode.len();
         let mut remaining_iters = self.max_instr;

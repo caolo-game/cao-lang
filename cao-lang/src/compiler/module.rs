@@ -307,6 +307,8 @@ impl Module {
     }
 
     /// flatten this program into a vec of lanes
+    ///
+    /// called on the root module
     pub(crate) fn into_ir_stream(
         mut self,
         recursion_limit: u32,
@@ -325,11 +327,7 @@ impl Module {
             .find(|(_, (name, _))| name == "main")
             .ok_or(CompilationErrorPayload::NoMain)?;
 
-        let (_, first_fn) = self.lanes.swap_remove(main_index);
-
-        let imports = self.execute_imports()?;
-        let first_fn = lane_to_lane_ir(&first_fn, &["main"], Rc::new(imports));
-        let mut result = vec![first_fn];
+        let mut result = vec![];
         result.reserve(self.lanes.len() * self.submodules.len() * 2); // just some dumb heuristic
 
         let mut namespace = SmallVec::<[_; 16]>::new();
@@ -337,6 +335,8 @@ impl Module {
         // flatten modules' functions
         flatten_module(&self, recursion_limit, &mut namespace, &mut result)?;
 
+        // move the main lane to the front
+        result.swap(0, main_index);
         Ok(result)
     }
 
@@ -458,27 +458,32 @@ fn flatten_module<'a>(
             recursion_limit,
         ));
     }
+    if out.capacity() - out.len() < module.lanes.len() {
+        out.reserve(module.lanes.len() - (out.capacity() - out.len()));
+    }
+    let imports = Rc::new(module.execute_imports()?);
+    for (i, (name, lane)) in module.lanes.iter().enumerate() {
+        if !is_name_valid(name.as_ref()) {
+            return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
+        }
+        namespace.push(name.as_ref());
+        out.push(lane_to_lane_ir(i, lane, namespace, Rc::clone(&imports)));
+        namespace.pop();
+    }
     for (name, submod) in module.submodules.iter() {
         namespace.push(name.as_ref());
         flatten_module(submod, recursion_limit, namespace, out)?;
         namespace.pop();
     }
-    if out.capacity() - out.len() < module.lanes.len() {
-        out.reserve(module.lanes.len() - (out.capacity() - out.len()));
-    }
-    let imports = Rc::new(module.execute_imports()?);
-    for (name, lane) in module.lanes.iter() {
-        if !is_name_valid(name.as_ref()) {
-            return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
-        }
-        namespace.push(name.as_ref());
-        out.push(lane_to_lane_ir(lane, namespace, Rc::clone(&imports)));
-        namespace.pop();
-    }
     Ok(())
 }
 
-fn lane_to_lane_ir(lane: &Lane, namespace: &[&str], imports: Rc<ImportsIr>) -> LaneIr {
+fn lane_to_lane_ir(
+    lane_id: usize,
+    lane: &Lane,
+    namespace: &[&str],
+    imports: Rc<ImportsIr>,
+) -> LaneIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
@@ -489,7 +494,8 @@ fn lane_to_lane_ir(lane: &Lane, namespace: &[&str], imports: Rc<ImportsIr>) -> L
         arguments: lane.arguments.clone().into_boxed_slice(),
         cards: lane.cards.clone().into_boxed_slice(),
         imports,
-        ..Default::default()
+        namespace: Default::default(),
+        lane_id,
     };
     cl.namespace.extend(
         namespace

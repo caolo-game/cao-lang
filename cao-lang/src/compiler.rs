@@ -14,6 +14,7 @@ use crate::{
     bytecode::{encode_str, write_to_vec},
     collections::{handle_table::Handle, hash_map::CaoHashMap},
     compiled_program::{CaoCompiledProgram, Label},
+    prelude::Trace,
     Instruction, VariableId,
 };
 use std::convert::TryFrom;
@@ -707,7 +708,10 @@ impl<'a> Compiler<'a> {
             .trace
             .insert(
                 self.program.bytecode.len() as u32,
-                self.current_index.clone(),
+                Trace {
+                    namespace: self.current_namespace.to_owned().into_owned(),
+                    index: self.current_index.clone(),
+                },
             )
             .unwrap();
         self.program.bytecode.push(instruction as u8);

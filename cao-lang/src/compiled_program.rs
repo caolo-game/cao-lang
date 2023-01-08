@@ -5,7 +5,7 @@ use crate::{
         handle_table::{Handle, HandleTable},
         hash_map::CaoHashMap,
     },
-    compiler::CardIndex,
+    compiler::{CardIndex, NameSpace},
     VarName,
 };
 use crate::{version, VariableId};
@@ -34,6 +34,13 @@ impl Label {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Trace {
+    pub namespace: NameSpace,
+    pub index: CardIndex,
+}
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CaoCompiledProgram {
@@ -44,7 +51,7 @@ pub struct CaoCompiledProgram {
     pub labels: Labels,
     pub variables: Variables,
     pub cao_lang_version: (u8, u8, u16),
-    pub trace: CaoHashMap<u32, CardIndex>,
+    pub trace: CaoHashMap<u32, Trace>,
 }
 
 impl CaoCompiledProgram {
