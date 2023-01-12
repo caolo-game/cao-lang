@@ -485,6 +485,39 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Len => instr_execution::instr_len(self).map_err(|err| {
                     payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                 })?,
+                Instruction::NthRow => {
+                    let [i, instance] = self.runtime_data.value_stack.pop_n::<2>();
+                    let table = self.get_table_mut(instance).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    let i = i.as_int().ok_or_else(|| {
+                        payload_to_error(
+                            ExecutionErrorPayload::invalid_argument(
+                                "Input must be an integer".to_string(),
+                            ),
+                            instr_ptr,
+                            &self.runtime_data.call_stack,
+                        )
+                    })?;
+                    if i < 0 {
+                        return Err(payload_to_error(
+                            ExecutionErrorPayload::invalid_argument(
+                                "Input must be non-negative".to_string(),
+                            ),
+                            instr_ptr,
+                            &self.runtime_data.call_stack,
+                        ));
+                    }
+                    let key = table.nth_key(i as usize);
+                    let value = table.get(&key).copied().unwrap_or(Value::Nil);
+
+                    self.stack_push(value).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    self.stack_push(key).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                }
             }
         }
 

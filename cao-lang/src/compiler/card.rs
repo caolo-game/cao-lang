@@ -66,6 +66,8 @@ pub enum Card {
     CompositeCard(Box<CompositeCard>),
     /// Jump to the function that's on the top of the stack
     DynamicJump,
+    /// Get the given integer row of a table
+    Get,
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +133,7 @@ impl Card {
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
             Card::DynamicJump => "Dynamic Jump",
+            Card::Get => "Get",
         }
     }
 
@@ -179,6 +182,7 @@ impl Card {
             Card::Return => Some(Instruction::Return),
             Card::Len => Some(Instruction::Len),
             Card::DynamicJump => Some(Instruction::CallLane),
+            Card::Get => Some(Instruction::NthRow),
         }
     }
 
@@ -224,7 +228,8 @@ impl Card {
             | Instruction::GotoIfFalse
             | Instruction::ForEach
             | Instruction::FunctionPointer
-            | Instruction::BeginForEach => {}
+            | Instruction::BeginForEach
+            | Instruction::NthRow => {}
         };
     }
 

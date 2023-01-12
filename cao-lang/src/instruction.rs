@@ -88,4 +88,7 @@ pub(crate) enum Instruction {
     ForEach,
 
     FunctionPointer,
+
+    /// Get the given row in a Table
+    NthRow,
 }
