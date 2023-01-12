@@ -66,14 +66,9 @@ pub fn map() -> Lane {
                         Card::read_var("k"),
                         Card::read_var("callback"),
                         Card::DynamicJump,
-                        Card::composite_card(
-                            "_",
-                            vec![
-                                Card::read_var("res"),
-                                Card::read_var("k"),
-                                Card::SetProperty,
-                            ],
-                        ),
+                        Card::read_var("res"),
+                        Card::read_var("k"),
+                        Card::SetProperty,
                     ],
                 )),
             })),
@@ -82,10 +77,74 @@ pub fn map() -> Lane {
         ])
 }
 
+/// Return the smallest value in the table, or nil if the table is empty
+pub fn min() -> Lane {
+    Lane::default().with_arg("iterable").with_cards(vec![
+        Card::read_var("iterable"),
+        Card::ScalarInt(0),
+        Card::Get,
+        Card::Pop,
+        Card::set_var("min_value"),
+        Card::ForEach(Box::new(ForEach {
+            i: None,
+            k: None,
+            v: Some("v".to_string()),
+            iterable: Box::new(Card::read_var("iterable")),
+            body: Box::new(Card::composite_card(
+                "_",
+                vec![
+                    Card::read_var("v"),
+                    Card::read_var("min_value"),
+                    Card::Less,
+                    Card::IfTrue(Box::new(Card::composite_card(
+                        "_",
+                        vec![Card::read_var("v"), Card::set_var("min_value")],
+                    ))),
+                ],
+            )),
+        })),
+        Card::read_var("min_value"),
+        Card::Return,
+    ])
+}
+
+/// Return the largest value in the table, or nil if the table is empty
+pub fn max() -> Lane {
+    Lane::default().with_arg("iterable").with_cards(vec![
+        Card::read_var("iterable"),
+        Card::ScalarInt(0),
+        Card::Get,
+        Card::Pop,
+        Card::set_var("max_value"),
+        Card::ForEach(Box::new(ForEach {
+            i: None,
+            k: None,
+            v: Some("v".to_string()),
+            iterable: Box::new(Card::read_var("iterable")),
+            body: Box::new(Card::composite_card(
+                "_",
+                vec![
+                    Card::read_var("max_value"),
+                    Card::read_var("v"),
+                    Card::Less,
+                    Card::IfTrue(Box::new(Card::composite_card(
+                        "_",
+                        vec![Card::read_var("v"), Card::set_var("max_value")],
+                    ))),
+                ],
+            )),
+        })),
+        Card::read_var("max_value"),
+        Card::Return,
+    ])
+}
+
 pub fn standard_library() -> Module {
     let mut module = Module::default();
     module.lanes.push(("filter".to_string(), filter()));
     module.lanes.push(("map".to_string(), map()));
+    module.lanes.push(("min".to_string(), min()));
+    module.lanes.push(("max".to_string(), max()));
     module
 }
 
@@ -245,6 +304,112 @@ mod tests {
                     }
                 }
             },
+            a @ _ => panic!("Unexpected result: {a:?}"),
+        }
+    }
+
+    #[test]
+    fn min_test() {
+        let program = Module {
+            imports: vec!["std.min".to_string()],
+            lanes: vec![(
+                "main".to_string(),
+                Lane::default().with_cards(vec![
+                    Card::CreateTable,
+                    Card::set_var("t"),
+                    Card::scalar_int(1),
+                    Card::set_var("t.winnie"),
+                    Card::scalar_int(2),
+                    Card::set_var("t.pooh"),
+                    Card::scalar_int(3),
+                    Card::set_var("t.tiggers"),
+                    // call min
+                    Card::read_var("t"),
+                    Card::jump("min"),
+                    Card::set_global_var("g_result"),
+                ]),
+            )],
+            ..Default::default()
+        };
+
+        let compiled = compile(program, None).expect("Failed to compile");
+        let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+        vm.run(&compiled).expect("run");
+
+        let result = vm
+            .read_var_by_name("g_result", &compiled.variables)
+            .unwrap();
+        match result {
+            Value::Integer(i) => {
+                assert_eq!(i, 1);
+            }
+            a @ _ => panic!("Unexpected result: {a:?}"),
+        }
+    }
+
+    #[test]
+    fn max_test() {
+        let program = Module {
+            imports: vec!["std.max".to_string()],
+            lanes: vec![(
+                "main".to_string(),
+                Lane::default().with_cards(vec![
+                    Card::CreateTable,
+                    Card::set_var("t"),
+                    Card::scalar_int(1),
+                    Card::set_var("t.winnie"),
+                    Card::ScalarFloat(2.4),
+                    Card::set_var("t.pooh"),
+                    Card::ScalarFloat(3.42),
+                    Card::set_var("t.tiggers"),
+                    // call max
+                    Card::read_var("t"),
+                    Card::jump("max"),
+                    Card::set_global_var("g_result"),
+                ]),
+            )],
+            ..Default::default()
+        };
+
+        let compiled = compile(program, None).expect("Failed to compile");
+        let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+        vm.run(&compiled).expect("run");
+
+        let result = vm
+            .read_var_by_name("g_result", &compiled.variables)
+            .unwrap();
+        match result {
+            Value::Real(i) => {
+                assert_eq!(i, 3.42);
+            }
+            a @ _ => panic!("Unexpected result: {a:?}"),
+        }
+    }
+
+    #[test]
+    fn max_empty_list_returns_nil_test() {
+        let program = Module {
+            imports: vec!["std.max".to_string()],
+            lanes: vec![(
+                "main".to_string(),
+                Lane::default().with_cards(vec![
+                    Card::CreateTable,
+                    Card::jump("max"),
+                    Card::set_global_var("g_result"),
+                ]),
+            )],
+            ..Default::default()
+        };
+
+        let compiled = compile(program, None).expect("Failed to compile");
+        let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+        vm.run(&compiled).expect("run");
+
+        let result = vm
+            .read_var_by_name("g_result", &compiled.variables)
+            .unwrap();
+        match result {
+            Value::Nil => {}
             a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
