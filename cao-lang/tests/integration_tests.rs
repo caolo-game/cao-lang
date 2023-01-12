@@ -1099,15 +1099,15 @@ fn read_set_property_shorthand_test() {
             "main".to_string(),
             Lane::default().with_cards(vec![
                 Card::CreateTable,
-                Card::set_global_var("i"),
+                Card::set_global_var("winnie"),
                 //
                 Card::ScalarInt(1),
-                Card::set_var("i.foo"),
+                Card::set_var("winnie.foo"),
                 //
                 Card::ScalarInt(1),
-                Card::read_var("i.foo"),
+                Card::read_var("winnie.foo"),
                 Card::Add,
-                Card::set_var("i.foo"),
+                Card::set_var("winnie.foo"),
             ]),
         )]
         .into(),
@@ -1119,12 +1119,12 @@ fn read_set_property_shorthand_test() {
     vm.run(&program).expect("run");
 
     let result = vm
-        .read_var_by_name("i", &program.variables)
-        .expect("Failed to read i variable");
+        .read_var_by_name("winnie", &program.variables)
+        .expect("Failed to read winnie variable");
 
     let result = unsafe { result.as_table().unwrap() };
 
-    let foo = result.get("i").unwrap();
+    let foo = result.get("foo").unwrap();
     assert_eq!(*foo, Value::Integer(2));
 }
 
@@ -1165,4 +1165,49 @@ fn read_property_shorthand_test() {
         .expect("Failed to read i variable");
 
     assert_eq!(result, Value::Integer(42));
+}
+
+#[test]
+fn nested_read_set_property_shorthand_test() {
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [(
+            "main".to_string(),
+            Lane::default().with_cards(vec![
+                Card::CreateTable,
+                Card::set_global_var("winnie"),
+                //
+                Card::CreateTable,
+                Card::set_var("winnie.foo"),
+                Card::CreateTable,
+                Card::set_var("winnie.foo.bar"),
+                Card::CreateTable,
+                Card::set_var("winnie.foo.bar.baz"),
+                //
+                Card::ScalarInt(42),
+                Card::set_var("winnie.foo.bar.baz.pooh"),
+            ]),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("winnie", &program.variables)
+        .expect("Failed to read winnie variable");
+
+    unsafe {
+        let result = result.as_table().unwrap();
+        let foo = result.get("foo").unwrap().as_table().unwrap();
+        let bar = foo.get("bar").unwrap().as_table().unwrap();
+        let baz = bar.get("baz").unwrap().as_table().unwrap();
+        let pooh = baz.get("pooh").unwrap().as_int().unwrap();
+
+        assert_eq!(pooh, 42);
+    }
 }

@@ -545,12 +545,23 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let index = match self.resolve_var(var.as_str())? {
-                    Some(i) => i as u32,
-                    None => self.add_local(&var)?,
-                };
+                let var = var.as_str();
+                match var.rsplit_once('.') {
+                    Some((read_props, set_prop)) => {
+                        self.read_var_card(read_props)?;
+                        self.push_instruction(Instruction::StringLiteral);
+                        self.push_str(set_prop);
+                        self.push_instruction(Instruction::SetProperty);
+                    }
+                    None => {
+                        let index = match self.resolve_var(var)? {
+                            Some(i) => i as u32,
+                            None => self.add_local(&var)?,
+                        };
 
-                self.write_local_var(index);
+                        self.write_local_var(index);
+                    }
+                }
             }
             Card::SetGlobalVar(variable) => {
                 let next_var = &mut self.next_var;
@@ -660,12 +671,12 @@ impl<'a> Compiler<'a> {
 
     fn read_var_card(&mut self, mut variable: &str) -> CompilationResult<()> {
         // sub properties on a table
-        let props = match variable.split_once(".") {
+        let props = match variable.split_once('.') {
             Some((v, props)) => {
                 variable = v;
-                Some(props)
+                props
             }
-            None => None,
+            None => "",
         };
         let scope = self.resolve_var(variable)?;
         match scope {
@@ -697,9 +708,9 @@ impl<'a> Compiler<'a> {
             }
         }
         // handle props
-        for prop in props.into_iter().flat_map(|props| props.split(".")) {
-            self.push_str(prop);
+        for prop in props.split(".").filter(|p| !p.is_empty()) {
             self.push_instruction(Instruction::StringLiteral);
+            self.push_str(prop);
             self.push_instruction(Instruction::GetProperty);
         }
         Ok(())
