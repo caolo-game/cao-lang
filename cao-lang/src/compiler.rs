@@ -397,7 +397,6 @@ impl<'a> Compiler<'a> {
     fn push_str(&mut self, data: &str) {
         let handle = self.program.data.len() as u32;
         write_to_vec(handle, &mut self.program.bytecode);
-
         encode_str(data, &mut self.program.data);
     }
 
@@ -659,7 +658,15 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn read_var_card(&mut self, variable: &str) -> CompilationResult<()> {
+    fn read_var_card(&mut self, mut variable: &str) -> CompilationResult<()> {
+        // sub properties on a table
+        let props = match variable.split_once(".") {
+            Some((v, props)) => {
+                variable = v;
+                Some(props)
+            }
+            None => None,
+        };
         let scope = self.resolve_var(variable)?;
         match scope {
             Some(index) => {
@@ -670,7 +677,7 @@ impl<'a> Compiler<'a> {
                 // global
                 let next_var = &mut self.next_var;
                 let varhash = Handle::from_bytes(variable.as_bytes());
-                let id = self
+                let id = *self
                     .program
                     .variables
                     .ids
@@ -680,7 +687,6 @@ impl<'a> Compiler<'a> {
                         *next_var = VariableId(id.0 + 1);
                         id
                     });
-                let id = *id;
                 self.program
                     .variables
                     .names
@@ -689,6 +695,12 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::ReadGlobalVar);
                 write_to_vec(id, &mut self.program.bytecode);
             }
+        }
+        // handle props
+        for prop in props.into_iter().flat_map(|props| props.split(".")) {
+            self.push_str(prop);
+            self.push_instruction(Instruction::StringLiteral);
+            self.push_instruction(Instruction::GetProperty);
         }
         Ok(())
     }

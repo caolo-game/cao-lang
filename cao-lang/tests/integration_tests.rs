@@ -1089,3 +1089,80 @@ fn callback_test() {
 
     assert_eq!(result.as_int().unwrap(), 4);
 }
+
+#[test]
+fn read_set_property_shorthand_test() {
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [(
+            "main".to_string(),
+            Lane::default().with_cards(vec![
+                Card::CreateTable,
+                Card::set_global_var("i"),
+                //
+                Card::ScalarInt(1),
+                Card::set_var("i.foo"),
+                //
+                Card::ScalarInt(1),
+                Card::read_var("i.foo"),
+                Card::Add,
+                Card::set_var("i.foo"),
+            ]),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("i", &program.variables)
+        .expect("Failed to read i variable");
+
+    let result = unsafe { result.as_table().unwrap() };
+
+    let foo = result.get("i").unwrap();
+    assert_eq!(*foo, Value::Integer(2));
+}
+
+#[test]
+fn read_property_shorthand_test() {
+    let cu = Module {
+        imports: [].into(),
+        submodules: [].into(),
+        lanes: [(
+            "main".to_string(),
+            Lane::default().with_cards(vec![
+                // table is pushed onto the stack
+                Card::set_global_var("i"),
+                Card::read_var("i.foo"),
+                Card::set_global_var("j"),
+            ]),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, CompileOptions::new()).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    unsafe {
+        let mut table_ptr = vm.init_table().unwrap();
+        let table = table_ptr.as_mut();
+        let key = vm.init_string("foo").unwrap();
+        table
+            .insert(Value::String(key), Value::Integer(42))
+            .unwrap();
+        vm.stack_push(Value::Object(table_ptr.as_ptr())).unwrap();
+    }
+
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("j", &program.variables)
+        .expect("Failed to read i variable");
+
+    assert_eq!(result, Value::Integer(42));
+}
