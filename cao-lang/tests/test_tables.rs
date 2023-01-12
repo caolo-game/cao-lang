@@ -39,9 +39,9 @@ fn test_get_set() {
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::set_var("foo"))
+                .with_card(Card::ScalarInt(42))
                 .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("bar".to_string()))
-                .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
                 .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("bar".to_string()))
@@ -91,9 +91,9 @@ fn test_native_w_table_input() {
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::set_var("foo"))
+                .with_card(Card::ScalarInt(42))
                 .with_card(Card::read_var("foo"))
                 .with_card(Card::StringLiteral("boi".to_string()))
-                .with_card(Card::ScalarInt(42))
                 .with_card(Card::SetProperty) // foo.bar
                 .with_card(Card::call_native("boii")),
         )]

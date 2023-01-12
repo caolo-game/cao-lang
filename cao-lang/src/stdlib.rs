@@ -30,9 +30,9 @@ pub fn filter() -> Lane {
                         Card::IfTrue(Box::new(Card::composite_card(
                             "_",
                             vec![
+                                Card::read_var("v"),
                                 Card::read_var("res"),
                                 Card::read_var("k"),
-                                Card::read_var("v"),
                                 Card::SetProperty,
                             ],
                         ))),
@@ -66,13 +66,13 @@ mod tests {
                     Lane::default().with_cards(vec![
                         Card::CreateTable,
                         Card::set_var("t"),
+                        Card::scalar_int(1),
                         Card::read_var("t"),
                         Card::string_card("winnie"),
-                        Card::scalar_int(1),
                         Card::SetProperty,
+                        Card::scalar_int(2),
                         Card::read_var("t"),
                         Card::string_card("pooh"),
-                        Card::scalar_int(2),
                         Card::SetProperty,
                         // call filter
                         Card::Function("cb".to_string()),

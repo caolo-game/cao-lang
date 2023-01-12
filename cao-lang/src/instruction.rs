@@ -75,8 +75,10 @@ pub(crate) enum Instruction {
     InitTable,
     /// Pops an Object instance from the stack, get's its value at the encoded key and pushes it's value to the stack
     GetProperty,
-    /// Pops an Object instance and a Value from the stack then sets the table value at the encoded
-    /// key
+    /// Pops: `key`, `object`, `value`
+    /// Sets the value of the given `key` on the `object` to `value`
+    ///
+    /// The reason `value` is the first to be pushed is the read/setvar shorthands
     SetProperty,
     /// Pushes the length of the topmost table to the stack
     /// Errors if the top Value is not a Table

@@ -7,17 +7,17 @@ lanes:
         # --- init the example table ---
         - !CreateTable
         - !SetVar t
+        - !ScalarInt 3
         - !ReadVar t
         - !StringLiteral f1
-        - !ScalarInt 3
         - !SetProperty
+        - !ScalarInt 5
         - !ReadVar t
         - !StringLiteral f2
-        - !ScalarInt 5
         - !SetProperty
+        - !ScalarInt 7
         - !ReadVar t
         - !StringLiteral f3
-        - !ScalarInt 7
         - !SetProperty
         - !ScalarInt 0
         - !SetGlobalVar g_result

@@ -262,7 +262,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     })?;
                 }
                 Instruction::SetProperty => {
-                    let [value, key, instance] = self.runtime_data.value_stack.pop_n::<3>();
+                    let [key, instance, value] = self.runtime_data.value_stack.pop_n::<3>();
                     let table = self.get_table_mut(instance).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
