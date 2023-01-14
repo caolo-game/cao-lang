@@ -68,11 +68,11 @@ impl CaoLangTable {
 
     pub fn remove(&mut self, key: Value) -> Result<(), ExecutionErrorPayload> {
         self.keys.retain(|k| {
-            let remove = k == &key;
-            if remove {
+            let retain = k != &key;
+            if !retain {
                 self.map.remove(k);
             }
-            remove
+            retain
         });
         Ok(())
     }
