@@ -18,6 +18,7 @@ pub mod value;
 pub mod vm;
 
 mod bytecode;
+pub mod disassembly;
 
 pub mod version {
     pub const VERSION_STR: &str = env!("CARGO_PKG_VERSION");
