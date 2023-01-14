@@ -6,6 +6,7 @@ use super::{AllocError, Allocator};
 use std::{
     alloc::{alloc, dealloc, Layout},
     cell::UnsafeCell,
+    marker::PhantomData,
     ops::Deref,
     ptr::NonNull,
     rc::Rc,
@@ -20,12 +21,14 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct AllocProxy {
     inner: Rc<UnsafeCell<CaoLangAllocator>>,
+    _m: PhantomData<*mut CaoLangAllocator>,
 }
 
 impl From<CaoLangAllocator> for AllocProxy {
     fn from(inner: CaoLangAllocator) -> Self {
         Self {
             inner: Rc::new(UnsafeCell::new(inner)),
+            _m: PhantomData,
         }
     }
 }
