@@ -7,7 +7,7 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use self::runtime::{cao_lang_table::GcMarker, CallFrame};
+use self::runtime::CallFrame;
 use crate::{
     collections::handle_table::{Handle, HandleTable},
     instruction::Instruction,
@@ -16,7 +16,7 @@ use crate::{
     VariableId,
 };
 use runtime::RuntimeData;
-use std::{mem::transmute, str::FromStr};
+use std::{mem::transmute, pin::Pin, str::FromStr};
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.
@@ -29,7 +29,7 @@ where
     /// Number of instructions `run` will execute before returning Timeout
     pub max_instr: u64,
 
-    pub runtime_data: RuntimeData,
+    pub runtime_data: Pin<Box<RuntimeData>>,
 
     callables: HandleTable<Procedure<Aux>>,
     _m: std::marker::PhantomData<&'a ()>,
@@ -41,16 +41,6 @@ impl<'a, Aux> Vm<'a, Aux> {
             auxiliary_data,
             callables: HandleTable::default(),
             runtime_data: RuntimeData::new(400 * 1024, 256, 256)?,
-            max_instr: 1000,
-            _m: Default::default(),
-        })
-    }
-
-    pub fn with_memory(memory: usize, auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload> {
-        Ok(Self {
-            auxiliary_data,
-            callables: HandleTable::default(),
-            runtime_data: RuntimeData::new(memory, 256, 256)?,
             max_instr: 1000,
             _m: Default::default(),
         })
@@ -176,14 +166,7 @@ impl<'a, Aux> Vm<'a, Aux> {
     /// Initializes a new FieldTable in this VM instance
     #[inline]
     pub fn init_table(&mut self) -> Result<std::ptr::NonNull<CaoLangTable>, ExecutionErrorPayload> {
-        match self.runtime_data.init_table() {
-            Ok(x) => Ok(x),
-            Err(err) => {
-                debug!("Init table failed: {err:?}, running GC and retrying");
-                self.gc();
-                self.runtime_data.init_table()
-            }
-        }
+        self.runtime_data.init_table()
     }
 
     /// Initializes a new string owned by this VM instance
@@ -335,13 +318,13 @@ impl<'a, Aux> Vm<'a, Aux> {
                     payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::ClearStack => {
-                    self.runtime_data.value_stack.clear_until(
-                        self.runtime_data
-                            .call_stack
-                            .last()
-                            .expect("No callframe available")
-                            .stack_offset as usize,
-                    );
+                    let offset = self
+                        .runtime_data
+                        .call_stack
+                        .last()
+                        .expect("No callframe available")
+                        .stack_offset as usize;
+                    self.runtime_data.value_stack.clear_until(offset);
                 }
                 Instruction::SetLocalVar => {
                     instr_execution::set_local(self, &program.bytecode, &mut instr_ptr).map_err(
@@ -562,59 +545,6 @@ impl<'a, Aux> Vm<'a, Aux> {
             instr_ptr,
             &self.runtime_data.call_stack,
         ))
-    }
-
-    pub fn gc(&mut self) {
-        debug!("• GC");
-        // TODO: strings
-        //
-        // mark all roots for collection
-        let mut progress_tracker = Vec::with_capacity(self.runtime_data.value_stack.len());
-        for val in self.runtime_data.value_stack.iter() {
-            if let Ok(table) = self.get_table_mut(val) {
-                table.marker = GcMarker::Gray;
-                progress_tracker.push(table);
-            }
-        }
-        // mark referenced objects for collection
-        while let Some(table) = progress_tracker.pop() {
-            table.marker = GcMarker::Black;
-            for (k, v) in table.iter() {
-                if let Ok(t) = self.get_table_mut(*k) {
-                    if matches!(t.marker, GcMarker::White) {
-                        progress_tracker.push(t);
-                    }
-                }
-                if let Ok(t) = self.get_table_mut(*v) {
-                    if matches!(t.marker, GcMarker::White) {
-                        progress_tracker.push(t);
-                    }
-                }
-            }
-        }
-        // sweep
-        //
-        let mut collected = Vec::with_capacity(self.runtime_data.object_list.len());
-        for (i, table) in self.runtime_data.object_list.iter().enumerate() {
-            unsafe {
-                let table = table.as_ptr();
-                if matches!((*table).marker, GcMarker::White) {
-                    collected.push(i);
-                    std::ptr::drop_in_place(table);
-                }
-            }
-        }
-        for i in collected.into_iter().rev() {
-            self.runtime_data.object_list.swap_remove(i);
-        }
-        // unmark remaning objects
-        for table in self.runtime_data.object_list.iter_mut() {
-            unsafe {
-                let table = table.as_mut();
-                table.marker = GcMarker::White;
-            }
-        }
-        debug!("✓ GC");
     }
 
     #[inline]

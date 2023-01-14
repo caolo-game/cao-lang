@@ -1,3 +1,7 @@
+use tracing::debug;
+
+use crate::vm::runtime::RuntimeData;
+
 use super::{AllocError, Allocator};
 use std::{
     alloc::{alloc, dealloc, Layout},
@@ -5,6 +9,7 @@ use std::{
     ops::Deref,
     ptr::NonNull,
     rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 /// Shared BumpAllocator.
@@ -41,58 +46,20 @@ impl AllocProxy {
 
 #[derive(Debug)]
 pub struct CaoLangAllocator {
-    data: NonNull<u8>,
-    capacity: usize,
-    head: UnsafeCell<usize>,
-}
-
-impl Drop for CaoLangAllocator {
-    fn drop(&mut self) {
-        unsafe {
-            dealloc(
-                self.data.as_ptr(),
-                Layout::from_size_align(self.capacity, 8).expect("Failed to produce alignment"),
-            );
-        }
-    }
+    pub vm: NonNull<RuntimeData>,
+    pub allocated: AtomicUsize,
+    pub next_gc: AtomicUsize,
+    pub limit: AtomicUsize,
 }
 
 impl CaoLangAllocator {
-    pub fn new(capacity: usize) -> Self {
-        unsafe {
-            Self {
-                data: NonNull::new(alloc(
-                    Layout::from_size_align(capacity, 8).expect("Failed to produce alignment"),
-                ))
-                .expect("Failed to allocate memory"),
-                capacity,
-                head: UnsafeCell::new(0),
-            }
+    pub fn new(vm: NonNull<RuntimeData>, limit: usize) -> Self {
+        Self {
+            vm,
+            allocated: AtomicUsize::new(0),
+            next_gc: AtomicUsize::new(8),
+            limit: AtomicUsize::new(limit),
         }
-    }
-
-    ///# Safety
-    ///
-    ///Invalidates all outstanding pointers
-    pub unsafe fn reset(&mut self, capacity: usize) {
-        dealloc(
-            self.data.as_ptr(),
-            Layout::from_size_align(self.capacity, 8).expect("Failed to produce alignment"),
-        );
-
-        self.data = NonNull::new(alloc(
-            Layout::from_size_align(capacity, 8).expect("Failed to produce alignment"),
-        ))
-        .expect("Failed to allocate memory");
-        self.capacity = capacity;
-        *self.head.get_mut() = 0;
-    }
-
-    ///# Safety
-    ///
-    ///Invalidates all outstanding pointers
-    pub unsafe fn clear(&mut self) {
-        *self.head.get_mut() = 0;
     }
 
     /// # Safety
@@ -100,20 +67,31 @@ impl CaoLangAllocator {
     /// the allocator at a time
     pub unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
         let s = l.size() + l.align();
-        if *self.head.get() + s >= self.capacity {
+        let allocated = s + self.allocated.fetch_add(s, Ordering::Relaxed);
+        if allocated > self.limit.load(Ordering::Relaxed) {
             return Err(AllocError::OutOfMemory);
         }
-        let ptr = self.data.as_ptr().add(*self.head.get());
-        *self.head.get() += s;
-        let ptr = ptr.add(ptr.align_offset(l.align()));
-        Ok(NonNull::new_unchecked(ptr))
+        if allocated > self.next_gc.load(Ordering::Relaxed) {
+            self.next_gc.store(allocated * 2, Ordering::Relaxed);
+            unsafe {
+                (*self.vm.as_ptr()).gc();
+            }
+            debug!(
+                "GC done. Allocated before: {allocated}. Allocated now: {}",
+                self.allocated.load(Ordering::Relaxed)
+            );
+        }
+        let ptr = alloc(l);
+        Ok(NonNull::new(ptr).unwrap())
     }
 
     /// # Safety
     ///
     /// Only pointers allocated by this instance are safe to free
-    pub unsafe fn dealloc(&self, _p: NonNull<u8>, _l: Layout) {
-        // noop
+    pub unsafe fn dealloc(&self, p: NonNull<u8>, l: Layout) {
+        let s = l.size() + l.align();
+        self.allocated.fetch_sub(s, Ordering::Relaxed);
+        dealloc(p.as_ptr(), l);
     }
 }
 

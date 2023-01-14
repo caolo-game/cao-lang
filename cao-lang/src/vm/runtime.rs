@@ -1,12 +1,13 @@
 pub mod cao_lang_table;
 
-use std::{alloc::Layout, ptr::NonNull};
+use std::{alloc::Layout, pin::Pin, ptr::NonNull};
 
 use crate::{
-    alloc::{Allocator, CaoLangAllocator, AllocProxy},
+    alloc::{AllocProxy, Allocator, CaoLangAllocator},
     collections::{bounded_stack::BoundedStack, value_stack::ValueStack},
     prelude::*,
     value::Value,
+    vm::runtime::cao_lang_table::GcMarker,
 };
 use tracing::debug;
 
@@ -35,18 +36,27 @@ pub(crate) struct CallFrame {
 
 impl RuntimeData {
     pub fn new(
-        memory_capacity: usize,
+        memory_limit: usize,
         stack_size: usize,
         call_stack_size: usize,
-    ) -> Result<Self, ExecutionErrorPayload> {
-        let memory: AllocProxy = CaoLangAllocator::new(memory_capacity).into();
-        let res = Self {
+    ) -> Result<Pin<Box<Self>>, ExecutionErrorPayload> {
+        // we have a chicken-egg problem if we want to store the allocator in this structure
+        let allocator = CaoLangAllocator::new(
+            unsafe { NonNull::new_unchecked(std::ptr::null_mut()) },
+            memory_limit,
+        );
+        let memory: AllocProxy = allocator.into();
+        let mut res = Box::pin(Self {
             value_stack: ValueStack::new(stack_size),
             call_stack: BoundedStack::new(call_stack_size),
             global_vars: Vec::with_capacity(16),
             object_list: Vec::with_capacity(16),
             memory,
-        };
+        });
+        unsafe {
+            let reference: &mut Self = Pin::get_mut(res.as_mut());
+            res.memory.get_inner().vm = NonNull::new(reference).unwrap();
+        }
         Ok(res)
     }
 
@@ -78,9 +88,6 @@ impl RuntimeData {
         self.value_stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();
-        unsafe {
-            self.memory.get_inner().clear();
-        }
     }
 
     fn clear_objects(&mut self) {
@@ -92,11 +99,13 @@ impl RuntimeData {
         self.object_list.clear();
     }
 
-    /// implies clear
     pub fn set_memory_limit(&mut self, capacity: usize) {
         self.clear();
         unsafe {
-            self.memory.get_inner().reset(capacity);
+            self.memory
+                .get_inner()
+                .limit
+                .store(capacity, std::sync::atomic::Ordering::Relaxed);
         }
     }
 
@@ -115,6 +124,71 @@ impl RuntimeData {
             std::ptr::write(ptr.as_ptr() as *mut T, val);
             Ok(ptr.as_ptr() as *mut T)
         }
+    }
+
+    pub fn gc(&mut self) {
+        debug!("• GC");
+        // TODO: strings
+        //
+        // mark all roots for collection
+        let mut progress_tracker = Vec::with_capacity(self.value_stack.len());
+        for val in self.value_stack.iter() {
+            match val {
+                Value::Object(t) => unsafe {
+                    let t = t.as_mut().unwrap();
+                    t.marker = GcMarker::Gray;
+                    progress_tracker.push(t);
+                },
+                _ => { /*noop*/ }
+            }
+        }
+        // mark referenced objects for collection
+        while let Some(table) = progress_tracker.pop() {
+            table.marker = GcMarker::Black;
+            for (k, v) in table.iter() {
+                match k {
+                    Value::Object(t) => unsafe {
+                        let t = t.as_mut().unwrap();
+                        if matches!(t.marker, GcMarker::White) {
+                            progress_tracker.push(t);
+                        }
+                    },
+                    _ => { /*noop*/ }
+                }
+                match v {
+                    Value::Object(t) => unsafe {
+                        let t = t.as_mut().unwrap();
+                        if matches!(t.marker, GcMarker::White) {
+                            progress_tracker.push(t);
+                        }
+                    },
+                    _ => { /*noop*/ }
+                }
+            }
+        }
+        // sweep
+        //
+        let mut collected = Vec::with_capacity(self.object_list.len());
+        for (i, table) in self.object_list.iter().enumerate() {
+            unsafe {
+                let table = table.as_ptr();
+                if matches!((*table).marker, GcMarker::White) {
+                    collected.push(i);
+                    std::ptr::drop_in_place(table);
+                }
+            }
+        }
+        for i in collected.into_iter().rev() {
+            self.object_list.swap_remove(i);
+        }
+        // unmark remaning objects
+        for table in self.object_list.iter_mut() {
+            unsafe {
+                let table = table.as_mut();
+                table.marker = GcMarker::White;
+            }
+        }
+        debug!("✓ GC");
     }
 }
 
