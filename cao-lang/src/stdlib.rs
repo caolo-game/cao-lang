@@ -77,36 +77,61 @@ pub fn map() -> Lane {
         ])
 }
 
-fn minmax(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
+fn minmax(minimax: &str) -> Lane {
     Lane::default().with_arg("iterable").with_cards(vec![
+        Card::function_value("row_to_value"),
         Card::read_var("iterable"),
-        Card::ScalarInt(0),
-        Card::Get,
-        Card::Pop,
-        Card::set_var("result"),
-        Card::ForEach(Box::new(ForEach {
-            i: None,
-            k: None,
-            v: Some("v".to_string()),
-            iterable: Box::new(Card::read_var("iterable")),
-            body: Box::new(Card::composite_card(
-                "_",
-                vec![
-                    Card::read_var("v"),
-                    Card::read_var("result"),
-                    Card::Less,
-                    on_less_card("v", "result"),
-                ],
-            )),
-        })),
-        Card::read_var("result"),
+        Card::jump(minimax),
         Card::Return,
     ])
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min() -> Lane {
-    minmax(|var, res| {
+    minmax("min_by_key")
+}
+
+/// Return the largest value in the table, or nil if the table is empty
+pub fn max() -> Lane {
+    minmax("max_by_key")
+}
+
+fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
+    Lane::default()
+        .with_arg("iterable")
+        .with_arg("key_function")
+        .with_cards(vec![
+            Card::read_var("iterable"),
+            Card::ScalarInt(0),
+            Card::Get,
+            Card::Pop,
+            Card::set_var("result"),
+            Card::ForEach(Box::new(ForEach {
+                i: None,
+                k: Some("k".to_string()),
+                v: Some("v".to_string()),
+                iterable: Box::new(Card::read_var("iterable")),
+                body: Box::new(Card::composite_card(
+                    "_",
+                    vec![
+                        Card::read_var("v"),
+                        Card::read_var("k"),
+                        Card::read_var("key_function"),
+                        Card::DynamicJump,
+                        Card::read_var("result"),
+                        Card::Less,
+                        on_less_card("v", "result"),
+                    ],
+                )),
+            })),
+            Card::read_var("result"),
+            Card::Return,
+        ])
+}
+
+/// Return the smallest value in the table, or nil if the table is empty
+pub fn min_by_key() -> Lane {
+    minmax_by_key(|var, res| {
         Card::IfTrue(Box::new(Card::composite_card(
             "_",
             vec![Card::read_var(var), Card::set_var(res)],
@@ -114,14 +139,21 @@ pub fn min() -> Lane {
     })
 }
 
-/// Return the largest value in the table, or nil if the table is empty
-pub fn max() -> Lane {
-    minmax(|var, res| {
+pub fn max_by_key() -> Lane {
+    minmax_by_key(|var, res| {
         Card::IfFalse(Box::new(Card::composite_card(
             "_",
             vec![Card::read_var(var), Card::set_var(res)],
         )))
     })
+}
+
+/// A (key, value) function that returns the value given
+pub fn value_key_fn() -> Lane {
+    Lane::default()
+        .with_arg("_key")
+        .with_arg("val")
+        .with_cards(vec![Card::read_var("val")])
 }
 
 pub fn standard_library() -> Module {
@@ -130,6 +162,11 @@ pub fn standard_library() -> Module {
     module.lanes.push(("map".to_string(), map()));
     module.lanes.push(("min".to_string(), min()));
     module.lanes.push(("max".to_string(), max()));
+    module.lanes.push(("min_by_key".to_string(), min_by_key()));
+    module.lanes.push(("max_by_key".to_string(), max_by_key()));
+    module
+        .lanes
+        .push(("row_to_value".to_string(), value_key_fn()));
     module
 }
 
@@ -395,6 +432,55 @@ mod tests {
             .unwrap();
         match result {
             Value::Nil => {}
+            a @ _ => panic!("Unexpected result: {a:?}"),
+        }
+    }
+
+    #[test]
+    fn min_by_key_test() {
+        let program = Module {
+            imports: vec!["std.min_by_key".to_string()],
+            lanes: vec![
+                (
+                    "main".to_string(),
+                    Lane::default().with_cards(vec![
+                        Card::CreateTable,
+                        Card::set_var("t"),
+                        Card::scalar_int(1),
+                        Card::set_var("t.winnie"),
+                        Card::scalar_int(2),
+                        Card::set_var("t.pooh"),
+                        Card::scalar_int(3),
+                        Card::set_var("t.tiggers"),
+                        // call min
+                        Card::Function("keyfn".to_string()),
+                        Card::read_var("t"),
+                        Card::jump("min_by_key"),
+                        Card::set_global_var("g_result"),
+                    ]),
+                ),
+                (
+                    "keyfn".to_string(),
+                    Lane::default()
+                        .with_arg("key")
+                        .with_arg("val")
+                        .with_cards(vec![Card::read_var("val")]),
+                ),
+            ],
+            ..Default::default()
+        };
+
+        let compiled = compile(program, None).expect("Failed to compile");
+        let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+        vm.run(&compiled).expect("run");
+
+        let result = vm
+            .read_var_by_name("g_result", &compiled.variables)
+            .unwrap();
+        match result {
+            Value::Integer(i) => {
+                assert_eq!(i, 1);
+            }
             a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
