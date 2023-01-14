@@ -1,4 +1,16 @@
 # Changelog
+## v0.1.107
+
+
+### Features
+
+- Add append/pop table ([fa09cd7](fa09cd7e14d5120c1743f8c2c549bf761ed9daca))
+- Add array card ([200180f](200180f1fa5eaa654b10b436bb0f61b0f8c46c03))
+
+### Refactor
+
+- [**breaking**] Rename FieldTable -> CaoLangTable ([280cbcd](280cbcd55a0479e1279384f92ba3ff0338f7796b))
+- [**breaking**] Tables now respect the order in which keys were inserted ([d78c6a9](d78c6a9674983d7aad00fe20fa19731e8c22b2c0))
 ## v0.1.106
 
 
