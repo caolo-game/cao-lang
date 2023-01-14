@@ -18,6 +18,7 @@ pub mod vm;
 pub mod stdlib;
 
 mod bytecode;
+pub mod disassembly;
 
 pub mod version {
     include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
