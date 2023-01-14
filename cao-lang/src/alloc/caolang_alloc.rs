@@ -13,11 +13,9 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-/// Shared BumpAllocator.
-///
 /// # Safety
 ///
-/// Note that BumpAllocator is NOT thread-safe!
+/// Note that CaoLangAllocator is NOT thread-safe!
 #[derive(Debug, Clone)]
 pub struct AllocProxy {
     inner: Rc<UnsafeCell<CaoLangAllocator>>,
