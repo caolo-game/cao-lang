@@ -641,6 +641,26 @@ impl<'a> Compiler<'a> {
             Card::Function(fname) => {
                 self.encode_jump(fname)?;
             }
+            Card::Array(expressions) => {
+                // create a table, then for each sub-card: insert the subcard and append it to the
+                // result
+                // finally: ensure the result is on the stack
+                self.push_instruction(Instruction::InitTable);
+                let table_var = self.add_local_unchecked("")?;
+                self.write_local_var(table_var);
+                for (i, card) in expressions.iter().enumerate() {
+                    // push nil, so if the card results in no output,
+                    // we append nil to the table
+                    self.push_instruction(Instruction::ScalarNil);
+                    self.current_index.push_subindex(i as u32);
+                    self.process_card(card)?;
+                    self.current_index.pop_subindex();
+                    self.read_local_var(table_var);
+                    self.push_instruction(Instruction::AppendTable);
+                }
+                // push the table to the stack
+                self.read_local_var(table_var);
+            }
             Card::ScalarNil
             | Card::Return
             | Card::And

@@ -146,9 +146,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             Value::Object(o) => unsafe { &*o },
             _ => {
                 debug!("Got {:?} instead of object", value);
-                return Err(ExecutionErrorPayload::invalid_argument(
-                    "Input must be an Object".to_string(),
-                ));
+                return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
             }
         };
         Ok(res)
@@ -159,9 +157,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             Value::Object(o) => unsafe { &mut *o },
             _ => {
                 debug!("Got {:?} instead of object", value);
-                return Err(ExecutionErrorPayload::invalid_argument(
-                    "GetProperty input must be an Object".to_string(),
-                ));
+                return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
             }
         };
         Ok(res)
@@ -519,8 +515,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                     })?;
                 }
                 Instruction::AppendTable => {
-                    let value = self.stack_pop();
                     let instance = self.stack_pop();
+                    let value = self.stack_pop();
                     let table = self.get_table_mut(instance).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;

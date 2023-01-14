@@ -68,9 +68,11 @@ pub enum Card {
     DynamicJump,
     /// Get the given integer row of a table
     Get,
-    /// Args: value, table
+    /// Arguments: table, value
     AppendTable,
     PopTable,
+    /// Create a Table from the results of the provided cards
+    Array(Vec<Card>),
 }
 
 #[derive(Debug, Clone)]
@@ -139,6 +141,7 @@ impl Card {
             Card::Get => "Get",
             Card::AppendTable => "Append to Table",
             Card::PopTable => "Pop from Table",
+            Card::Array(_) => "Array",
         }
     }
 
@@ -153,7 +156,8 @@ impl Card {
             | Card::Repeat { .. }
             | Card::ForEach { .. }
             | Card::Pass
-            | Card::CompositeCard { .. } => None,
+            | Card::CompositeCard { .. }
+            | Card::Array(_) => None,
 
             Card::GetProperty => Some(Instruction::GetProperty),
             Card::SetProperty => Some(Instruction::SetProperty),

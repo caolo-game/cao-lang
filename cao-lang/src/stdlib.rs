@@ -412,11 +412,11 @@ mod tests {
                 Lane::default().with_cards(vec![
                     Card::CreateTable,
                     Card::set_var("t"),
-                    Card::read_var("t"),
                     Card::scalar_int(1),
-                    Card::AppendTable,
                     Card::read_var("t"),
+                    Card::AppendTable,
                     Card::ScalarFloat(3.42),
+                    Card::read_var("t"),
                     Card::AppendTable,
                     // call max
                     Card::read_var("t"),
@@ -478,14 +478,12 @@ mod tests {
                 (
                     "main".to_string(),
                     Lane::default().with_cards(vec![
-                        Card::CreateTable,
+                        Card::Array(vec![
+                            Card::scalar_int(2),
+                            Card::scalar_int(3),
+                            Card::scalar_int(1),
+                        ]),
                         Card::set_var("t"),
-                        Card::scalar_int(1),
-                        Card::set_var("t.winnie"),
-                        Card::scalar_int(2),
-                        Card::set_var("t.pooh"),
-                        Card::scalar_int(3),
-                        Card::set_var("t.tiggers"),
                         // call min
                         Card::Function("keyfn".to_string()),
                         Card::read_var("t"),
