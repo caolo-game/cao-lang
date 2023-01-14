@@ -1,6 +1,9 @@
+use std::mem::size_of;
+
+use crate::{prelude::Handle, VariableId};
+
 /// Single instruction of the interpreter
 #[derive(Debug, Clone, Copy, Eq, PartialEq, num_enum::TryFromPrimitive)]
-// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub(crate) enum Instruction {
     /// Add two numbers
@@ -96,4 +99,54 @@ pub(crate) enum Instruction {
     AppendTable,
     /// Pop the last row from the Table
     PopTable,
+}
+
+impl Instruction {
+    /// Returns the span of this instruction in bytecode
+    pub fn span(self) -> usize {
+        let data_span = match self {
+            Instruction::CallLane
+            | Instruction::Sub
+            | Instruction::Mul
+            | Instruction::Div
+            | Instruction::ScalarNil
+            | Instruction::CopyLast
+            | Instruction::Exit
+            | Instruction::Equals
+            | Instruction::NotEquals
+            | Instruction::Less
+            | Instruction::LessOrEq
+            | Instruction::Pop
+            | Instruction::ClearStack
+            | Instruction::Return
+            | Instruction::SwapLast
+            | Instruction::And
+            | Instruction::Or
+            | Instruction::Xor
+            | Instruction::Not
+            | Instruction::InitTable
+            | Instruction::GetProperty
+            | Instruction::SetProperty
+            | Instruction::Len
+            | Instruction::NthRow
+            | Instruction::AppendTable
+            | Instruction::PopTable
+            | Instruction::Add => 0,
+            Instruction::Call => size_of::<Handle>(),
+            Instruction::ScalarInt => size_of::<i64>(),
+            Instruction::ScalarFloat => size_of::<f64>(),
+            Instruction::StringLiteral => size_of::<u32>(),
+            Instruction::SetGlobalVar => size_of::<VariableId>(),
+            Instruction::ReadGlobalVar => size_of::<VariableId>(),
+            Instruction::SetLocalVar => size_of::<u32>(),
+            Instruction::ReadLocalVar => size_of::<u32>(),
+            Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => {
+                size_of::<i32>()
+            }
+            Instruction::BeginForEach => size_of::<u32>() * 2,
+            Instruction::ForEach => size_of::<u32>() * 5,
+            Instruction::FunctionPointer => size_of::<Handle>() + size_of::<u32>(),
+        };
+        1 + data_span
+    }
 }
