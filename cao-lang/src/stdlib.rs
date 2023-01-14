@@ -44,6 +44,39 @@ pub fn filter() -> Lane {
         ])
 }
 
+/// Returns the key of the first row that returns True from the callback
+pub fn any() -> Lane {
+    Lane::default()
+        .with_arg("iterable")
+        .with_arg("callback")
+        .with_cards(vec![
+            Card::CreateTable,
+            Card::set_var("res"),
+            Card::ForEach(Box::new(ForEach {
+                i: Some("i".to_string()),
+                k: Some("k".to_string()),
+                v: Some("v".to_string()),
+                iterable: Box::new(Card::read_var("iterable")),
+                body: Box::new(Card::composite_card(
+                    "_",
+                    vec![
+                        Card::read_var("i"),
+                        Card::read_var("v"),
+                        Card::read_var("k"),
+                        Card::read_var("callback"),
+                        Card::DynamicJump,
+                        Card::IfTrue(Box::new(Card::composite_card(
+                            "_",
+                            vec![Card::read_var("k"), Card::Return],
+                        ))),
+                    ],
+                )),
+            })),
+            Card::ScalarNil,
+            Card::Return,
+        ])
+}
+
 /// Iterate on a table calling the provided callback for each row.
 /// Build a new table from the callback return values, using the same keys
 pub fn map() -> Lane {
@@ -159,6 +192,7 @@ pub fn value_key_fn() -> Lane {
 pub fn standard_library() -> Module {
     let mut module = Module::default();
     module.lanes.push(("filter".to_string(), filter()));
+    module.lanes.push(("any".to_string(), any()));
     module.lanes.push(("map".to_string(), map()));
     module.lanes.push(("min".to_string(), min()));
     module.lanes.push(("max".to_string(), max()));
