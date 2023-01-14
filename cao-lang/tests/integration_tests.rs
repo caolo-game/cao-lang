@@ -1210,14 +1210,3 @@ fn nested_read_set_property_shorthand_test() {
         assert_eq!(pooh, 42);
     }
 }
-
-#[tracing_test::traced_test]
-#[test]
-fn gc_runs_when_oom_test() {
-    let mut vm = Vm::new(()).unwrap();
-
-    vm.init_table().unwrap();
-    vm.init_table().unwrap();
-    vm.init_table().unwrap();
-    todo!();
-}
