@@ -74,10 +74,22 @@ impl CaoLangTable {
     }
 
     pub fn remove(&mut self, key: Value) -> Result<(), ExecutionErrorPayload> {
-        self.map.remove(&key);
-        // key is not removed from `keys`
-        // TODO: gc should rebuild the keys?
+        self.keys.retain(|k| {
+            let remove = k == &key;
+            if remove {
+                self.map.remove(k);
+            }
+            remove
+        });
         Ok(())
+    }
+
+    pub fn append(&mut self, value: Value) -> Result<(), ExecutionErrorPayload> {
+        let mut index = self.keys.len() as i64;
+        while self.map.contains(&Value::Integer(index)) {
+            index += 1;
+        }
+        self.insert(Value::Integer(index), value)
     }
 
     pub fn rebuild_keys(&mut self) {
@@ -93,11 +105,9 @@ impl CaoLangTable {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> + '_ {
-        self.map.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Value, &mut Value)> + '_ {
-        self.map.iter_mut()
+        self.keys
+            .iter()
+            .filter_map(|k| self.map.get(k).map(|v| (k, v)))
     }
 }
 
