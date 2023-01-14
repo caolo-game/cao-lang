@@ -142,6 +142,18 @@ impl RuntimeData {
                 _ => { /*noop*/ }
             }
         }
+        // mark globals
+        for val in self.global_vars.iter() {
+            match val {
+                Value::Object(t) => unsafe {
+                    let t = t.as_mut().unwrap();
+                    t.marker = GcMarker::Gray;
+                    progress_tracker.push(t);
+                },
+                _ => { /*noop*/ }
+            }
+        }
+
         // mark referenced objects for collection
         while let Some(table) = progress_tracker.pop() {
             table.marker = GcMarker::Black;
