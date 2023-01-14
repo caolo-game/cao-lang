@@ -1,5 +1,5 @@
-use crate::prelude::Handle;
-use crate::{vm::runtime::CaoLangTable, StrPointer};
+use crate::prelude::{CaoLangTable, Handle};
+use crate::StrPointer;
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
