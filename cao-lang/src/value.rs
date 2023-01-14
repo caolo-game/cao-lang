@@ -1,5 +1,5 @@
 use crate::prelude::Handle;
-use crate::{vm::runtime::FieldTable, StrPointer};
+use crate::{vm::runtime::CaoLangTable, StrPointer};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -7,7 +7,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub enum Value {
     Nil,
     String(StrPointer),
-    Object(*mut FieldTable),
+    Object(*mut CaoLangTable),
     Integer(i64),
     Real(f64),
     Function { hash: Handle, arity: u32 },
@@ -241,7 +241,7 @@ impl Value {
     /// # Return
     ///
     /// Returns `None` if the value is not a table, or points to an invalid table
-    pub unsafe fn as_table<'a>(self) -> Option<&'a FieldTable> {
+    pub unsafe fn as_table<'a>(self) -> Option<&'a CaoLangTable> {
         match self {
             Value::Object(table) => Some(&*table),
             _ => None,
@@ -323,7 +323,7 @@ impl From<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for *mut FieldTable {
+impl TryFrom<Value> for *mut CaoLangTable {
     type Error = Value;
 
     fn try_from(v: Value) -> Result<Self, Value> {
@@ -334,7 +334,7 @@ impl TryFrom<Value> for *mut FieldTable {
     }
 }
 
-impl TryFrom<Value> for &FieldTable {
+impl TryFrom<Value> for &CaoLangTable {
     type Error = Value;
 
     fn try_from(v: Value) -> Result<Self, Value> {
@@ -347,7 +347,7 @@ impl TryFrom<Value> for &FieldTable {
     }
 }
 
-impl TryFrom<Value> for &mut FieldTable {
+impl TryFrom<Value> for &mut CaoLangTable {
     type Error = Value;
 
     fn try_from(v: Value) -> Result<Self, Value> {

@@ -12,19 +12,19 @@ use crate::{
 };
 use tracing::debug;
 
-pub struct FieldTable {
+pub struct CaoLangTable {
     map: CaoHashMap<Value, Value, BumpProxy>,
     keys: Vec<Value>,
     alloc: BumpProxy,
 }
 
-impl Clone for FieldTable {
+impl Clone for CaoLangTable {
     fn clone(&self) -> Self {
         Self::from_iter(self.iter().map(|(k, v)| (*k, *v)), self.alloc.clone()).unwrap()
     }
 }
 
-impl std::fmt::Debug for FieldTable {
+impl std::fmt::Debug for CaoLangTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(self.map.iter().map(|(k, v)| (k, v)))
@@ -32,7 +32,7 @@ impl std::fmt::Debug for FieldTable {
     }
 }
 
-impl FieldTable {
+impl CaoLangTable {
     pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
         let res = Self {
             map: CaoHashMap::with_capacity_in(size, proxy.clone())?,
@@ -101,7 +101,7 @@ impl FieldTable {
     }
 }
 
-impl std::ops::Deref for FieldTable {
+impl std::ops::Deref for CaoLangTable {
     type Target = CaoHashMap<Value, Value, BumpProxy>;
 
     fn deref(&self) -> &Self::Target {
@@ -114,7 +114,7 @@ pub struct RuntimeData {
     pub(crate) call_stack: BoundedStack<CallFrame>,
     pub(crate) global_vars: Vec<Value>,
     pub(crate) memory: BumpProxy,
-    pub(crate) object_list: Vec<NonNull<FieldTable>>,
+    pub(crate) object_list: Vec<NonNull<CaoLangTable>>,
 }
 
 impl Drop for RuntimeData {
@@ -150,21 +150,21 @@ impl RuntimeData {
     }
 
     /// Initialize a new cao-lang table and return a pointer to it
-    pub fn init_table(&mut self) -> Result<NonNull<FieldTable>, ExecutionErrorPayload> {
+    pub fn init_table(&mut self) -> Result<NonNull<CaoLangTable>, ExecutionErrorPayload> {
         unsafe {
             let table_ptr = self
                 .memory
-                .alloc(Layout::new::<FieldTable>())
+                .alloc(Layout::new::<CaoLangTable>())
                 .map_err(|err| {
                     debug!("Failed to allocate table {:?}", err);
                     ExecutionErrorPayload::OutOfMemory
                 })?;
-            let table = FieldTable::with_capacity(8, self.memory.clone()).map_err(|err| {
+            let table = CaoLangTable::with_capacity(8, self.memory.clone()).map_err(|err| {
                 debug!("Failed to init table {:?}", err);
                 ExecutionErrorPayload::OutOfMemory
             })?;
 
-            let table_ptr: NonNull<FieldTable> = table_ptr.cast();
+            let table_ptr: NonNull<CaoLangTable> = table_ptr.cast();
             std::ptr::write(table_ptr.as_ptr(), table);
             self.object_list.push(table_ptr);
 

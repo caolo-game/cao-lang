@@ -25,7 +25,7 @@ fn test_init_table() {
         .read_var_by_name("g_foo", &program.variables)
         .expect("Failed to read foo variable");
 
-    let p: *mut FieldTable = foo.try_into().expect("Expected an Object");
+    let p: *mut CaoLangTable = foo.try_into().expect("Expected an Object");
     assert!(!p.is_null());
 }
 
@@ -69,7 +69,7 @@ fn test_native_w_table_input() {
         param: i64,
     }
 
-    let myboi = move |vm: &mut Vm<State>, table: &FieldTable| {
+    let myboi = move |vm: &mut Vm<State>, table: &CaoLangTable| {
         let key = vm.init_string("boi").unwrap();
         let res = table.get(&Value::String(key)).copied().unwrap_or_default();
         if let Value::Integer(i) = res {

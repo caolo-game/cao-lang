@@ -141,7 +141,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.value_stack.pop()
     }
 
-    pub fn get_table(&self, value: Value) -> Result<&FieldTable, ExecutionErrorPayload> {
+    pub fn get_table(&self, value: Value) -> Result<&CaoLangTable, ExecutionErrorPayload> {
         let res = match value {
             Value::Object(o) => unsafe { &*o },
             _ => {
@@ -154,7 +154,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         Ok(res)
     }
 
-    pub fn get_table_mut(&self, value: Value) -> Result<&mut FieldTable, ExecutionErrorPayload> {
+    pub fn get_table_mut(&self, value: Value) -> Result<&mut CaoLangTable, ExecutionErrorPayload> {
         let res = match value {
             Value::Object(o) => unsafe { &mut *o },
             _ => {
@@ -169,7 +169,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Initializes a new FieldTable in this VM instance
     #[inline]
-    pub fn init_table(&mut self) -> Result<std::ptr::NonNull<FieldTable>, ExecutionErrorPayload> {
+    pub fn init_table(&mut self) -> Result<std::ptr::NonNull<CaoLangTable>, ExecutionErrorPayload> {
         self.runtime_data.init_table()
     }
 

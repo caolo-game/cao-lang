@@ -8,6 +8,6 @@ pub use crate::traits::*;
 pub use crate::value::*;
 pub use crate::{
     collections::handle_table::Handle,
-    vm::{runtime::FieldTable, Vm},
+    vm::{runtime::CaoLangTable, Vm},
     InputString, StrPointer,
 };
