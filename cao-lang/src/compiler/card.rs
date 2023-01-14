@@ -68,6 +68,9 @@ pub enum Card {
     DynamicJump,
     /// Get the given integer row of a table
     Get,
+    /// Args: value, table
+    AppendTable,
+    PopTable,
 }
 
 #[derive(Debug, Clone)]
@@ -134,6 +137,8 @@ impl Card {
             Card::Function(_) => "Function",
             Card::DynamicJump => "Dynamic Jump",
             Card::Get => "Get",
+            Card::AppendTable => "Append to Table",
+            Card::PopTable => "Pop from Table",
         }
     }
 
@@ -183,6 +188,8 @@ impl Card {
             Card::Len => Some(Instruction::Len),
             Card::DynamicJump => Some(Instruction::CallLane),
             Card::Get => Some(Instruction::NthRow),
+            Card::AppendTable => Some(Instruction::AppendTable),
+            Card::PopTable => Some(Instruction::PopTable),
         }
     }
 
@@ -229,6 +236,8 @@ impl Card {
             | Instruction::ForEach
             | Instruction::FunctionPointer
             | Instruction::BeginForEach
+            | Instruction::AppendTable
+            | Instruction::PopTable
             | Instruction::NthRow => {}
         };
     }

@@ -91,4 +91,9 @@ pub(crate) enum Instruction {
 
     /// Get the given row in a Table
     NthRow,
+
+    /// Append the given value to the Table
+    AppendTable,
+    /// Pop the last row from the Table
+    PopTable,
 }

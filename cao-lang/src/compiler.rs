@@ -665,6 +665,8 @@ impl<'a> Compiler<'a> {
             | Card::SetProperty
             | Card::ClearStack
             | Card::DynamicJump
+            | Card::AppendTable
+            | Card::PopTable
             | Card::Get => { /* These cards translate to a single instruction */ }
         }
         Ok(())

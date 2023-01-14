@@ -85,6 +85,17 @@ impl CaoLangTable {
         self.insert(Value::Integer(index), value)
     }
 
+    pub fn pop(&mut self) -> Result<Value, ExecutionErrorPayload> {
+        match self.keys.pop() {
+            Some(key) => {
+                let res = self.get(&key).copied().unwrap_or(Value::Nil);
+                self.remove(key)?;
+                Ok(res)
+            }
+            None => return Ok(Value::Nil),
+        }
+    }
+
     pub fn rebuild_keys(&mut self) {
         self.keys.clear();
         self.keys.extend(self.map.iter().map(|(k, _)| *k));

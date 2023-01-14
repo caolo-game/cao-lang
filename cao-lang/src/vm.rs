@@ -518,6 +518,29 @@ impl<'a, Aux> Vm<'a, Aux> {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
+                Instruction::AppendTable => {
+                    let value = self.stack_pop();
+                    let instance = self.stack_pop();
+                    let table = self.get_table_mut(instance).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    table.append(value).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                }
+
+                Instruction::PopTable => {
+                    let instance = self.stack_pop();
+                    let table = self.get_table_mut(instance).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    let value = table.pop().map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    self.stack_push(value).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                }
             }
         }
 

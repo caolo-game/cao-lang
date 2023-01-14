@@ -412,12 +412,12 @@ mod tests {
                 Lane::default().with_cards(vec![
                     Card::CreateTable,
                     Card::set_var("t"),
+                    Card::read_var("t"),
                     Card::scalar_int(1),
-                    Card::set_var("t.winnie"),
-                    Card::ScalarFloat(2.4),
-                    Card::set_var("t.pooh"),
+                    Card::AppendTable,
+                    Card::read_var("t"),
                     Card::ScalarFloat(3.42),
-                    Card::set_var("t.tiggers"),
+                    Card::AppendTable,
                     // call max
                     Card::read_var("t"),
                     Card::jump("max"),
