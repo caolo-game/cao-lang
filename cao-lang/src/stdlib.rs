@@ -77,14 +77,13 @@ pub fn map() -> Lane {
         ])
 }
 
-/// Return the smallest value in the table, or nil if the table is empty
-pub fn min() -> Lane {
+fn minmax(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
     Lane::default().with_arg("iterable").with_cards(vec![
         Card::read_var("iterable"),
         Card::ScalarInt(0),
         Card::Get,
         Card::Pop,
-        Card::set_var("min_value"),
+        Card::set_var("result"),
         Card::ForEach(Box::new(ForEach {
             i: None,
             k: None,
@@ -94,49 +93,35 @@ pub fn min() -> Lane {
                 "_",
                 vec![
                     Card::read_var("v"),
-                    Card::read_var("min_value"),
+                    Card::read_var("result"),
                     Card::Less,
-                    Card::IfTrue(Box::new(Card::composite_card(
-                        "_",
-                        vec![Card::read_var("v"), Card::set_var("min_value")],
-                    ))),
+                    on_less_card("v", "result"),
                 ],
             )),
         })),
-        Card::read_var("min_value"),
+        Card::read_var("result"),
         Card::Return,
     ])
 }
 
+/// Return the smallest value in the table, or nil if the table is empty
+pub fn min() -> Lane {
+    minmax(|var, res| {
+        Card::IfTrue(Box::new(Card::composite_card(
+            "_",
+            vec![Card::read_var(var), Card::set_var(res)],
+        )))
+    })
+}
+
 /// Return the largest value in the table, or nil if the table is empty
 pub fn max() -> Lane {
-    Lane::default().with_arg("iterable").with_cards(vec![
-        Card::read_var("iterable"),
-        Card::ScalarInt(0),
-        Card::Get,
-        Card::Pop,
-        Card::set_var("max_value"),
-        Card::ForEach(Box::new(ForEach {
-            i: None,
-            k: None,
-            v: Some("v".to_string()),
-            iterable: Box::new(Card::read_var("iterable")),
-            body: Box::new(Card::composite_card(
-                "_",
-                vec![
-                    Card::read_var("max_value"),
-                    Card::read_var("v"),
-                    Card::Less,
-                    Card::IfTrue(Box::new(Card::composite_card(
-                        "_",
-                        vec![Card::read_var("v"), Card::set_var("max_value")],
-                    ))),
-                ],
-            )),
-        })),
-        Card::read_var("max_value"),
-        Card::Return,
-    ])
+    minmax(|var, res| {
+        Card::IfFalse(Box::new(Card::composite_card(
+            "_",
+            vec![Card::read_var(var), Card::set_var(res)],
+        )))
+    })
 }
 
 pub fn standard_library() -> Module {
