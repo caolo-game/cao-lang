@@ -57,7 +57,7 @@ impl CaoLangAllocator {
         Self {
             vm,
             allocated: AtomicUsize::new(0),
-            next_gc: AtomicUsize::new(8),
+            next_gc: AtomicUsize::new((limit / 4).max(16)),
             limit: AtomicUsize::new(limit),
         }
     }
