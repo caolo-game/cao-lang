@@ -1,4 +1,14 @@
 # Changelog
+## v0.1.106
+
+
+### Features
+
+- Add map function ([f3493bc](f3493bceebee4897242889a99ef85fd3318f03a0))
+- Allow reading the ith element of a Table ([1d8dadb](1d8dadb1da3231e51c8aa2403c93fd025c93576a))
+- Add min/max functions ([810c65e](810c65e99475d07e8974724ddfe5b290b34bbff3))
+- Add min/max by key ([d816a80](d816a80583450ab268f8dd3d0ef6aaf7743e5fe3))
+- Add any ([6c463f9](6c463f96dadc979f622abc18b2d7c1fe8d0c8cbd))
 ## v0.1.105
 
 
