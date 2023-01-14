@@ -13,40 +13,40 @@ use std::{
 ///
 /// Note that BumpAllocator is NOT thread-safe!
 #[derive(Debug, Clone)]
-pub struct BumpProxy {
-    inner: Rc<UnsafeCell<BumpAllocator>>,
+pub struct AllocProxy {
+    inner: Rc<UnsafeCell<CaoLangAllocator>>,
 }
 
-impl From<BumpAllocator> for BumpProxy {
-    fn from(inner: BumpAllocator) -> Self {
+impl From<CaoLangAllocator> for AllocProxy {
+    fn from(inner: CaoLangAllocator) -> Self {
         Self {
             inner: Rc::new(UnsafeCell::new(inner)),
         }
     }
 }
 
-impl Deref for BumpProxy {
-    type Target = BumpAllocator;
+impl Deref for AllocProxy {
+    type Target = CaoLangAllocator;
 
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.inner.get() }
     }
 }
 
-impl BumpProxy {
-    pub unsafe fn get_inner(&mut self) -> &mut BumpAllocator {
+impl AllocProxy {
+    pub unsafe fn get_inner(&mut self) -> &mut CaoLangAllocator {
         &mut *self.inner.get()
     }
 }
 
 #[derive(Debug)]
-pub struct BumpAllocator {
+pub struct CaoLangAllocator {
     data: NonNull<u8>,
     capacity: usize,
     head: UnsafeCell<usize>,
 }
 
-impl Drop for BumpAllocator {
+impl Drop for CaoLangAllocator {
     fn drop(&mut self) {
         unsafe {
             dealloc(
@@ -57,7 +57,7 @@ impl Drop for BumpAllocator {
     }
 }
 
-impl BumpAllocator {
+impl CaoLangAllocator {
     pub fn new(capacity: usize) -> Self {
         unsafe {
             Self {
@@ -117,16 +117,16 @@ impl BumpAllocator {
     }
 }
 
-impl Allocator for BumpAllocator {
+impl Allocator for CaoLangAllocator {
     unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
-        BumpAllocator::alloc(self, l)
+        CaoLangAllocator::alloc(self, l)
     }
 
     unsafe fn dealloc(&self, p: NonNull<u8>, l: Layout) {
-        BumpAllocator::dealloc(self, p, l)
+        CaoLangAllocator::dealloc(self, p, l)
     }
 }
-impl Allocator for BumpProxy {
+impl Allocator for AllocProxy {
     unsafe fn alloc(&self, l: Layout) -> Result<NonNull<u8>, AllocError> {
         (*self.inner.get()).alloc(l)
     }

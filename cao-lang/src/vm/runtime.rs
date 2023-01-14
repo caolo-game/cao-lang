@@ -3,7 +3,7 @@ pub mod cao_lang_table;
 use std::{alloc::Layout, ptr::NonNull};
 
 use crate::{
-    alloc::{Allocator, BumpAllocator, BumpProxy},
+    alloc::{Allocator, CaoLangAllocator, AllocProxy},
     collections::{bounded_stack::BoundedStack, value_stack::ValueStack},
     prelude::*,
     value::Value,
@@ -14,7 +14,7 @@ pub struct RuntimeData {
     pub(crate) value_stack: ValueStack,
     pub(crate) call_stack: BoundedStack<CallFrame>,
     pub(crate) global_vars: Vec<Value>,
-    pub(crate) memory: BumpProxy,
+    pub(crate) memory: AllocProxy,
     pub(crate) object_list: Vec<NonNull<CaoLangTable>>,
 }
 
@@ -39,7 +39,7 @@ impl RuntimeData {
         stack_size: usize,
         call_stack_size: usize,
     ) -> Result<Self, ExecutionErrorPayload> {
-        let memory: BumpProxy = BumpAllocator::new(memory_capacity).into();
+        let memory: AllocProxy = CaoLangAllocator::new(memory_capacity).into();
         let res = Self {
             value_stack: ValueStack::new(stack_size),
             call_stack: BoundedStack::new(call_stack_size),

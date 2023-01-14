@@ -1,5 +1,4 @@
 use cao_lang::prelude::*;
-use test_log::test;
 
 #[test]
 fn test_foreach_1() {

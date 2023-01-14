@@ -1,14 +1,25 @@
 use crate::{
-    alloc::BumpProxy,
+    alloc::AllocProxy,
     collections::hash_map::{CaoHashMap, MapError},
     prelude::*,
     value::Value,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub enum GcMarker {
+    /// Unprocessed
+    White,
+    /// Visited
+    Gray,
+    /// Done
+    Black,
+}
+
 pub struct CaoLangTable {
-    map: CaoHashMap<Value, Value, BumpProxy>,
+    map: CaoHashMap<Value, Value, AllocProxy>,
     keys: Vec<Value>,
-    alloc: BumpProxy,
+    alloc: AllocProxy,
+    pub marker: GcMarker,
 }
 
 impl Clone for CaoLangTable {
@@ -26,11 +37,12 @@ impl std::fmt::Debug for CaoLangTable {
 }
 
 impl CaoLangTable {
-    pub fn with_capacity(size: usize, proxy: BumpProxy) -> Result<Self, MapError> {
+    pub fn with_capacity(size: usize, proxy: AllocProxy) -> Result<Self, MapError> {
         let res = Self {
             map: CaoHashMap::with_capacity_in(size, proxy.clone())?,
             keys: Vec::default(),
             alloc: proxy,
+            marker: GcMarker::White,
         };
         Ok(res)
     }
@@ -45,7 +57,7 @@ impl CaoLangTable {
 
     pub fn from_iter(
         it: impl Iterator<Item = (Value, Value)>,
-        alloc: BumpProxy,
+        alloc: AllocProxy,
     ) -> Result<Self, ExecutionErrorPayload> {
         let mut result = Self::with_capacity(it.size_hint().0, alloc)
             .map_err(|_err| ExecutionErrorPayload::OutOfMemory)?;
@@ -116,7 +128,7 @@ impl CaoLangTable {
 }
 
 impl std::ops::Deref for CaoLangTable {
-    type Target = CaoHashMap<Value, Value, BumpProxy>;
+    type Target = CaoHashMap<Value, Value, AllocProxy>;
 
     fn deref(&self) -> &Self::Target {
         &self.map
