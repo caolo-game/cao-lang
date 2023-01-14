@@ -41,10 +41,7 @@ impl RuntimeData {
         call_stack_size: usize,
     ) -> Result<Pin<Box<Self>>, ExecutionErrorPayload> {
         // we have a chicken-egg problem if we want to store the allocator in this structure
-        let allocator = CaoLangAllocator::new(
-            unsafe { NonNull::new_unchecked(std::ptr::null_mut()) },
-            memory_limit,
-        );
+        let allocator = CaoLangAllocator::new(std::ptr::null_mut(), memory_limit);
         let memory: AllocProxy = allocator.into();
         let mut res = Box::pin(Self {
             value_stack: ValueStack::new(stack_size),
@@ -55,7 +52,7 @@ impl RuntimeData {
         });
         unsafe {
             let reference: &mut Self = Pin::get_mut(res.as_mut());
-            res.memory.get_inner().vm = NonNull::new(reference).unwrap();
+            res.memory.get_inner().runtime = reference as *mut Self;
         }
         Ok(res)
     }

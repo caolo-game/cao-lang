@@ -46,16 +46,16 @@ impl AllocProxy {
 
 #[derive(Debug)]
 pub struct CaoLangAllocator {
-    pub vm: NonNull<RuntimeData>,
+    pub runtime: *mut RuntimeData,
     pub allocated: AtomicUsize,
     pub next_gc: AtomicUsize,
     pub limit: AtomicUsize,
 }
 
 impl CaoLangAllocator {
-    pub fn new(vm: NonNull<RuntimeData>, limit: usize) -> Self {
+    pub fn new(vm: *mut RuntimeData, limit: usize) -> Self {
         Self {
-            vm,
+            runtime: vm,
             allocated: AtomicUsize::new(0),
             next_gc: AtomicUsize::new((limit / 4).max(16)),
             limit: AtomicUsize::new(limit),
@@ -74,7 +74,7 @@ impl CaoLangAllocator {
         if allocated > self.next_gc.load(Ordering::Relaxed) {
             self.next_gc.store(allocated * 2, Ordering::Relaxed);
             unsafe {
-                (*self.vm.as_ptr()).gc();
+                (*self.runtime).gc();
             }
             debug!(
                 "GC done. Allocated before: {allocated}. Allocated now: {}",
