@@ -1,5 +1,5 @@
-mod bump_alloc;
-pub use bump_alloc::*;
+mod caolang_alloc;
+pub use caolang_alloc::*;
 
 use std::{
     alloc::{alloc, dealloc, Layout},

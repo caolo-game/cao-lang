@@ -1,5 +1,3 @@
-use test_log::test;
-
 use cao_lang::{
     compiler::{CompositeCard, Module},
     prelude::*,
@@ -1167,6 +1165,7 @@ fn read_property_shorthand_test() {
     assert_eq!(result, Value::Integer(42));
 }
 
+#[tracing_test::traced_test]
 #[test]
 fn nested_read_set_property_shorthand_test() {
     let cu = Module {

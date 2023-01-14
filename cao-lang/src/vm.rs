@@ -16,7 +16,7 @@ use crate::{
     VariableId,
 };
 use runtime::RuntimeData;
-use std::{mem::transmute, str::FromStr};
+use std::{mem::transmute, pin::Pin, str::FromStr};
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.
@@ -29,7 +29,7 @@ where
     /// Number of instructions `run` will execute before returning Timeout
     pub max_instr: u64,
 
-    pub runtime_data: RuntimeData,
+    pub runtime_data: Pin<Box<RuntimeData>>,
 
     callables: HandleTable<Procedure<Aux>>,
     _m: std::marker::PhantomData<&'a ()>,
@@ -318,13 +318,13 @@ impl<'a, Aux> Vm<'a, Aux> {
                     payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::ClearStack => {
-                    self.runtime_data.value_stack.clear_until(
-                        self.runtime_data
-                            .call_stack
-                            .last()
-                            .expect("No callframe available")
-                            .stack_offset as usize,
-                    );
+                    let offset = self
+                        .runtime_data
+                        .call_stack
+                        .last()
+                        .expect("No callframe available")
+                        .stack_offset as usize;
+                    self.runtime_data.value_stack.clear_until(offset);
                 }
                 Instruction::SetLocalVar => {
                     instr_execution::set_local(self, &program.bytecode, &mut instr_ptr).map_err(

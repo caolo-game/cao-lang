@@ -170,6 +170,11 @@ impl ValueStack {
             Value::Nil
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = Value> {
+        let ptr = self.data.as_ptr();
+        (0..self.count).map(move |i| unsafe { *ptr.add(i) })
+    }
 }
 
 #[cfg(test)]
