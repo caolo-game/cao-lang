@@ -1,13 +1,15 @@
 use crate::prelude::{CaoLangTable, Handle};
+use crate::vm::runtime::cao_lang_object::{CaoLangObject, CaoLangObjectBody};
 use crate::StrPointer;
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
+use std::ptr::NonNull;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
     Nil,
     String(StrPointer),
-    Object(*mut CaoLangTable),
+    Object(NonNull<CaoLangObject>),
     Integer(i64),
     Real(f64),
     Function { hash: Handle, arity: u32 },
@@ -45,10 +47,7 @@ impl std::hash::Hash for Value {
                 f.to_bits().hash(state);
             }
             Value::Object(o) => {
-                for (k, v) in unsafe { (**o).iter() } {
-                    k.hash(state);
-                    v.hash(state);
-                }
+                (*o).hash(state);
             }
             Value::Function { hash, arity } => {
                 hash.value().hash(state);
@@ -63,27 +62,7 @@ impl PartialEq for Value {
         match (*self, *other) {
             (Value::Nil, Value::Nil) => true,
             (Value::String(lhs), Value::String(rhs)) => unsafe { lhs.get_str() == rhs.get_str() },
-            (Value::Object(lhs), Value::Object(rhs)) => unsafe {
-                // same objects, including null,
-                // are trivially equal
-                if lhs == rhs {
-                    return true;
-                }
-                if lhs.is_null() || rhs.is_null() {
-                    return false;
-                }
-                let lhs = &*lhs;
-                let rhs = &*rhs;
-                if lhs.len() != rhs.len() {
-                    return false;
-                }
-                for ((kl, vl), (kr, vr)) in lhs.iter().zip(rhs.iter()) {
-                    if kl != kr || vl != vr {
-                        return false;
-                    }
-                }
-                true
-            },
+            (Value::Object(lhs), Value::Object(rhs)) => unsafe { lhs.as_ref().eq(rhs.as_ref()) },
             (Value::Integer(lhs), Value::Integer(rhs)) => lhs == rhs,
             (Value::Real(lhs), Value::Real(rhs)) => lhs == rhs,
             _ => false,
@@ -156,13 +135,17 @@ impl From<Value> for OwnedValue {
             Value::Nil => Self::Nil,
             Value::String(_) => Self::String(unsafe { v.as_str() }.unwrap().to_owned()),
             Value::Object(ptr) => Self::Object({
-                unsafe { &*ptr }
-                    .iter()
-                    .map(|(k, v)| OwnedEntry {
-                        key: (*k).into(),
-                        value: (*v).into(),
-                    })
-                    .collect()
+                unsafe {
+                    match &ptr.as_ref().body {
+                        CaoLangObjectBody::Table(t) => t
+                            .iter()
+                            .map(|(k, v)| OwnedEntry {
+                                key: (*k).into(),
+                                value: (*v).into(),
+                            })
+                            .collect(),
+                    }
+                }
             }),
             Value::Integer(x) => Self::Integer(x),
             Value::Real(x) => Self::Real(x),
@@ -182,7 +165,7 @@ impl Value {
     pub fn as_bool(self) -> bool {
         match self {
             Value::String(i) => !i.0.is_null(),
-            Value::Object(i) => !i.is_null(),
+            Value::Object(i) => unsafe { !i.as_ref().is_empty() },
             Value::Integer(i) => i != 0,
             Value::Real(i) => i != 0.0,
             Value::Nil => false,
@@ -243,7 +226,7 @@ impl Value {
     /// Returns `None` if the value is not a table, or points to an invalid table
     pub unsafe fn as_table<'a>(self) -> Option<&'a CaoLangTable> {
         match self {
-            Value::Object(table) => Some(&*table),
+            Value::Object(table) => table.as_ref().as_table(),
             _ => None,
         }
     }
@@ -328,7 +311,12 @@ impl TryFrom<Value> for *mut CaoLangTable {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::Object(p) => Ok(p),
+            Value::Object(mut p) => unsafe {
+                match p.as_mut().as_table_mut() {
+                    Some(t) => Ok(t as *mut _),
+                    _ => Err(v),
+                }
+            },
             _ => Err(v),
         }
     }
@@ -339,9 +327,7 @@ impl TryFrom<Value> for &CaoLangTable {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            // NOTE:
-            // this is still bad if p is dangling
-            Value::Object(p) if !p.is_null() => Ok(unsafe { &*p }),
+            Value::Object(p) => unsafe { p.as_ref().as_table().ok_or(v) },
             _ => Err(v),
         }
     }
@@ -352,9 +338,7 @@ impl TryFrom<Value> for &mut CaoLangTable {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            // NOTE:
-            // this is still bad if p is dangling
-            Value::Object(p) if !p.is_null() => Ok(unsafe { &mut *p }),
+            Value::Object(mut p) => unsafe { p.as_mut().as_table_mut().ok_or(v) },
             _ => Err(v),
         }
     }
@@ -366,7 +350,6 @@ impl TryFrom<Value> for i64 {
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
             Value::String(i) => Ok(i.0 as i64),
-            Value::Object(i) => Ok(i as i64),
             Value::Integer(i) => Ok(i),
             _ => Err(v),
         }

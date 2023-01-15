@@ -1,3 +1,4 @@
+pub mod cao_lang_object;
 pub mod cao_lang_table;
 
 use std::{alloc::Layout, pin::Pin, ptr::NonNull};
@@ -7,16 +8,17 @@ use crate::{
     collections::{bounded_stack::BoundedStack, value_stack::ValueStack},
     prelude::*,
     value::Value,
-    vm::runtime::cao_lang_table::GcMarker,
 };
 use tracing::debug;
+
+use self::cao_lang_object::{CaoLangObject, GcMarker};
 
 pub struct RuntimeData {
     pub(crate) value_stack: ValueStack,
     pub(crate) call_stack: BoundedStack<CallFrame>,
     pub(crate) global_vars: Vec<Value>,
     pub(crate) memory: AllocProxy,
-    pub(crate) object_list: Vec<NonNull<CaoLangTable>>,
+    pub(crate) object_list: Vec<NonNull<CaoLangObject>>,
 }
 
 impl Drop for RuntimeData {
@@ -58,11 +60,11 @@ impl RuntimeData {
     }
 
     /// Initialize a new cao-lang table and return a pointer to it
-    pub fn init_table(&mut self) -> Result<NonNull<CaoLangTable>, ExecutionErrorPayload> {
+    pub fn init_table(&mut self) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
         unsafe {
-            let table_ptr = self
+            let obj_ptr = self
                 .memory
-                .alloc(Layout::new::<CaoLangTable>())
+                .alloc(Layout::new::<CaoLangObject>())
                 .map_err(|err| {
                     debug!("Failed to allocate table {:?}", err);
                     ExecutionErrorPayload::OutOfMemory
@@ -72,11 +74,22 @@ impl RuntimeData {
                 ExecutionErrorPayload::OutOfMemory
             })?;
 
-            let table_ptr: NonNull<CaoLangTable> = table_ptr.cast();
-            std::ptr::write(table_ptr.as_ptr(), table);
-            self.object_list.push(table_ptr);
+            let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
+            let obj = CaoLangObject {
+                marker: GcMarker::White,
+                body: cao_lang_object::CaoLangObjectBody::Table(table),
+            };
+            std::ptr::write(obj_ptr.as_ptr(), obj);
+            self.object_list.push(obj_ptr);
+            Ok(obj_ptr)
+        }
+    }
 
-            Ok(table_ptr)
+    pub fn free_object(&mut self, obj: NonNull<CaoLangObject>) {
+        unsafe {
+            std::ptr::drop_in_place(obj.as_ptr());
+            self.memory
+                .dealloc(obj.cast(), Layout::new::<CaoLangObject>());
         }
     }
 
@@ -88,11 +101,6 @@ impl RuntimeData {
     }
 
     fn clear_objects(&mut self) {
-        for obj in self.object_list.iter_mut() {
-            unsafe {
-                std::ptr::drop_in_place(obj.as_ptr());
-            }
-        }
         self.object_list.clear();
     }
 
@@ -131,8 +139,8 @@ impl RuntimeData {
         let mut progress_tracker = Vec::with_capacity(self.value_stack.len());
         for val in self.value_stack.iter() {
             match val {
-                Value::Object(t) => unsafe {
-                    let t = t.as_mut().unwrap();
+                Value::Object(mut t) => unsafe {
+                    let t = t.as_mut();
                     t.marker = GcMarker::Gray;
                     progress_tracker.push(t);
                 },
@@ -142,8 +150,8 @@ impl RuntimeData {
         // mark globals
         for val in self.global_vars.iter() {
             match val {
-                Value::Object(t) => unsafe {
-                    let t = t.as_mut().unwrap();
+                Value::Object(mut t) => unsafe {
+                    let t = t.as_mut();
                     t.marker = GcMarker::Gray;
                     progress_tracker.push(t);
                 },
@@ -152,43 +160,47 @@ impl RuntimeData {
         }
 
         // mark referenced objects for collection
-        while let Some(table) = progress_tracker.pop() {
-            table.marker = GcMarker::Black;
-            for (k, v) in table.iter() {
-                match k {
-                    Value::Object(t) => unsafe {
-                        let t = t.as_mut().unwrap();
-                        if matches!(t.marker, GcMarker::White) {
-                            progress_tracker.push(t);
+        while let Some(obj) = progress_tracker.pop() {
+            obj.marker = GcMarker::Black;
+            match &obj.body {
+                cao_lang_object::CaoLangObjectBody::Table(obj) => {
+                    for (k, v) in obj.iter() {
+                        match k {
+                            Value::Object(mut t) => unsafe {
+                                let t = t.as_mut();
+                                if matches!(t.marker, GcMarker::White) {
+                                    progress_tracker.push(t);
+                                }
+                            },
+                            _ => { /*noop*/ }
                         }
-                    },
-                    _ => { /*noop*/ }
-                }
-                match v {
-                    Value::Object(t) => unsafe {
-                        let t = t.as_mut().unwrap();
-                        if matches!(t.marker, GcMarker::White) {
-                            progress_tracker.push(t);
+                        match v {
+                            Value::Object(mut t) => unsafe {
+                                let t = t.as_mut();
+                                if matches!(t.marker, GcMarker::White) {
+                                    progress_tracker.push(t);
+                                }
+                            },
+                            _ => { /*noop*/ }
                         }
-                    },
-                    _ => { /*noop*/ }
+                    }
                 }
             }
         }
         // sweep
         //
         let mut collected = Vec::with_capacity(self.object_list.len());
-        for (i, table) in self.object_list.iter().enumerate() {
+        for (i, object) in self.object_list.iter().copied().enumerate() {
             unsafe {
-                let table = table.as_ptr();
-                if matches!((*table).marker, GcMarker::White) {
+                let obj = object.as_ref();
+                if matches!(obj.marker, GcMarker::White) {
                     collected.push(i);
-                    std::ptr::drop_in_place(table);
                 }
             }
         }
         for i in collected.into_iter().rev() {
-            self.object_list.swap_remove(i);
+            let obj = self.object_list.swap_remove(i);
+            self.free_object(obj);
         }
         // unmark remaning objects
         for table in self.object_list.iter_mut() {
@@ -210,7 +222,7 @@ mod tests {
         let mut vm = Vm::new(()).unwrap();
 
         let s = vm.init_string("poggers").unwrap();
-        let o = unsafe { vm.init_table().unwrap().as_mut() };
+        let o = unsafe { vm.init_table().unwrap().as_mut().as_table_mut().unwrap() };
 
         o.insert(Value::String(s), Value::Integer(42)).unwrap();
 

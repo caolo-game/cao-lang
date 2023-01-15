@@ -92,10 +92,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
             };
             st.len() as i64
         }
-        Value::Object(t) => {
-            let t = unsafe { &*t };
-            t.len() as i64
-        }
+        Value::Object(t) => unsafe { t.as_ref().len() as i64 },
     };
     vm.stack_push(len)?;
     Ok(())

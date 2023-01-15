@@ -1148,12 +1148,12 @@ fn read_property_shorthand_test() {
     let mut vm = Vm::new(()).unwrap();
     unsafe {
         let mut table_ptr = vm.init_table().unwrap();
-        let table = table_ptr.as_mut();
+        let table = table_ptr.as_mut().as_table_mut().unwrap();
         let key = vm.init_string("foo").unwrap();
         table
             .insert(Value::String(key), Value::Integer(42))
             .unwrap();
-        vm.stack_push(Value::Object(table_ptr.as_ptr())).unwrap();
+        vm.stack_push(Value::Object(table_ptr)).unwrap();
     }
 
     vm.run(&program).expect("run");

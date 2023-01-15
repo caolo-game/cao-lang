@@ -7,7 +7,7 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use self::runtime::CallFrame;
+use self::runtime::{cao_lang_object::CaoLangObject, CallFrame};
 use crate::{
     collections::handle_table::{Handle, HandleTable},
     instruction::Instruction,
@@ -56,14 +56,15 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             OwnedValue::Object(o) => {
                 let mut res = self.init_table()?;
-                for OwnedEntry { key, value } in o.iter() {
-                    let key = self.insert_value(key)?;
-                    let value = self.insert_value(value)?;
-                    unsafe {
-                        res.as_mut().insert(key, value)?;
+                unsafe {
+                    let table = res.as_mut().as_table_mut().unwrap();
+                    for OwnedEntry { key, value } in o.iter() {
+                        let key = self.insert_value(key)?;
+                        let value = self.insert_value(value)?;
+                        table.insert(key, value)?;
                     }
                 }
-                Value::Object(res.as_ptr())
+                Value::Object(res)
             }
             OwnedValue::Integer(x) => Value::Integer(*x),
             OwnedValue::Real(x) => Value::Real(*x),
@@ -143,7 +144,11 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     pub fn get_table(&self, value: Value) -> Result<&CaoLangTable, ExecutionErrorPayload> {
         let res = match value {
-            Value::Object(o) => unsafe { &*o },
+            Value::Object(o) => unsafe {
+                o.as_ref()
+                    .as_table()
+                    .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
+            },
             _ => {
                 debug!("Got {:?} instead of object", value);
                 return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
@@ -154,7 +159,11 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     pub fn get_table_mut(&self, value: Value) -> Result<&mut CaoLangTable, ExecutionErrorPayload> {
         let res = match value {
-            Value::Object(o) => unsafe { &mut *o },
+            Value::Object(mut o) => unsafe {
+                o.as_mut()
+                    .as_table_mut()
+                    .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
+            },
             _ => {
                 debug!("Got {:?} instead of object", value);
                 return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
@@ -165,7 +174,9 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Initializes a new FieldTable in this VM instance
     #[inline]
-    pub fn init_table(&mut self) -> Result<std::ptr::NonNull<CaoLangTable>, ExecutionErrorPayload> {
+    pub fn init_table(
+        &mut self,
+    ) -> Result<std::ptr::NonNull<CaoLangObject>, ExecutionErrorPayload> {
         self.runtime_data.init_table()
     }
 
@@ -241,10 +252,9 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let res = self.init_table().map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
-                    self.stack_push(Value::Object(res.as_ptr()))
-                        .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?;
+                    self.stack_push(Value::Object(res)).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
                 }
                 Instruction::GetProperty => {
                     let key = self.stack_pop();

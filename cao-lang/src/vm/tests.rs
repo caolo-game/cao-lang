@@ -43,11 +43,15 @@ fn test_can_save_and_restore_values() {
     // init an object `val` with 1 entry {'pog': 42}
     let mut obj = vm.init_table().unwrap();
     let pog = vm.init_string("pog").unwrap();
-    unsafe { obj.as_mut() }
-        .insert(Value::String(pog), 42.into())
-        .unwrap();
+    unsafe {
+        obj.as_mut()
+            .as_table_mut()
+            .unwrap()
+            .insert(Value::String(pog), 42.into())
+            .unwrap()
+    };
 
-    let val = Value::Object(obj.as_ptr());
+    let val = Value::Object(obj);
 
     // serialize the object
     let owned = OwnedValue::from(val);

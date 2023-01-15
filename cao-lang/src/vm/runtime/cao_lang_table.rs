@@ -5,21 +5,10 @@ use crate::{
     value::Value,
 };
 
-#[derive(Debug, Clone, Copy)]
-pub enum GcMarker {
-    /// Unprocessed
-    White,
-    /// Visited
-    Gray,
-    /// Done
-    Black,
-}
-
 pub struct CaoLangTable {
     map: CaoHashMap<Value, Value, AllocProxy>,
     keys: Vec<Value>,
     alloc: AllocProxy,
-    pub marker: GcMarker,
 }
 
 impl Clone for CaoLangTable {
@@ -42,7 +31,6 @@ impl CaoLangTable {
             map: CaoHashMap::with_capacity_in(size, proxy.clone())?,
             keys: Vec::default(),
             alloc: proxy,
-            marker: GcMarker::White,
         };
         Ok(res)
     }

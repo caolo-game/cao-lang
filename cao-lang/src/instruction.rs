@@ -103,6 +103,7 @@ pub(crate) enum Instruction {
 
 impl Instruction {
     /// Returns the span of this instruction in bytecode
+    #[allow(unused)]
     pub fn span(self) -> usize {
         let data_span = match self {
             Instruction::CallLane

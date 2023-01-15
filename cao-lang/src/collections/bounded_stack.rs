@@ -102,12 +102,11 @@ mod tests {
 
     #[test]
     fn test_drops_on_clear() {
-        let mut drops = Box::pin(0);
+        let mut drops = Box::pin(0u32);
 
         struct Foo(*mut u32);
         impl Drop for Foo {
             fn drop(&mut self) {
-                assert_ne!(self.0 as *const _, std::ptr::null());
                 unsafe {
                     *self.0 += 1;
                 }
@@ -116,7 +115,7 @@ mod tests {
 
         let mut stack = BoundedStack::new(5);
         for _ in 0..5 {
-            stack.push(Foo(drops.as_mut().get_mut())).unwrap();
+            stack.push(Foo(drops.as_mut().get_mut() as *mut _)).unwrap();
         }
 
         assert_eq!(*drops, 0);

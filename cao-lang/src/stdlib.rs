@@ -257,7 +257,8 @@ mod tests {
             .unwrap();
         match result {
             Value::Object(o) => unsafe {
-                let o = o.as_mut().unwrap();
+                let o = o.as_ref();
+                let o = o.as_table().unwrap();
                 assert!(o.contains("winnie"));
                 assert_eq!(o.len(), 1);
             },
@@ -349,8 +350,9 @@ mod tests {
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
         match result {
-            Value::Object(o) => unsafe {
-                let o = o.as_mut().unwrap();
+            Value::Object(mut o) => unsafe {
+                let o = o.as_mut();
+                let o = o.as_table_mut().unwrap();
                 assert!(o.contains("winnie"));
                 for (k, v) in o.iter() {
                     let k = k.as_str().unwrap();
