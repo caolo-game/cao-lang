@@ -28,7 +28,7 @@ fn test_can_init_str() {
 
     let ptr = vm.init_string("poggers").unwrap();
 
-    let val = Value::String(ptr);
+    let val = Value::Object(ptr);
 
     let result = unsafe { val.as_str().unwrap() };
 
@@ -47,7 +47,7 @@ fn test_can_save_and_restore_values() {
         obj.as_mut()
             .as_table_mut()
             .unwrap()
-            .insert(Value::String(pog), 42.into())
+            .insert(Value::Object(pog), 42.into())
             .unwrap()
     };
 

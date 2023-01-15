@@ -16,7 +16,7 @@ use crate::{
     VariableId,
 };
 use runtime::RuntimeData;
-use std::{mem::transmute, pin::Pin, str::FromStr};
+use std::{mem::transmute, pin::Pin, ptr::NonNull, str::FromStr};
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.
@@ -52,9 +52,9 @@ impl<'a, Aux> Vm<'a, Aux> {
             OwnedValue::Nil => Value::Nil,
             OwnedValue::String(s) => {
                 let res = self.init_string(s.as_str())?;
-                Value::String(res)
+                Value::Object(res)
             }
-            OwnedValue::Object(o) => {
+            OwnedValue::Table(o) => {
                 let mut res = self.init_table()?;
                 unsafe {
                     let table = res.as_mut().as_table_mut().unwrap();
@@ -181,21 +181,11 @@ impl<'a, Aux> Vm<'a, Aux> {
     }
 
     /// Initializes a new string owned by this VM instance
-    pub fn init_string(&mut self, payload: &str) -> Result<StrPointer, ExecutionErrorPayload> {
-        unsafe {
-            let layout = std::alloc::Layout::from_size_align(4 + payload.len(), 4).unwrap();
-            let mut ptr = self
-                .runtime_data
-                .memory
-                .alloc(layout)
-                .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
-
-            let result: *mut u8 = ptr.as_mut();
-            std::ptr::write(result as *mut u32, payload.len() as u32);
-            std::ptr::copy(payload.as_ptr(), result.add(4), payload.len());
-
-            Ok(StrPointer(ptr.as_ptr()))
-        }
+    pub fn init_string(
+        &mut self,
+        payload: &str,
+    ) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
+        self.runtime_data.init_string(payload)
     }
 
     /// This mostly assumes that program is valid, produced by the compiler.
@@ -243,10 +233,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             let instr: Instruction = unsafe { transmute(instr) };
             let src_ptr = instr_ptr;
             instr_ptr += 1;
-            debug!(
-                "Executing: {:?} instr_ptr: {} Stack: {}",
-                instr, instr_ptr, self.runtime_data.value_stack
-            );
+            debug!("Executing: {instr:?} instr_ptr: {instr_ptr}");
             match instr {
                 Instruction::InitTable => {
                     let res = self.init_table().map_err(|err| {
@@ -548,6 +535,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     })?;
                 }
             }
+            debug!("Stack: {}", self.runtime_data.value_stack);
         }
 
         Err(payload_to_error(

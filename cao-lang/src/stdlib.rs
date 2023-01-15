@@ -210,6 +210,7 @@ mod tests {
 
     use super::*;
 
+    #[tracing_test::traced_test]
     #[test]
     fn filter_test() {
         let program = Module {

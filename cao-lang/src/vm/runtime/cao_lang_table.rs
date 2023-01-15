@@ -36,11 +36,11 @@ impl CaoLangTable {
     }
 
     pub fn len(&self) -> usize {
-        self.map.len()
+        self.keys.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
+        self.len() == 0
     }
 
     pub fn from_iter(
@@ -58,10 +58,17 @@ impl CaoLangTable {
     }
 
     pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionErrorPayload> {
-        self.map
-            .insert(key, value)
-            .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
-        self.keys.push(key);
+        match self.map.get_mut(&key) {
+            Some(r) => {
+                *r = value;
+            }
+            None => {
+                self.map
+                    .insert(key, value)
+                    .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
+                self.keys.push(key);
+            }
+        }
 
         Ok(())
     }

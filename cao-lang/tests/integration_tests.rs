@@ -101,9 +101,8 @@ fn test_string_param() {
         res: String,
     }
 
-    let fun = move |vm: &mut Vm<State>, arg: cao_lang::StrPointer| {
-        let vm_str = unsafe { arg.get_str().unwrap().to_string() };
-        vm.auxiliary_data.res = vm_str;
+    let fun = move |vm: &mut Vm<State>, arg: &str| {
+        vm.auxiliary_data.res = arg.to_string();
         Ok(())
     };
 
@@ -536,8 +535,8 @@ fn jump_lane_w_params_test() {
     dbg!(foo, bar);
     assert!(matches!(foo, Value::Integer(42)));
     match bar {
-        Value::String(s) => unsafe {
-            let val = s.get_str().unwrap();
+        Value::Object(s) => unsafe {
+            let val = s.as_ref().as_str().unwrap();
             assert_eq!(val, "winnie the pooh");
         },
         _ => panic!("Unexpected value set for bar {:?}", bar),
@@ -1151,7 +1150,7 @@ fn read_property_shorthand_test() {
         let table = table_ptr.as_mut().as_table_mut().unwrap();
         let key = vm.init_string("foo").unwrap();
         table
-            .insert(Value::String(key), Value::Integer(42))
+            .insert(Value::Object(key), Value::Integer(42))
             .unwrap();
         vm.stack_push(Value::Object(table_ptr)).unwrap();
     }

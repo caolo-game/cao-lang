@@ -1,4 +1,5 @@
 pub mod cao_lang_object;
+pub mod cao_lang_string;
 pub mod cao_lang_table;
 
 use std::{alloc::Layout, pin::Pin, ptr::NonNull};
@@ -11,7 +12,10 @@ use crate::{
 };
 use tracing::debug;
 
-use self::cao_lang_object::{CaoLangObject, GcMarker};
+use self::{
+    cao_lang_object::{CaoLangObject, GcMarker},
+    cao_lang_string::CaoLangString,
+};
 
 pub struct RuntimeData {
     pub(crate) value_stack: ValueStack,
@@ -81,6 +85,44 @@ impl RuntimeData {
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
+            Ok(obj_ptr)
+        }
+    }
+
+    pub fn init_string(
+        &mut self,
+        payload: &str,
+    ) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
+        unsafe {
+            let obj_ptr = self
+                .memory
+                .alloc(Layout::new::<CaoLangObject>())
+                .map_err(|err| {
+                    debug!("Failed to allocate table {:?}", err);
+                    ExecutionErrorPayload::OutOfMemory
+                })?;
+
+            let layout = CaoLangString::layout(payload.len());
+            let mut ptr = self
+                .memory
+                .alloc(layout)
+                .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
+
+            let result: *mut u8 = ptr.as_mut();
+            std::ptr::copy(payload.as_ptr(), result, payload.len());
+
+            let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
+            let obj = CaoLangObject {
+                marker: GcMarker::White,
+                body: cao_lang_object::CaoLangObjectBody::String(CaoLangString {
+                    len: payload.len(),
+                    ptr,
+                    alloc: self.memory.clone(),
+                }),
+            };
+            std::ptr::write(obj_ptr.as_ptr(), obj);
+            self.object_list.push(obj_ptr);
+
             Ok(obj_ptr)
         }
     }
@@ -185,6 +227,9 @@ impl RuntimeData {
                         }
                     }
                 }
+                cao_lang_object::CaoLangObjectBody::String(_) => {
+                    // strings don't have children
+                }
             }
         }
         // sweep
@@ -224,7 +269,7 @@ mod tests {
         let s = vm.init_string("poggers").unwrap();
         let o = unsafe { vm.init_table().unwrap().as_mut().as_table_mut().unwrap() };
 
-        o.insert(Value::String(s), Value::Integer(42)).unwrap();
+        o.insert(Value::Object(s), Value::Integer(42)).unwrap();
 
         let res = o.get("poggers").unwrap();
 

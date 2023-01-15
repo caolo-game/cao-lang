@@ -84,14 +84,6 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let len = match val {
         Value::Nil => 0,
         Value::Function { .. } | Value::Integer(_) | Value::Real(_) => 1,
-        Value::String(s) => {
-            let st = unsafe {
-                s.get_str().ok_or_else(|| {
-                    ExecutionErrorPayload::invalid_argument("String not found".to_string())
-                })?
-            };
-            st.len() as i64
-        }
         Value::Object(t) => unsafe { t.as_ref().len() as i64 },
     };
     vm.stack_push(len)?;
@@ -108,7 +100,7 @@ pub fn instr_string_literal<T>(
         .ok_or(ExecutionErrorPayload::InvalidArgument { context: None })?;
 
     let ptr = vm.init_string(payload)?;
-    vm.stack_push(Value::String(ptr))?;
+    vm.stack_push(Value::Object(ptr))?;
 
     Ok(())
 }

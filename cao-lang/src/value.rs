@@ -1,6 +1,5 @@
 use crate::prelude::{CaoLangTable, Handle};
 use crate::vm::runtime::cao_lang_object::{CaoLangObject, CaoLangObjectBody};
-use crate::StrPointer;
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 use std::ptr::NonNull;
@@ -8,7 +7,6 @@ use std::ptr::NonNull;
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
     Nil,
-    String(StrPointer),
     Object(NonNull<CaoLangObject>),
     Integer(i64),
     Real(f64),
@@ -19,11 +17,7 @@ impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let (this, other) = self.cast_match(*other);
         match (this, other) {
-            (Value::String(a), Value::String(b)) => unsafe {
-                let a = a.get_str()?;
-                let b = b.get_str()?;
-                a.partial_cmp(b)
-            },
+            (Value::Object(a), Value::Object(b)) => unsafe { a.as_ref().partial_cmp(b.as_ref()) },
             (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(&b),
             (Value::Real(a), Value::Real(b)) => a.partial_cmp(&b),
             _ => None,
@@ -35,20 +29,15 @@ impl std::hash::Hash for Value {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             Value::Nil => 0u8.hash(state),
-            Value::String(s) => unsafe {
-                if let Some(s) = s.get_str() {
-                    s.hash(state);
-                }
-            },
             Value::Integer(i) => {
                 i.hash(state);
             }
             Value::Real(f) => {
                 f.to_bits().hash(state);
             }
-            Value::Object(o) => {
-                (*o).hash(state);
-            }
+            Value::Object(o) => unsafe {
+                o.as_ref().hash(state);
+            },
             Value::Function { hash, arity } => {
                 hash.value().hash(state);
                 arity.hash(state);
@@ -61,7 +50,6 @@ impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (Value::Nil, Value::Nil) => true,
-            (Value::String(lhs), Value::String(rhs)) => unsafe { lhs.get_str() == rhs.get_str() },
             (Value::Object(lhs), Value::Object(rhs)) => unsafe { lhs.as_ref().eq(rhs.as_ref()) },
             (Value::Integer(lhs), Value::Integer(rhs)) => lhs == rhs,
             (Value::Real(lhs), Value::Real(rhs)) => lhs == rhs,
@@ -81,10 +69,14 @@ impl Eq for Value {}
 /// // init an object `val` with 1 entry {'pog': 42}
 /// let mut obj = vm.init_table().unwrap();
 /// let pog = vm.init_string("pog").unwrap();
-/// unsafe { obj.as_mut() }
-///     .insert(Value::String(pog), 42.into())
-///     .unwrap();
-/// let val = Value::Object(obj.as_ptr());
+/// unsafe { 
+///     obj.as_mut() 
+///         .as_table_mut()
+///         .unwrap()
+///         .insert(Value::Object(pog), 42.into())
+///         .unwrap();
+/// }
+/// let val = Value::Object(obj);
 ///
 /// let owned = OwnedValue::from(val);
 ///
@@ -110,7 +102,7 @@ impl Eq for Value {}
 pub enum OwnedValue {
     Nil,
     String(String),
-    Object(Vec<OwnedEntry>),
+    Table(Vec<OwnedEntry>),
     Integer(i64),
     Real(f64),
     Function { hash: Handle, arity: u32 },
@@ -133,20 +125,19 @@ impl From<Value> for OwnedValue {
     fn from(v: Value) -> Self {
         match v {
             Value::Nil => Self::Nil,
-            Value::String(_) => Self::String(unsafe { v.as_str() }.unwrap().to_owned()),
-            Value::Object(ptr) => Self::Object({
-                unsafe {
-                    match &ptr.as_ref().body {
-                        CaoLangObjectBody::Table(t) => t
-                            .iter()
+            Value::Object(ptr) => unsafe {
+                match &ptr.as_ref().body {
+                    CaoLangObjectBody::Table(t) => Self::Table(
+                        t.iter()
                             .map(|(k, v)| OwnedEntry {
                                 key: (*k).into(),
                                 value: (*v).into(),
                             })
                             .collect(),
-                    }
+                    ),
+                    CaoLangObjectBody::String(s) => Self::String(s.as_str().to_owned()),
                 }
-            }),
+            },
             Value::Integer(x) => Self::Integer(x),
             Value::Real(x) => Self::Real(x),
             Value::Function { hash, arity } => Self::Function { hash, arity },
@@ -164,7 +155,6 @@ impl Value {
     #[inline]
     pub fn as_bool(self) -> bool {
         match self {
-            Value::String(i) => !i.0.is_null(),
             Value::Object(i) => unsafe { !i.as_ref().is_empty() },
             Value::Integer(i) => i != 0,
             Value::Real(i) => i != 0.0,
@@ -177,8 +167,7 @@ impl Value {
     pub fn type_name(self) -> &'static str {
         match self {
             Value::Nil => "Nil",
-            Value::String(_) => "String",
-            Value::Object(_) => "Table",
+            Value::Object(o) => unsafe { o.as_ref().type_name() },
             Value::Integer(_) => "Integer",
             Value::Real(_) => "Real",
             Value::Function { .. } => "Function",
@@ -188,11 +177,6 @@ impl Value {
     #[inline]
     pub fn is_float(self) -> bool {
         matches!(self, Value::Real(_))
-    }
-
-    #[inline]
-    pub fn is_str(self) -> bool {
-        matches!(self, Value::String(_))
     }
 
     /// # Safety
@@ -206,11 +190,7 @@ impl Value {
     /// Returns `None` if the value is not a string, or points to an invalid string
     pub unsafe fn as_str<'a>(self) -> Option<&'a str> {
         match self {
-            Value::String(StrPointer(ptr)) => {
-                let len = *(ptr as *const u32);
-                let ptr = ptr.add(4);
-                std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
-            }
+            Value::Object(o) => unsafe { o.as_ref().as_str() },
             _ => None,
         }
     }
@@ -289,12 +269,12 @@ impl Value {
     }
 }
 
-impl TryFrom<Value> for StrPointer {
+impl TryFrom<Value> for &str {
     type Error = Value;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            Value::String(ptr) => Ok(ptr),
+            Value::Object(o) => unsafe { o.as_ref().as_str().ok_or(value) },
             _ => Err(value),
         }
     }
@@ -349,7 +329,6 @@ impl TryFrom<Value> for i64 {
 
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
-            Value::String(i) => Ok(i.0 as i64),
             Value::Integer(i) => Ok(i),
             _ => Err(v),
         }
@@ -429,7 +408,7 @@ impl Div for Value {
 impl std::borrow::Borrow<str> for Value {
     fn borrow(&self) -> &str {
         match self {
-            Value::String(s) => unsafe { s.get_str().unwrap_or("") },
+            Value::Object(s) => unsafe { s.as_ref().as_str().unwrap_or("") },
             _ => "",
         }
     }

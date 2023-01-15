@@ -70,7 +70,7 @@ fn test_native_w_table_input() {
 
     let myboi = move |vm: &mut Vm<State>, table: &CaoLangTable| {
         let key = vm.init_string("boi").unwrap();
-        let res = table.get(&Value::String(key)).copied().unwrap_or_default();
+        let res = table.get(&Value::Object(key)).copied().unwrap_or_default();
         if let Value::Integer(i) = res {
             vm.get_aux_mut().param = i;
         } else {
