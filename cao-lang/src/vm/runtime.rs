@@ -143,7 +143,9 @@ impl RuntimeData {
     }
 
     fn clear_objects(&mut self) {
-        self.object_list.clear();
+        for obj_ptr in std::mem::take(&mut self.object_list).into_iter() {
+            self.free_object(obj_ptr);
+        }
     }
 
     pub fn set_memory_limit(&mut self, capacity: usize) {
