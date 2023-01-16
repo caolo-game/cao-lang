@@ -683,7 +683,6 @@ impl<'a> Compiler<'a> {
             | Card::Len
             | Card::GetProperty
             | Card::SetProperty
-            | Card::ClearStack
             | Card::DynamicJump
             | Card::AppendTable
             | Card::PopTable
