@@ -303,9 +303,9 @@ impl Card {
             Card::CallNative(j) => return j.args.0.get_mut(i),
             Card::Call(j) => return j.args.0.get_mut(i),
             Card::DynamicCall(j) => {
-                return (i == j.args.0.len())
+                return (i == 0)
                     .then_some(&mut j.lane)
-                    .or_else(|| j.args.0.get_mut(i))
+                    .or_else(|| j.args.0.get_mut(i - 1))
             }
             Card::Array(cards) => return cards.get_mut(i),
             Card::Function(_)
@@ -383,9 +383,7 @@ impl Card {
             Card::CallNative(j) => return j.args.0.get(i),
             Card::Call(j) => return j.args.0.get(i),
             Card::DynamicCall(j) => {
-                return (i == j.args.0.len())
-                    .then_some(&j.lane)
-                    .or_else(|| j.args.0.get(i))
+                return (i == 0).then_some(&j.lane).or_else(|| j.args.0.get(i - 1))
             }
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
@@ -471,10 +469,10 @@ impl Card {
             Card::CallNative(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
             Card::Call(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
             Card::DynamicCall(j) => {
-                if i == j.args.0.len() {
+                if i == 0 {
                     res = std::mem::replace(&mut j.lane, Card::ScalarNil);
-                } else if i < j.args.0.len() {
-                    res = j.args.0.remove(i);
+                } else if i - 1 < j.args.0.len() {
+                    res = j.args.0.remove(i - 1);
                 } else {
                     return None;
                 }
@@ -532,7 +530,63 @@ impl Card {
                     *c = card;
                 }
             }
-            _ => return Err(card),
+            Card::Add(_)
+            | Card::Sub(_)
+            | Card::Mul(_)
+            | Card::Div(_)
+            | Card::Less(_)
+            | Card::LessOrEq(_)
+            | Card::Equals(_)
+            | Card::NotEquals(_)
+            | Card::And(_)
+            | Card::Or(_)
+            | Card::Xor(_)
+            | Card::AppendTable(_)
+            | Card::Get(_)
+            | Card::SetProperty(_)
+            | Card::PopTable(_)
+            | Card::Not(_)
+            | Card::Return(_)
+            | Card::Len(_)
+            | Card::SetGlobalVar(_)
+            | Card::SetVar(_)
+            | Card::Repeat(_)
+            | Card::GetProperty(_) => match self.get_child_mut(i) {
+                Some(c) => *c = card,
+                None => return Err(card),
+            },
+            Card::CallNative(j) => {
+                (i <= j.args.0.len()).then(|| j.args.0.insert(i, card));
+            }
+            Card::Call(j) => {
+                (i <= j.args.0.len()).then(|| j.args.0.insert(i, card));
+            }
+            Card::DynamicCall(j) => {
+                if i == 0 {
+                    j.lane = card;
+                } else if i - 1 <= j.args.0.len() {
+                    j.args.0.insert(i - 1, card);
+                } else {
+                    return Err(card);
+                }
+            }
+
+            Card::Array(children) => {
+                if i <= children.len() {
+                    children.insert(i, card);
+                } else {
+                    return Err(card);
+                }
+            }
+            Card::Function(_)
+            | Card::ReadVar(_)
+            | Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::Pass
+            | Card::ScalarNil
+            | Card::CreateTable
+            | Card::Abort => return Err(card),
         }
         Ok(())
     }
