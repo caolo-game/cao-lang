@@ -738,7 +738,14 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.push_instruction(Instruction::PopTable);
             }
-            Card::ScalarNil | Card::Abort | Card::Pass | Card::CreateTable | Card::DynamicJump => { /* These cards translate to a single instruction */
+            Card::DynamicCall(jump) => {
+                self.compile_subexpr(jump.args.0.as_slice())?;
+                self.current_index.push_subindex(jump.args.0.len() as u32);
+                self.process_card(&jump.lane)?;
+                self.current_index.pop_subindex();
+                self.push_instruction(Instruction::CallLane);
+            }
+            Card::ScalarNil | Card::Abort | Card::Pass | Card::CreateTable => { /* These cards translate to a single instruction */
             }
         }
         Ok(())

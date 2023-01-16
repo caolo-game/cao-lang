@@ -1055,7 +1055,7 @@ fn callback_test() {
                 "call_callback".to_string(),
                 Lane::default()
                     .with_arg("cb")
-                    .with_cards(vec![Card::read_var("cb"), Card::DynamicJump]),
+                    .with_cards(vec![Card::dynamic_call(Card::read_var("cb"), vec![])]),
             ),
             (
                 "callback".to_string(),

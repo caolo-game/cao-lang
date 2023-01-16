@@ -66,7 +66,7 @@ pub enum Card {
     /// Single card that decomposes into multiple cards
     CompositeCard(Box<CompositeCard>),
     /// Jump to the function that's on the top of the stack
-    DynamicJump,
+    DynamicCall(Box<DynamicJump>),
     /// Get the given integer row of a table
     /// [Table, Index]
     Get(BinaryExpression),
@@ -75,6 +75,23 @@ pub enum Card {
     PopTable(UnaryExpression),
     /// Create a Table from the results of the provided cards
     Array(Vec<Card>),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Arguments(pub Vec<Card>);
+
+impl From<Vec<Card>> for Arguments {
+    fn from(value: Vec<Card>) -> Self {
+        Arguments(value)
+    }
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DynamicJump {
+    pub args: Arguments,
+    pub lane: Card,
 }
 
 #[derive(Debug, Clone)]
@@ -136,7 +153,7 @@ impl Card {
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
-            Card::DynamicJump => "Dynamic Jump",
+            Card::DynamicCall(_) => "Dynamic Jump",
             Card::Get(_) => "Get",
             Card::AppendTable(_) => "Append to Table",
             Card::PopTable(_) => "Pop from Table",
@@ -189,7 +206,7 @@ impl Card {
             Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return(_) => None,
             Card::Len(_) => None,
-            Card::DynamicJump => Some(Instruction::CallLane),
+            Card::DynamicCall(_) => None,
             Card::Get(_) => None,
             Card::AppendTable(_) => None,
             Card::PopTable(_) => None,
@@ -499,6 +516,13 @@ impl Card {
 
     pub fn get_property(table: Self, key: Self) -> Self {
         Card::GetProperty(Box::new([table, key]))
+    }
+
+    pub fn dynamic_call(lane: Card, args: impl Into<Arguments>) -> Self {
+        Self::DynamicCall(Box::new(DynamicJump {
+            args: args.into(),
+            lane,
+        }))
     }
 }
 

@@ -22,11 +22,14 @@ pub fn filter() -> Lane {
                 body: Box::new(Card::composite_card(
                     "_",
                     vec![
-                        Card::read_var("i"),
-                        Card::read_var("v"),
-                        Card::read_var("k"),
-                        Card::read_var("callback"),
-                        Card::DynamicJump,
+                        Card::dynamic_call(
+                            Card::read_var("callback"),
+                            vec![
+                                Card::read_var("i"),
+                                Card::read_var("v"),
+                                Card::read_var("k"),
+                            ],
+                        ),
                         Card::IfTrue(Box::new(Card::set_property(
                             Card::read_var("v"),
                             Card::read_var("res"),
@@ -55,11 +58,14 @@ pub fn any() -> Lane {
                 body: Box::new(Card::composite_card(
                     "_",
                     vec![
-                        Card::read_var("i"),
-                        Card::read_var("v"),
-                        Card::read_var("k"),
-                        Card::read_var("callback"),
-                        Card::DynamicJump,
+                        Card::dynamic_call(
+                            Card::read_var("callback"),
+                            vec![
+                                Card::read_var("i"),
+                                Card::read_var("v"),
+                                Card::read_var("k"),
+                            ],
+                        ),
                         Card::IfTrue(Box::new(Card::composite_card(
                             "_",
                             vec![Card::return_card(Card::read_var("k"))],
@@ -90,13 +96,14 @@ pub fn map() -> Lane {
                     vec![Card::set_property(
                         Card::composite_card(
                             "",
-                            vec![
-                                Card::read_var("i"),
-                                Card::read_var("v"),
-                                Card::read_var("k"),
+                            vec![Card::dynamic_call(
                                 Card::read_var("callback"),
-                                Card::DynamicJump,
-                            ],
+                                vec![
+                                    Card::read_var("i"),
+                                    Card::read_var("v"),
+                                    Card::read_var("k"),
+                                ],
+                            )],
                         ),
                         Card::read_var("res"),
                         Card::read_var("k"),
@@ -130,9 +137,13 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
-            Card::Get(Box::new([Card::read_var("iterable"), Card::ScalarInt(0)])),
-            Card::read_var("key_function"),
-            Card::DynamicJump,
+            Card::dynamic_call(
+                Card::read_var("key_function"),
+                vec![Card::Get(Box::new([
+                    Card::read_var("iterable"),
+                    Card::ScalarInt(0),
+                ]))],
+            ),
             Card::set_var("result"),
             Card::ForEach(Box::new(ForEach {
                 i: None,
@@ -142,10 +153,13 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
                 body: Box::new(Card::composite_card(
                     "_",
                     vec![
-                        Card::read_var("v"),
-                        Card::read_var("k"),
-                        Card::read_var("key_function"),
-                        Card::Less(Box::new([Card::DynamicJump, Card::read_var("result")])),
+                        Card::Less(Box::new([
+                            Card::dynamic_call(
+                                Card::read_var("key_function"),
+                                vec![Card::read_var("v"), Card::read_var("k")],
+                            ),
+                            Card::read_var("result"),
+                        ])),
                         on_less_card("v", "result"),
                     ],
                 )),
