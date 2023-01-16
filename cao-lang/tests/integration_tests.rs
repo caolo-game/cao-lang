@@ -552,8 +552,7 @@ fn len_test_empty() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::Len)
+                .with_card(Card::Len(Box::new(Card::CreateTable)))
                 .with_card(Card::set_global_var("g_result")),
         )]
         .into(),
@@ -599,8 +598,7 @@ fn len_test_happy() {
                 .with_card(Card::StringLiteral("basdasd".to_string()))
                 .with_card(Card::SetProperty)
                 // len
-                .with_card(Card::read_var(t))
-                .with_card(Card::Len)
+                .with_card(Card::Len(Box::new(Card::read_var(t))))
                 .with_card(Card::set_global_var("g_result")),
         )]
         .into(),

@@ -661,6 +661,12 @@ impl<'a> Compiler<'a> {
                 // push the table to the stack
                 self.read_local_var(table_var);
             }
+            Card::Len(exp) => {
+                self.current_index.push_subindex(0);
+                self.process_card(exp)?;
+                self.current_index.pop_subindex();
+                self.push_instruction(Instruction::Len);
+            }
             Card::ScalarNil
             | Card::Return
             | Card::And
@@ -679,7 +685,6 @@ impl<'a> Compiler<'a> {
             | Card::Mul
             | Card::Div
             | Card::CreateTable
-            | Card::Len
             | Card::GetProperty
             | Card::SetProperty
             | Card::DynamicJump

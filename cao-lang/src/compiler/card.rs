@@ -29,7 +29,7 @@ pub enum Card {
     ScalarNil,
     CreateTable,
     Abort,
-    Len,
+    Len(Box<Card>),
     /// Pop the table, key, value from the stack
     /// Insert value at key into the table
     SetProperty,
@@ -113,7 +113,7 @@ impl Card {
             Card::Or => "Either",
             Card::Xor => "Exclusive Or",
             Card::Abort => "Abort",
-            Card::Len => "Len",
+            Card::Len(_) => "Len",
             Card::ScalarInt(_) => "ScalarInt",
             Card::ScalarFloat(_) => "ScalarFloat",
             Card::StringLiteral(_) => "StringLiteral",
@@ -183,7 +183,7 @@ impl Card {
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return => Some(Instruction::Return),
-            Card::Len => Some(Instruction::Len),
+            Card::Len(_) => None,
             Card::DynamicJump => Some(Instruction::CallLane),
             Card::Get => Some(Instruction::NthRow),
             Card::AppendTable => Some(Instruction::AppendTable),
@@ -499,3 +499,6 @@ impl From<CompositeCard> for Card {
         Card::CompositeCard(Box::new(value))
     }
 }
+
+pub type UnaryExpression = Box<Card>;
+pub type BinaryExpression = Box<[Card; 2]>;
