@@ -668,7 +668,6 @@ impl<'a> Compiler<'a> {
             | Card::Not
             | Card::Or
             | Card::Xor
-            | Card::Pop
             | Card::Equals
             | Card::Less
             | Card::LessOrEq
