@@ -10,19 +10,27 @@ lanes:
         #  f2: 5,
         #  f3: 7,
         # }
-        - !CreateTable
-        - !SetVar t
-        - !ScalarInt 3
-        - !SetVar t.f1
-        - !ScalarInt 5
-        - !SetVar t.f2
-        - !ScalarInt 7
-        - !SetVar t.f3 # set result and g_iters to zero
+        - !SetVar
+            name: t
+            value: !CreateTable
+        - !SetVar
+            name: t.f1
+            value: !ScalarInt 3
+        - !SetVar
+            name: t.f2
+            value:
+              !ScalarInt 5
+              
+        - !SetVar 
+            name: t.f3 # set result and g_iters to zero
+            value: !ScalarInt 7
 
-        - !ScalarInt 0
-        - !SetGlobalVar g_result
-        - !ScalarInt 0
-        - !SetGlobalVar g_iters
+        - !SetGlobalVar 
+            name: g_result
+            value: !ScalarInt 0
+        - !SetGlobalVar
+            name: g_iters
+            value: !ScalarInt 0
         # --- init done ---
         - !ForEach
           k: key
@@ -58,17 +66,22 @@ lanes:
         - "key"
         - "table"
       cards:
-        - !Add
-          - !CompositeCard
-            ty: ""
-            cards:
-              - !GetProperty
-                - !ReadVar table
-                - !ReadVar key
-          - !ReadVar g_result
-        - !SetGlobalVar g_result
+        - !SetGlobalVar
+            name: g_result
+            value:
+              !Add
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !GetProperty
+                      - !ReadVar table
+                      - !ReadVar key
+                - !ReadVar g_result
+
           # add 1 to g_iters
-        - !Add
-          - !ScalarInt 1
-          - !ReadVar g_iters
-        - !SetGlobalVar g_iters
+        - !SetGlobalVar 
+            name: g_iters
+            value: 
+              !Add
+                - !ScalarInt 1
+                - !ReadVar g_iters

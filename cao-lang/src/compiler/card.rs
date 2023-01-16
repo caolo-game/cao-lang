@@ -51,8 +51,8 @@ pub enum Card {
     ///
     /// Creates a pointer to the given cao-lang function
     Function(String),
-    SetGlobalVar(VarName),
-    SetVar(VarName),
+    SetGlobalVar(Box<SetVar>),
+    SetVar(Box<SetVar>),
     ReadVar(VarName),
     /// Pops the stack for an Integer N and repeats the `body` N times
     Repeat {
@@ -75,6 +75,13 @@ pub enum Card {
     PopTable(UnaryExpression),
     /// Create a Table from the results of the provided cards
     Array(Vec<Card>),
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SetVar {
+    pub name: VarName,
+    pub value: Card,
 }
 
 #[derive(Debug, Clone)]
@@ -209,7 +216,7 @@ impl Card {
             Card::IfFalse(_) => None,
             Card::Call(_) => None,
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
-            Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
+            Card::SetGlobalVar(_) => None,
             Card::ScalarNil => Some(Instruction::ScalarNil),
             Card::Return(_) => None,
             Card::Len(_) => None,
@@ -295,8 +302,11 @@ impl Card {
         }))
     }
 
-    pub fn set_var(s: impl Into<String>) -> Self {
-        Self::SetVar(s.into())
+    pub fn set_var(s: impl Into<String>, value: Card) -> Self {
+        Self::SetVar(Box::new(SetVar {
+            name: s.into(),
+            value,
+        }))
     }
 
     pub fn call_native(s: impl Into<InputString>) -> Self {
@@ -307,8 +317,11 @@ impl Card {
         Self::ReadVar(s.into())
     }
 
-    pub fn set_global_var(s: impl Into<String>) -> Self {
-        Self::SetGlobalVar(s.into())
+    pub fn set_global_var(s: impl Into<String>, value: Card) -> Self {
+        Self::SetGlobalVar(Box::new(SetVar {
+            name: s.into(),
+            value,
+        }))
     }
 
     pub fn scalar_int(i: i64) -> Self {

@@ -546,7 +546,8 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let var = var.as_str();
+                self.compile_subexpr(slice::from_ref(&var.value))?;
+                let var = var.name.as_str();
                 match var.rsplit_once('.') {
                     Some((read_props, set_prop)) => {
                         self.read_var_card(read_props)?;
@@ -564,7 +565,10 @@ impl<'a> Compiler<'a> {
                     }
                 }
             }
-            Card::SetGlobalVar(variable) => {
+            Card::SetGlobalVar(var) => {
+                self.compile_subexpr(slice::from_ref(&var.value))?;
+                self.push_instruction(Instruction::SetGlobalVar);
+                let variable = var.name.as_str();
                 let next_var = &mut self.next_var;
                 if variable.is_empty() {
                     return Err(self.error(CompilationErrorPayload::EmptyVariable));

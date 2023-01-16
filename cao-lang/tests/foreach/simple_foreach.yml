@@ -5,8 +5,9 @@ lanes:
     - arguments: []
       cards:
         # --- init the example table ---
-        - !CreateTable
-        - !SetVar t
+        - !SetVar
+            name: t
+            value: !CreateTable
         - !SetProperty
           - !ScalarInt 3
           - !ReadVar t
@@ -19,8 +20,9 @@ lanes:
           - !ScalarInt 7
           - !ReadVar t
           - !StringLiteral f3
-        - !ScalarInt 0
-        - !SetGlobalVar g_result
+        - !SetGlobalVar 
+            name: g_result
+            value: !ScalarInt 0
         # --- init done ---
         - !ForEach
           k: key
@@ -39,12 +41,14 @@ lanes:
         - "key"
         - "table"
       cards:
-        - !Add
-          - !CompositeCard
-            ty: ""
-            cards:
-              - !GetProperty
-                - !ReadVar table
-                - !ReadVar key
-          - !ReadVar g_result
-        - !SetGlobalVar g_result
+        - !SetGlobalVar
+            name: g_result
+            value: 
+              !Add
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !GetProperty
+                      - !ReadVar table
+                      - !ReadVar key
+                - !ReadVar g_result

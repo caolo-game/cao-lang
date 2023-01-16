@@ -5,11 +5,12 @@ lanes:
     - arguments:
         - N
       cards:
-        - !ReadVar N
-        - !Call 
-            lane_name: fib
-            args: []
-        - !SetGlobalVar result
+        - !SetGlobalVar
+            name: result
+            value: 
+              !Call 
+                  lane_name: fib
+                  args: [ !ReadVar N ]
 
   - - fib
     - arguments:

@@ -12,8 +12,7 @@ pub fn filter() -> Lane {
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
-            Card::CreateTable,
-            Card::set_var("res"),
+            Card::set_var("res", Card::CreateTable),
             Card::ForEach(Box::new(ForEach {
                 i: Some("i".to_string()),
                 k: Some("k".to_string()),
@@ -48,8 +47,7 @@ pub fn any() -> Lane {
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
-            Card::CreateTable,
-            Card::set_var("res"),
+            Card::set_var("res", Card::CreateTable),
             Card::ForEach(Box::new(ForEach {
                 i: Some("i".to_string()),
                 k: Some("k".to_string()),
@@ -84,8 +82,7 @@ pub fn map() -> Lane {
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
-            Card::CreateTable,
-            Card::set_var("res"),
+            Card::set_var("res", Card::CreateTable),
             Card::ForEach(Box::new(ForEach {
                 i: Some("i".to_string()),
                 k: Some("k".to_string()),
@@ -137,14 +134,16 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
-            Card::dynamic_call(
-                Card::read_var("key_function"),
-                vec![Card::Get(Box::new([
-                    Card::read_var("iterable"),
-                    Card::ScalarInt(0),
-                ]))],
+            Card::set_var(
+                "result",
+                Card::dynamic_call(
+                    Card::read_var("key_function"),
+                    vec![Card::Get(Box::new([
+                        Card::read_var("iterable"),
+                        Card::ScalarInt(0),
+                    ]))],
+                ),
             ),
-            Card::set_var("result"),
             Card::ForEach(Box::new(ForEach {
                 i: None,
                 k: Some("k".to_string()),
@@ -170,21 +169,11 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Lane {
-    minmax_by_key(|var, res| {
-        Card::IfTrue(Box::new(Card::composite_card(
-            "_",
-            vec![Card::read_var(var), Card::set_var(res)],
-        )))
-    })
+    minmax_by_key(|var, res| Card::IfTrue(Box::new(Card::set_var(res, Card::read_var(var)))))
 }
 
 pub fn max_by_key() -> Lane {
-    minmax_by_key(|var, res| {
-        Card::IfFalse(Box::new(Card::composite_card(
-            "_",
-            vec![Card::read_var(var), Card::set_var(res)],
-        )))
-    })
+    minmax_by_key(|var, res| Card::IfFalse(Box::new(Card::set_var(res, Card::read_var(var)))))
 }
 
 /// A (key, value) function that returns the value given
@@ -229,8 +218,7 @@ mod tests {
                 (
                     "main".to_string(),
                     Lane::default().with_cards(vec![
-                        Card::CreateTable,
-                        Card::set_var("t"),
+                        Card::set_var("t", Card::CreateTable),
                         Card::set_property(
                             Card::scalar_int(1),
                             Card::read_var("t"),
@@ -242,11 +230,13 @@ mod tests {
                             Card::string_card("pooh"),
                         ),
                         // call filter
-                        Card::call_function(
-                            "filter",
-                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                        Card::set_global_var(
+                            "g_result",
+                            Card::call_function(
+                                "filter",
+                                vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                            ),
                         ),
-                        Card::set_global_var("g_result"),
                     ]),
                 ),
                 (
@@ -326,8 +316,7 @@ mod tests {
                 (
                     "main".to_string(),
                     Lane::default().with_cards(vec![
-                        Card::CreateTable,
-                        Card::set_var("t"),
+                        Card::set_var("t", Card::CreateTable),
                         Card::set_property(
                             Card::scalar_int(1),
                             Card::read_var("t"),
@@ -339,11 +328,13 @@ mod tests {
                             Card::string_card("pooh"),
                         ),
                         // call filter
-                        Card::call_function(
-                            "map",
-                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                        Card::set_global_var(
+                            "g_result",
+                            Card::call_function(
+                                "map",
+                                vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                            ),
                         ),
-                        Card::set_global_var("g_result"),
                     ]),
                 ),
                 (
@@ -390,17 +381,15 @@ mod tests {
             lanes: vec![(
                 "main".to_string(),
                 Lane::default().with_cards(vec![
-                    Card::CreateTable,
-                    Card::set_var("t"),
-                    Card::scalar_int(1),
-                    Card::set_var("t.winnie"),
-                    Card::scalar_int(2),
-                    Card::set_var("t.pooh"),
-                    Card::scalar_int(3),
-                    Card::set_var("t.tiggers"),
+                    Card::set_var("t", Card::CreateTable),
+                    Card::set_var("t.winnie", Card::scalar_int(1)),
+                    Card::set_var("t.pooh", Card::scalar_int(2)),
+                    Card::set_var("t.tiggers", Card::scalar_int(3)),
                     // call min
-                    Card::call_function("min", vec![Card::read_var("t")]),
-                    Card::set_global_var("g_result"),
+                    Card::set_global_var(
+                        "g_result",
+                        Card::call_function("min", vec![Card::read_var("t")]),
+                    ),
                 ]),
             )],
             ..Default::default()
@@ -428,8 +417,7 @@ mod tests {
             lanes: vec![(
                 "main".to_string(),
                 Lane::default().with_cards(vec![
-                    Card::CreateTable,
-                    Card::set_var("t"),
+                    Card::set_var("t", Card::CreateTable),
                     Card::AppendTable(BinaryExpression::new([
                         Card::scalar_int(1),
                         Card::read_var("t"),
@@ -439,8 +427,10 @@ mod tests {
                         Card::read_var("t"),
                     ])),
                     // call max
-                    Card::call_function("max", vec![Card::read_var("t")]),
-                    Card::set_global_var("g_result"),
+                    Card::set_global_var(
+                        "g_result",
+                        Card::call_function("max", vec![Card::read_var("t")]),
+                    ),
                 ]),
             )],
             ..Default::default()
@@ -467,10 +457,10 @@ mod tests {
             imports: vec!["std.max".to_string()],
             lanes: vec![(
                 "main".to_string(),
-                Lane::default().with_cards(vec![
+                Lane::default().with_cards(vec![Card::set_global_var(
+                    "g_result",
                     Card::call_function("max", vec![Card::CreateTable]),
-                    Card::set_global_var("g_result"),
-                ]),
+                )]),
             )],
             ..Default::default()
         };
@@ -496,18 +486,22 @@ mod tests {
                 (
                     "main".to_string(),
                     Lane::default().with_cards(vec![
-                        Card::Array(vec![
-                            Card::scalar_int(2),
-                            Card::scalar_int(3),
-                            Card::scalar_int(1),
-                        ]),
-                        Card::set_var("t"),
-                        // call min
-                        Card::call_function(
-                            "min_by_key",
-                            vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
+                        Card::set_var(
+                            "t",
+                            Card::Array(vec![
+                                Card::scalar_int(2),
+                                Card::scalar_int(3),
+                                Card::scalar_int(1),
+                            ]),
                         ),
-                        Card::set_global_var("g_result"),
+                        // call min
+                        Card::set_global_var(
+                            "g_result",
+                            Card::call_function(
+                                "min_by_key",
+                                vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
+                            ),
+                        ),
                     ]),
                 ),
                 (

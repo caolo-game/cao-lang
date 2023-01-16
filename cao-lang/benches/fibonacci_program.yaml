@@ -6,19 +6,27 @@ lanes:
     - arguments:
         - N
       cards:
-        - !ScalarInt 0
-        - !SetGlobalVar a
-        - !ScalarInt 1
-        - !SetGlobalVar b
+        - !SetGlobalVar
+            value: !ScalarInt 0
+            name: a
+        - !SetGlobalVar 
+            name: b
+            value: !ScalarInt 1
         - !ReadVar N
         - !Repeat
           i: null
           body: !CompositeCard
             ty: ""
             cards:
-              - !ReadVar b
-              - !Add
-                - !ReadVar b
-                - !ReadVar a
-              - !SetGlobalVar b
-              - !SetGlobalVar a
+              - !SetVar
+                name: tmp
+                value: !ReadVar b
+              - !SetGlobalVar
+                  name: b
+                  value:
+                    !Add
+                      - !ReadVar b
+                      - !ReadVar a
+              - !SetGlobalVar
+                  name: a
+                  value: !ReadVar tmp

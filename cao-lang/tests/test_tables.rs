@@ -9,9 +9,7 @@ fn test_init_table() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_global_var("g_foo")),
+            Lane::default().with_card(Card::set_global_var("g_foo", Card::CreateTable)),
         )]
         .into(),
     };
@@ -36,18 +34,19 @@ fn test_get_set() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_var("foo"))
+                .with_card(Card::set_var("foo", Card::CreateTable))
                 .with_card(Card::set_property(
                     Card::ScalarInt(42),
                     Card::read_var("foo"),
                     Card::StringLiteral("bar".to_string()),
                 )) // foo.bar
-                .with_card(Card::get_property(
-                    Card::read_var("foo"),
-                    Card::StringLiteral("bar".to_string()),
-                ))
-                .with_card(Card::set_global_var("scoobie")),
+                .with_card(Card::set_global_var(
+                    "scoobie",
+                    Card::get_property(
+                        Card::read_var("foo"),
+                        Card::StringLiteral("bar".to_string()),
+                    ),
+                )),
         )]
         .into(),
     };
@@ -90,8 +89,7 @@ fn test_native_w_table_input() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_var("foo"))
+                .with_card(Card::set_var("foo", Card::CreateTable))
                 .with_card(Card::set_property(
                     Card::ScalarInt(42),
                     Card::read_var("foo"),
