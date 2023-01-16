@@ -54,12 +54,8 @@ pub enum Card {
     SetGlobalVar(Box<SetVar>),
     SetVar(Box<SetVar>),
     ReadVar(VarName),
-    /// Pops the stack for an Integer N and repeats the `body` N times
-    Repeat {
-        /// Loop variable is written into this variable
-        i: Option<VarName>,
-        body: Box<Card>,
-    },
+    /// repeats the `body` N times
+    Repeat(Box<Repeat>),
     /// Children = [condition, body]
     While(Box<[Card; 2]>),
     ForEach(Box<ForEach>),
@@ -302,6 +298,10 @@ impl Card {
         }))
     }
 
+    pub fn repeat(n: Card, i: Option<String>, body: Card) -> Self {
+        Self::Repeat(Box::new(Repeat { i, n, body }))
+    }
+
     pub fn set_var(s: impl Into<String>, value: Card) -> Self {
         Self::SetVar(Box::new(SetVar {
             name: s.into(),
@@ -347,7 +347,12 @@ impl Card {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get_mut(i)?,
-            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat(rep) => match i {
+                0 => res = &mut rep.n,
+                1 => res = &mut rep.body,
+                _ => return None,
+            },
+            Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
@@ -369,6 +374,7 @@ impl Card {
                 }
             }
             Card::While(children) | Card::IfElse(children) => return children.get_mut(i),
+            // FIXME: new cards must be indexed
             _ => return None,
         }
         Some(res)
@@ -378,7 +384,13 @@ impl Card {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get(i)?,
-            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
+
+            Card::Repeat(rep) => match i {
+                0 => res = &rep.n,
+                1 => res = &rep.body,
+                _ => return None,
+            },
+            Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
@@ -400,6 +412,7 @@ impl Card {
                 }
             }
             Card::While(children) | Card::IfElse(children) => return children.get(i),
+            // FIXME: new cards must be indexed
             _ => return None,
         }
         Some(res)
@@ -414,7 +427,12 @@ impl Card {
                 }
                 res = c.cards.remove(i);
             }
-            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::Repeat(rep) => match i {
+                0 => res = std::mem::replace(&mut rep.n, Card::ScalarInt(0)),
+                1 => res = std::mem::replace(&mut rep.body, Card::Pass),
+                _ => return None,
+            },
+            Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return None;
                 }
@@ -442,6 +460,7 @@ impl Card {
                 };
                 res = std::mem::replace(c, Card::Pass);
             }
+            // FIXME: new cards must be indexed
             _ => return None,
         }
         Some(res)
@@ -459,7 +478,7 @@ impl Card {
                 }
                 c.cards.insert(i, card);
             }
-            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
+            Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return Err(card);
                 }
@@ -498,7 +517,13 @@ impl Card {
                 Some(c) => std::mem::replace(c, card),
                 None => return Err(card),
             },
-            Card::Repeat { i: _, body: c } | Card::IfTrue(c) | Card::IfFalse(c) => {
+
+            Card::Repeat(rep) => match i {
+                0 => std::mem::replace(&mut rep.n, card),
+                1 => std::mem::replace(&mut rep.body, card),
+                _ => return Err(card),
+            },
+            Card::IfTrue(c) | Card::IfFalse(c) => {
                 if i != 0 {
                     return Err(card);
                 }
@@ -581,4 +606,14 @@ impl UnaryExpression {
     pub fn new(c: impl Into<Box<Card>>) -> Self {
         Self { card: c.into() }
     }
+}
+
+/// repeats the `body` N times
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Repeat {
+    /// Loop variable is written into this variable
+    pub i: Option<VarName>,
+    pub n: Card,
+    pub body: Card,
 }

@@ -340,14 +340,11 @@ fn simple_for_loop() {
                     // init the result variable
                     Card::set_global_var("result", Card::ScalarInt(0)),
                     // loop
-                    Card::ScalarInt(5),
-                    Card::Repeat {
-                        i: Some("i".to_string()),
-                        body: Box::new(Card::composite_card(
-                            "",
-                            vec![Card::read_var("i"), Card::call_function("Loop", vec![])],
-                        )),
-                    },
+                    Card::repeat(
+                        Card::ScalarInt(5),
+                        Some("i".to_string()),
+                        Card::call_function("Loop", vec![Card::read_var("i")]),
+                    ),
                 ]),
             ),
             (

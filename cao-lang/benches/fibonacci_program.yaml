@@ -12,8 +12,8 @@ lanes:
         - !SetGlobalVar 
             name: b
             value: !ScalarInt 1
-        - !ReadVar N
         - !Repeat
+          n: !ReadVar N
           i: null
           body: !CompositeCard
             ty: ""

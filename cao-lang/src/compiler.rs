@@ -500,7 +500,10 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.current_index.pop_subindex();
             }
-            Card::Repeat { i, body: repeat } => {
+            Card::Repeat(rep) => {
+                self.compile_subexpr(slice::from_ref(&rep.n))?;
+                let i = &rep.i;
+                let repeat = &rep.body;
                 self.scope_begin();
                 let loop_n_index = self.add_local_unchecked("")?;
                 let loop_counter_index = self.add_local_unchecked("")?;
