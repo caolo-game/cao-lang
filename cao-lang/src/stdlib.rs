@@ -137,7 +137,8 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
             Card::read_var("iterable"),
             Card::ScalarInt(0),
             Card::Get,
-            Card::Pop,
+            Card::read_var("key_function"),
+            Card::DynamicJump,
             Card::set_var("result"),
             Card::ForEach(Box::new(ForEach {
                 i: None,
