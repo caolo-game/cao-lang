@@ -470,7 +470,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
                     )?
                 }
-                Instruction::Call => {
+                Instruction::CallNative => {
                     instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode).map_err(
                         |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
                     )?

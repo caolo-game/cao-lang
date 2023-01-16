@@ -204,7 +204,7 @@ impl Card {
             Card::ScalarInt(_) => Some(Instruction::ScalarInt),
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
             Card::Function(_) => Some(Instruction::FunctionPointer),
-            Card::CallNative(_) => Some(Instruction::Call),
+            Card::CallNative(_) => Some(Instruction::CallNative),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
             Card::Call(_) => None,
@@ -242,7 +242,7 @@ impl Card {
             | Instruction::InitTable
             | Instruction::StringLiteral
             | Instruction::CallLane
-            | Instruction::Call
+            | Instruction::CallNative
             | Instruction::Sub
             | Instruction::Mul
             | Instruction::Div

@@ -16,7 +16,7 @@ pub(crate) enum Instruction {
     Div,
     /// Call a function provided by the runtime
     /// Requires function name as a string as input
-    Call,
+    CallNative,
     /// Push an int onto the stack
     ScalarInt,
     /// Push a float onto the stack
@@ -133,7 +133,7 @@ impl Instruction {
             | Instruction::AppendTable
             | Instruction::PopTable
             | Instruction::Add => 0,
-            Instruction::Call => size_of::<Handle>(),
+            Instruction::CallNative => size_of::<Handle>(),
             Instruction::ScalarInt => size_of::<i64>(),
             Instruction::ScalarFloat => size_of::<f64>(),
             Instruction::StringLiteral => size_of::<u32>(),
