@@ -34,7 +34,7 @@ fn compiler_returns_error_not_exception() {
         "lanes": [["main", {
             "name": "main",
             "arguments": [],
-            "cards": [ {"Jump": "42" } ]
+            "cards": [ {"Call": {"lane_name":"42", "args":[]} } ]
         }]]
     });
     let output =
@@ -58,8 +58,12 @@ fn can_run_simple_program() {
             "name": "main",
             "arguments": [],
             "cards": [
-            {  "StringLiteral": "Poggers" }
-            , { "SetGlobalVar": "g_pogman" }
+            
+            { "SetGlobalVar": {
+                "name": "g_pogman",
+                "value": {  "StringLiteral": "Poggers" }
+                }
+            }
             ]
         }]]
     });

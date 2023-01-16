@@ -14,10 +14,12 @@ lanes:
     - - main
       - arguments: []
         cards:
-            - !ScalarInt 5
-            - !ScalarInt 5
             - !Add
-            - !Jump "foo.bar"
+                - !ScalarInt 5
+                - !ScalarInt 5
+            - !Call
+                lane_name: "foo.bar"
+                args: []
 imports: []
 submodules:
     - - foo
@@ -51,7 +53,7 @@ def test_json():
             ["main", {
                 "arguments": [],
                 "cards": [
-                    {  "Jump": "foo.bar" }
+                    {  "Call": {"lane_name": "foo.bar", "args":[] } }
                 ]
             }]
         ],
