@@ -421,10 +421,6 @@ impl<'a> Compiler<'a> {
             .insert(nodeid_hash, Label::new(card_byte_index))
             .unwrap();
 
-        if let Some(instr) = card.instruction() {
-            // instruction itself
-            self.push_instruction(instr);
-        }
         match card {
             Card::CompositeCard(comp) => {
                 for (i, card) in comp.cards.iter().enumerate() {
@@ -633,19 +629,26 @@ impl<'a> Compiler<'a> {
                 self.encode_jump(jmp.lane_name.as_str())?;
                 self.push_instruction(Instruction::CallLane);
             }
-            Card::StringLiteral(c) => self.push_str(c.as_str()),
+            Card::StringLiteral(c) => {
+                self.push_instruction(Instruction::StringLiteral);
+                self.push_str(c.as_str())
+            },
             Card::CallNative(c) => {
                 let name = &c.0;
                 let key = Handle::from_str(name.as_str()).unwrap();
+                self.push_instruction(Instruction::CallNative);
                 write_to_vec(key, &mut self.program.bytecode);
             }
             Card::ScalarInt(s) => {
+                self.push_instruction(Instruction::ScalarInt);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
+                self.push_instruction(Instruction::ScalarFloat);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::Function(fname) => {
+                self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(fname)?;
             }
             Card::Array(expressions) => {
@@ -751,7 +754,15 @@ impl<'a> Compiler<'a> {
                 self.current_index.pop_subindex();
                 self.push_instruction(Instruction::CallLane);
             }
-            Card::ScalarNil | Card::Abort | Card::Pass | Card::CreateTable => { /* These cards translate to a single instruction */
+            Card::Pass => {}
+            Card::ScalarNil => {
+                self.push_instruction(Instruction::ScalarNil);
+            }
+            Card::Abort => {
+                self.push_instruction(Instruction::Exit);
+            }
+            Card::CreateTable => {
+                self.push_instruction(Instruction::InitTable);
             }
         }
         Ok(())
