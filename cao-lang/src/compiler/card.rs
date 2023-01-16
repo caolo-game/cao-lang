@@ -13,24 +13,23 @@ impl Default for Card {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Card {
     Pass,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    CopyLast,
-    Less,
-    LessOrEq,
-    Equals,
-    NotEquals,
-    And,
-    Or,
-    Xor,
-    Not,
-    Return,
+    Add(BinaryExpression),
+    Sub(BinaryExpression),
+    Mul(BinaryExpression),
+    Div(BinaryExpression),
+    Less(BinaryExpression),
+    LessOrEq(BinaryExpression),
+    Equals(BinaryExpression),
+    NotEquals(BinaryExpression),
+    And(BinaryExpression),
+    Or(BinaryExpression),
+    Xor(BinaryExpression),
+    Not(UnaryExpression),
+    Return(UnaryExpression),
     ScalarNil,
     CreateTable,
     Abort,
-    Len(Box<Card>),
+    Len(UnaryExpression),
     /// Pop the table, key, value from the stack
     /// Insert value at key into the table
     SetProperty,
@@ -100,20 +99,19 @@ impl Card {
         match self {
             Card::SetVar(_) => "SetLocalVar",
             Card::Pass => "Pass",
-            Card::Add => "Add",
-            Card::Sub => "Sub",
+            Card::Add(_) => "Add",
+            Card::Sub(_) => "Sub",
             Card::CreateTable => "CreateTable",
-            Card::Mul => "Mul",
-            Card::Div => "Div",
-            Card::CopyLast => "CopyLast",
-            Card::Not => "Not",
-            Card::Less => "Less",
-            Card::LessOrEq => "LessOrEq",
-            Card::Equals => "Equals",
-            Card::NotEquals => "NotEquals",
-            Card::And => "And",
-            Card::Or => "Either",
-            Card::Xor => "Exclusive Or",
+            Card::Mul(_) => "Mul",
+            Card::Div(_) => "Div",
+            Card::Not(_) => "Not",
+            Card::Less(_) => "Less",
+            Card::LessOrEq(_) => "LessOrEq",
+            Card::Equals(_) => "Equals",
+            Card::NotEquals(_) => "NotEquals",
+            Card::And(_) => "And",
+            Card::Or(_) => "Either",
+            Card::Xor(_) => "Exclusive Or",
             Card::Abort => "Abort",
             Card::Len(_) => "Len",
             Card::ScalarInt(_) => "ScalarInt",
@@ -126,7 +124,7 @@ impl Card {
             Card::SetGlobalVar(_) => "SetGlobalVar",
             Card::ReadVar(_) => "ReadVar",
             Card::ScalarNil => "ScalarNil",
-            Card::Return => "Return",
+            Card::Return(_) => "Return",
             Card::Repeat { .. } => "Repeat",
             Card::While { .. } => "While",
             Card::IfElse { .. } => "IfElse",
@@ -143,6 +141,9 @@ impl Card {
         }
     }
 
+    // TODO: eventually most cards will not trivially compile to a single instruction
+    // At that point get rid of this function
+    //
     /// Translate this Card into an Instruction, if possible.
     /// Some cards expand to multiple instructions, these are handled separately
     pub(crate) fn instruction(&self) -> Option<Instruction> {
@@ -160,20 +161,19 @@ impl Card {
             Card::GetProperty => Some(Instruction::GetProperty),
             Card::SetProperty => Some(Instruction::SetProperty),
             Card::CreateTable => Some(Instruction::InitTable),
-            Card::And => Some(Instruction::And),
             Card::Abort => Some(Instruction::Exit),
-            Card::Not => Some(Instruction::Not),
-            Card::Or => Some(Instruction::Or),
-            Card::Xor => Some(Instruction::Xor),
-            Card::Add => Some(Instruction::Add),
-            Card::Sub => Some(Instruction::Sub),
-            Card::Mul => Some(Instruction::Mul),
-            Card::Div => Some(Instruction::Div),
-            Card::CopyLast => Some(Instruction::CopyLast),
-            Card::Less => Some(Instruction::Less),
-            Card::LessOrEq => Some(Instruction::LessOrEq),
-            Card::Equals => Some(Instruction::Equals),
-            Card::NotEquals => Some(Instruction::NotEquals),
+            Card::And(_) => None,
+            Card::Not(_) => None,
+            Card::Or(_) => None,
+            Card::Xor(_) => None,
+            Card::Add(_) => None,
+            Card::Sub(_) => None,
+            Card::Mul(_) => None,
+            Card::Div(_) => None,
+            Card::Less(_) => None,
+            Card::LessOrEq(_) => None,
+            Card::Equals(_) => None,
+            Card::NotEquals(_) => None,
             Card::ScalarInt(_) => Some(Instruction::ScalarInt),
             Card::ScalarFloat(_) => Some(Instruction::ScalarFloat),
             Card::Function(_) => Some(Instruction::FunctionPointer),
@@ -184,7 +184,7 @@ impl Card {
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ScalarNil => Some(Instruction::ScalarNil),
-            Card::Return => Some(Instruction::Return),
+            Card::Return(_) => None,
             Card::Len(_) => None,
             Card::DynamicJump => Some(Instruction::CallLane),
             Card::Get(_) => None,
@@ -193,6 +193,9 @@ impl Card {
         }
     }
 
+    // TODO: eventually most cards will not trivially compile to a single instruction
+    // At that point get rid of this function
+    //
     // Trigger compilation errors for newly added instructions,
     // so we don't forget implementing a card for them
     #[allow(unused)]
@@ -212,7 +215,6 @@ impl Card {
             | Instruction::InitTable
             | Instruction::StringLiteral
             | Instruction::CallLane
-            | Instruction::CopyLast
             | Instruction::Call
             | Instruction::Sub
             | Instruction::Mul
@@ -238,6 +240,7 @@ impl Card {
             | Instruction::BeginForEach
             | Instruction::AppendTable
             | Instruction::PopTable
+            | Instruction::CopyLast
             | Instruction::NthRow => {}
         };
     }
@@ -482,6 +485,10 @@ impl Card {
         };
         Ok(res)
     }
+
+    pub fn return_card(c: Self) -> Self {
+        Card::Return(UnaryExpression { card: Box::new(c) })
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -502,5 +509,18 @@ impl From<CompositeCard> for Card {
     }
 }
 
-pub type UnaryExpression = Box<Card>;
 pub type BinaryExpression = Box<[Card; 2]>;
+
+// Some serialization format, like YAML doesn't support nesting Cards,
+// so we need a named member
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct UnaryExpression {
+    pub card: Box<Card>,
+}
+
+impl UnaryExpression {
+    pub fn new(c: impl Into<Box<Card>>) -> Self {
+        Self { card: c.into() }
+    }
+}

@@ -13,18 +13,11 @@ lanes:
         - !CreateTable
         - !SetVar t
         - !ScalarInt 3
-        - !ReadVar t
-        - !StringLiteral f1
-        - !SetProperty
+        - !SetVar t.f1
         - !ScalarInt 5
-        - !ReadVar t
-        - !StringLiteral f2
-        - !SetProperty
+        - !SetVar t.f2
         - !ScalarInt 7
-        - !ReadVar t
-        - !StringLiteral f3
-        - !SetProperty # set result and g_iters to zero
-
+        - !SetVar t.f3 # set result and g_iters to zero
 
         - !ScalarInt 0
         - !SetGlobalVar g_result
@@ -34,7 +27,6 @@ lanes:
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
               - !ReadVar t
@@ -50,11 +42,10 @@ lanes:
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
-              - !ReadVar key
               - !ReadVar table
+              - !ReadVar key
               - !Jump inner_loop
           iterable: !ReadVar table
 
@@ -63,17 +54,17 @@ lanes:
         - "key"
         - "table"
       cards:
-        # get table[key]
-        - !ReadVar key
-        - !ReadVar table
-        - !GetProperty # add table[key] to g_result
-
-
-        - !ReadVar g_result
         - !Add
+          - !CompositeCard
+            ty: ""
+            cards:
+              - !ReadVar table
+              - !ReadVar key
+              - !GetProperty
+          - !ReadVar g_result
         - !SetGlobalVar g_result
           # add 1 to g_iters
-        - !ScalarInt 1
-        - !ReadVar g_iters
         - !Add
+          - !ScalarInt 1
+          - !ReadVar g_iters
         - !SetGlobalVar g_iters

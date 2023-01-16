@@ -16,6 +16,7 @@ pub struct CaoLangObject {
     pub body: CaoLangObjectBody,
 }
 
+#[derive(Debug)]
 pub enum CaoLangObjectBody {
     Table(CaoLangTable),
     String(CaoLangString),

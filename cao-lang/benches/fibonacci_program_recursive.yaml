@@ -14,25 +14,32 @@ lanes:
         - N
       cards:
         - !ReadVar N
-        - !ScalarInt 2
-        - !ReadVar N
         - !LessOrEq
-        - !IfElse
-          - !Jump fib_again
-          - !ScalarInt 1
+          - !ScalarInt 2
+          - !ReadVar N
         - !Return
+            card:
+              !IfElse
+                - !Jump fib_again
+                - !ScalarInt 1
 
   - - fib_again
     - arguments:
         - N
       cards:
-        - !ReadVar N
-        - !ScalarInt 1
-        - !Sub
-        - !Jump fib
-        - !ReadVar N
-        - !ScalarInt 2
-        - !Sub
-        - !Jump fib
-        - !Add
         - !Return
+          card: !Add
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !Sub
+                      - !ReadVar N
+                      - !ScalarInt 1
+                    - !Jump fib
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !Sub
+                      - !ReadVar N
+                      - !ScalarInt 2
+                    - !Jump fib

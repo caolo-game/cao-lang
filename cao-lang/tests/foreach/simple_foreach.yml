@@ -25,7 +25,6 @@ lanes:
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
               - !ReadVar t
@@ -38,9 +37,12 @@ lanes:
         - "key"
         - "table"
       cards:
-        - !ReadVar table
-        - !ReadVar key
-        - !GetProperty
-        - !ReadVar g_result
         - !Add
+          - !CompositeCard
+            ty: ""
+            cards:
+              - !ReadVar table
+              - !ReadVar key
+              - !GetProperty
+          - !ReadVar g_result
         - !SetGlobalVar g_result

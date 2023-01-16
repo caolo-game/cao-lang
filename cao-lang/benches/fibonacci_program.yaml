@@ -15,11 +15,10 @@ lanes:
           i: null
           body: !CompositeCard
             ty: ""
-            name: "loop body"
             cards:
               - !ReadVar b
-              - !CopyLast
-              - !ReadVar a
               - !Add
+                - !ReadVar b
+                - !ReadVar a
               - !SetGlobalVar b
               - !SetGlobalVar a

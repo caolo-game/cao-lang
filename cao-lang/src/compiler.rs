@@ -17,6 +17,7 @@ use crate::{
     prelude::Trace,
     Instruction, VariableId,
 };
+use core::slice;
 use std::convert::TryFrom;
 use std::mem;
 use std::{borrow::Cow, fmt::Debug};
@@ -519,7 +520,7 @@ impl<'a> Compiler<'a> {
                 // loop condition
                 self.read_local_var(loop_counter_index);
                 self.read_local_var(loop_n_index);
-                self.process_card(&Card::Less)?;
+                self.push_instruction(Instruction::Less);
                 // loop body
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     if let Some(i_index) = i_index {
@@ -532,7 +533,7 @@ impl<'a> Compiler<'a> {
                     // i = i + 1
                     c.process_card(&Card::ScalarInt(1))?;
                     c.read_local_var(loop_counter_index);
-                    c.process_card(&Card::Add)?;
+                    c.push_instruction(Instruction::Add);
                     c.write_local_var(loop_counter_index);
                     // return to the repeat instruction
                     c.push_instruction(Instruction::Goto);
@@ -661,33 +662,69 @@ impl<'a> Compiler<'a> {
                 // push the table to the stack
                 self.read_local_var(table_var);
             }
-            Card::Len(exp) => {
-                self.current_index.push_subindex(0);
-                self.process_card(exp)?;
-                self.current_index.pop_subindex();
+            Card::Len(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.push_instruction(Instruction::Len);
             }
-            Card::Get(binary_exp) => {
-                self.compile_subexpr(&**binary_exp)?;
+            Card::Return(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::Return);
+            }
+            Card::Not(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::Not);
+            }
+            Card::Get(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::NthRow);
             }
+            Card::And(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::And);
+            }
+            Card::Or(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Or);
+            }
+            Card::Xor(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Xor);
+            }
+            Card::Equals(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Equals);
+            }
+            Card::Less(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Less);
+            }
+            Card::LessOrEq(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::LessOrEq);
+            }
+            Card::NotEquals(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::NotEquals);
+            }
+            Card::Add(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Add);
+            }
+            Card::Sub(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Sub);
+            }
+            Card::Mul(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Mul);
+            }
+            Card::Div(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Div);
+            }
             Card::ScalarNil
-            | Card::Return
-            | Card::And
             | Card::Abort
-            | Card::Not
-            | Card::Or
-            | Card::Xor
-            | Card::Equals
-            | Card::Less
-            | Card::LessOrEq
-            | Card::NotEquals
             | Card::Pass
-            | Card::CopyLast
-            | Card::Add
-            | Card::Sub
-            | Card::Mul
-            | Card::Div
             | Card::CreateTable
             | Card::GetProperty
             | Card::SetProperty

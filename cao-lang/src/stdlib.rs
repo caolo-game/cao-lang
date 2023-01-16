@@ -39,8 +39,7 @@ pub fn filter() -> Lane {
                     ],
                 )),
             })),
-            Card::read_var("res"),
-            Card::Return,
+            Card::return_card(Card::read_var("res")),
         ])
 }
 
@@ -67,13 +66,12 @@ pub fn any() -> Lane {
                         Card::DynamicJump,
                         Card::IfTrue(Box::new(Card::composite_card(
                             "_",
-                            vec![Card::read_var("k"), Card::Return],
+                            vec![Card::return_card(Card::read_var("k"))],
                         ))),
                     ],
                 )),
             })),
-            Card::ScalarNil,
-            Card::Return,
+            Card::return_card(Card::ScalarNil),
         ])
 }
 
@@ -105,8 +103,7 @@ pub fn map() -> Lane {
                     ],
                 )),
             })),
-            Card::read_var("res"),
-            Card::Return,
+            Card::return_card(Card::read_var("res")),
         ])
 }
 
@@ -114,8 +111,7 @@ fn minmax(minimax: &str) -> Lane {
     Lane::default().with_arg("iterable").with_cards(vec![
         Card::function_value("row_to_value"),
         Card::read_var("iterable"),
-        Card::jump(minimax),
-        Card::Return,
+        Card::return_card(Card::jump(minimax)),
     ])
 }
 
@@ -149,15 +145,12 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
                         Card::read_var("v"),
                         Card::read_var("k"),
                         Card::read_var("key_function"),
-                        Card::DynamicJump,
-                        Card::read_var("result"),
-                        Card::Less,
+                        Card::Less(Box::new([Card::DynamicJump, Card::read_var("result")])),
                         on_less_card("v", "result"),
                     ],
                 )),
             })),
-            Card::read_var("result"),
-            Card::Return,
+            Card::return_card(Card::read_var("result")),
         ])
 }
 
@@ -237,12 +230,12 @@ mod tests {
                 ),
                 (
                     "cb".to_string(),
-                    Lane::default().with_arg("k").with_cards(vec![
-                        Card::read_var("k"),
-                        Card::string_card("winnie"),
-                        Card::Equals,
-                        Card::Return,
-                    ]),
+                    Lane::default()
+                        .with_arg("k")
+                        .with_cards(vec![Card::return_card(Card::Equals(Box::new([
+                            Card::read_var("k"),
+                            Card::string_card("winnie"),
+                        ])))]),
                 ),
             ],
             ..Default::default()
@@ -331,12 +324,12 @@ mod tests {
                 ),
                 (
                     "cb".to_string(),
-                    Lane::default().with_arg("k").with_cards(vec![
-                        Card::read_var("k"),
-                        Card::string_card("winnie"),
-                        Card::Equals,
-                        Card::Return,
-                    ]),
+                    Lane::default()
+                        .with_arg("k")
+                        .with_cards(vec![Card::return_card(Card::Equals(Box::new([
+                            Card::read_var("k"),
+                            Card::string_card("winnie"),
+                        ])))]),
                 ),
             ],
             ..Default::default()

@@ -1,5 +1,5 @@
 use cao_lang::{
-    compiler::{CompositeCard, Module},
+    compiler::{CompositeCard, Module, UnaryExpression},
     prelude::*,
 };
 
@@ -364,9 +364,7 @@ fn simple_for_loop() {
                 "Loop".into(),
                 Lane::default().with_arg("i").with_cards(vec![
                     // Add i to the global 'result' variable in each iteration
-                    Card::read_var("i"),
-                    Card::read_var("result"),
-                    Card::Add,
+                    Card::Add(Box::new([Card::read_var("i"), Card::read_var("result")])),
                     Card::set_global_var("result"),
                 ]),
             ),
@@ -552,7 +550,7 @@ fn len_test_empty() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::Len(Box::new(Card::CreateTable)))
+                .with_card(Card::Len(UnaryExpression::new(Card::CreateTable)))
                 .with_card(Card::set_global_var("g_result")),
         )]
         .into(),
@@ -598,7 +596,7 @@ fn len_test_happy() {
                 .with_card(Card::StringLiteral("basdasd".to_string()))
                 .with_card(Card::SetProperty)
                 // len
-                .with_card(Card::Len(Box::new(Card::read_var(t))))
+                .with_card(Card::Len(UnaryExpression::new(Card::read_var(t))))
                 .with_card(Card::set_global_var("g_result")),
         )]
         .into(),
@@ -987,14 +985,10 @@ fn simple_while_test() {
                         "body",
                         vec![
                             // Increment pooh
-                            Card::ScalarInt(1),
-                            Card::read_var("pooh"),
-                            Card::Add,
+                            Card::Add(Box::new([Card::ScalarInt(1), Card::read_var("pooh")])),
                             Card::set_global_var("pooh"),
                             // decrement loop counter
-                            Card::read_var("i"),
-                            Card::ScalarInt(1),
-                            Card::Sub,
+                            Card::Sub(Box::new([Card::read_var("i"), Card::ScalarInt(1)])),
                             Card::set_var("i"),
                         ],
                     ),
@@ -1063,9 +1057,7 @@ fn callback_test() {
             (
                 "callback".to_string(),
                 Lane::default().with_cards(vec![
-                    Card::read_var("i"),
-                    Card::ScalarInt(1),
-                    Card::Add,
+                    Card::Add(Box::new([Card::read_var("i"), Card::ScalarInt(1)])),
                     Card::set_global_var("i"),
                 ]),
             ),
@@ -1099,9 +1091,7 @@ fn read_set_property_shorthand_test() {
                 Card::ScalarInt(1),
                 Card::set_var("winnie.foo"),
                 //
-                Card::ScalarInt(1),
-                Card::read_var("winnie.foo"),
-                Card::Add,
+                Card::Add(Box::new([Card::ScalarInt(1), Card::read_var("winnie.foo")])),
                 Card::set_var("winnie.foo"),
             ]),
         )]

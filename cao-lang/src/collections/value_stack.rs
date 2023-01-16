@@ -139,10 +139,7 @@ impl ValueStack {
     /// Returns the very first item
     pub fn clear_until(&mut self, index: usize) -> Value {
         let res = self.last();
-        while self.count > index {
-            self.count = self.count.saturating_sub(1);
-            self.data[self.count] = Value::Nil;
-        }
+        self.count = index;
         res
     }
 
