@@ -20,7 +20,7 @@ pub fn filter() -> Lane {
                 iterable: Box::new(Card::read_var("iterable")),
                 body: Box::new(Card::composite_card(
                     "_",
-                    vec![
+                    vec![Card::IfTrue(Box::new([
                         Card::dynamic_call(
                             Card::read_var("callback"),
                             vec![
@@ -29,12 +29,12 @@ pub fn filter() -> Lane {
                                 Card::read_var("k"),
                             ],
                         ),
-                        Card::IfTrue(Box::new(Card::set_property(
+                        Card::set_property(
                             Card::read_var("v"),
                             Card::read_var("res"),
                             Card::read_var("k"),
-                        ))),
-                    ],
+                        ),
+                    ]))],
                 )),
             })),
             Card::return_card(Card::read_var("res")),
@@ -55,7 +55,7 @@ pub fn any() -> Lane {
                 iterable: Box::new(Card::read_var("iterable")),
                 body: Box::new(Card::composite_card(
                     "_",
-                    vec![
+                    vec![Card::IfTrue(Box::new([
                         Card::dynamic_call(
                             Card::read_var("callback"),
                             vec![
@@ -64,11 +64,8 @@ pub fn any() -> Lane {
                                 Card::read_var("k"),
                             ],
                         ),
-                        Card::IfTrue(Box::new(Card::composite_card(
-                            "_",
-                            vec![Card::return_card(Card::read_var("k"))],
-                        ))),
-                    ],
+                        Card::return_card(Card::read_var("k")),
+                    ]))],
                 )),
             })),
             Card::return_card(Card::ScalarNil),
@@ -129,7 +126,7 @@ pub fn max() -> Lane {
     minmax("max_by_key")
 }
 
-fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
+fn minmax_by_key(on_less_card: impl FnOnce(Card, &str, &str) -> Card) -> Lane {
     Lane::default()
         .with_arg("iterable")
         .with_arg("key_function")
@@ -149,18 +146,16 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
                 k: Some("k".to_string()),
                 v: Some("v".to_string()),
                 iterable: Box::new(Card::read_var("iterable")),
-                body: Box::new(Card::composite_card(
-                    "_",
-                    vec![
-                        Card::Less(Box::new([
-                            Card::dynamic_call(
-                                Card::read_var("key_function"),
-                                vec![Card::read_var("v"), Card::read_var("k")],
-                            ),
-                            Card::read_var("result"),
-                        ])),
-                        on_less_card("v", "result"),
-                    ],
+                body: Box::new(on_less_card(
+                    Card::Less(Box::new([
+                        Card::dynamic_call(
+                            Card::read_var("key_function"),
+                            vec![Card::read_var("v"), Card::read_var("k")],
+                        ),
+                        Card::read_var("result"),
+                    ])),
+                    "v",
+                    "result",
                 )),
             })),
             Card::return_card(Card::read_var("result")),
@@ -169,11 +164,15 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Lane {
-    minmax_by_key(|var, res| Card::IfTrue(Box::new(Card::set_var(res, Card::read_var(var)))))
+    minmax_by_key(|cond, var, res| {
+        Card::IfTrue(Box::new([cond, Card::set_var(res, Card::read_var(var))]))
+    })
 }
 
 pub fn max_by_key() -> Lane {
-    minmax_by_key(|var, res| Card::IfFalse(Box::new(Card::set_var(res, Card::read_var(var)))))
+    minmax_by_key(|cond, var, res| {
+        Card::IfFalse(Box::new([cond, Card::set_var(res, Card::read_var(var))]))
+    })
 }
 
 /// A (key, value) function that returns the value given

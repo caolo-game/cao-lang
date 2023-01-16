@@ -141,9 +141,10 @@ fn simple_if_statement() {
         lanes: [
             (
                 "main".into(),
-                Lane::default()
-                    .with_card(Card::ScalarInt(42))
-                    .with_card(Card::IfTrue(Box::new(Card::call_function("pooh", vec![])))),
+                Lane::default().with_card(Card::IfTrue(Box::new([
+                    Card::ScalarInt(42),
+                    Card::call_function("pooh", vec![]),
+                ]))),
             ),
             (
                 "pooh".into(),
@@ -171,16 +172,14 @@ fn simple_if_statement_skips_if_false() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::ScalarInt(0))
-                .with_card(Card::IfTrue(Box::new(Card::set_global_var(
-                    "result",
-                    Card::ScalarInt(69),
-                ))))
-                .with_card(Card::ScalarInt(1))
-                .with_card(Card::IfFalse(Box::new(Card::set_global_var(
-                    "result",
-                    Card::ScalarInt(42),
-                )))),
+                .with_card(Card::IfTrue(Box::new([
+                    Card::ScalarInt(0),
+                    Card::set_global_var("result", Card::ScalarInt(69)),
+                ])))
+                .with_card(Card::IfFalse(Box::new([
+                    Card::ScalarInt(1),
+                    Card::set_global_var("result", Card::ScalarInt(42)),
+                ]))),
         )]
         .into(),
     };
@@ -208,8 +207,8 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
             (
                 "main".into(),
                 Lane::default()
-                    .with_card(condition)
                     .with_card(Card::IfElse(Box::new([
+                        condition,
                         Card::call_function("pooh", vec![]),
                         Card::call_function("tiggers", vec![]),
                     ])))

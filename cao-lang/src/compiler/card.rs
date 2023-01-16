@@ -39,11 +39,12 @@ pub enum Card {
     ScalarFloat(f64),
     StringLiteral(String),
     CallNative(Box<CallNode>),
-    // TODO: merge conditions
-    IfTrue(Box<Card>),
-    IfFalse(Box<Card>),
-    /// Children = [then, else]
-    IfElse(Box<[Card; 2]>),
+    /// Children = [condition, then]
+    IfTrue(BinaryExpression),
+    /// Children = [condition, else]
+    IfFalse(BinaryExpression),
+    /// Children = [condition, then, else]
+    IfElse(Box<[Card; 3]>),
     /// Lane name
     Call(Box<StaticJump>),
     /// Lane name
@@ -250,12 +251,7 @@ impl Card {
                 1 => res = &mut rep.body,
                 _ => return None,
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => {
-                if i != 0 {
-                    return None;
-                }
-                res = c;
-            }
+            Card::IfTrue(c) | Card::IfFalse(c) => return c.get_mut(i),
             Card::ForEach(fe) => {
                 let ForEach {
                     i: _,
@@ -271,9 +267,10 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::While(children) | Card::IfElse(children) => return children.get_mut(i),
+            Card::IfElse(children) => return children.get_mut(i),
 
             Card::Add(expr)
+            | Card::While(expr)
             | Card::Sub(expr)
             | Card::Mul(expr)
             | Card::Div(expr)
@@ -330,12 +327,7 @@ impl Card {
                 1 => res = &rep.body,
                 _ => return None,
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => {
-                if i != 0 {
-                    return None;
-                }
-                res = c;
-            }
+            Card::IfTrue(c) | Card::IfFalse(c) => return c.get(i),
             Card::ForEach(fe) => {
                 let ForEach {
                     i: _,
@@ -351,9 +343,9 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::While(children) | Card::IfElse(children) => return children.get(i),
-
-            Card::Add(expr)
+            Card::IfElse(children) => return children.get(i),
+            Card::While(expr)
+            | Card::Add(expr)
             | Card::Sub(expr)
             | Card::Mul(expr)
             | Card::Div(expr)
@@ -413,12 +405,12 @@ impl Card {
                 1 => res = std::mem::replace(&mut rep.body, Card::Pass),
                 _ => return None,
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => {
-                if i != 0 {
-                    return None;
+            Card::IfTrue(_) | Card::IfFalse(_) => match self.get_child_mut(i) {
+                Some(c) => {
+                    res = std::mem::replace::<Card>(c, Card::ScalarNil);
                 }
-                res = std::mem::replace::<Card>(c.as_mut(), Card::Pass);
-            }
+                None => return None,
+            },
 
             Card::ForEach(fe) => {
                 let ForEach {
@@ -435,13 +427,14 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::While(children) | Card::IfElse(children) => {
+            Card::IfElse(children) => {
                 let Some(c) = children.get_mut(i) else {
                     return None
                 };
-                res = std::mem::replace(c, Card::Pass);
+                res = std::mem::replace(c, Card::ScalarNil);
             }
-            Card::Add(_)
+            Card::While(_)
+            | Card::Add(_)
             | Card::Sub(_)
             | Card::Mul(_)
             | Card::Div(_)
@@ -503,12 +496,6 @@ impl Card {
                 }
                 c.cards.insert(i, card);
             }
-            Card::IfTrue(c) | Card::IfFalse(c) => {
-                if i != 0 {
-                    return Err(card);
-                }
-                *c.as_mut() = card;
-            }
 
             Card::ForEach(fe) => {
                 let ForEach {
@@ -525,12 +512,16 @@ impl Card {
                     _ => return Err(card),
                 };
             }
-            Card::While(children) | Card::IfElse(children) => {
-                if let Some(c) = children.get_mut(i) {
+            Card::IfElse(children) => match children.get_mut(i) {
+                Some(c) => {
                     *c = card;
                 }
-            }
-            Card::Add(_)
+                None => return Err(card),
+            },
+            Card::While(_)
+            | Card::IfTrue(_)
+            | Card::IfFalse(_)
+            | Card::Add(_)
             | Card::Sub(_)
             | Card::Mul(_)
             | Card::Div(_)

@@ -592,10 +592,11 @@ impl<'a> Compiler<'a> {
                 write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse(children) => {
-                let [then_card, else_card] = &**children;
+                let [condition, then_card, else_card] = &**children;
+                self.compile_subexpr(slice::from_ref(condition))?;
 
                 let mut idx = 0;
-                self.current_index.push_subindex(0);
+                self.current_index.push_subindex(1);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.process_card(then_card)?;
                     // jump over the `else` branch
@@ -605,7 +606,7 @@ impl<'a> Compiler<'a> {
                     Ok(())
                 })?;
                 self.current_index.pop_subindex();
-                self.current_index.push_subindex(1);
+                self.current_index.push_subindex(2);
                 self.process_card(else_card)?;
                 self.current_index.pop_subindex();
                 unsafe {
@@ -614,13 +615,17 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::IfFalse(jmp) => {
-                self.current_index.push_subindex(0);
-                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(jmp))?;
+                let [cond, body] = &**jmp;
+                self.compile_subexpr(slice::from_ref(cond))?;
+                self.current_index.push_subindex(1);
+                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
             Card::IfTrue(jmp) => {
-                self.current_index.push_subindex(0);
-                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(jmp))?;
+                let [cond, body] = &**jmp;
+                self.compile_subexpr(slice::from_ref(cond))?;
+                self.current_index.push_subindex(1);
+                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
             Card::Call(jmp) => {

@@ -17,12 +17,12 @@ lanes:
         - N
       cards:
         - !ReadVar N
-        - !LessOrEq
-          - !ScalarInt 2
-          - !ReadVar N
         - !Return
             card:
               !IfElse
+                - !LessOrEq
+                  - !ScalarInt 2
+                  - !ReadVar N
                 - !Call
                     lane_name: fib_again
                     args: []
