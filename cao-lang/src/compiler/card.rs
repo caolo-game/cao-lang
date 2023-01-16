@@ -8,6 +8,7 @@ impl Default for Card {
     }
 }
 
+/// Cao-Lang AST
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Card {
@@ -65,7 +66,8 @@ pub enum Card {
     /// Jump to the function that's on the top of the stack
     DynamicJump,
     /// Get the given integer row of a table
-    Get,
+    /// [Table, Index]
+    Get(BinaryExpression),
     /// Arguments: table, value
     AppendTable,
     PopTable,
@@ -134,7 +136,7 @@ impl Card {
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
             Card::DynamicJump => "Dynamic Jump",
-            Card::Get => "Get",
+            Card::Get(_) => "Get",
             Card::AppendTable => "Append to Table",
             Card::PopTable => "Pop from Table",
             Card::Array(_) => "Array",
@@ -185,7 +187,7 @@ impl Card {
             Card::Return => Some(Instruction::Return),
             Card::Len(_) => None,
             Card::DynamicJump => Some(Instruction::CallLane),
-            Card::Get => Some(Instruction::NthRow),
+            Card::Get(_) => None,
             Card::AppendTable => Some(Instruction::AppendTable),
             Card::PopTable => Some(Instruction::PopTable),
         }

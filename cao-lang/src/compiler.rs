@@ -667,6 +667,10 @@ impl<'a> Compiler<'a> {
                 self.current_index.pop_subindex();
                 self.push_instruction(Instruction::Len);
             }
+            Card::Get(binary_exp) => {
+                self.compile_subexpr(&**binary_exp)?;
+                self.push_instruction(Instruction::NthRow);
+            }
             Card::ScalarNil
             | Card::Return
             | Card::And
@@ -689,8 +693,7 @@ impl<'a> Compiler<'a> {
             | Card::SetProperty
             | Card::DynamicJump
             | Card::AppendTable
-            | Card::PopTable
-            | Card::Get => { /* These cards translate to a single instruction */ }
+            | Card::PopTable => { /* These cards translate to a single instruction */ }
         }
         Ok(())
     }
@@ -765,6 +768,15 @@ impl<'a> Compiler<'a> {
             .insert(self.program.bytecode.len() as u32, self.trace())
             .unwrap();
         self.program.bytecode.push(instruction as u8);
+    }
+
+    fn compile_subexpr(&mut self, cards: &'a [Card]) -> CompilationResult<()> {
+        for (i, card) in cards.iter().enumerate() {
+            self.current_index.push_subindex(i as u32);
+            self.process_card(card)?;
+            self.current_index.pop_subindex();
+        }
+        Ok(())
     }
 }
 

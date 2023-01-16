@@ -134,9 +134,7 @@ fn minmax_by_key(on_less_card: impl FnOnce(&str, &str) -> Card) -> Lane {
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
-            Card::read_var("iterable"),
-            Card::ScalarInt(0),
-            Card::Get,
+            Card::Get(Box::new([Card::read_var("iterable"), Card::ScalarInt(0)])),
             Card::read_var("key_function"),
             Card::DynamicJump,
             Card::set_var("result"),
