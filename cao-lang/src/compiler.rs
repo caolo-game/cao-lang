@@ -632,9 +632,10 @@ impl<'a> Compiler<'a> {
             Card::StringLiteral(c) => {
                 self.push_instruction(Instruction::StringLiteral);
                 self.push_str(c.as_str())
-            },
+            }
             Card::CallNative(c) => {
-                let name = &c.0;
+                self.compile_subexpr(&c.args.0)?;
+                let name = &c.name;
                 let key = Handle::from_str(name.as_str()).unwrap();
                 self.push_instruction(Instruction::CallNative);
                 write_to_vec(key, &mut self.program.bytecode);

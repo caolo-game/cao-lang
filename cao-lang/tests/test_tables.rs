@@ -95,7 +95,7 @@ fn test_native_w_table_input() {
                     Card::read_var("foo"),
                     Card::StringLiteral("boi".to_string()),
                 )) // foo.bar
-                .with_card(Card::call_native("boii")),
+                .with_card(Card::call_native("boii", vec![Card::read_var("foo")])),
         )]
         .into(),
     };

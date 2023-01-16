@@ -44,7 +44,7 @@ fn test_trace_entry() {
             ),
             (
                 "pooh".into(),
-                Lane::default().with_card(Card::call_native("non-existent-function")),
+                Lane::default().with_card(Card::call_native("non-existent-function", vec![])),
             ),
         ]
         .into(),
@@ -120,7 +120,7 @@ fn test_string_param() {
             "main".into(),
             Lane::default()
                 .with_card(Card::StringLiteral(test_str.to_string()))
-                .with_card(Card::call_native(name)),
+                .with_card(Card::call_native(name, vec![])),
         )]
         .into(),
     };
@@ -381,7 +381,7 @@ fn call_native_test() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default().with_cards(vec![Card::call_native(name)]),
+            Lane::default().with_cards(vec![Card::call_native(name, vec![])]),
         )]
         .into(),
     };
@@ -459,16 +459,26 @@ lanes:
     - - main
       - arguments: []
         cards:
-            - !CallNative "func0"
-            - !ScalarInt 42
-            - !CallNative "func1"
-            - !ScalarInt 12
-            - !ScalarFloat 4.2
-            - !CallNative "func2"
-            - !ScalarInt 33
-            - !ScalarFloat 2.88
-            - !ScalarInt 0
-            - !CallNative "func3"
+            - !CallNative
+                name: "func0"
+                args: []
+            - !CallNative 
+                name: "func1"
+                args:
+                    - !ScalarInt 42
+            - !CallNative
+                name: "func2"
+                args:
+                    - !ScalarInt 12
+                    - !ScalarFloat 4.2
+
+            - !CallNative
+                name: "func3"
+                args:
+                    - !ScalarInt 33
+                    - !ScalarFloat 2.88
+                    - !ScalarInt 0
+
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
     let prog = compile(cu, CompileOptions::new()).unwrap();

@@ -30,9 +30,7 @@ pub enum Card {
     CreateTable,
     Abort,
     Len(UnaryExpression),
-    /// Pop the table, key, value from the stack
     /// Insert value at key into the table
-    ///
     /// [Value, Table, Key]
     SetProperty(Box<[Card; 3]>),
     /// [Table, Key]
@@ -40,7 +38,7 @@ pub enum Card {
     ScalarInt(i64),
     ScalarFloat(f64),
     StringLiteral(String),
-    CallNative(CallNode),
+    CallNative(Box<CallNode>),
     IfTrue(Box<Card>),
     IfFalse(Box<Card>),
     /// Children = [then, else]
@@ -205,8 +203,11 @@ impl Card {
         }))
     }
 
-    pub fn call_native(s: impl Into<InputString>) -> Self {
-        Self::CallNative(CallNode(s.into()))
+    pub fn call_native(s: impl Into<InputString>, args: impl Into<Arguments>) -> Self {
+        Self::CallNative(Box::new(CallNode {
+            name: s.into(),
+            args: args.into(),
+        }))
     }
 
     pub fn read_var(s: impl Into<String>) -> Self {
@@ -470,9 +471,12 @@ impl Card {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CallNode(pub InputString);
+pub struct CallNode {
+    pub name: InputString,
+    pub args: Arguments,
+}
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
