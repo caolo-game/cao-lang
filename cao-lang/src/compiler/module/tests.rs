@@ -58,7 +58,7 @@ fn can_parse_json_test() {
             "imports": [],
             "lanes": [["main", {
                 "arguments": [],
-                "cards": [ {"Jump": "42" } ]
+                "cards": [ {"Call": {"lane_name": "42", "args": []} } ]
             }]]
         }
 "#;

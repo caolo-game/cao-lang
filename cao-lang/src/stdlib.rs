@@ -118,7 +118,7 @@ fn minmax(minimax: &str) -> Lane {
     Lane::default().with_arg("iterable").with_cards(vec![
         Card::function_value("row_to_value"),
         Card::read_var("iterable"),
-        Card::return_card(Card::jump(minimax)),
+        Card::return_card(Card::call_function(minimax, vec![])),
     ])
 }
 
@@ -242,9 +242,10 @@ mod tests {
                             Card::string_card("pooh"),
                         ),
                         // call filter
-                        Card::Function("cb".to_string()),
-                        Card::read_var("t"),
-                        Card::jump("filter"),
+                        Card::call_function(
+                            "filter",
+                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                        ),
                         Card::set_global_var("g_result"),
                     ]),
                 ),
@@ -338,9 +339,10 @@ mod tests {
                             Card::string_card("pooh"),
                         ),
                         // call filter
-                        Card::Function("cb".to_string()),
-                        Card::read_var("t"),
-                        Card::jump("map"),
+                        Card::call_function(
+                            "map",
+                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                        ),
                         Card::set_global_var("g_result"),
                     ]),
                 ),
@@ -397,8 +399,7 @@ mod tests {
                     Card::scalar_int(3),
                     Card::set_var("t.tiggers"),
                     // call min
-                    Card::read_var("t"),
-                    Card::jump("min"),
+                    Card::call_function("min", vec![Card::read_var("t")]),
                     Card::set_global_var("g_result"),
                 ]),
             )],
@@ -438,8 +439,7 @@ mod tests {
                         Card::read_var("t"),
                     ])),
                     // call max
-                    Card::read_var("t"),
-                    Card::jump("max"),
+                    Card::call_function("max", vec![Card::read_var("t")]),
                     Card::set_global_var("g_result"),
                 ]),
             )],
@@ -468,8 +468,7 @@ mod tests {
             lanes: vec![(
                 "main".to_string(),
                 Lane::default().with_cards(vec![
-                    Card::CreateTable,
-                    Card::jump("max"),
+                    Card::call_function("max", vec![Card::CreateTable]),
                     Card::set_global_var("g_result"),
                 ]),
             )],
@@ -504,9 +503,10 @@ mod tests {
                         ]),
                         Card::set_var("t"),
                         // call min
-                        Card::Function("keyfn".to_string()),
-                        Card::read_var("t"),
-                        Card::jump("min_by_key"),
+                        Card::call_function(
+                            "min_by_key",
+                            vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
+                        ),
                         Card::set_global_var("g_result"),
                     ]),
                 ),

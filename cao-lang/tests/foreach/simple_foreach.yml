@@ -29,7 +29,9 @@ lanes:
             cards:
               - !ReadVar t
               - !ReadVar key
-              - !Jump pog
+              - !Call
+                  lane_name: pog
+                  args: []
           iterable: !ReadVar t
 
   - - pog

@@ -46,7 +46,7 @@ pub enum Card {
     /// Children = [then, else]
     IfElse(Box<[Card; 2]>),
     /// Lane name
-    Jump(String),
+    Call(Box<StaticJump>),
     /// Lane name
     ///
     /// Creates a pointer to the given cao-lang function
@@ -96,6 +96,13 @@ pub struct DynamicJump {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct StaticJump {
+    pub args: Arguments,
+    pub lane_name: String,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ForEach {
     /// Loop variable is written into this variable
     pub i: Option<VarName>,
@@ -140,7 +147,7 @@ impl Card {
             Card::CallNative(_) => "Call",
             Card::IfTrue(_) => "IfTrue",
             Card::IfFalse(_) => "IfFalse",
-            Card::Jump(_) => "Jump",
+            Card::Call(_) => "Jump",
             Card::SetGlobalVar(_) => "SetGlobalVar",
             Card::ReadVar(_) => "ReadVar",
             Card::ScalarNil => "ScalarNil",
@@ -200,7 +207,7 @@ impl Card {
             Card::CallNative(_) => Some(Instruction::Call),
             Card::IfTrue(_) => None,
             Card::IfFalse(_) => None,
-            Card::Jump(_) => None,
+            Card::Call(_) => None,
             Card::StringLiteral(_) => Some(Instruction::StringLiteral),
             Card::SetGlobalVar(_) => Some(Instruction::SetGlobalVar),
             Card::ScalarNil => Some(Instruction::ScalarNil),
@@ -312,8 +319,11 @@ impl Card {
         Self::StringLiteral(s.into())
     }
 
-    pub fn jump(s: impl Into<String>) -> Self {
-        Self::Jump(s.into())
+    pub fn call_function(s: impl Into<String>, args: impl Into<Arguments>) -> Self {
+        Self::Call(Box::new(StaticJump {
+            args: args.into(),
+            lane_name: s.into(),
+        }))
     }
 
     pub fn function_value(s: impl Into<String>) -> Self {

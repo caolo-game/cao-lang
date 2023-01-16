@@ -6,7 +6,9 @@ lanes:
         - N
       cards:
         - !ReadVar N
-        - !Jump fib
+        - !Call 
+            lane_name: fib
+            args: []
         - !SetGlobalVar result
 
   - - fib
@@ -20,7 +22,9 @@ lanes:
         - !Return
             card:
               !IfElse
-                - !Jump fib_again
+                - !Call
+                    lane_name: fib_again
+                    args: []
                 - !ScalarInt 1
 
   - - fib_again
@@ -35,11 +39,15 @@ lanes:
                     - !Sub
                       - !ReadVar N
                       - !ScalarInt 1
-                    - !Jump fib
+                    - !Call 
+                        lane_name: fib
+                        args: []
                 - !CompositeCard
                   ty: ""
                   cards:
                     - !Sub
                       - !ReadVar N
                       - !ScalarInt 2
-                    - !Jump fib
+                    - !Call
+                        lane_name: fib
+                        args: []

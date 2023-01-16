@@ -31,7 +31,9 @@ lanes:
             cards:
               - !ReadVar t
               - !ReadVar key
-              - !Jump outer_loop
+              - !Call 
+                  lane_name: outer_loop
+                  args: []
           iterable: !ReadVar t
 
   - - outer_loop
@@ -46,7 +48,9 @@ lanes:
             cards:
               - !ReadVar table
               - !ReadVar key
-              - !Jump inner_loop
+              - !Call 
+                  lane_name: inner_loop
+                  args: []
           iterable: !ReadVar table
 
   - - inner_loop

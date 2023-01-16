@@ -620,11 +620,10 @@ impl<'a> Compiler<'a> {
                 self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(jmp))?;
                 self.current_index.pop_subindex();
             }
-            Card::Jump(jmp) => {
-                self.current_index.push_subindex(0);
+            Card::Call(jmp) => {
+                self.compile_subexpr(&jmp.args.0)?;
                 self.push_instruction(Instruction::FunctionPointer);
-                self.encode_jump(jmp)?;
-                self.current_index.pop_subindex();
+                self.encode_jump(jmp.lane_name.as_str())?;
                 self.push_instruction(Instruction::CallLane);
             }
             Card::StringLiteral(c) => self.push_str(c.as_str()),
