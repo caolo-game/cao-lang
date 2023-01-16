@@ -27,14 +27,10 @@ pub fn filter() -> Lane {
                         Card::read_var("k"),
                         Card::read_var("callback"),
                         Card::DynamicJump,
-                        Card::IfTrue(Box::new(Card::composite_card(
-                            "_",
-                            vec![
-                                Card::read_var("v"),
-                                Card::read_var("res"),
-                                Card::read_var("k"),
-                                Card::SetProperty,
-                            ],
+                        Card::IfTrue(Box::new(Card::set_property(
+                            Card::read_var("v"),
+                            Card::read_var("res"),
+                            Card::read_var("k"),
                         ))),
                     ],
                 )),
@@ -91,16 +87,20 @@ pub fn map() -> Lane {
                 iterable: Box::new(Card::read_var("iterable")),
                 body: Box::new(Card::composite_card(
                     "_",
-                    vec![
-                        Card::read_var("i"),
-                        Card::read_var("v"),
-                        Card::read_var("k"),
-                        Card::read_var("callback"),
-                        Card::DynamicJump,
+                    vec![Card::set_property(
+                        Card::composite_card(
+                            "",
+                            vec![
+                                Card::read_var("i"),
+                                Card::read_var("v"),
+                                Card::read_var("k"),
+                                Card::read_var("callback"),
+                                Card::DynamicJump,
+                            ],
+                        ),
                         Card::read_var("res"),
                         Card::read_var("k"),
-                        Card::SetProperty,
-                    ],
+                    )],
                 )),
             })),
             Card::return_card(Card::read_var("res")),
@@ -213,14 +213,16 @@ mod tests {
                     Lane::default().with_cards(vec![
                         Card::CreateTable,
                         Card::set_var("t"),
-                        Card::scalar_int(1),
-                        Card::read_var("t"),
-                        Card::string_card("winnie"),
-                        Card::SetProperty,
-                        Card::scalar_int(2),
-                        Card::read_var("t"),
-                        Card::string_card("pooh"),
-                        Card::SetProperty,
+                        Card::set_property(
+                            Card::scalar_int(1),
+                            Card::read_var("t"),
+                            Card::string_card("winnie"),
+                        ),
+                        Card::set_property(
+                            Card::scalar_int(2),
+                            Card::read_var("t"),
+                            Card::string_card("pooh"),
+                        ),
                         // call filter
                         Card::Function("cb".to_string()),
                         Card::read_var("t"),
@@ -307,14 +309,16 @@ mod tests {
                     Lane::default().with_cards(vec![
                         Card::CreateTable,
                         Card::set_var("t"),
-                        Card::scalar_int(1),
-                        Card::read_var("t"),
-                        Card::string_card("winnie"),
-                        Card::SetProperty,
-                        Card::scalar_int(2),
-                        Card::read_var("t"),
-                        Card::string_card("pooh"),
-                        Card::SetProperty,
+                        Card::set_property(
+                            Card::scalar_int(1),
+                            Card::read_var("t"),
+                            Card::string_card("winnie"),
+                        ),
+                        Card::set_property(
+                            Card::scalar_int(2),
+                            Card::read_var("t"),
+                            Card::string_card("pooh"),
+                        ),
                         // call filter
                         Card::Function("cb".to_string()),
                         Card::read_var("t"),

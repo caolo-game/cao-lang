@@ -722,12 +722,18 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Div);
             }
+            Card::GetProperty(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::GetProperty);
+            }
+            Card::SetProperty(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::SetProperty);
+            }
             Card::ScalarNil
             | Card::Abort
             | Card::Pass
             | Card::CreateTable
-            | Card::GetProperty
-            | Card::SetProperty
             | Card::DynamicJump
             | Card::AppendTable
             | Card::PopTable => { /* These cards translate to a single instruction */ }

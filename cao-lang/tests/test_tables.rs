@@ -38,13 +38,15 @@ fn test_get_set() {
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::set_var("foo"))
-                .with_card(Card::ScalarInt(42))
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("bar".to_string()))
-                .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("bar".to_string()))
-                .with_card(Card::GetProperty)
+                .with_card(Card::set_property(
+                    Card::ScalarInt(42),
+                    Card::read_var("foo"),
+                    Card::StringLiteral("bar".to_string()),
+                )) // foo.bar
+                .with_card(Card::get_property(
+                    Card::read_var("foo"),
+                    Card::StringLiteral("bar".to_string()),
+                ))
                 .with_card(Card::set_global_var("scoobie")),
         )]
         .into(),
@@ -90,10 +92,11 @@ fn test_native_w_table_input() {
             Lane::default()
                 .with_card(Card::CreateTable)
                 .with_card(Card::set_var("foo"))
-                .with_card(Card::ScalarInt(42))
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("boi".to_string()))
-                .with_card(Card::SetProperty) // foo.bar
+                .with_card(Card::set_property(
+                    Card::ScalarInt(42),
+                    Card::read_var("foo"),
+                    Card::StringLiteral("boi".to_string()),
+                )) // foo.bar
                 .with_card(Card::call_native("boii")),
         )]
         .into(),

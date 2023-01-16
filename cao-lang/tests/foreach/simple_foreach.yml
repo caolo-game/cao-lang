@@ -7,18 +7,18 @@ lanes:
         # --- init the example table ---
         - !CreateTable
         - !SetVar t
-        - !ScalarInt 3
-        - !ReadVar t
-        - !StringLiteral f1
         - !SetProperty
-        - !ScalarInt 5
-        - !ReadVar t
-        - !StringLiteral f2
+          - !ScalarInt 3
+          - !ReadVar t
+          - !StringLiteral f1
         - !SetProperty
-        - !ScalarInt 7
-        - !ReadVar t
-        - !StringLiteral f3
+          - !ScalarInt 5
+          - !ReadVar t
+          - !StringLiteral f2
         - !SetProperty
+          - !ScalarInt 7
+          - !ReadVar t
+          - !StringLiteral f3
         - !ScalarInt 0
         - !SetGlobalVar g_result
         # --- init done ---
@@ -41,8 +41,8 @@ lanes:
           - !CompositeCard
             ty: ""
             cards:
-              - !ReadVar table
-              - !ReadVar key
               - !GetProperty
+                - !ReadVar table
+                - !ReadVar key
           - !ReadVar g_result
         - !SetGlobalVar g_result

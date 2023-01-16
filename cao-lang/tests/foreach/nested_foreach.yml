@@ -58,9 +58,9 @@ lanes:
           - !CompositeCard
             ty: ""
             cards:
-              - !ReadVar table
-              - !ReadVar key
               - !GetProperty
+                - !ReadVar table
+                - !ReadVar key
           - !ReadVar g_result
         - !SetGlobalVar g_result
           # add 1 to g_iters

@@ -581,20 +581,23 @@ fn len_test_happy() {
                 .with_card(Card::CreateTable)
                 .with_card(Card::set_var(t))
                 // first property
-                .with_card(Card::ScalarInt(42))
-                .with_card(Card::read_var(t))
-                .with_card(Card::StringLiteral("asd".to_string()))
-                .with_card(Card::SetProperty)
+                .with_card(Card::set_property(
+                    Card::ScalarInt(42),
+                    Card::read_var(t),
+                    Card::StringLiteral("asd".to_string()),
+                ))
                 // same property as above
-                .with_card(Card::ScalarInt(69))
-                .with_card(Card::read_var(t))
-                .with_card(Card::StringLiteral("asd".to_string()))
-                .with_card(Card::SetProperty)
+                .with_card(Card::set_property(
+                    Card::ScalarInt(69),
+                    Card::read_var(t),
+                    Card::StringLiteral("asd".to_string()),
+                ))
                 // new property
-                .with_card(Card::ScalarInt(89))
-                .with_card(Card::read_var(t))
-                .with_card(Card::StringLiteral("basdasd".to_string()))
-                .with_card(Card::SetProperty)
+                .with_card(Card::set_property(
+                    Card::ScalarInt(89),
+                    Card::read_var(t),
+                    Card::StringLiteral("basdasd".to_string()),
+                ))
                 // len
                 .with_card(Card::Len(UnaryExpression::new(Card::read_var(t))))
                 .with_card(Card::set_global_var("g_result")),

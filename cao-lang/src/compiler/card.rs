@@ -32,8 +32,11 @@ pub enum Card {
     Len(UnaryExpression),
     /// Pop the table, key, value from the stack
     /// Insert value at key into the table
-    SetProperty,
-    GetProperty,
+    ///
+    /// [Value, Table, Key]
+    SetProperty(Box<[Card; 3]>),
+    /// [Table, Key]
+    GetProperty(BinaryExpression),
     ScalarInt(i64),
     ScalarFloat(f64),
     StringLiteral(String),
@@ -128,8 +131,8 @@ impl Card {
             Card::Repeat { .. } => "Repeat",
             Card::While { .. } => "While",
             Card::IfElse { .. } => "IfElse",
-            Card::GetProperty => "GetProperty",
-            Card::SetProperty => "SetProperty",
+            Card::GetProperty(_) => "GetProperty",
+            Card::SetProperty(_) => "SetProperty",
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
@@ -158,8 +161,8 @@ impl Card {
             | Card::CompositeCard { .. }
             | Card::Array(_) => None,
 
-            Card::GetProperty => Some(Instruction::GetProperty),
-            Card::SetProperty => Some(Instruction::SetProperty),
+            Card::GetProperty(_) => None,
+            Card::SetProperty(_) => None,
             Card::CreateTable => Some(Instruction::InitTable),
             Card::Abort => Some(Instruction::Exit),
             Card::And(_) => None,
@@ -488,6 +491,14 @@ impl Card {
 
     pub fn return_card(c: Self) -> Self {
         Card::Return(UnaryExpression { card: Box::new(c) })
+    }
+
+    pub fn set_property(value: Self, table: Self, key: Self) -> Self {
+        Card::SetProperty(Box::new([value, table, key]))
+    }
+
+    pub fn get_property(table: Self, key: Self) -> Self {
+        Card::GetProperty(Box::new([table, key]))
     }
 }
 
