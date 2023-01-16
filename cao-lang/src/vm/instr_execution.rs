@@ -100,7 +100,7 @@ pub fn instr_string_literal<T>(
         .ok_or(ExecutionErrorPayload::InvalidArgument { context: None })?;
 
     let ptr = vm.init_string(payload)?;
-    vm.stack_push(Value::Object(ptr))?;
+    vm.stack_push(Value::Object(ptr.0))?;
 
     Ok(())
 }

@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 use cao_lang::{
     compiler::{CompositeCard, Module, UnaryExpression},
     prelude::*,
@@ -1127,15 +1129,14 @@ fn read_property_shorthand_test() {
     let program = compile(cu, CompileOptions::new()).expect("compile");
 
     let mut vm = Vm::new(()).unwrap();
-    unsafe {
-        let mut table_ptr = vm.init_table().unwrap();
-        let table = table_ptr.as_mut().as_table_mut().unwrap();
-        let key = vm.init_string("foo").unwrap();
-        table
-            .insert(Value::Object(key), Value::Integer(42))
-            .unwrap();
-        vm.stack_push(Value::Object(table_ptr)).unwrap();
-    }
+    let mut table_ptr = vm.init_table().unwrap();
+    let table = table_ptr.deref_mut().as_table_mut().unwrap();
+    let key = vm.init_string("foo").unwrap();
+    table
+        .insert(Value::Object(key.into_inner()), Value::Integer(42))
+        .unwrap();
+    vm.stack_push(Value::Object(table_ptr.into_inner()))
+        .unwrap();
 
     vm.run(&program).expect("run");
 

@@ -69,14 +69,11 @@ impl Eq for Value {}
 /// // init an object `val` with 1 entry {'pog': 42}
 /// let mut obj = vm.init_table().unwrap();
 /// let pog = vm.init_string("pog").unwrap();
-/// unsafe { 
-///     obj.as_mut() 
-///         .as_table_mut()
-///         .unwrap()
-///         .insert(Value::Object(pog), 42.into())
-///         .unwrap();
-/// }
-/// let val = Value::Object(obj);
+/// obj.as_table_mut()
+///     .unwrap()
+///     .insert(Value::Object(pog.into_inner()), 42.into())
+///     .unwrap();
+/// let val = Value::Object(obj.into_inner());
 ///
 /// let owned = OwnedValue::from(val);
 ///

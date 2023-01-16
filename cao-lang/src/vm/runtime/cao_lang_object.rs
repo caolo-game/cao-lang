@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 use super::{cao_lang_string::CaoLangString, cao_lang_table::CaoLangTable};
 
 // note Gray is not actually useful for now, but it might come in handy if we want to do finalizers
@@ -9,6 +11,8 @@ pub enum GcMarker {
     Gray,
     /// Done
     Black,
+    /// This object can not be collected
+    Protected,
 }
 
 pub struct CaoLangObject {
@@ -20,6 +24,45 @@ pub struct CaoLangObject {
 pub enum CaoLangObjectBody {
     Table(CaoLangTable),
     String(CaoLangString),
+}
+
+/// RAII style guard that ensures that an object survives the GC
+/// Useful for native function that allocate multiple objects, potentially triggering GC
+pub struct ObjectGcGuard(pub(crate) NonNull<CaoLangObject>);
+
+impl std::ops::Deref for ObjectGcGuard {
+    type Target = CaoLangObject;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.0.as_ref() }
+    }
+}
+
+impl std::ops::DerefMut for ObjectGcGuard {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.0.as_mut() }
+    }
+}
+
+impl Drop for ObjectGcGuard {
+    fn drop(&mut self) {
+        unsafe {
+            self.0.as_mut().marker = GcMarker::White;
+        }
+    }
+}
+
+impl ObjectGcGuard {
+    pub fn new(mut obj: NonNull<CaoLangObject>) -> Self {
+        unsafe {
+            obj.as_mut().marker = GcMarker::Protected;
+        }
+        Self(obj)
+    }
+
+    pub fn into_inner(self) -> NonNull<CaoLangObject> {
+        self.0
+    }
 }
 
 impl CaoLangObject {

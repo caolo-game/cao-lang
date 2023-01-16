@@ -7,7 +7,7 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use self::runtime::{cao_lang_object::CaoLangObject, CallFrame};
+use self::runtime::{cao_lang_object::ObjectGcGuard, CallFrame};
 use crate::{
     collections::handle_table::{Handle, HandleTable},
     instruction::Instruction,
@@ -16,7 +16,7 @@ use crate::{
     VariableId,
 };
 use runtime::RuntimeData;
-use std::{mem::transmute, pin::Pin, ptr::NonNull, str::FromStr};
+use std::{mem::transmute, ops::DerefMut, pin::Pin, str::FromStr};
 use tracing::debug;
 
 /// Cao-Lang bytecode interpreter.
@@ -52,19 +52,17 @@ impl<'a, Aux> Vm<'a, Aux> {
             OwnedValue::Nil => Value::Nil,
             OwnedValue::String(s) => {
                 let res = self.init_string(s.as_str())?;
-                Value::Object(res)
+                Value::Object(res.0)
             }
             OwnedValue::Table(o) => {
                 let mut res = self.init_table()?;
-                unsafe {
-                    let table = res.as_mut().as_table_mut().unwrap();
-                    for OwnedEntry { key, value } in o.iter() {
-                        let key = self.insert_value(key)?;
-                        let value = self.insert_value(value)?;
-                        table.insert(key, value)?;
-                    }
+                let table = res.deref_mut().as_table_mut().unwrap();
+                for OwnedEntry { key, value } in o.iter() {
+                    let key = self.insert_value(key)?;
+                    let value = self.insert_value(value)?;
+                    table.insert(key, value)?;
                 }
-                Value::Object(res)
+                Value::Object(res.0)
             }
             OwnedValue::Integer(x) => Value::Integer(*x),
             OwnedValue::Real(x) => Value::Real(*x),
@@ -174,17 +172,12 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Initializes a new FieldTable in this VM instance
     #[inline]
-    pub fn init_table(
-        &mut self,
-    ) -> Result<std::ptr::NonNull<CaoLangObject>, ExecutionErrorPayload> {
+    pub fn init_table(&mut self) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         self.runtime_data.init_table()
     }
 
     /// Initializes a new string owned by this VM instance
-    pub fn init_string(
-        &mut self,
-        payload: &str,
-    ) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
+    pub fn init_string(&mut self, payload: &str) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         self.runtime_data.init_string(payload)
     }
 
@@ -239,7 +232,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let res = self.init_table().map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
-                    self.stack_push(Value::Object(res)).map_err(|err| {
+                    self.stack_push(Value::Object(res.0)).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }

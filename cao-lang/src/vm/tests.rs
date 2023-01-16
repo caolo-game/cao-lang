@@ -28,7 +28,7 @@ fn test_can_init_str() {
 
     let ptr = vm.init_string("poggers").unwrap();
 
-    let val = Value::Object(ptr);
+    let val = Value::Object(ptr.0);
 
     let result = unsafe { val.as_str().unwrap() };
 
@@ -43,15 +43,13 @@ fn test_can_save_and_restore_values() {
     // init an object `val` with 1 entry {'pog': 42}
     let mut obj = vm.init_table().unwrap();
     let pog = vm.init_string("pog").unwrap();
-    unsafe {
-        obj.as_mut()
-            .as_table_mut()
-            .unwrap()
-            .insert(Value::Object(pog), 42.into())
-            .unwrap()
-    };
+    obj.deref_mut()
+        .as_table_mut()
+        .unwrap()
+        .insert(Value::Object(pog.into_inner()), 42.into())
+        .unwrap();
 
-    let val = Value::Object(obj);
+    let val = Value::Object(obj.into_inner());
 
     // serialize the object
     let owned = OwnedValue::from(val);

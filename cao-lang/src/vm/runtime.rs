@@ -13,7 +13,7 @@ use crate::{
 use tracing::debug;
 
 use self::{
-    cao_lang_object::{CaoLangObject, GcMarker},
+    cao_lang_object::{CaoLangObject, GcMarker, ObjectGcGuard},
     cao_lang_string::CaoLangString,
 };
 
@@ -64,7 +64,7 @@ impl RuntimeData {
     }
 
     /// Initialize a new cao-lang table and return a pointer to it
-    pub fn init_table(&mut self) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
+    pub fn init_table(&mut self) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         unsafe {
             let obj_ptr = self
                 .memory
@@ -85,14 +85,11 @@ impl RuntimeData {
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
-            Ok(obj_ptr)
+            Ok(ObjectGcGuard::new(obj_ptr))
         }
     }
 
-    pub fn init_string(
-        &mut self,
-        payload: &str,
-    ) -> Result<NonNull<CaoLangObject>, ExecutionErrorPayload> {
+    pub fn init_string(&mut self, payload: &str) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         unsafe {
             let obj_ptr = self
                 .memory
@@ -123,7 +120,7 @@ impl RuntimeData {
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
 
-            Ok(obj_ptr)
+            Ok(ObjectGcGuard::new(obj_ptr))
         }
     }
 
@@ -182,24 +179,22 @@ impl RuntimeData {
         // mark all roots for collection
         let mut progress_tracker = Vec::with_capacity(self.value_stack.len());
         for val in self.value_stack.iter() {
-            match val {
-                Value::Object(mut t) => unsafe {
+            if let Value::Object(mut t) = val {
+                unsafe {
                     let t = t.as_mut();
                     t.marker = GcMarker::Gray;
                     progress_tracker.push(t);
-                },
-                _ => { /*noop*/ }
+                }
             }
         }
         // mark globals
         for val in self.global_vars.iter() {
-            match val {
-                Value::Object(mut t) => unsafe {
+            if let Value::Object(mut t) = val {
+                unsafe {
                     let t = t.as_mut();
                     t.marker = GcMarker::Gray;
                     progress_tracker.push(t);
-                },
-                _ => { /*noop*/ }
+                }
             }
         }
 
@@ -209,23 +204,21 @@ impl RuntimeData {
             match &obj.body {
                 cao_lang_object::CaoLangObjectBody::Table(obj) => {
                     for (k, v) in obj.iter() {
-                        match k {
-                            Value::Object(mut t) => unsafe {
+                        if let Value::Object(mut t) = k {
+                            unsafe {
                                 let t = t.as_mut();
                                 if matches!(t.marker, GcMarker::White) {
                                     progress_tracker.push(t);
                                 }
-                            },
-                            _ => { /*noop*/ }
+                            }
                         }
-                        match v {
-                            Value::Object(mut t) => unsafe {
+                        if let Value::Object(mut t) = v {
+                            unsafe {
                                 let t = t.as_mut();
                                 if matches!(t.marker, GcMarker::White) {
                                     progress_tracker.push(t);
                                 }
-                            },
-                            _ => { /*noop*/ }
+                            }
                         }
                     }
                 }
@@ -253,7 +246,9 @@ impl RuntimeData {
         for table in self.object_list.iter_mut() {
             unsafe {
                 let table = table.as_mut();
-                table.marker = GcMarker::White;
+                if !matches!(table.marker, GcMarker::Protected) {
+                    table.marker = GcMarker::White;
+                }
             }
         }
         debug!("✓ GC");
@@ -262,6 +257,8 @@ impl RuntimeData {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::DerefMut;
+
     use super::*;
 
     #[test]
@@ -269,9 +266,11 @@ mod tests {
         let mut vm = Vm::new(()).unwrap();
 
         let s = vm.init_string("poggers").unwrap();
-        let o = unsafe { vm.init_table().unwrap().as_mut().as_table_mut().unwrap() };
+        let mut o = vm.init_table().unwrap();
+        let o = o.deref_mut().as_table_mut().unwrap();
 
-        o.insert(Value::Object(s), Value::Integer(42)).unwrap();
+        o.insert(Value::Object(s.into_inner()), Value::Integer(42))
+            .unwrap();
 
         let res = o.get("poggers").unwrap();
 
