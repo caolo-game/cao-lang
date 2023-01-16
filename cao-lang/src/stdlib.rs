@@ -198,7 +198,11 @@ pub fn standard_library() -> Module {
 
 #[cfg(test)]
 mod tests {
-    use crate::{compiler::compile, value::Value, vm::Vm};
+    use crate::{
+        compiler::{compile, BinaryExpression},
+        value::Value,
+        vm::Vm,
+    };
 
     use super::*;
 
@@ -411,12 +415,14 @@ mod tests {
                 Lane::default().with_cards(vec![
                     Card::CreateTable,
                     Card::set_var("t"),
-                    Card::scalar_int(1),
-                    Card::read_var("t"),
-                    Card::AppendTable,
-                    Card::ScalarFloat(3.42),
-                    Card::read_var("t"),
-                    Card::AppendTable,
+                    Card::AppendTable(BinaryExpression::new([
+                        Card::scalar_int(1),
+                        Card::read_var("t"),
+                    ])),
+                    Card::AppendTable(BinaryExpression::new([
+                        Card::ScalarFloat(3.42),
+                        Card::read_var("t"),
+                    ])),
                     // call max
                     Card::read_var("t"),
                     Card::jump("max"),

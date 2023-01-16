@@ -730,13 +730,16 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::SetProperty);
             }
-            Card::ScalarNil
-            | Card::Abort
-            | Card::Pass
-            | Card::CreateTable
-            | Card::DynamicJump
-            | Card::AppendTable
-            | Card::PopTable => { /* These cards translate to a single instruction */ }
+            Card::AppendTable(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::AppendTable);
+            }
+            Card::PopTable(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::PopTable);
+            }
+            Card::ScalarNil | Card::Abort | Card::Pass | Card::CreateTable | Card::DynamicJump => { /* These cards translate to a single instruction */
+            }
         }
         Ok(())
     }

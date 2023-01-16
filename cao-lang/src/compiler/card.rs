@@ -70,9 +70,9 @@ pub enum Card {
     /// Get the given integer row of a table
     /// [Table, Index]
     Get(BinaryExpression),
-    /// Arguments: table, value
-    AppendTable,
-    PopTable,
+    /// [Value, Table]
+    AppendTable(BinaryExpression),
+    PopTable(UnaryExpression),
     /// Create a Table from the results of the provided cards
     Array(Vec<Card>),
 }
@@ -138,8 +138,8 @@ impl Card {
             Card::Function(_) => "Function",
             Card::DynamicJump => "Dynamic Jump",
             Card::Get(_) => "Get",
-            Card::AppendTable => "Append to Table",
-            Card::PopTable => "Pop from Table",
+            Card::AppendTable(_) => "Append to Table",
+            Card::PopTable(_) => "Pop from Table",
             Card::Array(_) => "Array",
         }
     }
@@ -191,8 +191,8 @@ impl Card {
             Card::Len(_) => None,
             Card::DynamicJump => Some(Instruction::CallLane),
             Card::Get(_) => None,
-            Card::AppendTable => Some(Instruction::AppendTable),
-            Card::PopTable => Some(Instruction::PopTable),
+            Card::AppendTable(_) => None,
+            Card::PopTable(_) => None,
         }
     }
 
