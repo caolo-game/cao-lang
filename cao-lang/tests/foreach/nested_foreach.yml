@@ -10,36 +10,38 @@ lanes:
         #  f2: 5,
         #  f3: 7,
         # }
-        - !CreateTable
-        - !SetVar t
-        - !ScalarInt 3
-        - !ReadVar t
-        - !StringLiteral f1
-        - !SetProperty
-        - !ScalarInt 5
-        - !ReadVar t
-        - !StringLiteral f2
-        - !SetProperty
-        - !ScalarInt 7
-        - !ReadVar t
-        - !StringLiteral f3
-        - !SetProperty # set result and g_iters to zero
+        - !SetVar
+            name: t
+            value: !CreateTable
+        - !SetVar
+            name: t.f1
+            value: !ScalarInt 3
+        - !SetVar
+            name: t.f2
+            value:
+              !ScalarInt 5
+              
+        - !SetVar 
+            name: t.f3 # set result and g_iters to zero
+            value: !ScalarInt 7
 
-
-        - !ScalarInt 0
-        - !SetGlobalVar g_result
-        - !ScalarInt 0
-        - !SetGlobalVar g_iters
+        - !SetGlobalVar 
+            name: g_result
+            value: !ScalarInt 0
+        - !SetGlobalVar
+            name: g_iters
+            value: !ScalarInt 0
         # --- init done ---
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
               - !ReadVar t
               - !ReadVar key
-              - !Jump outer_loop
+              - !Call 
+                  lane_name: outer_loop
+                  args: []
           iterable: !ReadVar t
 
   - - outer_loop
@@ -50,12 +52,13 @@ lanes:
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
-              - !ReadVar key
               - !ReadVar table
-              - !Jump inner_loop
+              - !ReadVar key
+              - !Call 
+                  lane_name: inner_loop
+                  args: []
           iterable: !ReadVar table
 
   - - inner_loop
@@ -63,17 +66,22 @@ lanes:
         - "key"
         - "table"
       cards:
-        # get table[key]
-        - !ReadVar key
-        - !ReadVar table
-        - !GetProperty # add table[key] to g_result
+        - !SetGlobalVar
+            name: g_result
+            value:
+              !Add
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !GetProperty
+                      - !ReadVar table
+                      - !ReadVar key
+                - !ReadVar g_result
 
-
-        - !ReadVar g_result
-        - !Add
-        - !SetGlobalVar g_result
           # add 1 to g_iters
-        - !ScalarInt 1
-        - !ReadVar g_iters
-        - !Add
-        - !SetGlobalVar g_iters
+        - !SetGlobalVar 
+            name: g_iters
+            value: 
+              !Add
+                - !ScalarInt 1
+                - !ReadVar g_iters

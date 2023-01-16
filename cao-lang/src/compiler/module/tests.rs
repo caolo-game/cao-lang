@@ -58,7 +58,7 @@ fn can_parse_json_test() {
             "imports": [],
             "lanes": [["main", {
                 "arguments": [],
-                "cards": [ {"Jump": "42" } ]
+                "cards": [ {"Call": {"lane_name": "42", "args": []} } ]
             }]]
         }
 "#;
@@ -131,6 +131,7 @@ fn remove_card_from_ifelse_test() {
     let lanes = vec![(
         "main".into(),
         Lane::default().with_card(Card::IfElse(Box::new([
+            Card::ScalarNil,
             Card::string_card("winnie"),
             Card::string_card("pooh"),
         ]))),
@@ -145,7 +146,7 @@ fn remove_card_from_ifelse_test() {
         .remove_card(&CardIndex {
             lane: 0,
             card_index: LaneCardIndex {
-                indices: smallvec::smallvec![0, 1],
+                indices: smallvec::smallvec![0, 2],
             },
         })
         .unwrap();
@@ -158,7 +159,7 @@ fn remove_card_from_ifelse_test() {
     let ifelse = prog.get_card(&CardIndex::new(0, 0)).unwrap();
     match ifelse {
         Card::IfElse(children) => {
-            assert!(matches!(children[1], Card::Pass));
+            assert!(matches!(children[2], Card::ScalarNil));
         }
         _ => panic!(),
     }

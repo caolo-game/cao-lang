@@ -1,4 +1,4 @@
-use std::{alloc::Layout, ptr::NonNull};
+use std::{alloc::Layout, fmt::Debug, ptr::NonNull};
 
 use crate::alloc::AllocProxy;
 
@@ -7,6 +7,13 @@ pub struct CaoLangString {
     pub(crate) len: usize,
     pub(crate) ptr: NonNull<u8>,
     pub(crate) alloc: AllocProxy,
+}
+
+impl Debug for CaoLangString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = self.as_str();
+        write!(f, "String: {str:?}")
+    }
 }
 
 impl Drop for CaoLangString {

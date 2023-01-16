@@ -1,4 +1,5 @@
 use cao_lang::prelude::*;
+use tracing_test::traced_test;
 
 const RECURSIVE_FIB: &str = include_str!("../benches/fibonacci_program_recursive.yaml");
 const ITERATIVE_FIB: &str = include_str!("../benches/fibonacci_program.yaml");
@@ -14,6 +15,7 @@ fn fib(n: i64) -> i64 {
     b
 }
 
+#[traced_test]
 #[test]
 fn fibonacci_1() {
     let cu = serde_yaml::from_str(RECURSIVE_FIB).unwrap();

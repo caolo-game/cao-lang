@@ -5,32 +5,35 @@ lanes:
     - arguments: []
       cards:
         # --- init the example table ---
-        - !CreateTable
-        - !SetVar t
-        - !ScalarInt 3
-        - !ReadVar t
-        - !StringLiteral f1
+        - !SetVar
+            name: t
+            value: !CreateTable
         - !SetProperty
-        - !ScalarInt 5
-        - !ReadVar t
-        - !StringLiteral f2
+          - !ScalarInt 3
+          - !ReadVar t
+          - !StringLiteral f1
         - !SetProperty
-        - !ScalarInt 7
-        - !ReadVar t
-        - !StringLiteral f3
+          - !ScalarInt 5
+          - !ReadVar t
+          - !StringLiteral f2
         - !SetProperty
-        - !ScalarInt 0
-        - !SetGlobalVar g_result
+          - !ScalarInt 7
+          - !ReadVar t
+          - !StringLiteral f3
+        - !SetGlobalVar 
+            name: g_result
+            value: !ScalarInt 0
         # --- init done ---
         - !ForEach
           k: key
           body: !CompositeCard
-            name: ""
             ty: ""
             cards:
               - !ReadVar t
               - !ReadVar key
-              - !Jump pog
+              - !Call
+                  lane_name: pog
+                  args: []
           iterable: !ReadVar t
 
   - - pog
@@ -38,9 +41,14 @@ lanes:
         - "key"
         - "table"
       cards:
-        - !ReadVar table
-        - !ReadVar key
-        - !GetProperty
-        - !ReadVar g_result
-        - !Add
-        - !SetGlobalVar g_result
+        - !SetGlobalVar
+            name: g_result
+            value: 
+              !Add
+                - !CompositeCard
+                  ty: ""
+                  cards:
+                    - !GetProperty
+                      - !ReadVar table
+                      - !ReadVar key
+                - !ReadVar g_result

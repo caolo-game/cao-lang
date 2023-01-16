@@ -9,9 +9,7 @@ fn test_init_table() {
         submodules: Default::default(),
         lanes: [(
             "main".into(),
-            Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_global_var("g_foo")),
+            Lane::default().with_card(Card::set_global_var("g_foo", Card::CreateTable)),
         )]
         .into(),
     };
@@ -36,16 +34,19 @@ fn test_get_set() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_var("foo"))
-                .with_card(Card::ScalarInt(42))
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("bar".to_string()))
-                .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("bar".to_string()))
-                .with_card(Card::GetProperty)
-                .with_card(Card::set_global_var("scoobie")),
+                .with_card(Card::set_var("foo", Card::CreateTable))
+                .with_card(Card::set_property(
+                    Card::ScalarInt(42),
+                    Card::read_var("foo"),
+                    Card::StringLiteral("bar".to_string()),
+                )) // foo.bar
+                .with_card(Card::set_global_var(
+                    "scoobie",
+                    Card::get_property(
+                        Card::read_var("foo"),
+                        Card::StringLiteral("bar".to_string()),
+                    ),
+                )),
         )]
         .into(),
     };
@@ -88,13 +89,13 @@ fn test_native_w_table_input() {
         lanes: [(
             "main".into(),
             Lane::default()
-                .with_card(Card::CreateTable)
-                .with_card(Card::set_var("foo"))
-                .with_card(Card::ScalarInt(42))
-                .with_card(Card::read_var("foo"))
-                .with_card(Card::StringLiteral("boi".to_string()))
-                .with_card(Card::SetProperty) // foo.bar
-                .with_card(Card::call_native("boii")),
+                .with_card(Card::set_var("foo", Card::CreateTable))
+                .with_card(Card::set_property(
+                    Card::ScalarInt(42),
+                    Card::read_var("foo"),
+                    Card::StringLiteral("boi".to_string()),
+                )) // foo.bar
+                .with_card(Card::call_native("boii", vec![Card::read_var("foo")])),
         )]
         .into(),
     };

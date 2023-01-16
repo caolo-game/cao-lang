@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use bytemuck::Pod;
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::{
     bytecode::{decode_str, read_from_bytes},
@@ -225,10 +225,10 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     // pop the current stack frame
     let value = match vm.runtime_data.call_stack.pop() {
         // return value
-        Some(rt) => vm
+        Some(call_frame) => vm
             .runtime_data
             .value_stack
-            .clear_until(rt.stack_offset as usize),
+            .clear_until(call_frame.stack_offset as usize),
         None => {
             return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Call stack is empty".to_string(),
@@ -249,6 +249,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
         }
     }
     // push the return value
+    trace!("Return {value:?}");
     vm.stack_push(value)?;
     Ok(())
 }

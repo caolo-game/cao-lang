@@ -17,6 +17,7 @@ use crate::{
     prelude::Trace,
     Instruction, VariableId,
 };
+use core::slice;
 use std::convert::TryFrom;
 use std::mem;
 use std::{borrow::Cow, fmt::Debug};
@@ -420,10 +421,6 @@ impl<'a> Compiler<'a> {
             .insert(nodeid_hash, Label::new(card_byte_index))
             .unwrap();
 
-        if let Some(instr) = card.instruction() {
-            // instruction itself
-            self.push_instruction(instr);
-        }
         match card {
             Card::CompositeCard(comp) => {
                 for (i, card) in comp.cards.iter().enumerate() {
@@ -499,7 +496,10 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.current_index.pop_subindex();
             }
-            Card::Repeat { i, body: repeat } => {
+            Card::Repeat(rep) => {
+                self.compile_subexpr(slice::from_ref(&rep.n))?;
+                let i = &rep.i;
+                let repeat = &rep.body;
                 self.scope_begin();
                 let loop_n_index = self.add_local_unchecked("")?;
                 let loop_counter_index = self.add_local_unchecked("")?;
@@ -519,7 +519,7 @@ impl<'a> Compiler<'a> {
                 // loop condition
                 self.read_local_var(loop_counter_index);
                 self.read_local_var(loop_n_index);
-                self.process_card(&Card::Less)?;
+                self.push_instruction(Instruction::Less);
                 // loop body
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     if let Some(i_index) = i_index {
@@ -532,7 +532,7 @@ impl<'a> Compiler<'a> {
                     // i = i + 1
                     c.process_card(&Card::ScalarInt(1))?;
                     c.read_local_var(loop_counter_index);
-                    c.process_card(&Card::Add)?;
+                    c.push_instruction(Instruction::Add);
                     c.write_local_var(loop_counter_index);
                     // return to the repeat instruction
                     c.push_instruction(Instruction::Goto);
@@ -545,7 +545,8 @@ impl<'a> Compiler<'a> {
                 self.read_var_card(variable)?;
             }
             Card::SetVar(var) => {
-                let var = var.as_str();
+                self.compile_subexpr(slice::from_ref(&var.value))?;
+                let var = var.name.as_str();
                 match var.rsplit_once('.') {
                     Some((read_props, set_prop)) => {
                         self.read_var_card(read_props)?;
@@ -563,7 +564,10 @@ impl<'a> Compiler<'a> {
                     }
                 }
             }
-            Card::SetGlobalVar(variable) => {
+            Card::SetGlobalVar(var) => {
+                self.compile_subexpr(slice::from_ref(&var.value))?;
+                self.push_instruction(Instruction::SetGlobalVar);
+                let variable = var.name.as_str();
                 let next_var = &mut self.next_var;
                 if variable.is_empty() {
                     return Err(self.error(CompilationErrorPayload::EmptyVariable));
@@ -588,10 +592,11 @@ impl<'a> Compiler<'a> {
                 write_to_vec(*id, &mut self.program.bytecode);
             }
             Card::IfElse(children) => {
-                let [then_card, else_card] = &**children;
+                let [condition, then_card, else_card] = &**children;
+                self.compile_subexpr(slice::from_ref(condition))?;
 
                 let mut idx = 0;
-                self.current_index.push_subindex(0);
+                self.current_index.push_subindex(1);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.process_card(then_card)?;
                     // jump over the `else` branch
@@ -601,7 +606,7 @@ impl<'a> Compiler<'a> {
                     Ok(())
                 })?;
                 self.current_index.pop_subindex();
-                self.current_index.push_subindex(1);
+                self.current_index.push_subindex(2);
                 self.process_card(else_card)?;
                 self.current_index.pop_subindex();
                 unsafe {
@@ -610,35 +615,46 @@ impl<'a> Compiler<'a> {
                 }
             }
             Card::IfFalse(jmp) => {
-                self.current_index.push_subindex(0);
-                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(jmp))?;
+                let [cond, body] = &**jmp;
+                self.compile_subexpr(slice::from_ref(cond))?;
+                self.current_index.push_subindex(1);
+                self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
             Card::IfTrue(jmp) => {
-                self.current_index.push_subindex(0);
-                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(jmp))?;
+                let [cond, body] = &**jmp;
+                self.compile_subexpr(slice::from_ref(cond))?;
+                self.current_index.push_subindex(1);
+                self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
-            Card::Jump(jmp) => {
-                self.current_index.push_subindex(0);
+            Card::Call(jmp) => {
+                self.compile_subexpr(&jmp.args.0)?;
                 self.push_instruction(Instruction::FunctionPointer);
-                self.encode_jump(jmp)?;
-                self.current_index.pop_subindex();
+                self.encode_jump(jmp.lane_name.as_str())?;
                 self.push_instruction(Instruction::CallLane);
             }
-            Card::StringLiteral(c) => self.push_str(c.as_str()),
+            Card::StringLiteral(c) => {
+                self.push_instruction(Instruction::StringLiteral);
+                self.push_str(c.as_str())
+            }
             Card::CallNative(c) => {
-                let name = &c.0;
+                self.compile_subexpr(&c.args.0)?;
+                let name = &c.name;
                 let key = Handle::from_str(name.as_str()).unwrap();
+                self.push_instruction(Instruction::CallNative);
                 write_to_vec(key, &mut self.program.bytecode);
             }
             Card::ScalarInt(s) => {
+                self.push_instruction(Instruction::ScalarInt);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::ScalarFloat(s) => {
+                self.push_instruction(Instruction::ScalarFloat);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
             Card::Function(fname) => {
+                self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(fname)?;
             }
             Card::Array(expressions) => {
@@ -661,33 +677,99 @@ impl<'a> Compiler<'a> {
                 // push the table to the stack
                 self.read_local_var(table_var);
             }
-            Card::ScalarNil
-            | Card::Return
-            | Card::And
-            | Card::Abort
-            | Card::Not
-            | Card::Or
-            | Card::Xor
-            | Card::Pop
-            | Card::Equals
-            | Card::Less
-            | Card::LessOrEq
-            | Card::NotEquals
-            | Card::Pass
-            | Card::CopyLast
-            | Card::Add
-            | Card::Sub
-            | Card::Mul
-            | Card::Div
-            | Card::CreateTable
-            | Card::Len
-            | Card::GetProperty
-            | Card::SetProperty
-            | Card::ClearStack
-            | Card::DynamicJump
-            | Card::AppendTable
-            | Card::PopTable
-            | Card::Get => { /* These cards translate to a single instruction */ }
+            Card::Len(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::Len);
+            }
+            Card::Return(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::Return);
+            }
+            Card::Not(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::Not);
+            }
+            Card::Get(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::NthRow);
+            }
+            Card::And(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::And);
+            }
+            Card::Or(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Or);
+            }
+            Card::Xor(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Xor);
+            }
+            Card::Equals(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Equals);
+            }
+            Card::Less(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Less);
+            }
+            Card::LessOrEq(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::LessOrEq);
+            }
+            Card::NotEquals(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::NotEquals);
+            }
+            Card::Add(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Add);
+            }
+            Card::Sub(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Sub);
+            }
+            Card::Mul(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Mul);
+            }
+            Card::Div(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::Div);
+            }
+            Card::GetProperty(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::GetProperty);
+            }
+            Card::SetProperty(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::SetProperty);
+            }
+            Card::AppendTable(expr) => {
+                self.compile_subexpr(expr.as_ref())?;
+                self.push_instruction(Instruction::AppendTable);
+            }
+            Card::PopTable(expr) => {
+                self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
+                self.push_instruction(Instruction::PopTable);
+            }
+            Card::DynamicCall(jump) => {
+                self.compile_subexpr(jump.args.0.as_slice())?;
+                self.current_index.push_subindex(jump.args.0.len() as u32);
+                self.process_card(&jump.lane)?;
+                self.current_index.pop_subindex();
+                self.push_instruction(Instruction::CallLane);
+            }
+            Card::Pass => {}
+            Card::ScalarNil => {
+                self.push_instruction(Instruction::ScalarNil);
+            }
+            Card::Abort => {
+                self.push_instruction(Instruction::Exit);
+            }
+            Card::CreateTable => {
+                self.push_instruction(Instruction::InitTable);
+            }
         }
         Ok(())
     }
@@ -762,6 +844,15 @@ impl<'a> Compiler<'a> {
             .insert(self.program.bytecode.len() as u32, self.trace())
             .unwrap();
         self.program.bytecode.push(instruction as u8);
+    }
+
+    fn compile_subexpr(&mut self, cards: &'a [Card]) -> CompilationResult<()> {
+        for (i, card) in cards.iter().enumerate() {
+            self.current_index.push_subindex(i as u32);
+            self.process_card(card)?;
+            self.current_index.pop_subindex();
+        }
+        Ok(())
     }
 }
 
