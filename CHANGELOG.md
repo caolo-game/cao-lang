@@ -1,4 +1,18 @@
 # Changelog
+## v0.1.108
+
+
+### Bug Fixes
+
+- Fix table remove ([8482a01](8482a0115eb78da8efc722d544da412da2a1dc79))
+- Fix min/max by key ignoring the first row ([694081c](694081c3717e96161152f2369b1ab0b8ca5a8796))
+- Help native functions not to GC freshly allocated objects ([4a15edb](4a15edb72614f05004f99aa0d09b0914856da459))
+
+### Refactor
+
+- [**breaking**] Create an Object type for all Cao-Lang objects, currently it wraps Tables ([e6d7154](e6d7154f98903e16de902ab3735f81d50f6595fb))
+- [**breaking**] Cao-Lang strings are now Cao-Lang objects. This fixes a memory leak introduced by the new allocator ([9514d3c](9514d3c9fec697c34dbd03dc142787c90d6c0641))
+- [**breaking**] Remove ClearStack card ([49342ac](49342ac3e4fbcd12ecd063e8cca60aaa36baef46))
 ## v0.1.107
 
 
