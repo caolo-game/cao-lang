@@ -205,12 +205,24 @@ pub fn set_local<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> E
     let handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let offset = stack_offset(vm);
     let value = vm.runtime_data.value_stack.pop_w_offset(offset);
+    debug!(
+        handle = handle,
+        offset = offset,
+        value = tracing::field::debug(value),
+        "writing local variable"
+    );
     write_local_var(vm, handle, value, offset)
 }
 
 fn read_local_var<T>(vm: &mut Vm<T>, handle: u32) -> Result<Value, ExecutionErrorPayload> {
     let offset = stack_offset(vm);
     let value = vm.runtime_data.value_stack.get(offset + handle as usize);
+    debug!(
+        handle = handle,
+        offset = offset,
+        value = tracing::field::debug(value),
+        "read local variable"
+    );
     Ok(value)
 }
 
@@ -276,7 +288,6 @@ pub fn begin_for_each<T>(
     // test if the input is a table
     let item = vm.get_table_mut(item_val)?;
     debug!("Starting for-each on table {:?}", item);
-    item.rebuild_keys();
     let offset = stack_offset(vm);
     write_local_var(vm, i_handle, Value::Integer(0), offset)?;
     write_local_var(vm, t_handle, item_val, offset)?;
@@ -302,7 +313,7 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     let i = read_local_var(vm, loop_variable)?;
     let obj_val = read_local_var(vm, t_handle)?;
 
-    let mut i = i64::try_from(i).map_err(|_| {
+    let i = i64::try_from(i).map_err(|_| {
         ExecutionErrorPayload::AssertionError("ForEach i must be an integer. This error can be caused by stack corruption. Check your function calls!".to_string())
     })?;
     let obj = vm.get_table(obj_val).map_err(|_| {
@@ -317,13 +328,12 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     if should_continue {
         let key = obj.nth_key(i as usize);
         let val = obj.get(&key).copied().unwrap_or(Value::Nil);
-        i += 1;
 
         write_local_var(vm, v_handle, val, offset)?;
         write_local_var(vm, k_handle, key, offset)?;
         write_local_var(vm, i_handle, Value::Integer(i), offset)?;
         // store the loop variable
-        write_local_var(vm, loop_variable, Value::Integer(i), offset)?;
+        write_local_var(vm, loop_variable, Value::Integer(i + 1), offset)?;
     }
     vm.stack_push(should_continue)?;
 

@@ -126,20 +126,21 @@ pub fn max() -> Lane {
     minmax("max_by_key")
 }
 
-fn minmax_by_key(on_less_card: impl FnOnce(Card) -> Card) -> Lane {
+fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Lane {
     Lane::default()
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
             Card::set_var("i", Card::ScalarInt(0)),
             Card::set_var(
-                "result",
+                "tmp",
+                Card::Get(Box::new([Card::read_var("iterable"), Card::read_var("i")])),
+            ),
+            Card::set_var(
+                "min_item",
                 Card::dynamic_call(
                     Card::read_var("key_function"),
-                    vec![Card::Get(Box::new([
-                        Card::read_var("iterable"),
-                        Card::ScalarInt(0),
-                    ]))],
+                    vec![Card::read_var("tmp.value"), Card::read_var("tmp.key")],
                 ),
             ),
             Card::ForEach(Box::new(ForEach {
@@ -147,13 +148,22 @@ fn minmax_by_key(on_less_card: impl FnOnce(Card) -> Card) -> Lane {
                 k: Some("k".to_string()),
                 v: Some("v".to_string()),
                 iterable: Box::new(Card::read_var("iterable")),
-                body: Box::new(on_less_card(Card::Less(Box::new([
-                    Card::dynamic_call(
-                        Card::read_var("key_function"),
-                        vec![Card::read_var("v"), Card::read_var("k")],
+                body: Box::new(on_less_card(
+                    Card::Less(Box::new([
+                        Card::dynamic_call(
+                            Card::read_var("key_function"),
+                            vec![Card::read_var("v"), Card::read_var("k")],
+                        ),
+                        Card::read_var("min_item"),
+                    ])),
+                    Card::composite_card(
+                        "",
+                        vec![
+                            Card::set_var("i", Card::read_var("j")),
+                            Card::set_var("min_item", Card::read_var("v")),
+                        ],
                     ),
-                    Card::read_var("result"),
-                ])))),
+                )),
             })),
             Card::return_card(Card::Get(Box::new([
                 Card::read_var("iterable"),
@@ -164,33 +174,11 @@ fn minmax_by_key(on_less_card: impl FnOnce(Card) -> Card) -> Lane {
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Lane {
-    minmax_by_key(|cond| {
-        Card::IfTrue(Box::new([
-            cond,
-            Card::composite_card(
-                "",
-                vec![
-                    Card::set_var("i", Card::read_var("j")),
-                    Card::set_var("result", Card::read_var("v")),
-                ],
-            ),
-        ]))
-    })
+    minmax_by_key(|cond, body| Card::IfTrue(Box::new([cond, body])))
 }
 
 pub fn max_by_key() -> Lane {
-    minmax_by_key(|cond| {
-        Card::IfFalse(Box::new([
-            cond,
-            Card::composite_card(
-                "",
-                vec![
-                    Card::set_var("result", Card::read_var("v")),
-                    Card::set_var("i", Card::read_var("j")),
-                ],
-            ),
-        ]))
-    })
+    minmax_by_key(|cond, body| Card::IfFalse(Box::new([cond, body])))
 }
 
 /// A (key, value) function that returns the value given
@@ -393,6 +381,7 @@ mod tests {
         }
     }
 
+    #[traced_test]
     #[test]
     fn min_test() {
         let program = Module {
@@ -400,10 +389,10 @@ mod tests {
             lanes: vec![(
                 "main".to_string(),
                 Lane::default().with_cards(vec![
-                    Card::set_var("t", Card::CreateTable),
-                    Card::set_var("t.winnie", Card::scalar_int(1)),
-                    Card::set_var("t.pooh", Card::scalar_int(2)),
-                    Card::set_var("t.tiggers", Card::scalar_int(3)),
+                    Card::set_global_var("t", Card::CreateTable),
+                    Card::set_var("t.winnie", Card::scalar_int(10)),
+                    Card::set_var("t.pooh", Card::scalar_int(20)),
+                    Card::set_var("t.tiggers", Card::scalar_int(30)),
                     // call min
                     Card::set_global_var(
                         "g_result",
@@ -418,17 +407,33 @@ mod tests {
         let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
         vm.run(&compiled).expect("run");
 
+        unsafe {
+            let t = vm
+                .read_var_by_name("t", &compiled.variables)
+                .unwrap()
+                .as_table()
+                .expect("table");
+
+            dbg!(t);
+            dbg!(t.get(&t.nth_key(0)));
+        }
+
         let result = vm
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
-        match result {
-            Value::Integer(i) => {
-                assert_eq!(i, 1);
+        unsafe {
+            let t = result.as_table().expect("table");
+            dbg!(t);
+            match t.get("value").expect("value") {
+                Value::Integer(i) => {
+                    assert_eq!(*i, 10);
+                }
+                a @ _ => panic!("Unexpected result: {a:?}"),
             }
-            a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
 
+    #[traced_test]
     #[test]
     fn max_test() {
         let program = Module {
@@ -493,12 +498,16 @@ mod tests {
         let result = vm
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
-        match result {
-            Value::Nil => {}
-            a @ _ => panic!("Unexpected result: {a:?}"),
+        unsafe {
+            let row = result.as_table().unwrap();
+            match row.get("value").unwrap() {
+                Value::Nil => {}
+                a @ _ => panic!("Unexpected result: {a:?}"),
+            }
         }
     }
 
+    #[traced_test]
     #[test]
     fn min_by_key_test() {
         let program = Module {
@@ -510,9 +519,9 @@ mod tests {
                         Card::set_var(
                             "t",
                             Card::Array(vec![
-                                Card::scalar_int(2),
-                                Card::scalar_int(3),
-                                Card::scalar_int(1),
+                                Card::scalar_int(20),
+                                Card::scalar_int(30),
+                                Card::scalar_int(10),
                             ]),
                         ),
                         // call min
@@ -543,11 +552,14 @@ mod tests {
         let result = vm
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
-        match result {
-            Value::Integer(i) => {
-                assert_eq!(i, 1);
+        unsafe {
+            let t = result.as_table().expect("table");
+            match t.get("value").unwrap() {
+                Value::Integer(i) => {
+                    assert_eq!(*i, 10);
+                }
+                a @ _ => panic!("Unexpected result: {a:?}"),
             }
-            a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
 }

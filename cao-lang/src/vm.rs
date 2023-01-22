@@ -497,6 +497,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let key = table.nth_key(i as usize);
                     let value = table.get(&key).copied().unwrap_or(Value::Nil);
 
+                    debug!(
+                        i = i,
+                        key = tracing::field::debug(key),
+                        value = tracing::field::debug(value),
+                        table = tracing::field::debug(instance),
+                        "Getting row of table"
+                    );
+
                     (|| {
                         let mut row = self.init_table()?;
                         let row_table = row.as_table_mut().unwrap();
