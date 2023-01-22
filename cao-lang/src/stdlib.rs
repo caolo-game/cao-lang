@@ -126,11 +126,12 @@ pub fn max() -> Lane {
     minmax("max_by_key")
 }
 
-fn minmax_by_key(on_less_card: impl FnOnce(Card, &str, &str) -> Card) -> Lane {
+fn minmax_by_key(on_less_card: impl FnOnce(Card) -> Card) -> Lane {
     Lane::default()
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
+            Card::set_var("i", Card::ScalarInt(0)),
             Card::set_var(
                 "result",
                 Card::dynamic_call(
@@ -142,36 +143,53 @@ fn minmax_by_key(on_less_card: impl FnOnce(Card, &str, &str) -> Card) -> Lane {
                 ),
             ),
             Card::ForEach(Box::new(ForEach {
-                i: None,
+                i: Some("j".to_string()),
                 k: Some("k".to_string()),
                 v: Some("v".to_string()),
                 iterable: Box::new(Card::read_var("iterable")),
-                body: Box::new(on_less_card(
-                    Card::Less(Box::new([
-                        Card::dynamic_call(
-                            Card::read_var("key_function"),
-                            vec![Card::read_var("v"), Card::read_var("k")],
-                        ),
-                        Card::read_var("result"),
-                    ])),
-                    "v",
-                    "result",
-                )),
+                body: Box::new(on_less_card(Card::Less(Box::new([
+                    Card::dynamic_call(
+                        Card::read_var("key_function"),
+                        vec![Card::read_var("v"), Card::read_var("k")],
+                    ),
+                    Card::read_var("result"),
+                ])))),
             })),
-            Card::return_card(Card::read_var("result")),
+            Card::return_card(Card::Get(Box::new([
+                Card::read_var("iterable"),
+                Card::read_var("i"),
+            ]))),
         ])
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Lane {
-    minmax_by_key(|cond, var, res| {
-        Card::IfTrue(Box::new([cond, Card::set_var(res, Card::read_var(var))]))
+    minmax_by_key(|cond| {
+        Card::IfTrue(Box::new([
+            cond,
+            Card::composite_card(
+                "",
+                vec![
+                    Card::set_var("i", Card::read_var("j")),
+                    Card::set_var("result", Card::read_var("v")),
+                ],
+            ),
+        ]))
     })
 }
 
 pub fn max_by_key() -> Lane {
-    minmax_by_key(|cond, var, res| {
-        Card::IfFalse(Box::new([cond, Card::set_var(res, Card::read_var(var))]))
+    minmax_by_key(|cond| {
+        Card::IfFalse(Box::new([
+            cond,
+            Card::composite_card(
+                "",
+                vec![
+                    Card::set_var("result", Card::read_var("v")),
+                    Card::set_var("i", Card::read_var("j")),
+                ],
+            ),
+        ]))
     })
 }
 
@@ -200,6 +218,8 @@ pub fn standard_library() -> Module {
 
 #[cfg(test)]
 mod tests {
+    use tracing_test::traced_test;
+
     use crate::{
         compiler::{compile, BinaryExpression},
         value::Value,
@@ -442,14 +462,16 @@ mod tests {
         let result = vm
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
-        match result {
+        let row = unsafe { result.as_table().unwrap() };
+        match row.get("value").unwrap() {
             Value::Real(i) => {
-                assert_eq!(i, 3.42);
+                assert_eq!(*i, 3.42);
             }
             a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
 
+    #[traced_test]
     #[test]
     fn max_empty_list_returns_nil_test() {
         let program = Module {

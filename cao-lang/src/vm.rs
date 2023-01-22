@@ -497,10 +497,17 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let key = table.nth_key(i as usize);
                     let value = table.get(&key).copied().unwrap_or(Value::Nil);
 
-                    self.stack_push(value).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
-                    self.stack_push(key).map_err(|err| {
+                    (|| {
+                        let mut row = self.init_table()?;
+                        let row_table = row.as_table_mut().unwrap();
+                        let k = self.init_string("key")?;
+                        let v = self.init_string("value")?;
+                        row_table.insert(Value::Object(k.0), key)?;
+                        row_table.insert(Value::Object(v.0), value)?;
+                        self.stack_push(Value::Object(row.0))?;
+                        Ok(())
+                    })()
+                    .map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
