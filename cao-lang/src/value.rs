@@ -15,7 +15,7 @@ pub enum Value {
 
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let (this, other) = self.cast_match(*other);
+        let (this, other) = self.try_cast_match(*other);
         match (this, other) {
             (Value::Object(a), Value::Object(b)) => unsafe { a.as_ref().partial_cmp(b.as_ref()) },
             (Value::Integer(a), Value::Integer(b)) => a.partial_cmp(&b),
@@ -237,32 +237,23 @@ impl Value {
         matches!(self, Value::Nil)
     }
 
-    /// If either is a float cast both to a floating point number, else cast both to Integer
-    fn cast_match(self, other: Self) -> (Self, Self) {
+    /// return the original pair if casting can't be performed
+    fn try_cast_match(self, other: Self) -> (Self, Self) {
         if self.is_float() || other.is_float() {
-            return (
-                Value::Real(
-                    i64::try_from(self)
-                        .map(|x| x as f64)
-                        .or_else(f64::try_from)
-                        .unwrap(),
-                ),
-                Value::Real(
-                    i64::try_from(other)
-                        .map(|x| x as f64)
-                        .or_else(f64::try_from)
-                        .unwrap(),
-                ),
-            );
+            if let Ok(a) = f64::try_from(self) {
+                if let Ok(b) = f64::try_from(other) {
+                    return (Value::Real(a), Value::Real(b));
+                }
+            }
         }
-        if self.is_null() || other.is_null() {
-            return (Value::Nil, Value::Nil);
+        if self.is_integer() || other.is_integer() {
+            if let Ok(a) = i64::try_from(self) {
+                if let Ok(b) = i64::try_from(other) {
+                    return (Value::Integer(a), Value::Integer(b));
+                }
+            }
         }
-
-        let a = i64::try_from(self).unwrap();
-        let b = i64::try_from(other).unwrap();
-
-        (Value::Integer(a), Value::Integer(b))
+        (self, other)
     }
 }
 
@@ -327,6 +318,9 @@ impl TryFrom<Value> for i64 {
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
             Value::Integer(i) => Ok(i),
+            Value::Real(r) => Ok(r as i64),
+            Value::Object(o) => Ok(unsafe { o.as_ref().len() as i64 }),
+            Value::Nil => Ok(0),
             _ => Err(v),
         }
     }
@@ -338,6 +332,9 @@ impl TryFrom<Value> for f64 {
     fn try_from(v: Value) -> Result<Self, Value> {
         match v {
             Value::Real(i) => Ok(i),
+            Value::Integer(i) => Ok(i as f64),
+            Value::Object(o) => Ok(unsafe { o.as_ref().len() as f64 }),
+            Value::Nil => Ok(0.0),
             _ => Err(v),
         }
     }
@@ -358,7 +355,7 @@ impl From<bool> for Value {
 macro_rules! binary_op {
     ($a: expr, $b: expr, $op: tt) => {
         {
-        let (a, b) = $a.cast_match($b);
+        let (a, b) = $a.try_cast_match($b);
         match (a, b) {
             (Value::Integer(a), Value::Integer(b)) => {
                     Value::Integer(a $op b)
