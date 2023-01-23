@@ -231,10 +231,6 @@ impl<'a> Compiler<'a> {
             .unwrap_or(false)
         {
             self.locals.pop();
-            // we can clean up a bit.
-            // Note that this might leave garbage values on the stack,
-            // but the VM clears those on Returns.
-            self.push_instruction(Instruction::Pop);
         }
     }
 

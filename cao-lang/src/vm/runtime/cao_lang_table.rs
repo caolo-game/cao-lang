@@ -20,7 +20,7 @@ impl Clone for CaoLangTable {
 impl std::fmt::Debug for CaoLangTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
-            .entries(self.map.iter().map(|(k, v)| (k, v)))
+            .entries(self.keys.iter().map(|k| (k, self.map.get(k))))
             .finish()
     }
 }
@@ -101,11 +101,6 @@ impl CaoLangTable {
             }
             None => return Ok(Value::Nil),
         }
-    }
-
-    pub fn rebuild_keys(&mut self) {
-        self.keys.clear();
-        self.keys.extend(self.map.iter().map(|(k, _)| *k));
     }
 
     pub fn nth_key(&self, i: usize) -> Value {
