@@ -395,7 +395,12 @@ impl Div for Value {
     type Output = Self;
 
     fn div(self, other: Self) -> Self {
-        binary_op!(self, other, /)
+        let (a, b) = self.try_cast_match(other);
+        match (a, b) {
+            (Value::Integer(a), Value::Integer(b)) => Value::Real(a as f64 / b as f64),
+            (Value::Real(a), Value::Real(b)) => Value::Real(a / b),
+            _ => Value::Nil,
+        }
     }
 }
 
