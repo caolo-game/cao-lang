@@ -17,7 +17,7 @@ fn test_binary_operatons() {
 
     let result = vm.runtime_data.value_stack.pop();
     match result {
-        Value::Integer(result) => assert_eq!(result, (512 + 512 / 42) * 42),
+        Value::Real(result) => assert_eq!(result, (512.0 + 512.0 / 42.0) * 42.0),
         _ => panic!("Invalid result type"),
     }
 }
