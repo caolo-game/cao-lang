@@ -519,9 +519,10 @@ mod tests {
                         Card::set_var(
                             "t",
                             Card::Array(vec![
-                                Card::scalar_int(20),
-                                Card::scalar_int(30),
-                                Card::scalar_int(10),
+                                Card::ScalarFloat(20.0),
+                                Card::ScalarFloat(30.0),
+                                Card::ScalarFloat(10.0),
+                                Card::ScalarFloat(40.0),
                             ]),
                         ),
                         // call min
@@ -555,8 +556,8 @@ mod tests {
         unsafe {
             let t = result.as_table().expect("table");
             match t.get("value").unwrap() {
-                Value::Integer(i) => {
-                    assert_eq!(*i, 10);
+                Value::Real(i) => {
+                    assert_eq!(*i, 10.0);
                 }
                 a @ _ => panic!("Unexpected result: {a:?}"),
             }
