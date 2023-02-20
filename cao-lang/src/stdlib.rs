@@ -519,10 +519,11 @@ mod tests {
                         Card::set_var(
                             "t",
                             Card::Array(vec![
-                                Card::ScalarFloat(20.0),
-                                Card::ScalarFloat(30.0),
-                                Card::ScalarFloat(10.0),
-                                Card::ScalarFloat(40.0),
+                                Card::ScalarInt(2),
+                                Card::ScalarInt(3),
+                                Card::ScalarInt(1),
+                                Card::ScalarInt(4),
+                                Card::ScalarInt(3),
                             ]),
                         ),
                         // call min
@@ -540,7 +541,10 @@ mod tests {
                     Lane::default()
                         .with_arg("key")
                         .with_arg("val")
-                        .with_cards(vec![Card::read_var("val")]),
+                        .with_cards(vec![Card::Div(BinaryExpression::new([
+                            Card::read_var("val"),
+                            Card::scalar_int(10),
+                        ]))]),
                 ),
             ],
             ..Default::default()
@@ -556,8 +560,8 @@ mod tests {
         unsafe {
             let t = result.as_table().expect("table");
             match t.get("value").unwrap() {
-                Value::Real(i) => {
-                    assert_eq!(*i, 10.0);
+                Value::Integer(i) => {
+                    assert_eq!(*i, 1);
                 }
                 a @ _ => panic!("Unexpected result: {a:?}"),
             }
