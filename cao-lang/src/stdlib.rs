@@ -148,21 +148,30 @@ fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Lane {
                 k: Some("k".to_string()),
                 v: Some("v".to_string()),
                 iterable: Box::new(Card::read_var("iterable")),
-                body: Box::new(on_less_card(
-                    Card::Less(Box::new([
-                        Card::dynamic_call(
-                            Card::read_var("key_function"),
-                            vec![Card::read_var("v"), Card::read_var("k")],
+                body: Box::new(Card::composite_card(
+                    "",
+                    vec![
+                        Card::set_var(
+                            "tmp",
+                            Card::dynamic_call(
+                                Card::read_var("key_function"),
+                                vec![Card::read_var("v"), Card::read_var("k")],
+                            ),
                         ),
-                        Card::read_var("min_item"),
-                    ])),
-                    Card::composite_card(
-                        "",
-                        vec![
-                            Card::set_var("i", Card::read_var("j")),
-                            Card::set_var("min_item", Card::read_var("v")),
-                        ],
-                    ),
+                        on_less_card(
+                            Card::Less(Box::new([
+                                Card::read_var("tmp"),
+                                Card::read_var("min_item"),
+                            ])),
+                            Card::composite_card(
+                                "",
+                                vec![
+                                    Card::set_var("i", Card::read_var("j")),
+                                    Card::set_var("min_item", Card::read_var("tmp")),
+                                ],
+                            ),
+                        ),
+                    ],
                 )),
             })),
             Card::return_card(Card::Get(Box::new([
@@ -523,7 +532,6 @@ mod tests {
                                 Card::ScalarInt(3),
                                 Card::ScalarInt(1),
                                 Card::ScalarInt(4),
-                                Card::ScalarInt(3),
                             ]),
                         ),
                         // call min
