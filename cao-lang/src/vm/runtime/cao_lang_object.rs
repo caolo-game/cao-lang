@@ -76,8 +76,8 @@ impl CaoLangObject {
         match &self.body {
             CaoLangObjectBody::Table(_) => "Table",
             CaoLangObjectBody::String(_) => "String",
-            CaoLangObjectBody::Function(_) => "Function", // TODO: name?
-            CaoLangObjectBody::NativeFunction(_) => "NativeFunction", // TODO: name?
+            CaoLangObjectBody::Function(_) => "Function",
+            CaoLangObjectBody::NativeFunction(_) => "NativeFunction",
         }
     }
 
