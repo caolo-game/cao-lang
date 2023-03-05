@@ -1,7 +1,8 @@
 use std::ptr::NonNull;
 
 use super::{
-    cao_lang_function::CaoLangFunction, cao_lang_string::CaoLangString,
+    cao_lang_function::{CaoLangFunction, CaoLangNativeFunction},
+    cao_lang_string::CaoLangString,
     cao_lang_table::CaoLangTable,
 };
 
@@ -28,6 +29,7 @@ pub enum CaoLangObjectBody {
     Table(CaoLangTable),
     String(CaoLangString),
     Function(CaoLangFunction),
+    NativeFunction(CaoLangNativeFunction),
 }
 
 /// RAII style guard that ensures that an object survives the GC
@@ -75,6 +77,7 @@ impl CaoLangObject {
             CaoLangObjectBody::Table(_) => "Table",
             CaoLangObjectBody::String(_) => "String",
             CaoLangObjectBody::Function(_) => "Function", // TODO: name?
+            CaoLangObjectBody::NativeFunction(_) => "NativeFunction", // TODO: name?
         }
     }
 
@@ -111,6 +114,7 @@ impl CaoLangObject {
             CaoLangObjectBody::Table(t) => t.len(),
             CaoLangObjectBody::String(s) => s.len(),
             CaoLangObjectBody::Function(_) => 1,
+            CaoLangObjectBody::NativeFunction(_) => 1,
         }
     }
 
@@ -135,6 +139,7 @@ impl std::hash::Hash for CaoLangObject {
                 f.handle.value().hash(state);
                 f.arity.hash(state);
             }
+            CaoLangObjectBody::NativeFunction(f) => f.handle.value().hash(state),
         }
     }
 }

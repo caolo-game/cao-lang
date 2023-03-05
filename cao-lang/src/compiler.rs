@@ -653,6 +653,10 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(fname)?;
             }
+            Card::NativeFunction(fname) => {
+                self.push_instruction(Instruction::NativeFunctionPointer);
+                self.push_str(fname.as_str());
+            }
             Card::Array(expressions) => {
                 // create a table, then for each sub-card: insert the subcard and append it to the
                 // result

@@ -91,6 +91,7 @@ pub(crate) enum Instruction {
     ForEach,
 
     FunctionPointer,
+    NativeFunctionPointer,
 
     /// Get the given row in a Table
     NthRow,
@@ -137,6 +138,7 @@ impl Instruction {
             Instruction::ScalarInt => size_of::<i64>(),
             Instruction::ScalarFloat => size_of::<f64>(),
             Instruction::StringLiteral => size_of::<u32>(),
+            Instruction::NativeFunctionPointer => Instruction::StringLiteral.span(),
             Instruction::SetGlobalVar => size_of::<VariableId>(),
             Instruction::ReadGlobalVar => size_of::<VariableId>(),
             Instruction::SetLocalVar => size_of::<u32>(),

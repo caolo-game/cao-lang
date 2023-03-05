@@ -113,7 +113,7 @@ fn test_string_param() {
         res: "".to_string(),
     })
     .unwrap();
-    vm.register_function(name, into_f1(fun));
+    vm.register_function(name, into_f1(fun)).unwrap();
 
     let cu = CaoProgram {
         imports: Default::default(),
@@ -399,7 +399,7 @@ fn call_native_test() {
     };
 
     let mut vm = Vm::new(State { called: false }).unwrap();
-    vm.register_function(name, fun);
+    vm.register_function(name, fun).unwrap();
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
 }
@@ -448,10 +448,10 @@ fn test_function_registry() {
     .unwrap();
 
     // if this compiles we're good to go
-    vm.register_function("func0", myfunc0);
-    vm.register_function("func1", into_f1(myfunc1));
-    vm.register_function("func2", into_f2(myfunc2));
-    vm.register_function("func3", into_f3(myfunc3));
+    vm.register_function("func0", myfunc0).unwrap();
+    vm.register_function("func1", into_f1(myfunc1)).unwrap();
+    vm.register_function("func2", into_f2(myfunc2)).unwrap();
+    vm.register_function("func3", into_f3(myfunc3)).unwrap();
 
     const PROG: &str = r#"
 submodules: []
@@ -1186,4 +1186,47 @@ fn nested_read_set_property_shorthand_test() {
 
         assert_eq!(pooh, 42);
     }
+}
+
+#[test]
+fn native_function_object_call_test() {
+    let name = "fooboi";
+    let test_str = "tiggers boi";
+
+    struct State {
+        res: String,
+    }
+
+    let fun = move |vm: &mut Vm<State>, arg: &str| {
+        vm.auxiliary_data.res = arg.to_string();
+        Ok(())
+    };
+
+    let mut vm = Vm::new(State {
+        res: "".to_string(),
+    })
+    .unwrap();
+    vm.register_function(name, into_f1(fun)).unwrap();
+
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        lanes: [(
+            "main".into(),
+            Lane::default()
+                .with_card(Card::StringLiteral(test_str.to_string()))
+                .with_card(Card::dynamic_call(
+                    Card::NativeFunction(name.to_string()),
+                    vec![],
+                )),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    vm.run(&program).expect("run");
+    let aux = vm.unwrap_aux();
+
+    assert_eq!(aux.res, test_str);
 }

@@ -1,10 +1,12 @@
 //! Helper module for dealing with function extensions.
 //!
 use std::fmt::Display;
+use std::ptr::NonNull;
 
 use crate::collections::handle_table::Handle;
 use crate::prelude::Trace;
 use crate::traits::VmFunction;
+use crate::vm::runtime::cao_lang_object::CaoLangObject;
 use thiserror::Error;
 
 pub type ExecutionResult<T = ()> = Result<T, ExecutionError>;
@@ -79,21 +81,33 @@ impl ExecutionErrorPayload {
 }
 
 pub(crate) struct Procedure<Aux> {
-    pub fun: Box<dyn VmFunction<Aux>>,
-    pub name: String,
+    pub fun: std::rc::Rc<dyn VmFunction<Aux>>,
+    pub name: NonNull<CaoLangObject>,
+}
+
+impl<Aux> Clone for Procedure<Aux> {
+    fn clone(&self) -> Self {
+        Self {
+            fun: self.fun.clone(),
+            name: self.name,
+        }
+    }
 }
 
 impl<Aux> Procedure<Aux> {
-    pub fn new<S: Into<String>, C: VmFunction<Aux> + 'static>(name: S, f: C) -> Self {
-        Self {
-            fun: Box::new(f),
-            name: name.into(),
-        }
+    pub fn name(&self) -> &str {
+        unsafe { self.name.as_ref().as_str().unwrap() }
     }
 }
 
 impl<Aux> std::fmt::Debug for Procedure<Aux> {
     fn fmt(&self, writer: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(writer, "Procedure '{}'", self.name)
+        unsafe {
+            writeln!(
+                writer,
+                "Procedure '{}'",
+                self.name.as_ref().as_str().unwrap()
+            )
+        }
     }
 }

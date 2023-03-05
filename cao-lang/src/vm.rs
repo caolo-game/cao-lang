@@ -70,8 +70,19 @@ impl<'a, Aux> Vm<'a, Aux> {
                 let res = self.init_function(*hash, *arity)?;
                 Value::Object(res.0)
             }
+            OwnedValue::NativeFunction { hash } => {
+                let res = self.init_native_function(*hash)?;
+                Value::Object(res.0)
+            }
         };
         Ok(res)
+    }
+
+    pub fn init_native_function(
+        &mut self,
+        handle: Handle,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        self.runtime_data.init_native_function(handle)
     }
 
     pub fn init_function(
@@ -119,16 +130,23 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Register a native function for use by Cao-Lang programs
     ///
-    pub fn register_function<S, C>(&mut self, name: S, f: C)
+    pub fn register_function<S, C>(&mut self, name: S, f: C) -> Result<(), ExecutionErrorPayload>
     where
-        S: Into<String>,
+        S: AsRef<str>,
         C: VmFunction<Aux> + 'static,
     {
-        let name = name.into();
-        let key = Handle::from_str(name.as_str()).unwrap();
+        let key = Handle::from_str(name.as_ref()).unwrap();
+        let name = self.init_string(name.as_ref())?;
         self.callables
-            .insert(key, Procedure::new(name, f))
-            .expect("failed to insert new function");
+            .insert(
+                key,
+                Procedure {
+                    name: name.0,
+                    fun: std::rc::Rc::new(f),
+                },
+            )
+            .map_err(|_| ExecutionErrorPayload::OutOfMemory)
+            .map(drop)
     }
 
     #[inline]
@@ -358,15 +376,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_pop();
                 }
                 Instruction::CallLane => {
-                    instr_execution::instr_jump(
-                        src_ptr,
-                        &mut instr_ptr,
-                        program,
-                        &mut self.runtime_data,
-                    )
-                    .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
+                    instr_execution::instr_call_function(src_ptr, &mut instr_ptr, program, self)
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::Return => {
                     instr_execution::instr_return(self, &mut instr_ptr).map_err(|err| {
@@ -378,6 +391,30 @@ impl<'a, Aux> Vm<'a, Aux> {
                     instr_execution::instr_copy_last(self).map_err(|err| {
                         payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                     })?;
+                }
+                Instruction::NativeFunctionPointer => {
+                    let handle: u32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let fun_name =
+                        instr_execution::read_str(&mut (handle as usize), program.data.as_slice())
+                            .ok_or(ExecutionErrorPayload::InvalidArgument { context: None })
+                            .map_err(|err| {
+                                payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            })?;
+                    let handle = Handle::from_str(fun_name).unwrap();
+                    let obj = self.init_native_function(handle).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                    let val = Value::Object(obj.0);
+                    self.runtime_data
+                        .value_stack
+                        .push(val)
+                        .map_err(|_| ExecutionErrorPayload::Stackoverflow)
+                        .map_err(|err| {
+                            // free the object on Stackoverflow
+                            self.runtime_data.free_object(obj.0);
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::FunctionPointer => {
                     let hash: Handle =
@@ -478,9 +515,10 @@ impl<'a, Aux> Vm<'a, Aux> {
                     )?
                 }
                 Instruction::CallNative => {
-                    instr_execution::execute_call(self, &mut instr_ptr, &program.bytecode).map_err(
-                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
-                    )?
+                    instr_execution::execute_call_native(self, &mut instr_ptr, &program.bytecode)
+                        .map_err(|err| {
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?
                 }
                 Instruction::Len => instr_execution::instr_len(self).map_err(|err| {
                     payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)

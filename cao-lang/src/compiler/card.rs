@@ -51,6 +51,10 @@ pub enum Card {
     ///
     /// Creates a pointer to the given cao-lang function
     Function(String),
+    /// Lane name
+    ///
+    /// Creates a pointer to the given native function
+    NativeFunction(String),
     SetGlobalVar(Box<SetVar>),
     SetVar(Box<SetVar>),
     ReadVar(VarName),
@@ -168,6 +172,7 @@ impl Card {
             Card::AppendTable(_) => "Append to Table",
             Card::PopTable(_) => "Pop from Table",
             Card::Array(_) => "Array",
+            Card::NativeFunction(_) => "Native Function",
         }
     }
 
@@ -306,6 +311,7 @@ impl Card {
             }
             Card::Array(cards) => return cards.get_mut(i),
             Card::Function(_)
+            | Card::NativeFunction(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -379,6 +385,7 @@ impl Card {
             }
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
+            | Card::NativeFunction(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -472,6 +479,7 @@ impl Card {
             }
             Card::Array(cards) => return (i < cards.len()).then(|| cards.remove(i)),
             Card::Function(_)
+            | Card::NativeFunction(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -570,6 +578,7 @@ impl Card {
                 }
             }
             Card::Function(_)
+            | Card::NativeFunction(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)

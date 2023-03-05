@@ -84,7 +84,7 @@ fn test_native_w_table_input() {
     };
 
     let mut vm = Vm::new(State { param: 0 }).unwrap();
-    vm.register_function("boii", into_f1(myboi));
+    vm.register_function("boii", into_f1(myboi)).unwrap();
 
     let cu = CaoProgram {
         imports: Default::default(),

@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    runtime::{CallFrame, RuntimeData},
+    runtime::{cao_lang_object::CaoLangObjectBody, CallFrame, RuntimeData},
     Vm,
 };
 
@@ -134,24 +134,27 @@ pub fn push_call_frame(
     Ok(())
 }
 
-pub fn instr_jump(
+pub fn instr_call_function<T>(
     src_ptr: usize,
     instr_ptr: &mut usize,
     program: &CaoCompiledProgram,
-    runtime_data: &mut RuntimeData,
+    vm: &mut Vm<T>,
 ) -> ExecutionResult {
-    let Value::Object(o) = runtime_data.value_stack.pop() else{
+    let Value::Object(o) = vm.runtime_data.value_stack.pop() else{
         return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function object argument"));
     };
     let arity;
     let label;
     unsafe {
-        match o.as_ref().as_function() {
-            Some(f) => {
-                label = f.handle;
+        match &o.as_ref().body {
+            CaoLangObjectBody::Function(f) => {
                 arity = f.arity;
+                label = f.handle;
             }
-            None => {
+            CaoLangObjectBody::NativeFunction(f) => {
+                return call_native(vm, f.handle);
+            }
+            _ => {
                 return Err(ExecutionErrorPayload::invalid_argument(format!(
                     "Jump instruction expects a function object argument, instead got: {}",
                     o.as_ref().type_name()
@@ -164,7 +167,7 @@ pub fn instr_jump(
         arity as usize,
         src_ptr as u32,
         *instr_ptr as u32,
-        runtime_data,
+        &mut vm.runtime_data,
     )?;
 
     // set the instr_ptr to the new lane's beginning
@@ -177,23 +180,30 @@ pub fn instr_jump(
     Ok(())
 }
 
-pub fn execute_call<T>(vm: &mut Vm<T>, instr_ptr: &mut usize, bytecode: &[u8]) -> ExecutionResult {
+pub fn execute_call_native<T>(
+    vm: &mut Vm<T>,
+    instr_ptr: &mut usize,
+    bytecode: &[u8],
+) -> ExecutionResult {
     let fun_hash: Handle = unsafe { decode_value(bytecode, instr_ptr) };
-    let procedure = vm
+    call_native(vm, fun_hash)
+}
+
+fn call_native<T>(vm: &mut Vm<T>, handle: Handle) -> ExecutionResult {
+    // Clone the function because in the future native functions may call into the VM and call
+    // themselves recursively
+    let procedure: crate::procedures::Procedure<T> = vm
         .callables
-        .remove(fun_hash)
-        .ok_or(ExecutionErrorPayload::ProcedureNotFound(fun_hash))?;
+        .get(handle)
+        .ok_or(ExecutionErrorPayload::ProcedureNotFound(handle))?
+        .clone();
     let res = procedure
         .fun
         .call(vm)
         .map_err(|err| ExecutionErrorPayload::TaskFailure {
-            name: procedure.name.clone(),
+            name: procedure.name().to_string(),
             error: Box::new(err),
         });
-    //cleanup
-    vm.callables
-        .insert(fun_hash, procedure)
-        .expect("fun re-insert");
     res
 }
 
