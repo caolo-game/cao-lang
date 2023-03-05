@@ -113,13 +113,16 @@ impl CaoLangObject {
         match &self.body {
             CaoLangObjectBody::Table(t) => t.len(),
             CaoLangObjectBody::String(s) => s.len(),
-            CaoLangObjectBody::Function(_) => 1,
-            CaoLangObjectBody::NativeFunction(_) => 1,
+            CaoLangObjectBody::Function(_) => 0,
+            CaoLangObjectBody::NativeFunction(_) => 0,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        match &self.body {
+            CaoLangObjectBody::Table(_) | CaoLangObjectBody::String(_) => self.len() == 0,
+            CaoLangObjectBody::Function(_) | CaoLangObjectBody::NativeFunction(_) => false,
+        }
     }
 }
 
