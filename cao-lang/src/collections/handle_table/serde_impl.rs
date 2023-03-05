@@ -55,7 +55,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for HandleTable<T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        compiler::{CaoProgram, Lane},
+        compiler::{CaoProgram, Function},
         prelude::CaoCompiledProgram,
     };
 
@@ -111,7 +111,7 @@ mod tests {
                 imports: Default::default(),
                 lanes: [(
                     "main".into(),
-                    Lane {
+                    Function {
                         arguments: vec![],
                         cards: vec![],
                     },

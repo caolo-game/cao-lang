@@ -59,7 +59,7 @@ impl<'de, K: Deserialize<'de> + Hash + Eq, V: Deserialize<'de>> Deserialize<'de>
 #[cfg(test)]
 mod tests {
     use crate::{
-        compiler::{CaoProgram, Lane},
+        compiler::{CaoProgram, Function},
         prelude::CaoCompiledProgram,
     };
 
@@ -115,7 +115,7 @@ mod tests {
                 imports: Default::default(),
                 lanes: [(
                     "main".into(),
-                    Lane {
+                    Function {
                         arguments: vec![],
                         cards: vec![],
                     },

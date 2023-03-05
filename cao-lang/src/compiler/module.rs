@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compiler::Lane;
+use crate::compiler::Function;
 use crate::prelude::CompilationErrorPayload;
 use smallvec::SmallVec;
 use std::collections::hash_map::DefaultHasher;
@@ -12,7 +12,7 @@ use std::hash::Hasher;
 use std::rc::Rc;
 use thiserror::Error;
 
-use super::lane_ir::LaneIr;
+use super::lane_ir::FunctionIr;
 use super::{Card, ImportsIr};
 
 #[derive(Debug, Clone, Error)]
@@ -26,14 +26,14 @@ pub enum IntoStreamError {
 pub type CaoProgram = Module;
 pub type CaoIdentifier = String;
 pub type Imports = Vec<CaoIdentifier>;
-pub type Lanes = Vec<(CaoIdentifier, Lane)>;
+pub type Functions = Vec<(CaoIdentifier, Function)>;
 pub type Submodules = Vec<(CaoIdentifier, Module)>;
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Module {
     pub submodules: Submodules,
-    pub lanes: Lanes,
+    pub lanes: Functions,
     /// _lanes_ to import from submodules
     ///
     /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
@@ -45,7 +45,7 @@ pub struct Module {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CardIndex {
     pub lane: usize,
-    pub card_index: LaneCardIndex,
+    pub card_index: FunctionCardIndex,
 }
 
 impl CardIndex {
@@ -59,7 +59,7 @@ impl CardIndex {
     pub fn new(lane: usize, card_index: usize) -> Self {
         Self {
             lane,
-            card_index: LaneCardIndex::new(card_index),
+            card_index: FunctionCardIndex::new(card_index),
         }
     }
 
@@ -124,11 +124,11 @@ impl std::fmt::Display for CardIndex {
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LaneCardIndex {
+pub struct FunctionCardIndex {
     pub indices: SmallVec<[u32; 4]>,
 }
 
-impl LaneCardIndex {
+impl FunctionCardIndex {
     #[must_use]
     pub fn new(card_index: usize) -> Self {
         Self {
@@ -169,12 +169,12 @@ impl LaneCardIndex {
 
 #[derive(Debug, Clone, Error)]
 pub enum CardFetchError {
-    #[error("Lane not found")]
-    LaneNotFound,
+    #[error("Function not found")]
+    FunctionNotFound,
     #[error("Card at depth {depth} not found")]
     CardNotFound { depth: usize },
     #[error("The card at depth {depth} has no nested lanes, but the index tried to fetch one")]
-    NoSubLane { depth: usize },
+    NoSubFunction { depth: usize },
     #[error("The provided index is not valid")]
     InvalidIndex,
 }
@@ -184,7 +184,7 @@ impl Module {
         let (_, lane) = self
             .lanes
             .get_mut(idx.lane)
-            .ok_or(CardFetchError::LaneNotFound)?;
+            .ok_or(CardFetchError::FunctionNotFound)?;
         let mut card = lane
             .cards
             .get_mut(idx.begin()?)
@@ -203,7 +203,7 @@ impl Module {
         let (_, lane) = self
             .lanes
             .get(idx.lane)
-            .ok_or(CardFetchError::LaneNotFound)?;
+            .ok_or(CardFetchError::FunctionNotFound)?;
         let mut card = lane
             .cards
             .get(idx.begin()?)
@@ -222,7 +222,7 @@ impl Module {
         let (_, lane) = self
             .lanes
             .get_mut(idx.lane)
-            .ok_or(CardFetchError::LaneNotFound)?;
+            .ok_or(CardFetchError::FunctionNotFound)?;
         if idx.card_index.indices.len() == 1 {
             if lane.cards.len() <= idx.card_index.indices[0] as usize {
                 return Err(CardFetchError::CardNotFound { depth: 0 });
@@ -251,7 +251,7 @@ impl Module {
         let (_, lane) = self
             .lanes
             .get_mut(idx.lane)
-            .ok_or(CardFetchError::LaneNotFound)?;
+            .ok_or(CardFetchError::FunctionNotFound)?;
         if idx.card_index.indices.len() == 1 {
             let c = lane
                 .cards
@@ -281,7 +281,7 @@ impl Module {
         let (_, lane) = self
             .lanes
             .get_mut(idx.lane)
-            .ok_or(CardFetchError::LaneNotFound)?;
+            .ok_or(CardFetchError::FunctionNotFound)?;
         if idx.card_index.indices.len() == 1 {
             if lane.cards.len() < idx.card_index.indices[0] as usize {
                 return Err(CardFetchError::CardNotFound { depth: 0 });
@@ -312,7 +312,7 @@ impl Module {
     pub(crate) fn into_ir_stream(
         mut self,
         recursion_limit: u32,
-    ) -> Result<Vec<LaneIr>, CompilationErrorPayload> {
+    ) -> Result<Vec<FunctionIr>, CompilationErrorPayload> {
         // inject the standard library
         self.submodules
             .push(("std".to_string(), crate::stdlib::standard_library()));
@@ -413,7 +413,7 @@ impl Module {
         Some(current)
     }
 
-    pub fn lookup_lane(&self, target: &str) -> Option<&Lane> {
+    pub fn lookup_lane(&self, target: &str) -> Option<&Function> {
         let Some((submodule, lane)) = target.rsplit_once(".") else {
             return self.lanes.iter().find(|(name, _)|name==target).map(|(_, l)| l)
         };
@@ -421,7 +421,7 @@ impl Module {
         module.lookup_lane(lane)
     }
 
-    pub fn lookup_lane_mut(&mut self, target: &str) -> Option<&mut Lane> {
+    pub fn lookup_lane_mut(&mut self, target: &str) -> Option<&mut Function> {
         let Some((submodule, lane)) = target.rsplit_once(".") else {
             return self.lanes.iter_mut().find(|(name, _)|name==target).map(|(_, l)| l)
         };
@@ -441,7 +441,7 @@ fn hash_module(hasher: &mut impl Hasher, module: &Module) {
     }
 }
 
-fn hash_lane(hasher: &mut impl Hasher, lane: &Lane) {
+fn hash_lane(hasher: &mut impl Hasher, lane: &Function) {
     for card in lane.cards.iter() {
         hasher.write(card.name().as_bytes());
     }
@@ -451,7 +451,7 @@ fn flatten_module<'a>(
     module: &'a Module,
     recursion_limit: u32,
     namespace: &mut SmallVec<[&'a str; 16]>,
-    out: &mut Vec<LaneIr>,
+    out: &mut Vec<FunctionIr>,
 ) -> Result<(), CompilationErrorPayload> {
     if namespace.len() >= recursion_limit as usize {
         return Err(CompilationErrorPayload::RecursionLimitReached(
@@ -464,7 +464,7 @@ fn flatten_module<'a>(
     let imports = Rc::new(module.execute_imports()?);
     for (i, (name, lane)) in module.lanes.iter().enumerate() {
         if !is_name_valid(name.as_ref()) {
-            return Err(CompilationErrorPayload::BadLaneName(name.to_string()));
+            return Err(CompilationErrorPayload::BadFunctionName(name.to_string()));
         }
         namespace.push(name.as_ref());
         out.push(lane_to_lane_ir(i, lane, namespace, Rc::clone(&imports)));
@@ -480,16 +480,16 @@ fn flatten_module<'a>(
 
 fn lane_to_lane_ir(
     lane_id: usize,
-    lane: &Lane,
+    lane: &Function,
     namespace: &[&str],
     imports: Rc<ImportsIr>,
-) -> LaneIr {
+) -> FunctionIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
     );
 
-    let mut cl = LaneIr {
+    let mut cl = FunctionIr {
         name: flatten_name(namespace).into_boxed_str(),
         arguments: lane.arguments.clone().into_boxed_slice(),
         cards: lane.cards.clone().into_boxed_slice(),

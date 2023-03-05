@@ -28,7 +28,7 @@ pub enum CompileResult {
     cao_CompileResult_BadJson,
     cao_CompileResult_Unimplmeneted,
     cao_CompileResult_EmptyProgram,
-    cao_CompileResult_TooManyLanes,
+    cao_CompileResult_TooManyFunctions,
     cao_CompileResult_TooManyCards,
     cao_CompileResult_DuplicateName,
     cao_CompileResult_MissingSubProgram,
@@ -38,7 +38,7 @@ pub enum CompileResult {
     cao_CompileResult_BadVariableName,
     cao_CompileResult_EmptyVariable,
     cao_CompileResult_NoMain,
-    cao_CompileResult_BadLaneName,
+    cao_CompileResult_BadFunctionName,
     cao_CompileResult_RecursionLimitReached,
     cao_CompileResult_BadImport,
     cao_CompileResult_SuperLimitReached,
@@ -165,8 +165,8 @@ pub unsafe extern "C" fn cao_compile_json(
             CompilationErrorPayload::EmptyProgram => {
                 return CompileResult::cao_CompileResult_EmptyProgram
             }
-            CompilationErrorPayload::TooManyLanes => {
-                return CompileResult::cao_CompileResult_TooManyLanes
+            CompilationErrorPayload::TooManyFunctions => {
+                return CompileResult::cao_CompileResult_TooManyFunctions
             }
             CompilationErrorPayload::TooManyCards(_) => {
                 return CompileResult::cao_CompileResult_TooManyCards
@@ -193,8 +193,8 @@ pub unsafe extern "C" fn cao_compile_json(
                 return CompileResult::cao_CompileResult_EmptyVariable
             }
             CompilationErrorPayload::NoMain => return CompileResult::cao_CompileResult_NoMain,
-            CompilationErrorPayload::BadLaneName(_) => {
-                return CompileResult::cao_CompileResult_BadLaneName
+            CompilationErrorPayload::BadFunctionName(_) => {
+                return CompileResult::cao_CompileResult_BadFunctionName
             }
             CompilationErrorPayload::RecursionLimitReached(_) => {
                 return CompileResult::cao_CompileResult_RecursionLimitReached

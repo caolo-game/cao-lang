@@ -33,8 +33,8 @@ pub(crate) enum Instruction {
     /// Else does nothing
     /// Quit the program returning the last value on the stack
     Exit,
-    /// Read bytecode position and Lane arity from the program and perform a jump there.
-    CallLane,
+    /// Read bytecode position and Function arity from the program and perform a jump there.
+    CallFunction,
     /// Compares two scalars
     Equals,
     /// Compares two scalars
@@ -107,7 +107,7 @@ impl Instruction {
     #[allow(unused)]
     pub fn span(self) -> usize {
         let data_span = match self {
-            Instruction::CallLane
+            Instruction::CallFunction
             | Instruction::Sub
             | Instruction::Mul
             | Instruction::Div

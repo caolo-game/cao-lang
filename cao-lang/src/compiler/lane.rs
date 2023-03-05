@@ -5,12 +5,12 @@ use std::str::FromStr;
 /// Cao-lang functions
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Lane {
+pub struct Function {
     pub arguments: Vec<VarName>,
     pub cards: Vec<Card>,
 }
 
-impl Lane {
+impl Function {
     #[must_use]
     pub fn with_arg(mut self, name: &str) -> Self {
         let name = VarName::from_str(name).expect("Bad variable name");

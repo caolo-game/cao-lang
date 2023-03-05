@@ -29,14 +29,14 @@ pub use compile_options::*;
 pub use lane::*;
 pub use module::*;
 
-use self::lane_ir::LaneIr;
+use self::lane_ir::FunctionIr;
 
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
 /// Intermediate representation of a Cao-Lang program.
 ///
-/// Execution will begin with the first Lane
-pub(crate) type LaneSlice<'a> = &'a [LaneIr];
+/// Execution will begin with the first Function
+pub(crate) type FunctionSlice<'a> = &'a [FunctionIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 pub(crate) type ImportsIr = std::collections::HashMap<String, String>;
 
@@ -46,7 +46,7 @@ pub struct Compiler<'a> {
     next_var: VariableId,
 
     /// maps lanes to their metadata
-    jump_table: CaoHashMap<String, LaneMeta>,
+    jump_table: CaoHashMap<String, FunctionMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, ImportsIr>,
@@ -56,7 +56,7 @@ pub struct Compiler<'a> {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct LaneMeta {
+struct FunctionMeta {
     pub hash_key: Handle,
     /// number of arguments
     pub arity: u32,
@@ -112,7 +112,7 @@ impl<'a> Compiler<'a> {
 
     pub fn compile(
         &mut self,
-        compilation_unit: LaneSlice<'a>,
+        compilation_unit: FunctionSlice<'a>,
         compile_options: CompileOptions,
     ) -> CompilationResult<CaoCompiledProgram> {
         self.options = compile_options;
@@ -137,11 +137,11 @@ impl<'a> Compiler<'a> {
 
     /// build the jump table and consume the lane names
     /// also reserve memory for the program labels
-    fn compile_stage_1(&mut self, compilation_unit: LaneSlice) -> CompilationResult<()> {
+    fn compile_stage_1(&mut self, compilation_unit: FunctionSlice) -> CompilationResult<()> {
         // check if len fits in 16 bits
         let _: u16 = match compilation_unit.len().try_into() {
             Ok(i) => i,
-            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyLanes)),
+            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyFunctions)),
         };
 
         let mut num_cards = 0usize;
@@ -158,8 +158,8 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn add_lane(&mut self, nodekey: Handle, n: &LaneIr) -> CompilationResult<()> {
-        let metadata = LaneMeta {
+    fn add_lane(&mut self, nodekey: Handle, n: &FunctionIr) -> CompilationResult<()> {
+        let metadata = FunctionMeta {
             hash_key: nodekey,
             arity: n.arguments.len() as u32,
         };
@@ -173,7 +173,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// consume lane cards and build the bytecode
-    fn compile_stage_2(&mut self, compilation_unit: LaneSlice<'a>) -> CompilationResult<()> {
+    fn compile_stage_2(&mut self, compilation_unit: FunctionSlice<'a>) -> CompilationResult<()> {
         let mut lanes = compilation_unit.iter().enumerate();
 
         if let Some((il, main_lane)) = lanes.next() {
@@ -186,7 +186,7 @@ impl<'a> Compiler<'a> {
             self.process_lane(il, main_lane)?;
             self.current_index = CardIndex {
                 lane: il,
-                card_index: LaneCardIndex {
+                card_index: FunctionCardIndex {
                     indices: smallvec::smallvec![len],
                 },
             };
@@ -256,13 +256,13 @@ impl<'a> Compiler<'a> {
     fn process_lane(
         &mut self,
         il: usize,
-        LaneIr {
+        FunctionIr {
             arguments,
             cards,
             namespace,
             imports,
             ..
-        }: &'a LaneIr,
+        }: &'a FunctionIr,
     ) -> CompilationResult<()> {
         self.current_namespace = Cow::Borrowed(namespace);
         self.current_imports = Cow::Borrowed(imports);
@@ -323,9 +323,9 @@ impl<'a> Compiler<'a> {
     // take jump_table by param because of lifetimes
     fn lookup_lane<'b>(
         &self,
-        jump_table: &'b CaoHashMap<String, LaneMeta>,
+        jump_table: &'b CaoHashMap<String, FunctionMeta>,
         lane: &str,
-    ) -> CompilationResult<&'b LaneMeta> {
+    ) -> CompilationResult<&'b FunctionMeta> {
         // attempt to look up the function by name
         let mut to = jump_table.get(lane);
         if to.is_none() {
@@ -628,7 +628,7 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(&jmp.args.0)?;
                 self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(jmp.lane_name.as_str())?;
-                self.push_instruction(Instruction::CallLane);
+                self.push_instruction(Instruction::CallFunction);
             }
             Card::StringLiteral(c) => {
                 self.push_instruction(Instruction::StringLiteral);
@@ -758,7 +758,7 @@ impl<'a> Compiler<'a> {
                 self.current_index.push_subindex(jump.args.0.len() as u32);
                 self.process_card(&jump.lane)?;
                 self.current_index.pop_subindex();
-                self.push_instruction(Instruction::CallLane);
+                self.push_instruction(Instruction::CallFunction);
             }
             Card::Pass => {}
             Card::ScalarNil => {

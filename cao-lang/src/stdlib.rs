@@ -3,12 +3,12 @@
 //! The standard library is injected into every `Module` at compilation time.
 //! Standard functions can be imported via the `std` module
 
-use crate::compiler::{Card, ForEach, Lane, Module};
+use crate::compiler::{Card, ForEach, Function, Module};
 
 /// Given a table and a callback that returns a bool create a new table whith the items that return
 /// true
-pub fn filter() -> Lane {
-    Lane::default()
+pub fn filter() -> Function {
+    Function::default()
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
@@ -42,8 +42,8 @@ pub fn filter() -> Lane {
 }
 
 /// Returns the key of the first row that returns True from the callback
-pub fn any() -> Lane {
-    Lane::default()
+pub fn any() -> Function {
+    Function::default()
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
@@ -74,8 +74,8 @@ pub fn any() -> Lane {
 
 /// Iterate on a table calling the provided callback for each row.
 /// Build a new table from the callback return values, using the same keys
-pub fn map() -> Lane {
-    Lane::default()
+pub fn map() -> Function {
+    Function::default()
         .with_arg("iterable")
         .with_arg("callback")
         .with_cards(vec![
@@ -108,8 +108,8 @@ pub fn map() -> Lane {
         ])
 }
 
-fn minmax(minimax: &str) -> Lane {
-    Lane::default().with_arg("iterable").with_cards(vec![
+fn minmax(minimax: &str) -> Function {
+    Function::default().with_arg("iterable").with_cards(vec![
         Card::function_value("row_to_value"),
         Card::read_var("iterable"),
         Card::return_card(Card::call_function(minimax, vec![])),
@@ -117,17 +117,17 @@ fn minmax(minimax: &str) -> Lane {
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
-pub fn min() -> Lane {
+pub fn min() -> Function {
     minmax("min_by_key")
 }
 
 /// Return the largest value in the table, or nil if the table is empty
-pub fn max() -> Lane {
+pub fn max() -> Function {
     minmax("max_by_key")
 }
 
-fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Lane {
-    Lane::default()
+fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Function {
+    Function::default()
         .with_arg("iterable")
         .with_arg("key_function")
         .with_cards(vec![
@@ -182,17 +182,17 @@ fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Lane {
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
-pub fn min_by_key() -> Lane {
+pub fn min_by_key() -> Function {
     minmax_by_key(|cond, body| Card::IfTrue(Box::new([cond, body])))
 }
 
-pub fn max_by_key() -> Lane {
+pub fn max_by_key() -> Function {
     minmax_by_key(|cond, body| Card::IfFalse(Box::new([cond, body])))
 }
 
 /// A (key, value) function that returns the value given
-pub fn value_key_fn() -> Lane {
-    Lane::default()
+pub fn value_key_fn() -> Function {
+    Function::default()
         .with_arg("_key")
         .with_arg("val")
         .with_cards(vec![Card::read_var("val")])
@@ -233,7 +233,7 @@ mod tests {
             lanes: vec![
                 (
                     "main".to_string(),
-                    Lane::default().with_cards(vec![
+                    Function::default().with_cards(vec![
                         Card::set_var("t", Card::CreateTable),
                         Card::set_property(
                             Card::scalar_int(1),
@@ -257,7 +257,7 @@ mod tests {
                 ),
                 (
                     "cb".to_string(),
-                    Lane::default()
+                    Function::default()
                         .with_arg("k")
                         .with_cards(vec![Card::return_card(Card::Equals(Box::new([
                             Card::read_var("k"),
@@ -331,7 +331,7 @@ mod tests {
             lanes: vec![
                 (
                     "main".to_string(),
-                    Lane::default().with_cards(vec![
+                    Function::default().with_cards(vec![
                         Card::set_var("t", Card::CreateTable),
                         Card::set_property(
                             Card::scalar_int(1),
@@ -355,7 +355,7 @@ mod tests {
                 ),
                 (
                     "cb".to_string(),
-                    Lane::default()
+                    Function::default()
                         .with_arg("k")
                         .with_cards(vec![Card::return_card(Card::Equals(Box::new([
                             Card::read_var("k"),
@@ -397,7 +397,7 @@ mod tests {
             imports: vec!["std.min".to_string()],
             lanes: vec![(
                 "main".to_string(),
-                Lane::default().with_cards(vec![
+                Function::default().with_cards(vec![
                     Card::set_global_var("t", Card::CreateTable),
                     Card::set_var("t.winnie", Card::scalar_int(10)),
                     Card::set_var("t.pooh", Card::scalar_int(20)),
@@ -449,7 +449,7 @@ mod tests {
             imports: vec!["std.max".to_string()],
             lanes: vec![(
                 "main".to_string(),
-                Lane::default().with_cards(vec![
+                Function::default().with_cards(vec![
                     Card::set_var("t", Card::CreateTable),
                     Card::AppendTable(BinaryExpression::new([
                         Card::scalar_int(1),
@@ -492,7 +492,7 @@ mod tests {
             imports: vec!["std.max".to_string()],
             lanes: vec![(
                 "main".to_string(),
-                Lane::default().with_cards(vec![Card::set_global_var(
+                Function::default().with_cards(vec![Card::set_global_var(
                     "g_result",
                     Card::call_function("max", vec![Card::CreateTable]),
                 )]),
@@ -524,7 +524,7 @@ mod tests {
             lanes: vec![
                 (
                     "main".to_string(),
-                    Lane::default().with_cards(vec![
+                    Function::default().with_cards(vec![
                         Card::set_var(
                             "t",
                             Card::Array(vec![
@@ -546,7 +546,7 @@ mod tests {
                 ),
                 (
                     "keyfn".to_string(),
-                    Lane::default()
+                    Function::default()
                         .with_arg("key")
                         .with_arg("val")
                         .with_cards(vec![Card::Div(BinaryExpression::new([

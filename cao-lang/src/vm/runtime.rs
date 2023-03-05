@@ -34,9 +34,9 @@ impl Drop for RuntimeData {
 }
 
 pub(crate) struct CallFrame {
-    /// Store src addresses of Lane calls
+    /// Store src addresses of Function calls
     pub src_instr_ptr: u32,
-    /// Store return addresses of Lane calls
+    /// Store return addresses of Function calls
     pub dst_instr_ptr: u32,
     /// beginning of the local stack
     pub stack_offset: u32,

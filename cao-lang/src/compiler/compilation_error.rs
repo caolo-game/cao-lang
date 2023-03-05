@@ -41,12 +41,12 @@ pub enum CompilationErrorPayload {
     EmptyProgram,
 
     #[error("Can not handle that many lanes")]
-    TooManyLanes,
+    TooManyFunctions,
 
-    #[error("Lanes {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
+    #[error("Functions {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
     TooManyCards(usize),
 
-    #[error("Lane names must be unique. Found duplicated name: {0}")]
+    #[error("Function names must be unique. Found duplicated name: {0}")]
     DuplicateName(String),
 
     #[error("Module names must be unique. Found duplicated name: {0}")]
@@ -70,8 +70,8 @@ pub enum CompilationErrorPayload {
     #[error("Variable name can't be empty")]
     EmptyVariable,
 
-    #[error("{0:?} is not a valid name for a Lane")]
-    BadLaneName(String),
+    #[error("{0:?} is not a valid name for a Function")]
+    BadFunctionName(String),
 
     #[error("Recursion limit ({0}) reached")]
     RecursionLimitReached(u32),

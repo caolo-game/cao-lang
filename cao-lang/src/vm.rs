@@ -375,7 +375,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 Instruction::Pop => {
                     self.stack_pop();
                 }
-                Instruction::CallLane => {
+                Instruction::CallFunction => {
                     instr_execution::instr_call_function(src_ptr, &mut instr_ptr, program, self)
                         .map_err(|err| {
                             payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)

@@ -45,13 +45,13 @@ pub enum Card {
     IfFalse(BinaryExpression),
     /// Children = [condition, then, else]
     IfElse(Box<[Card; 3]>),
-    /// Lane name
+    /// Function name
     Call(Box<StaticJump>),
-    /// Lane name
+    /// Function name
     ///
     /// Creates a pointer to the given cao-lang function
     Function(String),
-    /// Lane name
+    /// Function name
     ///
     /// Creates a pointer to the given native function
     NativeFunction(String),

@@ -5,7 +5,7 @@ use crate::VarName;
 
 /// Intermediate lane data
 #[derive(Debug, Clone)]
-pub struct LaneIr {
+pub struct FunctionIr {
     pub name: Box<str>,
     pub arguments: Box<[VarName]>,
     pub cards: Box<[Card]>,
