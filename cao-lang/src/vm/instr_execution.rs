@@ -83,7 +83,7 @@ pub fn instr_len<T>(vm: &mut Vm<T>) -> ExecutionResult {
     let val = vm.stack_pop();
     let len = match val {
         Value::Nil => 0,
-        Value::Function { .. } | Value::Integer(_) | Value::Real(_) => 1,
+        Value::Integer(_) | Value::Real(_) => 1,
         Value::Object(t) => unsafe { t.as_ref().len() as i64 },
     };
     vm.stack_push(len)?;
@@ -140,9 +140,25 @@ pub fn instr_jump(
     program: &CaoCompiledProgram,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
-    let Value::Function { hash: label, arity } = runtime_data.value_stack.pop() else{
-        return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function argument"));
+    let Value::Object(o) = runtime_data.value_stack.pop() else{
+        return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function object argument"));
     };
+    let arity;
+    let label;
+    unsafe {
+        match o.as_ref().as_function() {
+            Some(f) => {
+                label = f.handle;
+                arity = f.arity;
+            }
+            None => {
+                return Err(ExecutionErrorPayload::invalid_argument(format!(
+                    "Jump instruction expects a function object argument, instead got: {}",
+                    o.as_ref().type_name()
+                )));
+            }
+        }
+    }
 
     push_call_frame(
         arity as usize,

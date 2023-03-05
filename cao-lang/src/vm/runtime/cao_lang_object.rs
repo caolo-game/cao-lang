@@ -1,6 +1,9 @@
 use std::ptr::NonNull;
 
-use super::{cao_lang_string::CaoLangString, cao_lang_table::CaoLangTable};
+use super::{
+    cao_lang_function::CaoLangFunction, cao_lang_string::CaoLangString,
+    cao_lang_table::CaoLangTable,
+};
 
 // note Gray is not actually useful for now, but it might come in handy if we want to do finalizers
 #[derive(Debug, Clone, Copy)]
@@ -24,6 +27,7 @@ pub struct CaoLangObject {
 pub enum CaoLangObjectBody {
     Table(CaoLangTable),
     String(CaoLangString),
+    Function(CaoLangFunction),
 }
 
 /// RAII style guard that ensures that an object survives the GC
@@ -70,6 +74,7 @@ impl CaoLangObject {
         match &self.body {
             CaoLangObjectBody::Table(_) => "Table",
             CaoLangObjectBody::String(_) => "String",
+            CaoLangObjectBody::Function(_) => "Function", // TODO: name?
         }
     }
 
@@ -94,10 +99,18 @@ impl CaoLangObject {
         }
     }
 
+    pub fn as_function(&self) -> Option<&CaoLangFunction> {
+        match &self.body {
+            CaoLangObjectBody::Function(f) => Some(f),
+            _ => None,
+        }
+    }
+
     pub fn len(&self) -> usize {
         match &self.body {
             CaoLangObjectBody::Table(t) => t.len(),
             CaoLangObjectBody::String(s) => s.len(),
+            CaoLangObjectBody::Function(_) => 1,
         }
     }
 
@@ -117,6 +130,10 @@ impl std::hash::Hash for CaoLangObject {
             }
             CaoLangObjectBody::String(s) => {
                 s.as_str().hash(state);
+            }
+            CaoLangObjectBody::Function(f) => {
+                f.handle.value().hash(state);
+                f.arity.hash(state);
             }
         }
     }

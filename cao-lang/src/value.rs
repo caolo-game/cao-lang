@@ -10,7 +10,6 @@ pub enum Value {
     Object(NonNull<CaoLangObject>),
     Integer(i64),
     Real(f64),
-    Function { hash: Handle, arity: u32 },
 }
 
 impl PartialOrd for Value {
@@ -38,10 +37,6 @@ impl std::hash::Hash for Value {
             Value::Object(o) => unsafe {
                 o.as_ref().hash(state);
             },
-            Value::Function { hash, arity } => {
-                hash.value().hash(state);
-                arity.hash(state);
-            }
         }
     }
 }
@@ -133,11 +128,14 @@ impl From<Value> for OwnedValue {
                             .collect(),
                     ),
                     CaoLangObjectBody::String(s) => Self::String(s.as_str().to_owned()),
+                    CaoLangObjectBody::Function(f) => Self::Function {
+                        hash: f.handle,
+                        arity: f.arity,
+                    },
                 }
             },
             Value::Integer(x) => Self::Integer(x),
             Value::Real(x) => Self::Real(x),
-            Value::Function { hash, arity } => Self::Function { hash, arity },
         }
     }
 }
@@ -156,7 +154,6 @@ impl Value {
             Value::Integer(i) => i != 0,
             Value::Real(i) => i != 0.0,
             Value::Nil => false,
-            Value::Function { .. } => true,
         }
     }
 
@@ -167,7 +164,6 @@ impl Value {
             Value::Object(o) => unsafe { o.as_ref().type_name() },
             Value::Integer(_) => "Integer",
             Value::Real(_) => "Real",
-            Value::Function { .. } => "Function",
         }
     }
 
@@ -321,7 +317,6 @@ impl TryFrom<Value> for i64 {
             Value::Real(r) => Ok(r as i64),
             Value::Object(o) => Ok(unsafe { o.as_ref().len() as i64 }),
             Value::Nil => Ok(0),
-            _ => Err(v),
         }
     }
 }
@@ -335,7 +330,6 @@ impl TryFrom<Value> for f64 {
             Value::Integer(i) => Ok(i as f64),
             Value::Object(o) => Ok(unsafe { o.as_ref().len() as f64 }),
             Value::Nil => Ok(0.0),
-            _ => Err(v),
         }
     }
 }

@@ -66,12 +66,20 @@ impl<'a, Aux> Vm<'a, Aux> {
             }
             OwnedValue::Integer(x) => Value::Integer(*x),
             OwnedValue::Real(x) => Value::Real(*x),
-            OwnedValue::Function { hash, arity } => Value::Function {
-                hash: *hash,
-                arity: *arity,
-            },
+            OwnedValue::Function { hash, arity } => {
+                let res = self.init_function(*hash, *arity)?;
+                Value::Object(res.0)
+            }
         };
         Ok(res)
+    }
+
+    pub fn init_function(
+        &mut self,
+        handle: Handle,
+        arity: u32,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        self.runtime_data.init_function(handle, arity)
     }
 
     pub fn clear(&mut self) {
@@ -372,18 +380,24 @@ impl<'a, Aux> Vm<'a, Aux> {
                     })?;
                 }
                 Instruction::FunctionPointer => {
+                    let hash: Handle =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let arity: u32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+
+                    let obj = self.init_function(hash, arity).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+
+                    let val = Value::Object(obj.0);
+
                     self.runtime_data
                         .value_stack
-                        .push(Value::Function {
-                            hash: unsafe {
-                                instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
-                            },
-                            arity: unsafe {
-                                instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
-                            },
-                        })
+                        .push(val)
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
                         .map_err(|err| {
+                            // free the object on Stackoverflow
+                            self.runtime_data.free_object(obj.0);
                             payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
