@@ -1237,6 +1237,52 @@ fn native_function_object_call_test() {
 }
 
 #[test]
+fn closure_test() {
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        lanes: [
+            (
+                // create a closure that captures a local variable
+                // and sets a global variable
+                "createClosure".into(),
+                Function::default()
+                    .with_card(Card::set_var("result", Card::string_card("winnie the pooh")))
+                    .with_card(Card::return_card(Card::Closure(Box::new(
+                        Function::default()
+                            .with_card(Card::set_global_var("g_result", Card::read_var("result"))),
+                    )))),
+            ),
+            (
+                "main".into(),
+                Function::default()
+                    .with_card(Card::set_var(
+                        "fun",
+                        Card::call_function("createClosure", vec![]),
+                    ))
+                    .with_card(Card::dynamic_call(Card::read_var("fun"), vec![])),
+            ),
+        ]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read g_result variable");
+
+    unsafe {
+        let result = result.as_str().unwrap();
+
+        assert_eq!(result, "winnie the pooh");
+    }
+}
+
+#[test]
 fn native_functions_can_call_cao_lang_function() {
     struct State {
         res: i64,

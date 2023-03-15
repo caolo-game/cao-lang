@@ -655,6 +655,9 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(fname)?;
             }
+            Card::Closure(embedded_function) => {
+                todo!()
+            }
             Card::NativeFunction(fname) => {
                 self.push_instruction(Instruction::NativeFunctionPointer);
                 self.push_str(fname.as_str());

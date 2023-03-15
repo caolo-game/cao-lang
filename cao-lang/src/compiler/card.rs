@@ -75,6 +75,7 @@ pub enum Card {
     PopTable(UnaryExpression),
     /// Create a Table from the results of the provided cards
     Array(Vec<Card>),
+    Closure(Box<Function>),
 }
 
 #[derive(Debug, Clone)]
@@ -173,6 +174,7 @@ impl Card {
             Card::PopTable(_) => "Pop from Table",
             Card::Array(_) => "Array",
             Card::NativeFunction(_) => "Native Function",
+            Card::Closure(_) => "Closure",
         }
     }
 
@@ -312,6 +314,7 @@ impl Card {
             Card::Array(cards) => return cards.get_mut(i),
             Card::Function(_)
             | Card::NativeFunction(_)
+            | Card::Closure(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -386,6 +389,7 @@ impl Card {
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
             | Card::NativeFunction(_)
+            | Card::Closure(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -484,6 +488,7 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
+            | Card::Closure(_)
             | Card::Pass
             | Card::ScalarNil
             | Card::CreateTable
@@ -580,6 +585,7 @@ impl Card {
             Card::Function(_)
             | Card::NativeFunction(_)
             | Card::ReadVar(_)
+            | Card::Closure(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
