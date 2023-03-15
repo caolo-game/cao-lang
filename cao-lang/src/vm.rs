@@ -552,6 +552,28 @@ impl<'a, Aux> Vm<'a, Aux> {
                             payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
+                Instruction::Closure => {
+                    let hash: Handle =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                    let arity: u32 =
+                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+
+                    let obj = self.init_function(hash, arity).map_err(|err| {
+                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+
+                    let val = Value::Object(obj.0);
+
+                    self.runtime_data
+                        .value_stack
+                        .push(val)
+                        .map_err(|_| ExecutionErrorPayload::Stackoverflow)
+                        .map_err(|err| {
+                            // free the object on Stackoverflow
+                            self.runtime_data.free_object(obj.0);
+                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        })?;
+                }
                 Instruction::ScalarInt => {
                     self.runtime_data
                         .value_stack
