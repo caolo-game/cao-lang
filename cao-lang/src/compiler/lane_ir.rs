@@ -10,7 +10,6 @@ pub struct FunctionIr {
     pub arguments: Box<[VarName]>,
     pub cards: Box<[Card]>,
     pub namespace: NameSpace,
-    pub lane_id: usize,
     /// aliases this lane sees
     ///
     /// TODO: we should compile modules instead of lanes, and pass import per module...

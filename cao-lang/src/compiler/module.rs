@@ -470,12 +470,12 @@ fn flatten_module<'a>(
         out.reserve(module.lanes.len() - (out.capacity() - out.len()));
     }
     let imports = Rc::new(module.execute_imports()?);
-    for (i, (name, lane)) in module.lanes.iter().enumerate() {
+    for (name, lane) in module.lanes.iter() {
         if !is_name_valid(name.as_ref()) {
             return Err(CompilationErrorPayload::BadFunctionName(name.to_string()));
         }
         namespace.push(name.as_ref());
-        out.push(lane_to_lane_ir(i, lane, namespace, Rc::clone(&imports)));
+        out.push(lane_to_lane_ir(lane, namespace, Rc::clone(&imports)));
         namespace.pop();
     }
     for (name, submod) in module.submodules.iter() {
@@ -486,12 +486,7 @@ fn flatten_module<'a>(
     Ok(())
 }
 
-fn lane_to_lane_ir(
-    lane_id: usize,
-    lane: &Function,
-    namespace: &[&str],
-    imports: Rc<ImportsIr>,
-) -> FunctionIr {
+fn lane_to_lane_ir(lane: &Function, namespace: &[&str], imports: Rc<ImportsIr>) -> FunctionIr {
     assert!(
         !namespace.is_empty(),
         "Assume that lane name is the last entry in namespace"
@@ -503,7 +498,6 @@ fn lane_to_lane_ir(
         cards: lane.cards.clone().into_boxed_slice(),
         imports,
         namespace: Default::default(),
-        lane_id,
     };
     cl.namespace.extend(
         namespace

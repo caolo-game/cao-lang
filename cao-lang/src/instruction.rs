@@ -98,6 +98,7 @@ pub(crate) enum Instruction {
     AppendTable,
     /// Pop the last row from the Table
     PopTable,
+    Closure,
 }
 
 impl Instruction {
@@ -147,6 +148,7 @@ impl Instruction {
             Instruction::BeginForEach => size_of::<u32>() * 2,
             Instruction::ForEach => size_of::<u32>() * 5,
             Instruction::FunctionPointer => size_of::<Handle>() + size_of::<u32>(),
+            Instruction::Closure => size_of::<Handle>() + size_of::<u32>(),
         };
         1 + data_span
     }
