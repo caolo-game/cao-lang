@@ -14,7 +14,7 @@ use crate::{
 use tracing::debug;
 
 use self::{
-    cao_lang_function::{CaoLangFunction, CaoLangNativeFunction},
+    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction},
     cao_lang_object::{CaoLangObject, GcMarker, ObjectGcGuard},
     cao_lang_string::CaoLangString,
 };
@@ -140,6 +140,34 @@ impl RuntimeData {
                 body: cao_lang_object::CaoLangObjectBody::Function(CaoLangFunction {
                     handle,
                     arity,
+                }),
+            };
+            std::ptr::write(obj_ptr.as_ptr(), obj);
+            self.object_list.push(obj_ptr);
+
+            Ok(ObjectGcGuard::new(obj_ptr))
+        }
+    }
+
+    pub fn init_closure(
+        &mut self,
+        handle: Handle,
+        arity: u32,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        unsafe {
+            let obj_ptr = self
+                .memory
+                .alloc(Layout::new::<CaoLangObject>())
+                .map_err(|err| {
+                    debug!("Failed to allocate table {:?}", err);
+                    ExecutionErrorPayload::OutOfMemory
+                })?;
+
+            let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
+            let obj = CaoLangObject {
+                marker: GcMarker::White,
+                body: cao_lang_object::CaoLangObjectBody::Closure(CaoLangClosure {
+                    function: CaoLangFunction { handle, arity },
                 }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
@@ -290,6 +318,9 @@ impl RuntimeData {
                 }
                 cao_lang_object::CaoLangObjectBody::NativeFunction(_) => {
                     // native function objects don't have children
+                }
+                cao_lang_object::CaoLangObjectBody::Closure(c) => {
+                    // TODO: captures
                 }
             }
         }

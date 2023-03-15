@@ -91,6 +91,11 @@ impl<'a, Aux> Vm<'a, Aux> {
                 let res = self.init_function(*hash, *arity)?;
                 Value::Object(res.0)
             }
+            OwnedValue::Closure { hash, arity } => {
+                let res = self.init_closure(*hash, *arity)?;
+                // TODO: captures
+                Value::Object(res.0)
+            }
             OwnedValue::NativeFunction { hash } => {
                 let res = self.init_native_function(*hash)?;
                 Value::Object(res.0)
@@ -112,6 +117,14 @@ impl<'a, Aux> Vm<'a, Aux> {
         arity: u32,
     ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         self.runtime_data.init_function(handle, arity)
+    }
+
+    pub fn init_closure(
+        &mut self,
+        handle: Handle,
+        arity: u32,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        self.runtime_data.init_closure(handle, arity)
     }
 
     pub fn clear(&mut self) {

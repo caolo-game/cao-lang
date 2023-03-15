@@ -10,3 +10,8 @@ pub struct CaoLangFunction {
 pub struct CaoLangNativeFunction {
     pub handle: Handle,
 }
+
+#[derive(Debug)]
+pub struct CaoLangClosure {
+    pub function: CaoLangFunction,
+}

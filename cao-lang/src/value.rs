@@ -98,6 +98,7 @@ pub enum OwnedValue {
     Integer(i64),
     Real(f64),
     Function { hash: Handle, arity: u32 },
+    Closure { hash: Handle, arity: u32 },
     NativeFunction { hash: Handle },
 }
 
@@ -132,6 +133,10 @@ impl From<Value> for OwnedValue {
                     CaoLangObjectBody::Function(f) => Self::Function {
                         hash: f.handle,
                         arity: f.arity,
+                    },
+                    CaoLangObjectBody::Closure(f) => Self::Closure {
+                        hash: f.function.handle,
+                        arity: f.function.arity,
                     },
                     CaoLangObjectBody::NativeFunction(f) => Self::NativeFunction { hash: f.handle },
                 }

@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use crate::value::Value;
 
 use super::{
-    cao_lang_function::{CaoLangFunction, CaoLangNativeFunction},
+    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction},
     cao_lang_string::CaoLangString,
     cao_lang_table::CaoLangTable,
 };
@@ -32,6 +32,7 @@ pub enum CaoLangObjectBody {
     String(CaoLangString),
     Function(CaoLangFunction),
     NativeFunction(CaoLangNativeFunction),
+    Closure(CaoLangClosure),
 }
 
 /// RAII style guard that ensures that an object survives the GC
@@ -86,6 +87,7 @@ impl CaoLangObject {
             CaoLangObjectBody::String(_) => "String",
             CaoLangObjectBody::Function(_) => "Function",
             CaoLangObjectBody::NativeFunction(_) => "NativeFunction",
+            CaoLangObjectBody::Closure(_) => "Closure",
         }
     }
 
@@ -117,19 +119,29 @@ impl CaoLangObject {
         }
     }
 
+    pub fn as_closure(&self) -> Option<&CaoLangClosure> {
+        match &self.body {
+            CaoLangObjectBody::Closure(f) => Some(f),
+            _ => None,
+        }
+    }
+
     pub fn len(&self) -> usize {
         match &self.body {
             CaoLangObjectBody::Table(t) => t.len(),
             CaoLangObjectBody::String(s) => s.len(),
             CaoLangObjectBody::Function(_) => 0,
             CaoLangObjectBody::NativeFunction(_) => 0,
+            CaoLangObjectBody::Closure(_) => 0,
         }
     }
 
     pub fn is_empty(&self) -> bool {
         match &self.body {
             CaoLangObjectBody::Table(_) | CaoLangObjectBody::String(_) => self.len() == 0,
-            CaoLangObjectBody::Function(_) | CaoLangObjectBody::NativeFunction(_) => false,
+            CaoLangObjectBody::Function(_)
+            | CaoLangObjectBody::Closure(_)
+            | CaoLangObjectBody::NativeFunction(_) => false,
         }
     }
 }
@@ -151,6 +163,10 @@ impl std::hash::Hash for CaoLangObject {
                 f.arity.hash(state);
             }
             CaoLangObjectBody::NativeFunction(f) => f.handle.value().hash(state),
+            CaoLangObjectBody::Closure(c) => {
+                c.function.handle.value().hash(state);
+                c.function.arity.hash(state);
+            }
         }
     }
 }
