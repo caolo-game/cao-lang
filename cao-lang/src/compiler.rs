@@ -138,14 +138,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// build the jump table and consume the lane names
-    /// also reserve memory for the program labels
     fn compile_stage_1(&mut self, compilation_unit: FunctionSlice) -> CompilationResult<()> {
-        // check if len fits in 16 bits
-        let _: u16 = match compilation_unit.len().try_into() {
-            Ok(i) => i,
-            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyFunctions)),
-        };
-
         let mut num_cards = 0usize;
         for (i, n) in compilation_unit.iter().enumerate() {
             self.current_index.lane = i;

@@ -40,9 +40,6 @@ pub enum CompilationErrorPayload {
     #[error("Program was empty")]
     EmptyProgram,
 
-    #[error("Can not handle that many lanes")]
-    TooManyFunctions,
-
     #[error("Functions {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
     TooManyCards(usize),
 
