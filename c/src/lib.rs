@@ -28,7 +28,6 @@ pub enum CompileResult {
     cao_CompileResult_BadJson,
     cao_CompileResult_Unimplmeneted,
     cao_CompileResult_EmptyProgram,
-    cao_CompileResult_TooManyFunctions,
     cao_CompileResult_TooManyCards,
     cao_CompileResult_DuplicateName,
     cao_CompileResult_MissingSubProgram,
@@ -165,9 +164,7 @@ pub unsafe extern "C" fn cao_compile_json(
             CompilationErrorPayload::EmptyProgram => {
                 return CompileResult::cao_CompileResult_EmptyProgram
             }
-            CompilationErrorPayload::TooManyFunctions => {
-                return CompileResult::cao_CompileResult_TooManyFunctions
-            }
+
             CompilationErrorPayload::TooManyCards(_) => {
                 return CompileResult::cao_CompileResult_TooManyCards
             }
