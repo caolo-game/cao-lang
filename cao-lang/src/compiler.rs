@@ -145,17 +145,17 @@ impl<'a> Compiler<'a> {
             self.current_index.card_index.indices.clear();
             num_cards += n.cards.len();
 
-            let nodekey = self.current_index.as_handle();
-            self.add_lane(nodekey, n)?;
+            let handle = self.current_index.as_handle();
+            self.add_function(handle, n)?;
         }
 
         self.program.labels.0.reserve(num_cards).expect("reserve");
         Ok(())
     }
 
-    fn add_lane(&mut self, nodekey: Handle, n: &FunctionIr) -> CompilationResult<()> {
+    fn add_function(&mut self, handle: Handle, n: &FunctionIr) -> CompilationResult<()> {
         let metadata = FunctionMeta {
-            hash_key: nodekey,
+            hash_key: handle,
             arity: n.arguments.len() as u32,
         };
         if self.jump_table.contains(n.name.as_ref()) {
