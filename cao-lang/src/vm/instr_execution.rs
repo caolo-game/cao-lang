@@ -141,9 +141,7 @@ pub fn instr_call_function<T>(
     vm: &mut Vm<T>,
 ) -> ExecutionResult {
     let Value::Object(o) = vm.runtime_data.value_stack.pop() else {
-        return Err(ExecutionErrorPayload::invalid_argument(
-            "Jump instruction expects a function object argument",
-        ));
+        return Err(ExecutionErrorPayload::invalid_argument("Call instruction expects a function object argument"));
     };
     let arity;
     let label;
@@ -153,12 +151,16 @@ pub fn instr_call_function<T>(
                 arity = f.arity;
                 label = f.handle;
             }
+            CaoLangObjectBody::Closure(c) => {
+                arity = c.function.arity;
+                label = c.function.handle;
+            }
             CaoLangObjectBody::NativeFunction(f) => {
                 return call_native(vm, f.handle);
             }
             _ => {
                 return Err(ExecutionErrorPayload::invalid_argument(format!(
-                    "Jump instruction expects a function object argument, instead got: {}",
+                    "Call instruction expects a function object argument, instead got: {}",
                     o.as_ref().type_name()
                 )));
             }

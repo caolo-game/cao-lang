@@ -454,9 +454,12 @@ fn test_function_registry() {
 
     // if this compiles we're good to go
     vm.register_native_function("func0", myfunc0).unwrap();
-    vm.register_native_function("func1", into_f1(myfunc1)).unwrap();
-    vm.register_native_function("func2", into_f2(myfunc2)).unwrap();
-    vm.register_native_function("func3", into_f3(myfunc3)).unwrap();
+    vm.register_native_function("func1", into_f1(myfunc1))
+        .unwrap();
+    vm.register_native_function("func2", into_f2(myfunc2))
+        .unwrap();
+    vm.register_native_function("func3", into_f3(myfunc3))
+        .unwrap();
 
     const PROG: &str = r#"
 submodules: []
@@ -1237,6 +1240,7 @@ fn native_function_object_call_test() {
 }
 
 #[test]
+#[tracing_test::traced_test]
 fn closure_test() {
     let cu = CaoProgram {
         imports: Default::default(),
@@ -1247,11 +1251,59 @@ fn closure_test() {
                 // and sets a global variable
                 "createClosure".into(),
                 Function::default()
-                    .with_card(Card::set_var("result", Card::string_card("winnie the pooh")))
+                    .with_card(Card::set_var(
+                        "result",
+                        Card::string_card("winnie the pooh"),
+                    ))
                     .with_card(Card::return_card(Card::Closure(Box::new(
                         Function::default()
                             .with_card(Card::set_global_var("g_result", Card::read_var("result"))),
                     )))),
+            ),
+            (
+                "main".into(),
+                Function::default()
+                    .with_card(Card::set_var(
+                        "fun",
+                        Card::call_function("createClosure", vec![]),
+                    ))
+                    .with_card(Card::dynamic_call(Card::read_var("fun"), vec![])),
+            ),
+        ]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read g_result variable");
+
+    unsafe {
+        let result = result.as_str().unwrap();
+
+        assert_eq!(result, "winnie the pooh");
+    }
+}
+
+#[test]
+#[tracing_test::traced_test]
+fn nested_function_test() {
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        lanes: [
+            (
+                "createClosure".into(),
+                Function::default().with_card(Card::return_card(Card::Closure(Box::new(
+                    Function::default().with_card(Card::set_global_var(
+                        "g_result",
+                        Card::string_card("winnie the pooh"),
+                    )),
+                )))),
             ),
             (
                 "main".into(),
