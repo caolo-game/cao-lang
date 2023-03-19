@@ -395,7 +395,7 @@ impl<'a> Compiler<'a> {
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name == name {
                 // TODO: implement captures
-                assert!(i >= offset);
+                assert!(i >= offset, "i:{i}, offset:{offset}");
                 return Ok(Some(i - offset));
             }
         }

@@ -166,6 +166,7 @@ fn remove_card_from_ifelse_test() {
 }
 
 #[test]
+#[cfg(feature = "serde")]
 fn insert_card_test() {
     let mut program = CaoProgram::default();
     program

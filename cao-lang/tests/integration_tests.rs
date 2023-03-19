@@ -405,6 +405,7 @@ fn call_native_test() {
 }
 
 #[test]
+#[cfg(feature = "serde")]
 fn test_function_registry() {
     struct State {
         call_0: bool,
