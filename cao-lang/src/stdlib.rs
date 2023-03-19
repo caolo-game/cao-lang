@@ -595,40 +595,41 @@ mod tests {
     fn min_by_key_test() {
         let program = Module {
             imports: vec!["std.min_by_key".to_string()],
-            lanes: vec![
-                (
-                    "main".to_string(),
-                    Function::default().with_cards(vec![
-                        Card::set_var(
-                            "t",
-                            Card::Array(vec![
-                                Card::ScalarInt(2),
-                                Card::ScalarInt(3),
-                                Card::ScalarInt(1),
-                                Card::ScalarInt(4),
-                            ]),
+            lanes: vec![(
+                "main".to_string(),
+                Function::default().with_cards(vec![
+                    Card::set_var(
+                        "t",
+                        Card::Array(vec![
+                            Card::ScalarInt(2),
+                            Card::ScalarInt(3),
+                            Card::ScalarInt(1),
+                            Card::ScalarInt(4),
+                        ]),
+                    ),
+                    // call min
+                    Card::set_global_var(
+                        "g_result",
+                        Card::call_function(
+                            "min_by_key",
+                            vec![
+                                Card::Closure(Box::new(
+                                    Function::default()
+                                        .with_arg("key")
+                                        .with_arg("val")
+                                        .with_card(Card::return_card(Card::Div(
+                                            BinaryExpression::new([
+                                                Card::read_var("val"),
+                                                Card::scalar_int(10),
+                                            ]),
+                                        ))),
+                                )),
+                                Card::read_var("t"),
+                            ],
                         ),
-                        // call min
-                        Card::set_global_var(
-                            "g_result",
-                            Card::call_function(
-                                "min_by_key",
-                                vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
-                            ),
-                        ),
-                    ]),
-                ),
-                (
-                    "keyfn".to_string(),
-                    Function::default()
-                        .with_arg("key")
-                        .with_arg("val")
-                        .with_cards(vec![Card::Div(BinaryExpression::new([
-                            Card::read_var("val"),
-                            Card::scalar_int(10),
-                        ]))]),
-                ),
-            ],
+                    ),
+                ]),
+            )],
             ..Default::default()
         };
 

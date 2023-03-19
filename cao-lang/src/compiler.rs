@@ -651,7 +651,7 @@ impl<'a> Compiler<'a> {
 
                 self.current_index.push_subindex(0);
                 let function_handle = self.current_index.as_handle();
-                let arity = embedded_function.arguments.len();
+                let arity = embedded_function.arguments.len() as u32;
                 let handle = u32::try_from(self.program.bytecode.len())
                     .expect("bytecode length to fit into 32 bits");
                 self.program
@@ -687,7 +687,7 @@ impl<'a> Compiler<'a> {
                 // the goto instruction will jump here
                 self.push_instruction(Instruction::Closure);
                 write_to_vec(function_handle, &mut self.program.bytecode);
-                write_to_vec(arity as u32, &mut self.program.bytecode);
+                write_to_vec(arity, &mut self.program.bytecode);
             }
             Card::NativeFunction(fname) => {
                 self.push_instruction(Instruction::NativeFunctionPointer);
