@@ -225,13 +225,11 @@ impl<'a> Compiler<'a> {
 
     /// begin nested compile sequence
     fn compile_begin(&mut self) {
-        self.current_index.push_subindex(0);
         self.local_offset.push(self.locals.len());
     }
 
     /// end nested compile sequence
     fn compile_end(&mut self) {
-        self.current_index.pop_subindex();
         self.local_offset.pop();
     }
 
@@ -699,12 +697,7 @@ impl<'a> Compiler<'a> {
                 for param in embedded_function.arguments.iter().rev() {
                     self.add_local(param.as_str())?;
                 }
-                for (ic, card) in embedded_function.cards.iter().enumerate() {
-                    // valid indices always have 1 subindex, so replace that
-                    self.current_index.pop_subindex();
-                    self.current_index.push_subindex(ic as u32);
-                    self.process_card(card)?;
-                }
+                self.compile_subexpr(&embedded_function.cards)?;
                 self.scope_end();
                 self.push_instruction(Instruction::Return);
                 self.compile_end();
