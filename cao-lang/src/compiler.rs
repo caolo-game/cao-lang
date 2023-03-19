@@ -215,6 +215,18 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
+    /// begin nested compile sequence
+    fn compile_begin(&mut self) {
+        self.current_index.push_subindex(0);
+        self.local_offset.push(self.locals.len());
+    }
+
+    /// end nested compile sequence
+    fn compile_end(&mut self) {
+        self.current_index.pop_subindex();
+        self.local_offset.pop();
+    }
+
     fn scope_begin(&mut self) {
         self.scope_depth += 1;
     }
@@ -656,8 +668,7 @@ impl<'a> Compiler<'a> {
                 let goto_index = self.program.bytecode.len();
                 write_to_vec(0xEEFi32, &mut self.program.bytecode);
 
-                self.current_index.push_subindex(0);
-                self.local_offset.push(self.locals.len());
+                self.compile_begin();
                 let function_handle = self.current_index.as_handle();
                 let arity = embedded_function.arguments.len() as u32;
                 let handle = u32::try_from(self.program.bytecode.len())
@@ -683,8 +694,7 @@ impl<'a> Compiler<'a> {
                 }
                 self.scope_end();
                 self.push_instruction(Instruction::Return);
-                self.current_index.pop_subindex();
-                self.local_offset.pop();
+                self.compile_end();
 
                 // finish the goto that jumps over the inner function
                 unsafe {
