@@ -40,6 +40,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 pub(crate) type FunctionSlice<'a> = &'a [FunctionIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 pub(crate) type ImportsIr = std::collections::HashMap<String, String>;
+pub(crate) type Locals<'a> = arrayvec::ArrayVec<Local<'a>, 255>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -51,7 +52,7 @@ pub struct Compiler<'a> {
 
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, ImportsIr>,
-    locals: Box<arrayvec::ArrayVec<Local<'a>, 255>>,
+    locals: Box<Locals<'a>>,
     scope_depth: i32,
     current_index: CardIndex,
 }
