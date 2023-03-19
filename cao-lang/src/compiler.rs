@@ -71,6 +71,7 @@ struct FunctionMeta {
 pub(crate) struct Local<'a> {
     pub name: &'a str,
     pub depth: i32,
+    pub captured: bool,
 }
 
 pub fn compile(
@@ -90,6 +91,13 @@ impl<'a> Default for Compiler<'a> {
     fn default() -> Self {
         Self::new()
     }
+}
+
+enum Variable {
+    Global,
+    Local(usize),
+    /// Upvalues are captured variables from enclosing scopes
+    Upvalue(usize),
 }
 
 impl<'a> Compiler<'a> {
@@ -258,6 +266,7 @@ impl<'a> Compiler<'a> {
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
+                captured: false,
             })
             .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))?;
         Ok(result as u32)
@@ -401,17 +410,20 @@ impl<'a> Compiler<'a> {
         encode_str(data, &mut self.program.data);
     }
 
-    fn resolve_var(&self, name: &str) -> CompilationResult<Option<usize>> {
+    fn resolve_var(&mut self, name: &str) -> CompilationResult<Variable> {
         let offset = self.local_offset.last().copied().unwrap_or(0);
         self.validate_var_name(name)?;
-        for (i, local) in self.locals.iter().enumerate().rev() {
+        for (i, local) in self.locals.iter_mut().enumerate().rev() {
             if local.name == name {
-                // TODO: implement captures
-                assert!(i >= offset, "i:{i}, offset:{offset}");
-                return Ok(Some(i - offset));
+                if i < offset {
+                    // variable is in the outer scope
+                    local.captured = true;
+                    return Ok(Variable::Upvalue(i));
+                }
+                return Ok(Variable::Local(i - offset));
             }
         }
-        Ok(None)
+        Ok(Variable::Global)
     }
 
     fn process_card(&mut self, card: &'a Card) -> CompilationResult<()> {
@@ -559,8 +571,9 @@ impl<'a> Compiler<'a> {
                     }
                     None => {
                         let index = match self.resolve_var(var)? {
-                            Some(i) => i as u32,
-                            None => self.add_local(&var)?,
+                            Variable::Local(i) => i as u32,
+                            Variable::Upvalue(i) => todo!(),
+                            Variable::Global => self.add_local(&var)?,
                         };
 
                         self.write_local_var(index);
@@ -840,12 +853,13 @@ impl<'a> Compiler<'a> {
         };
         let scope = self.resolve_var(variable)?;
         match scope {
-            Some(index) => {
-                //local
+            Variable::Local(index) => {
                 self.read_local_var(index as u32);
             }
-            None => {
-                // global
+            Variable::Upvalue(index) => {
+                todo!()
+            }
+            Variable::Global => {
                 let next_var = &mut self.next_var;
                 let varhash = Handle::from_bytes(variable.as_bytes());
                 let id = *self
