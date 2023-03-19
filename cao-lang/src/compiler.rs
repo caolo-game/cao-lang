@@ -18,9 +18,10 @@ use crate::{
     Instruction, VariableId,
 };
 use core::slice;
+use std::borrow::Cow;
 use std::convert::TryFrom;
+use std::fmt::Debug;
 use std::mem;
-use std::{borrow::Cow, fmt::Debug};
 use std::{convert::TryInto, str::FromStr};
 
 pub use card::*;
@@ -178,7 +179,7 @@ impl<'a> Compiler<'a> {
             };
             self.current_index = CardIndex::new(il, 0);
             self.scope_begin();
-            self.process_lane(il, main_lane)?;
+            self.process_lane(main_lane)?;
             self.current_index = CardIndex {
                 lane: il,
                 card_index: FunctionCardIndex {
@@ -202,9 +203,7 @@ impl<'a> Compiler<'a> {
                 .unwrap();
 
             self.scope_begin();
-
-            self.process_lane(il, lane)?;
-
+            self.process_lane(lane)?;
             self.scope_end();
             self.push_instruction(Instruction::Return);
         }
@@ -250,7 +249,6 @@ impl<'a> Compiler<'a> {
 
     fn process_lane(
         &mut self,
-        il: usize,
         FunctionIr {
             arguments,
             cards,
@@ -262,11 +260,6 @@ impl<'a> Compiler<'a> {
         self.current_namespace = Cow::Borrowed(namespace);
         self.current_imports = Cow::Borrowed(imports);
 
-        // check if len fits in 16 bits
-        let _len: u16 = match cards.len().try_into() {
-            Ok(i) => i,
-            Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
-        };
         // at runtime: pop arguments reverse order as the variables were declared
         for param in arguments.iter().rev() {
             self.add_local(param.as_str())?;
@@ -371,7 +364,7 @@ impl<'a> Compiler<'a> {
                         .iter()
                         .take(self.current_namespace.len() - super_depth)
                         .flat_map(|x| [x.as_ref(), "."])
-                        .chain([alias.as_str(), ".", s.unwrap_or(suffix)].iter().copied())
+                        .chain([alias, ".", s.unwrap_or(suffix)].iter().copied())
                         .collect::<String>();
 
                     to = jump_table.get(&name);
@@ -593,7 +586,7 @@ impl<'a> Compiler<'a> {
                     // jump over the `else` branch
                     c.push_instruction(Instruction::Goto);
                     idx = c.program.bytecode.len();
-                    write_to_vec(0i32, &mut c.program.bytecode);
+                    write_to_vec(0xEEFi32, &mut c.program.bytecode);
                     Ok(())
                 })?;
                 self.current_index.pop_subindex();
@@ -649,7 +642,52 @@ impl<'a> Compiler<'a> {
                 self.encode_jump(fname)?;
             }
             Card::Closure(embedded_function) => {
-                todo!()
+                // jump over the inner function
+                // yes, this is cursed
+                // no, I don't care anymore
+                self.push_instruction(Instruction::Goto);
+                let goto_index = self.program.bytecode.len();
+                write_to_vec(0xEEFi32, &mut self.program.bytecode);
+
+                self.current_index.push_subindex(0);
+                let function_handle = self.current_index.as_handle();
+                let arity = embedded_function.arguments.len();
+                let handle = u32::try_from(self.program.bytecode.len())
+                    .expect("bytecode length to fit into 32 bits");
+                self.program
+                    .labels
+                    .0
+                    .insert(function_handle, Label::new(handle))
+                    .unwrap();
+
+                // process the embedded function inline
+                self.scope_begin();
+                // TODO: dedupe these loops w/ process_lane?
+                // at runtime: pop arguments reverse order as the variables were declared
+                for param in embedded_function.arguments.iter().rev() {
+                    self.add_local(param.as_str())?;
+                }
+                for (ic, card) in embedded_function.cards.iter().enumerate() {
+                    // valid indices always have 1 subindex, so replace that
+                    self.current_index.pop_subindex();
+                    self.current_index.push_subindex(ic as u32);
+                    self.process_card(card)?;
+                }
+                self.scope_end();
+                self.push_instruction(Instruction::Return);
+                self.current_index.pop_subindex();
+
+                // finish the goto that jumps over the inner function
+                unsafe {
+                    let ptr = self.program.bytecode.as_mut_ptr().add(goto_index) as *mut i32;
+                    std::ptr::write_unaligned(ptr, self.program.bytecode.len() as i32);
+                }
+
+                // finally, push the closure instruction
+                // the goto instruction will jump here
+                self.push_instruction(Instruction::Closure);
+                write_to_vec(function_handle, &mut self.program.bytecode);
+                write_to_vec(arity as u32, &mut self.program.bytecode);
             }
             Card::NativeFunction(fname) => {
                 self.push_instruction(Instruction::NativeFunctionPointer);

@@ -554,12 +554,12 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::Closure => {
                     let hash: Handle =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     let arity: u32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
 
-                    let obj = self.init_function(hash, arity).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    let obj = self.init_closure(hash, arity).map_err(|err| {
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
 
                     let val = Value::Object(obj.0);
@@ -571,7 +571,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|err| {
                             // free the object on Stackoverflow
                             self.runtime_data.free_object(obj.0);
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::ScalarInt => {

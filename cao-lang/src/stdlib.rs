@@ -186,6 +186,7 @@ pub fn native_minmax<T, const LESS: bool>(
                 }
                 CaoLangObjectBody::String(_)
                 | CaoLangObjectBody::Function(_)
+                | CaoLangObjectBody::Closure(_)
                 | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
             }
         },
@@ -224,6 +225,7 @@ pub fn native_sorted<T>(
                 }
                 CaoLangObjectBody::String(_) // TODO: define sort for strings?
                 | CaoLangObjectBody::Function(_)
+                | CaoLangObjectBody::Closure(_)
                 | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
             }
         },
