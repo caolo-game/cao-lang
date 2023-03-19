@@ -1,6 +1,7 @@
 use cao_lang::prelude::*;
 
 #[test]
+#[cfg(feature = "serde")]
 fn test_foreach_1() {
     let cu = serde_yaml::from_str(include_str!("foreach/simple_foreach.yml")).unwrap();
 
@@ -17,6 +18,7 @@ fn test_foreach_1() {
 }
 
 #[test]
+#[cfg(feature = "serde")]
 fn test_foreach_nested() {
     let cu = serde_yaml::from_str(include_str!("foreach/nested_foreach.yml")).unwrap();
 

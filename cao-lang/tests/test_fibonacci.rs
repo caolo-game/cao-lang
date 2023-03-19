@@ -1,3 +1,5 @@
+#![cfg(feature = "serde")]
+
 use cao_lang::prelude::*;
 use tracing_test::traced_test;
 

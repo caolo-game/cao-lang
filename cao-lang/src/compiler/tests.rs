@@ -23,6 +23,7 @@ fn composite_card_test() {
 }
 
 #[test]
+#[cfg(feature = "serde")]
 fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         imports: Default::default(),
