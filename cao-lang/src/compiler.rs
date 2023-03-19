@@ -53,6 +53,8 @@ pub struct Compiler<'a> {
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, ImportsIr>,
     locals: Box<Locals<'a>>,
+    /// local index = local index - actual offset
+    local_offset: Vec<usize>,
     scope_depth: i32,
     current_index: CardIndex,
 }
@@ -102,6 +104,7 @@ impl<'a> Compiler<'a> {
             scope_depth: 0,
             current_index: CardIndex::default(),
             current_imports: Default::default(),
+            local_offset: Default::default(),
         }
     }
 
@@ -387,10 +390,13 @@ impl<'a> Compiler<'a> {
     }
 
     fn resolve_var(&self, name: &str) -> CompilationResult<Option<usize>> {
+        let offset = self.local_offset.last().copied().unwrap_or(0);
         self.validate_var_name(name)?;
         for (i, local) in self.locals.iter().enumerate().rev() {
             if local.name == name {
-                return Ok(Some(i));
+                // TODO: implement captures
+                assert!(i >= offset);
+                return Ok(Some(i - offset));
             }
         }
         Ok(None)
@@ -651,6 +657,7 @@ impl<'a> Compiler<'a> {
                 write_to_vec(0xEEFi32, &mut self.program.bytecode);
 
                 self.current_index.push_subindex(0);
+                self.local_offset.push(self.locals.len());
                 let function_handle = self.current_index.as_handle();
                 let arity = embedded_function.arguments.len() as u32;
                 let handle = u32::try_from(self.program.bytecode.len())
@@ -677,6 +684,7 @@ impl<'a> Compiler<'a> {
                 self.scope_end();
                 self.push_instruction(Instruction::Return);
                 self.current_index.pop_subindex();
+                self.local_offset.pop();
 
                 // finish the goto that jumps over the inner function
                 unsafe {
