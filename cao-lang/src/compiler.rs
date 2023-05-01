@@ -100,6 +100,11 @@ enum Variable {
     Upvalue(usize),
 }
 
+struct Upvalue {
+    is_local: bool,
+    index: u8,
+}
+
 impl<'a> Compiler<'a> {
     pub fn new() -> Self {
         Compiler {
