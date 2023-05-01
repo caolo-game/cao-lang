@@ -119,3 +119,20 @@ fn insert_duplicate_test() {
 
     assert_eq!(map.len(), 1);
 }
+
+#[test]
+fn removing_duplicate_hash_test() {
+    // if the key of two distinct keys map to the same bucket,
+    // then we should still be able to look up the second, after deleting the first
+    unsafe {
+        let mut map = CaoHashMap::<&str, i32>::default();
+        map.insert_with_hint(42, "winnie", 42).unwrap();
+        map.insert_with_hint(42, "pooh", 69).unwrap();
+
+        let i = map.remove_with_hint(42, "winnie").unwrap();
+        assert_eq!(i, 42);
+
+        let i = *map.get_with_hint(42, "pooh").unwrap();
+        assert_eq!(i, 69);
+    }
+}

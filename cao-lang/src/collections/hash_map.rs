@@ -314,6 +314,24 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
 
             let result = std::ptr::read(self.values.as_ptr().add(i));
             self.hashes_mut()[i] = 0;
+
+            // if the consecutive buckets are not empty, move them back, so lookups dont fail
+            // and they aren't in their optimal position
+            //
+            let mut i = i; // track the last empty slot
+            let mut j = (i + 1) % self.capacity();
+            while self.hashes()[j] != 0 {
+                // if the jth item is not in its optimal bucket, then move it back to the empty
+                // slot
+                if (self.hashes()[j] % self.capacity() as u64) != j as u64 {
+                    self.hashes_mut()[i] = self.hashes()[j];
+                    std::ptr::swap(self.keys.as_ptr().add(i), self.keys.as_ptr().add(j));
+                    std::ptr::swap(self.values.as_ptr().add(i), self.values.as_ptr().add(j));
+                    i = j;
+                }
+                j = (j + 1) % self.capacity();
+            }
+
             return Some(result);
         }
         None
