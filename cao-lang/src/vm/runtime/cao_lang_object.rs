@@ -1,5 +1,7 @@
 use std::ptr::NonNull;
 
+use crate::value::Value;
+
 use super::{
     cao_lang_function::{CaoLangFunction, CaoLangNativeFunction},
     cao_lang_string::CaoLangString,
@@ -68,6 +70,10 @@ impl ObjectGcGuard {
 
     pub fn into_inner(self) -> NonNull<CaoLangObject> {
         self.0
+    }
+
+    pub fn into_value(self) -> Value {
+        Value::Object(self.0)
     }
 }
 
