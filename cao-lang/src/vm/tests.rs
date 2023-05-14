@@ -46,7 +46,7 @@ fn test_can_save_and_restore_values() {
     obj.deref_mut()
         .as_table_mut()
         .unwrap()
-        .insert(Value::Object(pog.into_inner()), 42.into())
+        .insert(Value::Object(pog.into_inner()), 42)
         .unwrap();
 
     let val = Value::Object(obj.into_inner());

@@ -57,20 +57,32 @@ impl CaoLangTable {
         Ok(result)
     }
 
-    pub fn insert(&mut self, key: Value, value: Value) -> Result<(), ExecutionErrorPayload> {
-        match self.map.get_mut(&key) {
-            Some(r) => {
-                *r = value;
+    pub fn insert(
+        &mut self,
+        key: impl Into<Value>,
+        value: impl Into<Value>,
+    ) -> Result<(), ExecutionErrorPayload> {
+        fn _insert(
+            this: &mut CaoLangTable,
+            key: Value,
+            value: Value,
+        ) -> Result<(), ExecutionErrorPayload> {
+            match this.map.get_mut(&key) {
+                Some(r) => {
+                    *r = value;
+                }
+                None => {
+                    this.map
+                        .insert(key, value)
+                        .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
+                    this.keys.push(key);
+                }
             }
-            None => {
-                self.map
-                    .insert(key, value)
-                    .map_err(|_| ExecutionErrorPayload::OutOfMemory)?;
-                self.keys.push(key);
-            }
+
+            Ok(())
         }
 
-        Ok(())
+        _insert(self, key.into(), value.into())
     }
 
     pub fn remove(&mut self, key: Value) -> Result<(), ExecutionErrorPayload> {
