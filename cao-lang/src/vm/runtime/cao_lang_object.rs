@@ -71,8 +71,10 @@ impl ObjectGcGuard {
     pub fn into_inner(self) -> NonNull<CaoLangObject> {
         self.0
     }
+}
 
-    pub fn into_value(self) -> Value {
+impl Into<Value> for ObjectGcGuard {
+    fn into(self) -> Value {
         Value::Object(self.0)
     }
 }
