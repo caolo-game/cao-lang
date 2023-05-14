@@ -66,7 +66,7 @@ impl Eq for Value {}
 /// let pog = vm.init_string("pog").unwrap();
 /// obj.as_table_mut()
 ///     .unwrap()
-///     .insert(Value::Object(pog.into_inner()), 42.into())
+///     .insert(Value::Object(pog.into_inner()), 42)
 ///     .unwrap();
 /// let val = Value::Object(obj.into_inner());
 ///
