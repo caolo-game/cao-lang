@@ -1,7 +1,5 @@
-.PHONY: test build update test-core test-c test-wasm test-py
-
 test-core:
-	@${MAKE} -C cao-lang test
+	@just cao-lang/test
 
 test-c:
 	cargo xtask test c -- -GNinja
@@ -11,7 +9,7 @@ test-py:
 	tox -p auto
 
 test-wasm:
-	@${MAKE} -C wasm test
+	just wasm/test
 
 test: test-core test-c test-wasm test-py
 
@@ -20,6 +18,6 @@ update:
 	cd wasm && cargo update
 
 build:
-	@${MAKE} -C wasm build
+	just wasm/build
 	python -m build --wheel
 

@@ -1,5 +1,3 @@
-.PHONY: test bench bench-save
-
 test:
 	cargo check-all-features
 	cargo test --tests --benches

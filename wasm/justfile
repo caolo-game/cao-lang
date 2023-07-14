@@ -1,5 +1,3 @@
-.PHONY: test build release pack publish 
-
 build:
 	wasm-pack build --scope caolo-game --dev -d out/pkg
 
