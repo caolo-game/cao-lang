@@ -203,8 +203,9 @@ fn call_native<T>(vm: &mut Vm<T>, handle: Handle) -> ExecutionResult {
         .map_err(|err| ExecutionErrorPayload::TaskFailure {
             name: procedure.name().to_string(),
             error: Box::new(err),
-        });
-    res
+        })?;
+    vm.stack_push(res)?;
+    Ok(())
 }
 
 fn write_local_var<T>(vm: &mut Vm<T>, handle: u32, value: Value, offset: usize) -> ExecutionResult {

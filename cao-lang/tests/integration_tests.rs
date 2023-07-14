@@ -106,7 +106,7 @@ fn test_string_param() {
 
     let fun = move |vm: &mut Vm<State>, arg: &str| {
         vm.auxiliary_data.res = arg.to_string();
-        Ok(())
+        Ok(Value::Nil)
     };
 
     let mut vm = Vm::new(State {
@@ -395,7 +395,7 @@ fn call_native_test() {
 
     let fun = move |vm: &mut Vm<State>| {
         vm.auxiliary_data.called = true;
-        Ok(())
+        Ok(Value::Nil)
     };
 
     let mut vm = Vm::new(State { called: false }).unwrap();
@@ -413,30 +413,35 @@ fn test_function_registry() {
         call_3: bool,
     }
 
-    fn myfunc0(vm: &mut Vm<State>) -> Result<(), ExecutionErrorPayload> {
+    fn myfunc0(vm: &mut Vm<State>) -> Result<Value, ExecutionErrorPayload> {
         vm.auxiliary_data.call_0 = true;
-        Ok(())
+        Ok(Value::Nil)
     }
 
-    fn myfunc1(vm: &mut Vm<State>, i: i64) -> Result<(), ExecutionErrorPayload> {
+    fn myfunc1(vm: &mut Vm<State>, i: i64) -> Result<Value, ExecutionErrorPayload> {
         vm.auxiliary_data.call_1 = true;
         assert_eq!(i, 42);
-        Ok(())
+        Ok(Value::Nil)
     }
 
-    fn myfunc2(vm: &mut Vm<State>, i: i64, j: f64) -> Result<(), ExecutionErrorPayload> {
+    fn myfunc2(vm: &mut Vm<State>, i: i64, j: f64) -> Result<Value, ExecutionErrorPayload> {
         vm.auxiliary_data.call_2 = true;
         assert_eq!(i, 12);
         assert_eq!(j, 4.2);
-        Ok(())
+        Ok(Value::Nil)
     }
 
-    fn myfunc3(vm: &mut Vm<State>, i: i64, j: f64, b: bool) -> Result<(), ExecutionErrorPayload> {
+    fn myfunc3(
+        vm: &mut Vm<State>,
+        i: i64,
+        j: f64,
+        b: bool,
+    ) -> Result<Value, ExecutionErrorPayload> {
         vm.auxiliary_data.call_3 = true;
         assert_eq!(i, 33);
         assert_eq!(j, 2.88);
         assert_eq!(b, false);
-        Ok(())
+        Ok(Value::Nil)
     }
 
     let mut vm = Vm::new(State {
@@ -1199,7 +1204,7 @@ fn native_function_object_call_test() {
 
     let fun = move |vm: &mut Vm<State>, arg: &str| {
         vm.auxiliary_data.res = arg.to_string();
-        Ok(())
+        Ok(Value::Nil)
     };
 
     let mut vm = Vm::new(State {

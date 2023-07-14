@@ -3,7 +3,7 @@ use std::{any::type_name, convert::TryFrom};
 
 pub const MAX_STR_LEN: usize = 256;
 
-type ShallowExecutionResult = Result<(), ExecutionErrorPayload>;
+type ShallowExecutionResult = Result<Value, ExecutionErrorPayload>;
 
 #[derive(Debug)]
 pub enum StringDecodeError {
@@ -40,8 +40,8 @@ pub type VmFunction4<Aux, T1, T2, T3, T4> =
 ///
 /// let mut vm = Vm::new(()).unwrap();
 ///
-/// fn fun(_vm: &mut Vm<()>, _param: i64) -> Result<(), ExecutionErrorPayload> {
-///     Ok(())
+/// fn fun(_vm: &mut Vm<()>, _param: i64) -> Result<Value, ExecutionErrorPayload> {
+///     Ok(Value::Nil)
 /// }
 ///
 /// vm.register_function("my function", into_f1(fun));

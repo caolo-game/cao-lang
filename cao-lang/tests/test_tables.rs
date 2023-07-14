@@ -80,7 +80,7 @@ fn test_native_w_table_input() {
         } else {
             panic!("bad value");
         }
-        Ok(())
+        Ok(Value::Nil)
     };
 
     let mut vm = Vm::new(State { param: 0 }).unwrap();
