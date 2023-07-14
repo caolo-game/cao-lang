@@ -12,10 +12,10 @@ pub mod compiler;
 pub mod instruction;
 pub mod prelude;
 pub mod procedures;
+pub mod stdlib;
 pub mod traits;
 pub mod value;
 pub mod vm;
-pub mod stdlib;
 
 mod bytecode;
 
@@ -57,6 +57,9 @@ impl StrPointer {
     /// Returns None if the underlying string is not valid utf8
     pub unsafe fn get_str<'a>(self) -> Option<&'a str> {
         let ptr = self.0;
+        if ptr.is_null() {
+            return None;
+        }
         let len = *(ptr as *const u32);
         let ptr = ptr.add(size_of::<u32>());
         std::str::from_utf8(std::slice::from_raw_parts(ptr, len as usize)).ok()
