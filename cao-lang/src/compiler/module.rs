@@ -415,7 +415,11 @@ impl Module {
 
     pub fn lookup_lane(&self, target: &str) -> Option<&Function> {
         let Some((submodule, lane)) = target.rsplit_once(".") else {
-            return self.lanes.iter().find(|(name, _)|name==target).map(|(_, l)| l)
+            return self
+                .lanes
+                .iter()
+                .find(|(name, _)| name == target)
+                .map(|(_, l)| l);
         };
         let module = self.lookup_submodule(submodule)?;
         module.lookup_lane(lane)
@@ -423,7 +427,11 @@ impl Module {
 
     pub fn lookup_lane_mut(&mut self, target: &str) -> Option<&mut Function> {
         let Some((submodule, lane)) = target.rsplit_once(".") else {
-            return self.lanes.iter_mut().find(|(name, _)|name==target).map(|(_, l)| l)
+            return self
+                .lanes
+                .iter_mut()
+                .find(|(name, _)| name == target)
+                .map(|(_, l)| l);
         };
         let module = self.lookup_submodule_mut(submodule)?;
         module.lookup_lane_mut(lane)

@@ -436,7 +436,7 @@ impl Card {
             }
             Card::IfElse(children) => {
                 let Some(c) = children.get_mut(i) else {
-                    return None
+                    return None;
                 };
                 res = std::mem::replace(c, Card::ScalarNil);
             }

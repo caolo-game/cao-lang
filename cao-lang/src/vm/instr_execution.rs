@@ -140,8 +140,10 @@ pub fn instr_call_function<T>(
     program: &CaoCompiledProgram,
     vm: &mut Vm<T>,
 ) -> ExecutionResult {
-    let Value::Object(o) = vm.runtime_data.value_stack.pop() else{
-        return Err(ExecutionErrorPayload::invalid_argument("Jump instruction expects a function object argument"));
+    let Value::Object(o) = vm.runtime_data.value_stack.pop() else {
+        return Err(ExecutionErrorPayload::invalid_argument(
+            "Jump instruction expects a function object argument",
+        ));
     };
     let arity;
     let label;
