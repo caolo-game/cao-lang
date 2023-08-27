@@ -1,3 +1,4 @@
 [workspace]
 members = ["cao-lang", "py", "c", "xtask"]
 exclude = ["wasm"]
+resolver = "2"
