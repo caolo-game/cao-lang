@@ -7,7 +7,10 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-use self::runtime::{cao_lang_object::ObjectGcGuard, CallFrame};
+use self::runtime::{
+    cao_lang_object::{CaoLangObjectBody, ObjectGcGuard},
+    CallFrame,
+};
 use crate::{
     collections::handle_table::{Handle, HandleTable},
     instruction::Instruction,
@@ -28,6 +31,7 @@ where
     pub auxiliary_data: Aux,
     /// Number of instructions `run` will execute before returning Timeout
     pub max_instr: u64,
+    pub remaining_iters: u64,
 
     pub runtime_data: Pin<Box<RuntimeData>>,
 
@@ -42,6 +46,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             callables: HandleTable::default(),
             runtime_data: RuntimeData::new(400 * 1024, 256, 256)?,
             max_instr: 1000,
+            remaining_iters: 0,
             _m: Default::default(),
         })
     }
@@ -207,26 +212,90 @@ impl<'a, Aux> Vm<'a, Aux> {
         self.runtime_data.init_string(payload)
     }
 
-    /// This mostly assumes that program is valid, produced by the compiler.
-    /// As such running non-compiler emitted programs is very un-safe
-    pub fn run(&mut self, program: &CaoCompiledProgram) -> ExecutionResult<()> {
-        self.runtime_data
-            .call_stack
-            .push(CallFrame {
-                src_instr_ptr: 0,
-                dst_instr_ptr: 0,
-                stack_offset: 0,
-            })
-            .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
-            .map_err(|pl| ExecutionError::new(pl, Default::default()))?;
+    /// Panics if no current program has been set
+    pub fn run_function(&mut self, val: Value) -> Result<Value, ExecutionErrorPayload> {
+        let Value::Object(obj) = val else {
+            return Err(ExecutionErrorPayload::invalid_argument(
+                "Expected a function object argument",
+            ));
+        };
+        let arity;
+        let label;
+        unsafe {
+            match &obj.as_ref().body {
+                CaoLangObjectBody::Function(f) => {
+                    arity = f.arity;
+                    label = f.handle;
+                }
+                CaoLangObjectBody::NativeFunction(f) => {
+                    instr_execution::call_native(self, f.handle)?;
+                    return Ok(self.stack_pop());
+                }
+                _ => {
+                    return Err(ExecutionErrorPayload::invalid_argument(format!(
+                        "Expected a function object argument, instead got: {}",
+                        obj.as_ref().type_name()
+                    )));
+                }
+            }
+        }
+        let program: &CaoCompiledProgram = unsafe {
+            let program = self.runtime_data.current_program;
+            assert!(!program.is_null());
+            &*program
+        };
+        debug_assert!(!program.bytecode.is_empty());
 
+        let func = program
+            .labels
+            .0
+            .get(label)
+            .ok_or_else(|| ExecutionErrorPayload::ProcedureNotFound(label))?;
+
+        let src = func.pos;
+        let end = program.bytecode.len() - 1;
+        let len = self.runtime_data.value_stack.len() as u32;
+
+        // a function call needs 2 stack frames, 1 for the current scope, another for the return
+        // address
+        //
+        // the first one will be used as a trap, to exit the program,
+        // the second one is the actual callframe of the function
+        for _ in 0..2 {
+            self.runtime_data
+                .call_stack
+                .push(CallFrame {
+                    src_instr_ptr: src,
+                    dst_instr_ptr: end as u32,
+                    stack_offset: len
+                        .checked_sub(arity)
+                        .ok_or(ExecutionErrorPayload::MissingArgument)?
+                        as u32,
+                })
+                .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
+        }
+
+        let mut instr_ptr = src as usize;
+        self._run(&mut instr_ptr).map_err(|err| err.payload)?;
+        // pop the trap callframe
+        self.runtime_data.call_stack.pop();
+        Ok(self.stack_pop())
+    }
+
+    fn _run(&mut self, instr_ptr: &mut usize) -> ExecutionResult<()> {
+        let program: &CaoCompiledProgram = unsafe {
+            let program = self.runtime_data.current_program;
+            assert!(!program.is_null());
+            &*program
+        };
         let len = program.bytecode.len();
+        // FIXME: should store in VM
         let mut remaining_iters = self.max_instr;
-        let mut instr_ptr = 0;
         let bytecode_ptr = program.bytecode.as_ptr();
-
         let payload_to_error =
-            |err, instr_ptr, stack: &crate::collections::bounded_stack::BoundedStack<CallFrame>| {
+            |err,
+             instr_ptr: usize,
+             stack: &crate::collections::bounded_stack::BoundedStack<CallFrame>| {
                 let mut trace = Vec::with_capacity(stack.len() + 1);
                 if let Some(t) = program.trace.get(&(instr_ptr as u32)).cloned() {
                     trace.push(t);
@@ -239,44 +308,44 @@ impl<'a, Aux> Vm<'a, Aux> {
                 ExecutionError::new(err, trace)
             };
 
-        while instr_ptr < len {
+        while *instr_ptr < len {
             remaining_iters -= 1;
             if remaining_iters == 0 {
                 return Err(payload_to_error(
                     ExecutionErrorPayload::Timeout,
-                    instr_ptr,
+                    *instr_ptr,
                     &self.runtime_data.call_stack,
                 ));
             }
-            let instr: u8 = unsafe { *bytecode_ptr.add(instr_ptr) };
+            let instr: u8 = unsafe { *bytecode_ptr.add(*instr_ptr) };
             let instr: Instruction = unsafe { transmute(instr) };
-            let src_ptr = instr_ptr;
-            instr_ptr += 1;
+            let src_ptr = *instr_ptr;
+            *instr_ptr += 1;
             debug!("Executing: {instr:?} instr_ptr: {instr_ptr}");
             match instr {
                 Instruction::InitTable => {
                     let res = self.init_table().map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     self.stack_push(Value::Object(res.0)).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::GetProperty => {
                     let key = self.stack_pop();
                     let instance = self.stack_pop();
                     let table = self.get_table(instance).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let result = table.get(&key).copied().unwrap_or(Value::Nil);
                     self.stack_push(result).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::SetProperty => {
                     let [key, instance, value] = self.runtime_data.value_stack.pop_n::<3>();
                     let table = self.get_table_mut(instance).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     table
                         .insert(key, value)
@@ -285,43 +354,42 @@ impl<'a, Aux> Vm<'a, Aux> {
                             ExecutionErrorPayload::OutOfMemory
                         })
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::BeginForEach => {
-                    instr_execution::begin_for_each(self, &program.bytecode, &mut instr_ptr)
-                        .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                        })?;
+                    instr_execution::begin_for_each(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
+                    )?;
                 }
                 Instruction::ForEach => {
-                    instr_execution::for_each(self, &program.bytecode, &mut instr_ptr).map_err(
-                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    instr_execution::for_each(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
                     )?;
                 }
                 Instruction::GotoIfTrue => {
                     let condition = self.runtime_data.value_stack.pop();
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     debug_assert!(pos >= 0);
                     if condition.as_bool() {
-                        instr_ptr = pos as usize;
+                        *instr_ptr = pos as usize;
                     }
                 }
                 Instruction::GotoIfFalse => {
                     let condition = self.runtime_data.value_stack.pop();
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     debug_assert!(pos >= 0);
                     if !condition.as_bool() {
-                        instr_ptr = pos as usize;
+                        *instr_ptr = pos as usize;
                     }
                 }
                 Instruction::Goto => {
                     let pos: i32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     debug_assert!(pos >= 0);
-                    instr_ptr = pos as usize;
+                    *instr_ptr = pos as usize;
                 }
                 Instruction::SwapLast => {
                     let b = self.stack_pop();
@@ -331,7 +399,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.stack_push(a).unwrap();
                 }
                 Instruction::ScalarNil => self.stack_push(Value::Nil).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::ClearStack => {
                     let offset = self
@@ -343,67 +411,63 @@ impl<'a, Aux> Vm<'a, Aux> {
                     self.runtime_data.value_stack.clear_until(offset);
                 }
                 Instruction::SetLocalVar => {
-                    instr_execution::set_local(self, &program.bytecode, &mut instr_ptr).map_err(
-                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    instr_execution::set_local(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
                     )?;
                 }
                 Instruction::ReadLocalVar => {
-                    instr_execution::get_local(self, &program.bytecode, &mut instr_ptr).map_err(
-                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
+                    instr_execution::get_local(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
                     )?;
                 }
                 Instruction::SetGlobalVar => {
                     instr_execution::instr_set_var(
                         &mut self.runtime_data,
                         &program.bytecode,
-                        &mut instr_ptr,
+                        instr_ptr,
                     )
                     .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::ReadGlobalVar => {
-                    instr_execution::instr_read_var(
-                        &mut self.runtime_data,
-                        &mut instr_ptr,
-                        program,
-                    )
-                    .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
-                    })?;
+                    instr_execution::instr_read_var(&mut self.runtime_data, instr_ptr, program)
+                        .map_err(|err| {
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
+                        })?;
                 }
                 Instruction::Pop => {
                     self.stack_pop();
                 }
                 Instruction::CallFunction => {
-                    instr_execution::instr_call_function(src_ptr, &mut instr_ptr, program, self)
+                    instr_execution::instr_call_function(src_ptr, instr_ptr, program, self)
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::Return => {
-                    instr_execution::instr_return(self, &mut instr_ptr).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    instr_execution::instr_return(self, instr_ptr).map_err(|err| {
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::Exit => return Ok(()),
                 Instruction::CopyLast => {
                     instr_execution::instr_copy_last(self).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::NativeFunctionPointer => {
                     let handle: u32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     let fun_name =
                         instr_execution::read_str(&mut (handle as usize), program.data.as_slice())
                             .ok_or(ExecutionErrorPayload::InvalidArgument { context: None })
                             .map_err(|err| {
-                                payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                                payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                             })?;
                     let handle = Handle::from_str(fun_name).unwrap();
                     let obj = self.init_native_function(handle).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let val = Value::Object(obj.0);
                     self.runtime_data
@@ -413,17 +477,17 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|err| {
                             // free the object on Stackoverflow
                             self.runtime_data.free_object(obj.0);
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::FunctionPointer => {
                     let hash: Handle =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
                     let arity: u32 =
-                        unsafe { instr_execution::decode_value(&program.bytecode, &mut instr_ptr) };
+                        unsafe { instr_execution::decode_value(&program.bytecode, instr_ptr) };
 
                     let obj = self.init_function(hash, arity).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
 
                     let val = Value::Object(obj.0);
@@ -435,29 +499,29 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .map_err(|err| {
                             // free the object on Stackoverflow
                             self.runtime_data.free_object(obj.0);
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::ScalarInt => {
                     self.runtime_data
                         .value_stack
                         .push(Value::Integer(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            instr_execution::decode_value(&program.bytecode, instr_ptr)
                         }))
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::ScalarFloat => {
                     self.runtime_data
                         .value_stack
                         .push(Value::Real(unsafe {
-                            instr_execution::decode_value(&program.bytecode, &mut instr_ptr)
+                            instr_execution::decode_value(&program.bytecode, instr_ptr)
                         }))
                         .map_err(|_| ExecutionErrorPayload::Stackoverflow)
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::Not => {
@@ -465,75 +529,74 @@ impl<'a, Aux> Vm<'a, Aux> {
                     let value = !value.as_bool();
                     self.stack_push(Value::Integer(value as i64))
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?;
                 }
                 Instruction::And => self
                     .binary_op(|a, b| Value::from(a.as_bool() && b.as_bool()))
                     .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?,
                 Instruction::Or => self
                     .binary_op(|a, b| Value::from(a.as_bool() || b.as_bool()))
                     .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?,
                 Instruction::Xor => self
                     .binary_op(|a, b| Value::from(a.as_bool() ^ b.as_bool()))
                     .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?,
                 Instruction::Add => self.binary_op(|a, b| a + b).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::Sub => self.binary_op(|a, b| a - b).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::Mul => self.binary_op(|a, b| a * b).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::Div => self.binary_op(|a, b| a / b).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::Equals => self.binary_op(|a, b| (a == b).into()).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::NotEquals => {
                     self.binary_op(|a, b| (a != b).into()).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?
                 }
                 Instruction::Less => self.binary_op(|a, b| (a < b).into()).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::LessOrEq => self.binary_op(|a, b| (a <= b).into()).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
-                Instruction::StringLiteral => {
-                    instr_execution::instr_string_literal(self, &mut instr_ptr, program).map_err(
-                        |err| payload_to_error(err, instr_ptr, &self.runtime_data.call_stack),
-                    )?
-                }
+                Instruction::StringLiteral => instr_execution::instr_string_literal(
+                    self, instr_ptr, program,
+                )
+                .map_err(|err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack))?,
                 Instruction::CallNative => {
-                    instr_execution::execute_call_native(self, &mut instr_ptr, &program.bytecode)
+                    instr_execution::execute_call_native(self, instr_ptr, &program.bytecode)
                         .map_err(|err| {
-                            payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                         })?
                 }
                 Instruction::Len => instr_execution::instr_len(self).map_err(|err| {
-                    payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                    payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::NthRow => {
                     let [i, instance] = self.runtime_data.value_stack.pop_n::<2>();
                     let table = self.get_table_mut(instance).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let i = i.as_int().ok_or_else(|| {
                         payload_to_error(
                             ExecutionErrorPayload::invalid_argument(
                                 "Input must be an integer".to_string(),
                             ),
-                            instr_ptr,
+                            *instr_ptr,
                             &self.runtime_data.call_stack,
                         )
                     })?;
@@ -542,7 +605,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                             ExecutionErrorPayload::invalid_argument(
                                 "Input must be non-negative".to_string(),
                             ),
-                            instr_ptr,
+                            *instr_ptr,
                             &self.runtime_data.call_stack,
                         ));
                     }
@@ -568,30 +631,30 @@ impl<'a, Aux> Vm<'a, Aux> {
                         Ok(())
                     })()
                     .map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
                 Instruction::AppendTable => {
                     let instance = self.stack_pop();
                     let value = self.stack_pop();
                     let table = self.get_table_mut(instance).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     table.append(value).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
 
                 Instruction::PopTable => {
                     let instance = self.stack_pop();
                     let table = self.get_table_mut(instance).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let value = table.pop().map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     self.stack_push(value).map_err(|err| {
-                        payload_to_error(err, instr_ptr, &self.runtime_data.call_stack)
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
             }
@@ -600,9 +663,30 @@ impl<'a, Aux> Vm<'a, Aux> {
 
         Err(payload_to_error(
             ExecutionErrorPayload::UnexpectedEndOfInput,
-            instr_ptr,
+            *instr_ptr,
             &self.runtime_data.call_stack,
         ))
+    }
+
+    /// This mostly assumes that program is valid, produced by the compiler.
+    /// As such running non-compiler emitted programs is very un-safe
+    pub fn run(&mut self, program: &CaoCompiledProgram) -> ExecutionResult<()> {
+        self.runtime_data.current_program = program as *const _;
+        self.runtime_data
+            .call_stack
+            .push(CallFrame {
+                src_instr_ptr: 0,
+                dst_instr_ptr: 0,
+                stack_offset: 0,
+            })
+            .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
+            .map_err(|pl| ExecutionError::new(pl, Default::default()))?;
+
+        self.remaining_iters = self.max_instr;
+        let mut instr_ptr = 0;
+        let result = self._run(&mut instr_ptr);
+        self.runtime_data.current_program = std::ptr::null();
+        result
     }
 
     #[inline]

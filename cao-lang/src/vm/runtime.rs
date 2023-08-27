@@ -25,6 +25,7 @@ pub struct RuntimeData {
     pub(crate) global_vars: Vec<Value>,
     pub(crate) memory: AllocProxy,
     pub(crate) object_list: Vec<NonNull<CaoLangObject>>,
+    pub(crate) current_program: *const CaoCompiledProgram,
 }
 
 impl Drop for RuntimeData {
@@ -57,6 +58,7 @@ impl RuntimeData {
             global_vars: Vec::with_capacity(16),
             object_list: Vec::with_capacity(16),
             memory,
+            current_program: std::ptr::null(),
         });
         unsafe {
             let reference: &mut Self = Pin::get_mut(res.as_mut());

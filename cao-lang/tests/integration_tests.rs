@@ -1235,3 +1235,48 @@ fn native_function_object_call_test() {
 
     assert_eq!(aux.res, test_str);
 }
+
+#[test]
+fn native_functions_can_call_cao_lang_function() {
+    struct State {
+        res: i64,
+    }
+
+    let fun = move |vm: &mut Vm<State>, arg: Value| {
+        dbg!(vm.get_aux().res);
+        let res = vm.run_function(arg)?;
+        vm.get_aux_mut().res = res.as_int().unwrap();
+        Ok(Value::Nil)
+    };
+
+    let mut vm = Vm::new(State { res: 0 }).unwrap();
+    vm.register_function("foo", into_f1(fun)).unwrap();
+
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        lanes: [
+            (
+                "main".into(),
+                Function::default().with_card(Card::dynamic_call(
+                    Card::NativeFunction("foo".to_string()),
+                    vec![Card::Function("bar".to_string())],
+                )),
+            ),
+            (
+                "bar".into(),
+                Function::default().with_card(Card::Return(UnaryExpression {
+                    card: Box::new(Card::ScalarInt(42)),
+                })),
+            ),
+        ]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    vm.run(&program).expect("run");
+    let aux = vm.unwrap_aux();
+
+    assert_eq!(aux.res, 42);
+}

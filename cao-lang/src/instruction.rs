@@ -29,9 +29,7 @@ pub(crate) enum Instruction {
     /// Clones the last element on the stack
     /// Does nothing if no elements are on the stack
     CopyLast,
-    /// If the value at the top of the stack is truthy jumps to the input node
-    /// Else does nothing
-    /// Quit the program returning the last value on the stack
+    /// Quit the program
     Exit,
     /// Read bytecode position and Function arity from the program and perform a jump there.
     CallFunction,

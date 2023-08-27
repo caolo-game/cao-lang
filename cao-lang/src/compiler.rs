@@ -128,6 +128,8 @@ impl<'a> Compiler<'a> {
         self.compile_stage_2(compilation_unit)?;
 
         self.current_imports = Default::default();
+        // the last instruction is a trap for native to cao-lang function calls
+        self.push_instruction(Instruction::Exit);
         Ok(mem::take(&mut self.program))
     }
 

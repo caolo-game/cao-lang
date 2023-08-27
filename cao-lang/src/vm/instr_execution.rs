@@ -191,7 +191,7 @@ pub fn execute_call_native<T>(
     call_native(vm, fun_hash)
 }
 
-fn call_native<T>(vm: &mut Vm<T>, handle: Handle) -> ExecutionResult {
+pub fn call_native<T>(vm: &mut Vm<T>, handle: Handle) -> ExecutionResult {
     // Clone the function because in the future native functions may call into the VM and call
     // themselves recursively
     let procedure: crate::procedures::Procedure<T> = vm
