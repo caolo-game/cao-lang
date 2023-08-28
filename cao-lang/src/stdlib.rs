@@ -131,6 +131,18 @@ pub fn max() -> Function {
     minmax("max_by_key")
 }
 
+pub fn sorted() -> Function {
+    Function::default()
+        .with_arg("iterable")
+        .with_card(Card::return_card(Card::call_function(
+            "sorted_by_key",
+            vec![
+                Card::function_value("row_to_value"),
+                Card::read_var("iterable"),
+            ],
+        )))
+}
+
 pub fn native_minmax<T, const LESS: bool>(
     vm: &mut Vm<T>,
     iterable: Value,
@@ -176,6 +188,44 @@ pub fn native_minmax<T, const LESS: bool>(
     }
 }
 
+pub fn native_sorted<T>(
+    vm: &mut Vm<T>,
+    iterable: Value,
+    key_fn: Value,
+) -> Result<Value, ExecutionErrorPayload> {
+    match iterable {
+        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Object(o) => unsafe {
+            match &o.as_ref().body {
+                CaoLangObjectBody::Table(t) => {
+                    // TODO:
+                    // sort in place?
+                    let mut result = Vec::with_capacity(t.len());
+                    for (k, v) in t.iter() {
+                        vm.stack_push(*v)?;
+                        vm.stack_push(*k)?;
+                        let key = vm.run_function(key_fn)?;
+                        result.push((key, k, v));
+                    }
+                    result.sort_by(|(a, _, _), (b, _, _)| {
+                        a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+                    });
+
+                    let mut out = vm.init_table()?;
+                    let t = out.as_table_mut().unwrap();
+                    for (_, k, v) in result {
+                        t.insert(*k, *v)?;
+                    }
+                    Ok(Value::Object(out.0))
+                }
+                CaoLangObjectBody::String(_) // TODO: define sort for strings?
+                | CaoLangObjectBody::Function(_)
+                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+            }
+        },
+    }
+}
+
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Function {
     Function::default()
@@ -183,6 +233,16 @@ pub fn min_by_key() -> Function {
         .with_arg("key_function")
         .with_cards(vec![Card::call_native(
             "__min",
+            vec![Card::read_var("iterable"), Card::read_var("key_function")],
+        )])
+}
+
+pub fn sorted_by_key() -> Function {
+    Function::default()
+        .with_arg("iterable")
+        .with_arg("key_function")
+        .with_cards(vec![Card::call_native(
+            "__sort",
             vec![Card::read_var("iterable"), Card::read_var("key_function")],
         )])
 }
@@ -214,6 +274,12 @@ pub fn standard_library() -> Module {
     module.lanes.push(("max".to_string(), max()));
     module.lanes.push(("min_by_key".to_string(), min_by_key()));
     module.lanes.push(("max_by_key".to_string(), max_by_key()));
+    module
+        .lanes
+        .push(("sorted_by_key".to_string(), sorted_by_key()));
+    module
+        .lanes
+        .push(("sorted".to_string(), sorted()));
     module
         .lanes
         .push(("row_to_value".to_string(), value_key_fn()));
@@ -577,6 +643,67 @@ mod tests {
                 }
                 a @ _ => panic!("Unexpected result: {a:?}"),
             }
+        }
+    }
+
+    #[traced_test]
+    #[test]
+    fn sort_by_key_test() {
+        let program = Module {
+            imports: vec!["std.sorted_by_key".to_string()],
+            lanes: vec![
+                (
+                    "main".to_string(),
+                    Function::default().with_cards(vec![
+                        Card::set_var(
+                            "t",
+                            Card::Array(vec![
+                                Card::ScalarInt(2),
+                                Card::ScalarInt(3),
+                                Card::ScalarInt(1),
+                                Card::ScalarInt(4),
+                            ]),
+                        ),
+                        // call min
+                        Card::set_global_var(
+                            "g_result",
+                            Card::call_function(
+                                "sorted_by_key",
+                                vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
+                            ),
+                        ),
+                    ]),
+                ),
+                (
+                    "keyfn".to_string(),
+                    Function::default()
+                        .with_arg("_key")
+                        .with_arg("val")
+                        .with_cards(vec![Card::read_var("val")]),
+                ),
+            ],
+            ..Default::default()
+        };
+
+        let compiled = compile(program, None).expect("Failed to compile");
+        let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
+        vm.run(&compiled).expect("run");
+
+        let result = vm
+            .read_var_by_name("g_result", &compiled.variables)
+            .unwrap();
+        unsafe {
+            let t = result.as_table().expect("table");
+            let values = t.iter().map(|(_, v)| *v).collect::<Vec<_>>();
+            assert_eq!(
+                values,
+                [
+                    Value::Integer(1),
+                    Value::Integer(2),
+                    Value::Integer(3),
+                    Value::Integer(4)
+                ]
+            );
         }
     }
 }

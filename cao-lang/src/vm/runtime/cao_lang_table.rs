@@ -127,6 +127,14 @@ impl CaoLangTable {
             .iter()
             .filter_map(|k| self.map.get(k).map(|v| (k, v)))
     }
+
+    pub fn keys(&self) -> &[Value] {
+        &self.keys
+    }
+
+    pub fn keys_mut(&mut self) -> &mut [Value] {
+        &mut self.keys
+    }
 }
 
 impl std::ops::Deref for CaoLangTable {

@@ -57,6 +57,8 @@ impl<'a, Aux> Vm<'a, Aux> {
             .unwrap();
         vm._register_native_function("__max", into_f2(stdlib::native_minmax::<Aux, false>))
             .unwrap();
+        vm._register_native_function("__sort", into_f2(stdlib::native_sorted::<Aux>))
+            .unwrap();
         Ok(vm)
     }
 
