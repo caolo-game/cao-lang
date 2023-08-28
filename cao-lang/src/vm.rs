@@ -53,13 +53,18 @@ impl<'a, Aux> Vm<'a, Aux> {
             remaining_iters: 0,
             _m: Default::default(),
         };
-        vm._register_native_function("__min", into_f2(stdlib::native_minmax::<Aux, true>))
-            .unwrap();
-        vm._register_native_function("__max", into_f2(stdlib::native_minmax::<Aux, false>))
-            .unwrap();
-        vm._register_native_function("__sort", into_f2(stdlib::native_sorted::<Aux>))
-            .unwrap();
+        vm.register_native_stdlib().unwrap();
         Ok(vm)
+    }
+
+    pub fn register_native_stdlib(&mut self) -> Result<(), ExecutionErrorPayload>
+    where
+        Aux: 'static,
+    {
+        self._register_native_function("__min", into_f2(stdlib::native_minmax::<Aux, true>))?;
+        self._register_native_function("__max", into_f2(stdlib::native_minmax::<Aux, false>))?;
+        self._register_native_function("__sort", into_f2(stdlib::native_sorted::<Aux>))?;
+        Ok(())
     }
 
     /// Inserts the given value into the VM's runtime memory. Returns the inserted [[Value]]
