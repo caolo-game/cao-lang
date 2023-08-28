@@ -113,7 +113,7 @@ fn test_string_param() {
         res: "".to_string(),
     })
     .unwrap();
-    vm.register_function(name, into_f1(fun)).unwrap();
+    vm.register_native_function(name, into_f1(fun)).unwrap();
 
     let cu = CaoProgram {
         imports: Default::default(),
@@ -399,7 +399,7 @@ fn call_native_test() {
     };
 
     let mut vm = Vm::new(State { called: false }).unwrap();
-    vm.register_function(name, fun).unwrap();
+    vm.register_native_function(name, fun).unwrap();
     vm.run(&prog).expect("run failed");
     assert!(vm.unwrap_aux().called);
 }
@@ -453,10 +453,10 @@ fn test_function_registry() {
     .unwrap();
 
     // if this compiles we're good to go
-    vm.register_function("func0", myfunc0).unwrap();
-    vm.register_function("func1", into_f1(myfunc1)).unwrap();
-    vm.register_function("func2", into_f2(myfunc2)).unwrap();
-    vm.register_function("func3", into_f3(myfunc3)).unwrap();
+    vm.register_native_function("func0", myfunc0).unwrap();
+    vm.register_native_function("func1", into_f1(myfunc1)).unwrap();
+    vm.register_native_function("func2", into_f2(myfunc2)).unwrap();
+    vm.register_native_function("func3", into_f3(myfunc3)).unwrap();
 
     const PROG: &str = r#"
 submodules: []
@@ -1211,7 +1211,7 @@ fn native_function_object_call_test() {
         res: "".to_string(),
     })
     .unwrap();
-    vm.register_function(name, into_f1(fun)).unwrap();
+    vm.register_native_function(name, into_f1(fun)).unwrap();
 
     let cu = CaoProgram {
         imports: Default::default(),
@@ -1250,7 +1250,7 @@ fn native_functions_can_call_cao_lang_function() {
     };
 
     let mut vm = Vm::new(State { res: 0 }).unwrap();
-    vm.register_function("foo", into_f1(fun)).unwrap();
+    vm.register_native_function("foo", into_f1(fun)).unwrap();
 
     let cu = CaoProgram {
         imports: Default::default(),

@@ -44,7 +44,7 @@ pub type VmFunction4<Aux, T1, T2, T3, T4> =
 ///     Ok(Value::Nil)
 /// }
 ///
-/// vm.register_function("my function", into_f1(fun));
+/// vm.register_native_function("my function", into_f1(fun));
 ///
 /// ```
 pub fn into_f1<Aux, T1>(f: fn(&mut Vm<Aux>, T1) -> ShallowExecutionResult) -> VmFunction1<Aux, T1> {

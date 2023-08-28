@@ -135,7 +135,7 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Register a native function for use by Cao-Lang programs
     ///
-    pub fn register_function<S, C>(&mut self, name: S, f: C) -> Result<(), ExecutionErrorPayload>
+    pub fn register_native_function<S, C>(&mut self, name: S, f: C) -> Result<(), ExecutionErrorPayload>
     where
         S: AsRef<str>,
         C: VmFunction<Aux> + 'static,
