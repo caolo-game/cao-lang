@@ -15,6 +15,7 @@ use crate::{
     collections::handle_table::{Handle, HandleTable},
     instruction::Instruction,
     prelude::*,
+    stdlib,
     value::Value,
     VariableId,
 };
@@ -40,15 +41,23 @@ where
 }
 
 impl<'a, Aux> Vm<'a, Aux> {
-    pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload> {
-        Ok(Self {
+    pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload>
+    where
+        Aux: 'static,
+    {
+        let mut vm = Self {
             auxiliary_data,
             callables: HandleTable::default(),
             runtime_data: RuntimeData::new(400 * 1024, 256, 256)?,
             max_instr: 1000,
             remaining_iters: 0,
             _m: Default::default(),
-        })
+        };
+        vm._register_native_function("__min", into_f2(stdlib::native_minmax::<Aux, true>))
+            .unwrap();
+        vm._register_native_function("__max", into_f2(stdlib::native_minmax::<Aux, false>))
+            .unwrap();
+        Ok(vm)
     }
 
     /// Inserts the given value into the VM's runtime memory. Returns the inserted [[Value]]
@@ -135,7 +144,28 @@ impl<'a, Aux> Vm<'a, Aux> {
 
     /// Register a native function for use by Cao-Lang programs
     ///
-    pub fn register_native_function<S, C>(&mut self, name: S, f: C) -> Result<(), ExecutionErrorPayload>
+    pub fn register_native_function<S, C>(
+        &mut self,
+        name: S,
+        f: C,
+    ) -> Result<(), ExecutionErrorPayload>
+    where
+        S: AsRef<str>,
+        C: VmFunction<Aux> + 'static,
+    {
+        if name.as_ref().starts_with("__") {
+            return Err(ExecutionErrorPayload::invalid_argument(
+                "Native function name may not begin with __",
+            ));
+        }
+        self._register_native_function(name, f)
+    }
+
+    fn _register_native_function<S, C>(
+        &mut self,
+        name: S,
+        f: C,
+    ) -> Result<(), ExecutionErrorPayload>
     where
         S: AsRef<str>,
         C: VmFunction<Aux> + 'static,

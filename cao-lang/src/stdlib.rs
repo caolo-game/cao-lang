@@ -3,7 +3,12 @@
 //! The standard library is injected into every `Module` at compilation time.
 //! Standard functions can be imported via the `std` module
 
-use crate::compiler::{Card, ForEach, Function, Module};
+use crate::{
+    compiler::{Card, ForEach, Function, Module},
+    procedures::ExecutionErrorPayload,
+    value::Value,
+    vm::{runtime::cao_lang_object::CaoLangObjectBody, Vm},
+};
 
 /// Given a table and a callback that returns a bool create a new table whith the items that return
 /// true
@@ -126,68 +131,70 @@ pub fn max() -> Function {
     minmax("max_by_key")
 }
 
-fn minmax_by_key(on_less_card: impl FnOnce(Card, Card) -> Card) -> Function {
-    Function::default()
-        .with_arg("iterable")
-        .with_arg("key_function")
-        .with_cards(vec![
-            Card::set_var("i", Card::ScalarInt(0)),
-            Card::set_var(
-                "tmp",
-                Card::Get(Box::new([Card::read_var("iterable"), Card::read_var("i")])),
-            ),
-            Card::set_var(
-                "min_item",
-                Card::dynamic_call(
-                    Card::read_var("key_function"),
-                    vec![Card::read_var("tmp.value"), Card::read_var("tmp.key")],
-                ),
-            ),
-            Card::ForEach(Box::new(ForEach {
-                i: Some("j".to_string()),
-                k: Some("k".to_string()),
-                v: Some("v".to_string()),
-                iterable: Box::new(Card::read_var("iterable")),
-                body: Box::new(Card::composite_card(
-                    "",
-                    vec![
-                        Card::set_var(
-                            "tmp",
-                            Card::dynamic_call(
-                                Card::read_var("key_function"),
-                                vec![Card::read_var("v"), Card::read_var("k")],
-                            ),
-                        ),
-                        on_less_card(
-                            Card::Less(Box::new([
-                                Card::read_var("tmp"),
-                                Card::read_var("min_item"),
-                            ])),
-                            Card::composite_card(
-                                "",
-                                vec![
-                                    Card::set_var("i", Card::read_var("j")),
-                                    Card::set_var("min_item", Card::read_var("tmp")),
-                                ],
-                            ),
-                        ),
-                    ],
-                )),
-            })),
-            Card::return_card(Card::Get(Box::new([
-                Card::read_var("iterable"),
-                Card::read_var("i"),
-            ]))),
-        ])
+pub fn native_minmax<T, const LESS: bool>(
+    vm: &mut Vm<T>,
+    iterable: Value,
+    key_fn: Value,
+) -> Result<Value, ExecutionErrorPayload> {
+    match iterable {
+        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Object(o) => unsafe {
+            match &o.as_ref().body {
+                CaoLangObjectBody::Table(t) => {
+                    let Some(first) = t.iter().next() else {
+                        return Ok(Value::Nil);
+                    };
+                    vm.stack_push(*first.1)?;
+                    vm.stack_push(*first.0)?;
+                    let mut max_key = vm.run_function(key_fn)?;
+                    let mut i = 0;
+
+                    for (j, (k, value)) in t.iter().enumerate().skip(1) {
+                        vm.stack_push(*value)?;
+                        vm.stack_push(*k)?;
+                        let key = vm.run_function(key_fn)?;
+                        if if LESS { key < max_key } else { key > max_key } {
+                            dbg!(key, max_key);
+                            i = j;
+                            max_key = key;
+                        }
+                    }
+                    let k = t.nth_key(i);
+                    let v = *t.get(&k).unwrap();
+                    let mut result = vm.init_table()?;
+                    let t = result.0.as_mut().as_table_mut().unwrap();
+                    t.insert(vm.init_string("key")?, k)?;
+                    t.insert(vm.init_string("value")?, v)?;
+
+                    return Ok(Value::Object(result.0));
+                }
+                CaoLangObjectBody::String(_)
+                | CaoLangObjectBody::Function(_)
+                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+            }
+        },
+    }
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Function {
-    minmax_by_key(|cond, body| Card::IfTrue(Box::new([cond, body])))
+    Function::default()
+        .with_arg("iterable")
+        .with_arg("key_function")
+        .with_cards(vec![Card::call_native(
+            "__min",
+            vec![Card::read_var("iterable"), Card::read_var("key_function")],
+        )])
 }
 
 pub fn max_by_key() -> Function {
-    minmax_by_key(|cond, body| Card::IfFalse(Box::new([cond, body])))
+    Function::default()
+        .with_arg("iterable")
+        .with_arg("key_function")
+        .with_cards(vec![Card::call_native(
+            "__max",
+            vec![Card::read_var("iterable"), Card::read_var("key_function")],
+        )])
 }
 
 /// A (key, value) function that returns the value given
@@ -507,12 +514,9 @@ mod tests {
         let result = vm
             .read_var_by_name("g_result", &compiled.variables)
             .unwrap();
-        unsafe {
-            let row = result.as_table().unwrap();
-            match row.get("value").unwrap() {
-                Value::Nil => {}
-                a @ _ => panic!("Unexpected result: {a:?}"),
-            }
+        match result {
+            Value::Nil => {}
+            a @ _ => panic!("Unexpected result: {a:?}"),
         }
     }
 
