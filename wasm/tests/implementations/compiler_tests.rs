@@ -6,7 +6,6 @@ use serde_json::json;
 use wasm_bindgen_test::*;
 
 use cao_lang_wasm::{compile, run_program, CompileResult};
-use wasm_bindgen::JsValue;
 
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
@@ -39,9 +38,8 @@ fn compiler_returns_error_not_exception() {
     });
     let output =
         compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
-    let output: CompileResult = output
-        .into_serde()
-        .expect("Failed to deserialize compiler output");
+    let output: CompileResult =
+        serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
 
     match output {
         CompileResult::Program(_) => panic!("Expected a compile error"),
@@ -58,7 +56,7 @@ fn can_run_simple_program() {
             "name": "main",
             "arguments": [],
             "cards": [
-            
+
             { "SetGlobalVar": {
                 "name": "g_pogman",
                 "value": {  "StringLiteral": "Poggers" }
@@ -69,16 +67,15 @@ fn can_run_simple_program() {
     });
     let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("failed to run compile");
 
-    let output: CompileResult = output
-        .into_serde()
-        .expect("Failed to deserialize compiler output");
+    let output: CompileResult =
+        serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
 
     let program = match output {
         CompileResult::Program(p) => p,
         CompileResult::CompileError(err) => panic!("Failed to compile {:?}", err),
     };
 
-    let prog_js = JsValue::from_serde(&program).expect("serialize");
+    let prog_js = serde_wasm_bindgen::to_value(&program).expect("serialize");
 
     run_program(prog_js).expect("Failed to run");
 }
