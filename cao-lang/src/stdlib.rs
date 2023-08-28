@@ -114,11 +114,15 @@ pub fn map() -> Function {
 }
 
 fn minmax(minimax: &str) -> Function {
-    Function::default().with_arg("iterable").with_cards(vec![
-        Card::function_value("row_to_value"),
-        Card::read_var("iterable"),
-        Card::return_card(Card::call_function(minimax, vec![])),
-    ])
+    Function::default()
+        .with_arg("iterable")
+        .with_card(Card::return_card(Card::call_function(
+            minimax,
+            vec![
+                Card::function_value("row_to_value"),
+                Card::read_var("iterable"),
+            ],
+        )))
 }
 
 /// Return the smallest value in the table, or nil if the table is empty
@@ -277,9 +281,7 @@ pub fn standard_library() -> Module {
     module
         .lanes
         .push(("sorted_by_key".to_string(), sorted_by_key()));
-    module
-        .lanes
-        .push(("sorted".to_string(), sorted()));
+    module.lanes.push(("sorted".to_string(), sorted()));
     module
         .lanes
         .push(("row_to_value".to_string(), value_key_fn()));
