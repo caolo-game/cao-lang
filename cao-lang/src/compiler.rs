@@ -855,7 +855,9 @@ impl<'a> Compiler<'a> {
                 self.read_local_var(index as u32);
             }
             Variable::Upvalue(index) => {
-                todo!()
+                return Err(self.error(CompilationErrorPayload::Unimplemented(
+                    "Captures are not yet implemented for closures",
+                )));
             }
             Variable::Global => {
                 let next_var = &mut self.next_var;
