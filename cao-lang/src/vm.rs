@@ -17,6 +17,7 @@ use crate::{
     prelude::*,
     stdlib,
     value::Value,
+    vm::runtime::cao_lang_function::CaoLangClosure,
     VariableId,
 };
 use runtime::RuntimeData;
@@ -273,7 +274,8 @@ impl<'a, Aux> Vm<'a, Aux> {
         let label;
         unsafe {
             match &obj.as_ref().body {
-                CaoLangObjectBody::Function(f) => {
+                CaoLangObjectBody::Closure(CaoLangClosure { function: f, .. })
+                | CaoLangObjectBody::Function(f) => {
                     arity = f.arity;
                     label = f.handle;
                 }
