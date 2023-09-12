@@ -325,8 +325,8 @@ fn min_by_key_test() {
                                     .with_arg("val")
                                     .with_card(Card::return_card(Card::Div(
                                         BinaryExpression::new([
-                                            Card::read_var("val"),
                                             Card::scalar_int(10),
+                                            Card::read_var("val"),
                                         ]),
                                     ))),
                             )),
@@ -350,7 +350,7 @@ fn min_by_key_test() {
         let t = result.as_table().expect("table");
         match t.get("value").unwrap() {
             Value::Integer(i) => {
-                assert_eq!(*i, 1);
+                assert_eq!(*i, 4);
             }
             a @ _ => panic!("Unexpected result: {a:?}"),
         }
