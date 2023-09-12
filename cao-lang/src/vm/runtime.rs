@@ -10,6 +10,7 @@ use crate::{
     collections::{bounded_stack::BoundedStack, value_stack::ValueStack},
     prelude::*,
     value::Value,
+    vm::runtime::cao_lang_object::CaoLangObjectBody,
 };
 use tracing::debug;
 
@@ -85,7 +86,7 @@ impl RuntimeData {
             let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
             let obj = CaoLangObject {
                 marker: GcMarker::White,
-                body: cao_lang_object::CaoLangObjectBody::Table(table),
+                body: CaoLangObjectBody::Table(table),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
@@ -109,9 +110,7 @@ impl RuntimeData {
             let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
             let obj = CaoLangObject {
                 marker: GcMarker::White,
-                body: cao_lang_object::CaoLangObjectBody::NativeFunction(CaoLangNativeFunction {
-                    handle,
-                }),
+                body: CaoLangObjectBody::NativeFunction(CaoLangNativeFunction { handle }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
@@ -137,10 +136,7 @@ impl RuntimeData {
             let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
             let obj = CaoLangObject {
                 marker: GcMarker::White,
-                body: cao_lang_object::CaoLangObjectBody::Function(CaoLangFunction {
-                    handle,
-                    arity,
-                }),
+                body: CaoLangObjectBody::Function(CaoLangFunction { handle, arity }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
             self.object_list.push(obj_ptr);
@@ -166,7 +162,7 @@ impl RuntimeData {
             let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
             let obj = CaoLangObject {
                 marker: GcMarker::White,
-                body: cao_lang_object::CaoLangObjectBody::Closure(CaoLangClosure {
+                body: CaoLangObjectBody::Closure(CaoLangClosure {
                     function: CaoLangFunction { handle, arity },
                     upvalues: todo!(),
                 }),
@@ -200,7 +196,7 @@ impl RuntimeData {
             let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
             let obj = CaoLangObject {
                 marker: GcMarker::White,
-                body: cao_lang_object::CaoLangObjectBody::String(CaoLangString {
+                body: CaoLangObjectBody::String(CaoLangString {
                     len: payload.len(),
                     ptr,
                     alloc: self.memory.clone(),
@@ -287,49 +283,43 @@ impl RuntimeData {
             }
         }
 
+        macro_rules! checked_enqueue_value {
+            ($val: ident) => {
+                if let Value::Object(mut value) = $val {
+                    unsafe {
+                        let t = value.as_mut();
+                        if matches!(t.marker, GcMarker::White) {
+                            t.marker = GcMarker::Gray;
+                            progress_tracker.push(t);
+                        }
+                    }
+                }
+            };
+        }
+
         // mark referenced objects for collection
         while let Some(obj) = progress_tracker.pop() {
             obj.marker = GcMarker::Black;
             match &obj.body {
-                cao_lang_object::CaoLangObjectBody::Table(obj) => {
-                    for (k, v) in obj.iter() {
-                        if let Value::Object(mut t) = k {
-                            unsafe {
-                                let t = t.as_mut();
-                                if matches!(t.marker, GcMarker::White) {
-                                    progress_tracker.push(t);
-                                }
-                            }
-                        }
-                        if let Value::Object(mut t) = v {
-                            unsafe {
-                                let t = t.as_mut();
-                                if matches!(t.marker, GcMarker::White) {
-                                    progress_tracker.push(t);
-                                }
-                            }
-                        }
+                CaoLangObjectBody::Table(obj) => {
+                    for (key, value) in obj.iter() {
+                        checked_enqueue_value!(key);
+                        checked_enqueue_value!(value);
                     }
                 }
-                cao_lang_object::CaoLangObjectBody::Closure(c) => {
+                CaoLangObjectBody::Closure(c) => {
                     for upvalue in &c.upvalues {
-                        match upvalue.value {
-                            Value::Nil | Value::Integer(_) | Value::Real(_) => {}
-                            Value::Object(mut o) => unsafe {
-                                if matches!(o.as_ref().marker, GcMarker::White) {
-                                    progress_tracker.push(o.as_mut());
-                                }
-                            },
-                        }
+                        let val = upvalue.value;
+                        checked_enqueue_value!(val);
                     }
                 }
-                cao_lang_object::CaoLangObjectBody::String(_) => {
+                CaoLangObjectBody::String(_) => {
                     // strings don't have children
                 }
-                cao_lang_object::CaoLangObjectBody::Function(_) => {
+                CaoLangObjectBody::Function(_) => {
                     // function objects don't have children
                 }
-                cao_lang_object::CaoLangObjectBody::NativeFunction(_) => {
+                CaoLangObjectBody::NativeFunction(_) => {
                     // native function objects don't have children
                 }
             }
