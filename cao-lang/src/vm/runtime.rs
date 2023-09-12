@@ -168,6 +168,7 @@ impl RuntimeData {
                 marker: GcMarker::White,
                 body: cao_lang_object::CaoLangObjectBody::Closure(CaoLangClosure {
                     function: CaoLangFunction { handle, arity },
+                    upvalues: todo!(),
                 }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
@@ -310,6 +311,18 @@ impl RuntimeData {
                         }
                     }
                 }
+                cao_lang_object::CaoLangObjectBody::Closure(c) => {
+                    for upvalue in &c.upvalues {
+                        match upvalue.value {
+                            Value::Nil | Value::Integer(_) | Value::Real(_) => {}
+                            Value::Object(mut o) => unsafe {
+                                if matches!(o.as_ref().marker, GcMarker::White) {
+                                    progress_tracker.push(o.as_mut());
+                                }
+                            },
+                        }
+                    }
+                }
                 cao_lang_object::CaoLangObjectBody::String(_) => {
                     // strings don't have children
                 }
@@ -318,9 +331,6 @@ impl RuntimeData {
                 }
                 cao_lang_object::CaoLangObjectBody::NativeFunction(_) => {
                     // native function objects don't have children
-                }
-                cao_lang_object::CaoLangObjectBody::Closure(c) => {
-                    // TODO: captures
                 }
             }
         }

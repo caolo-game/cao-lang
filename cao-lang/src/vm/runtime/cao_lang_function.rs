@@ -1,4 +1,4 @@
-use crate::prelude::Handle;
+use crate::{prelude::Handle, value::Value};
 
 #[derive(Debug)]
 pub struct CaoLangFunction {
@@ -14,4 +14,11 @@ pub struct CaoLangNativeFunction {
 #[derive(Debug)]
 pub struct CaoLangClosure {
     pub function: CaoLangFunction,
+    pub upvalues: Vec<CaoLangUpvalue>,
+}
+
+#[derive(Debug)]
+pub struct CaoLangUpvalue {
+    pub location: u32,
+    pub value: Value,
 }

@@ -41,6 +41,7 @@ pub(crate) type FunctionSlice<'a> = &'a [FunctionIr];
 pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
 pub(crate) type ImportsIr = std::collections::HashMap<String, String>;
 pub(crate) type Locals<'a> = arrayvec::ArrayVec<Local<'a>, 255>;
+type Upvalues = arrayvec::ArrayVec<Upvalue, 255>;
 
 pub struct Compiler<'a> {
     options: CompileOptions,
@@ -53,8 +54,11 @@ pub struct Compiler<'a> {
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, ImportsIr>,
     locals: Box<Locals<'a>>,
+    upvalues: Box<Upvalues>,
     /// local index = local index - actual offset
     local_offset: Vec<usize>,
+    /// upvalue index = upvalue index - actual offset
+    upvalue_offset: Vec<usize>,
     scope_depth: i32,
     current_index: CardIndex,
 }
@@ -100,6 +104,7 @@ enum Variable {
     Upvalue(usize),
 }
 
+#[derive(Default, Clone, Copy, Debug)]
 struct Upvalue {
     is_local: bool,
     index: u8,
@@ -114,10 +119,12 @@ impl<'a> Compiler<'a> {
             jump_table: Default::default(),
             current_namespace: Default::default(),
             locals: Default::default(),
+            upvalues: Default::default(),
             scope_depth: 0,
             current_index: CardIndex::default(),
             current_imports: Default::default(),
             local_offset: Default::default(),
+            upvalue_offset: Default::default(),
         }
     }
 
@@ -231,11 +238,13 @@ impl<'a> Compiler<'a> {
     /// begin nested compile sequence
     fn compile_begin(&mut self) {
         self.local_offset.push(self.locals.len());
+        self.upvalue_offset.push(self.upvalues.len());
     }
 
     /// end nested compile sequence
     fn compile_end(&mut self) {
         self.local_offset.pop();
+        self.upvalue_offset.pop();
     }
 
     fn scope_begin(&mut self) {
@@ -261,6 +270,12 @@ impl<'a> Compiler<'a> {
     fn add_local(&mut self, name: &'a str) -> CompilationResult<u32> {
         self.validate_var_name(name)?;
         self.add_local_unchecked(name)
+    }
+
+    fn add_upvalue(&mut self, index: u8, is_local: bool) -> CompilationResult<()> {
+        self.upvalues
+            .try_push(Upvalue { is_local, index })
+            .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))
     }
 
     fn add_local_unchecked(&mut self, name: &'a str) -> CompilationResult<u32> {
