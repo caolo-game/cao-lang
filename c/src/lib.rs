@@ -34,6 +34,7 @@ pub enum CompileResult {
     cao_CompileResult_InvalidJump,
     cao_CompileResult_InternalError,
     cao_CompileResult_TooManyLocals,
+    cao_CompileResult_TooManyUpvalues,
     cao_CompileResult_BadVariableName,
     cao_CompileResult_EmptyVariable,
     cao_CompileResult_NoMain,
@@ -207,6 +208,9 @@ pub unsafe extern "C" fn cao_compile_json(
             }
             CompilationErrorPayload::DuplicateModule(_) => {
                 return CompileResult::cao_CompileResult_DuplicateModule;
+            }
+            CompilationErrorPayload::TooManyUpvalues => {
+                return CompileResult::cao_CompileResult_TooManyUpvalues;
             }
         },
     };

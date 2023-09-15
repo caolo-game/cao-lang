@@ -61,6 +61,9 @@ pub enum CompilationErrorPayload {
     #[error("Too many locals in scope")]
     TooManyLocals,
 
+    #[error("Too many upvalues in scope. Try capturing less variables")]
+    TooManyUpvalues,
+
     #[error("Variable name {0} can not be used")]
     BadVariableName(String),
 

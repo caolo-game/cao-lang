@@ -275,7 +275,7 @@ impl<'a> Compiler<'a> {
     fn add_upvalue(&mut self, index: u8, is_local: bool) -> CompilationResult<()> {
         self.upvalues
             .try_push(Upvalue { is_local, index })
-            .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))
+            .map_err(|_| self.error(CompilationErrorPayload::TooManyUpvalues))
     }
 
     fn add_local_unchecked(&mut self, name: &'a str) -> CompilationResult<u32> {
@@ -436,6 +436,7 @@ impl<'a> Compiler<'a> {
                 if i < offset {
                     // variable is in the outer scope
                     local.captured = true;
+                    self.add_upvalue(i as u8, true)?;
                     return Ok(Variable::Upvalue(i));
                 }
                 return Ok(Variable::Local(i - offset));
