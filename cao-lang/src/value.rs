@@ -1,4 +1,4 @@
-use crate::prelude::{CaoLangTable, Handle};
+use crate::prelude::CaoLangTable;
 use crate::vm::runtime::cao_lang_object::{CaoLangObject, CaoLangObjectBody};
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
@@ -112,10 +112,6 @@ pub enum OwnedValue {
     Table(Vec<OwnedEntry>),
     Integer(i64),
     Real(f64),
-    Function { hash: Handle, arity: u32 },
-    Closure { hash: Handle, arity: u32 },
-    NativeFunction { hash: Handle },
-    Upvalue(Box<OwnedValue>),
 }
 
 #[derive(Debug, Clone)]
@@ -131,39 +127,37 @@ impl Default for OwnedValue {
     }
 }
 
-impl From<Value> for OwnedValue {
-    fn from(v: Value) -> Self {
-        match v {
+impl TryFrom<Value> for OwnedValue {
+    type Error = Value;
+
+    fn try_from(v: Value) -> Result<Self, Self::Error> {
+        let res = match v {
             Value::Nil => Self::Nil,
             Value::Object(ptr) => unsafe {
                 match &ptr.as_ref().body {
-                    CaoLangObjectBody::Table(t) => Self::Table(
-                        t.iter()
-                            .map(|(k, v)| OwnedEntry {
-                                key: (*k).into(),
-                                value: (*v).into(),
-                            })
-                            .collect(),
-                    ),
+                    CaoLangObjectBody::Table(t) => {
+                        let mut entries = Vec::with_capacity(t.len());
+                        for (k, v) in t.iter() {
+                            entries.push(OwnedEntry {
+                                key: (*k).try_into()?,
+                                value: (*v).try_into()?,
+                            });
+                        }
+                        Self::Table(entries)
+                    }
                     CaoLangObjectBody::String(s) => Self::String(s.as_str().to_owned()),
-                    CaoLangObjectBody::Function(f) => Self::Function {
-                        hash: f.handle,
-                        arity: f.arity,
-                    },
-                    CaoLangObjectBody::Closure(f) => Self::Closure {
-                        hash: f.function.handle,
-                        arity: f.function.arity,
-                    },
-                    CaoLangObjectBody::NativeFunction(f) => Self::NativeFunction { hash: f.handle },
-                    CaoLangObjectBody::Upvalue(u) => {
-                        let val = *u.location.as_ref().unwrap();
-                        OwnedValue::Upvalue(Box::new(val.into()))
+                    CaoLangObjectBody::Function(_)
+                    | CaoLangObjectBody::Closure(_)
+                    | CaoLangObjectBody::NativeFunction(_)
+                    | CaoLangObjectBody::Upvalue(_) => {
+                        return Err(v);
                     }
                 }
             },
             Value::Integer(x) => Self::Integer(x),
             Value::Real(x) => Self::Real(x),
-        }
+        };
+        Ok(res)
     }
 }
 

@@ -52,7 +52,7 @@ fn test_can_save_and_restore_values() {
     let val = Value::Object(obj.into_inner());
 
     // serialize the object
-    let owned = OwnedValue::from(val);
+    let owned = OwnedValue::try_from(val).unwrap();
     let pl = serde_json::to_string_pretty(&owned).unwrap();
 
     // load the object in a new VM
