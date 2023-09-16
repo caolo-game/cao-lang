@@ -1,4 +1,8 @@
+use std::ptr::NonNull;
+
 use crate::{prelude::Handle, value::Value};
+
+use super::cao_lang_object::CaoLangObject;
 
 #[derive(Debug)]
 pub struct CaoLangFunction {
@@ -14,7 +18,7 @@ pub struct CaoLangNativeFunction {
 #[derive(Debug)]
 pub struct CaoLangClosure {
     pub function: CaoLangFunction,
-    pub upvalues: Vec<CaoLangUpvalue>,
+    pub upvalues: Vec<NonNull<CaoLangObject>>,
 }
 
 #[derive(Debug)]

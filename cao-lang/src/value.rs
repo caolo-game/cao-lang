@@ -115,6 +115,7 @@ pub enum OwnedValue {
     Function { hash: Handle, arity: u32 },
     Closure { hash: Handle, arity: u32 },
     NativeFunction { hash: Handle },
+    Upvalue(Box<OwnedValue>),
 }
 
 #[derive(Debug, Clone)]
@@ -154,6 +155,10 @@ impl From<Value> for OwnedValue {
                         arity: f.function.arity,
                     },
                     CaoLangObjectBody::NativeFunction(f) => Self::NativeFunction { hash: f.handle },
+                    CaoLangObjectBody::Upvalue(u) => {
+                        let val = *u.location.as_ref().unwrap();
+                        OwnedValue::Upvalue(Box::new(val.into()))
+                    }
                 }
             },
             Value::Integer(x) => Self::Integer(x),

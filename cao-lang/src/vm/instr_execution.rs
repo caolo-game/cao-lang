@@ -16,7 +16,7 @@ use crate::{
 use super::{
     runtime::{
         cao_lang_function::{CaoLangClosure, CaoLangUpvalue},
-        cao_lang_object::CaoLangObjectBody,
+        cao_lang_object::{CaoLangObject, CaoLangObjectBody},
         CallFrame, RuntimeData,
     },
     Vm,
@@ -403,6 +403,17 @@ fn resolve_closure<'a>(closure: Value) -> Result<&'a mut CaoLangClosure, Executi
     }
 }
 
+fn resolve_upvalue(o: &mut CaoLangObject) -> Result<&mut CaoLangUpvalue, ExecutionErrorPayload> {
+    match &mut o.body {
+        CaoLangObjectBody::Upvalue(u) => Ok(u),
+        _ => {
+            return Err(ExecutionErrorPayload::invalid_argument(
+                "Expected Upvalue object",
+            ))
+        }
+    }
+}
+
 pub fn register_upvalue<T>(
     vm: &mut Vm<T>,
     bytecode: &[u8],
@@ -416,10 +427,8 @@ pub fn register_upvalue<T>(
     let c = resolve_closure(closure)?;
     if is_local {
         let location = &vm.runtime_data.value_stack.as_slice()[index as usize];
-        c.upvalues.push(CaoLangUpvalue {
-            location: (location as *const Value).cast_mut(),
-            value: Value::Nil,
-        });
+        let upvalue = vm.init_upvalue((location as *const Value).cast_mut())?;
+        c.upvalues.push(upvalue.0);
     } else {
         let closure = unsafe {
             vm.runtime_data
@@ -430,10 +439,8 @@ pub fn register_upvalue<T>(
                 .as_ref()
                 .expect("closure not found for capture")
         };
-        c.upvalues.push(CaoLangUpvalue {
-            location: closure.upvalues[index as usize].location,
-            value: Value::Nil,
-        })
+        let upvalue = closure.upvalues[index as usize];
+        c.upvalues.push(upvalue);
     }
 
     Ok(())
@@ -443,11 +450,12 @@ pub fn read_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -
     unsafe {
         let index: u32 = decode_value(&bytecode, instr_ptr);
         let c = vm.runtime_data.call_stack.last().unwrap();
-        let Some(c) = c.closure.as_ref() else {
+        let Some(c) = c.closure.as_mut() else {
             return Err(ExecutionErrorPayload::NotClosure);
         };
-        match c.upvalues.get(index as usize) {
+        match c.upvalues.get_mut(index as usize) {
             Some(u) => {
+                let u = resolve_upvalue(u.as_mut())?;
                 debug_assert!(!u.location.is_null());
                 let value = *u.location;
                 vm.stack_push(value)
@@ -462,11 +470,12 @@ pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) 
         let index: u32 = decode_value(&bytecode, instr_ptr);
         let value = vm.stack_pop();
         let c = vm.runtime_data.call_stack.last().unwrap();
-        let Some(c) = c.closure.as_ref() else {
+        let Some(c) = c.closure.as_mut() else {
             return Err(ExecutionErrorPayload::NotClosure);
         };
-        match c.upvalues.get(index as usize) {
+        match c.upvalues.get_mut(index as usize) {
             Some(u) => {
+                let u = resolve_upvalue(u.as_mut())?;
                 debug_assert!(!u.location.is_null());
                 std::ptr::write(u.location, value);
                 Ok(())
