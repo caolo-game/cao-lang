@@ -164,7 +164,7 @@ impl RuntimeData {
                 marker: GcMarker::White,
                 body: CaoLangObjectBody::Closure(CaoLangClosure {
                     function: CaoLangFunction { handle, arity },
-                    upvalues: todo!(),
+                    upvalues: vec![],
                 }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
