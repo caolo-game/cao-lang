@@ -287,12 +287,10 @@ impl RuntimeData {
         macro_rules! checked_enqueue_value {
             ($val: ident) => {
                 if let Value::Object(mut value) = $val {
-                    unsafe {
-                        let t = value.as_mut();
-                        if matches!(t.marker, GcMarker::White) {
-                            t.marker = GcMarker::Gray;
-                            progress_tracker.push(t);
-                        }
+                    let t = value.as_mut();
+                    if matches!(t.marker, GcMarker::White) {
+                        t.marker = GcMarker::Gray;
+                        progress_tracker.push(t);
                     }
                 }
             };
@@ -304,14 +302,18 @@ impl RuntimeData {
             match &obj.body {
                 CaoLangObjectBody::Table(obj) => {
                     for (key, value) in obj.iter() {
-                        checked_enqueue_value!(key);
-                        checked_enqueue_value!(value);
+                        unsafe {
+                            checked_enqueue_value!(key);
+                            checked_enqueue_value!(value);
+                        }
                     }
                 }
                 CaoLangObjectBody::Closure(c) => {
                     for upvalue in &c.upvalues {
-                        let val = upvalue.value;
-                        checked_enqueue_value!(val);
+                        unsafe {
+                            let val = *upvalue.location;
+                            checked_enqueue_value!(val);
+                        }
                     }
                 }
                 CaoLangObjectBody::String(_) => {
