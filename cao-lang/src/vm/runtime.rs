@@ -42,6 +42,7 @@ pub(crate) struct CallFrame {
     pub dst_instr_ptr: u32,
     /// beginning of the local stack
     pub stack_offset: u32,
+    pub closure: *mut CaoLangClosure,
 }
 
 impl RuntimeData {
@@ -103,7 +104,7 @@ impl RuntimeData {
                 .memory
                 .alloc(Layout::new::<CaoLangObject>())
                 .map_err(|err| {
-                    debug!("Failed to allocate table {:?}", err);
+                    debug!("Failed to allocate NativeFunction {:?}", err);
                     ExecutionErrorPayload::OutOfMemory
                 })?;
 

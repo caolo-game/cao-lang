@@ -4,12 +4,26 @@ use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 use std::ptr::NonNull;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum Value {
     Nil,
     Object(NonNull<CaoLangObject>),
     Integer(i64),
     Real(f64),
+}
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Nil => write!(f, "Nil"),
+            Self::Object(arg0) => f
+                .debug_tuple("Object")
+                .field(unsafe { arg0.as_ref() })
+                .finish(),
+            Self::Integer(arg0) => f.debug_tuple("Integer").field(arg0).finish(),
+            Self::Real(arg0) => f.debug_tuple("Real").field(arg0).finish(),
+        }
+    }
 }
 
 impl PartialOrd for Value {

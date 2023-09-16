@@ -19,6 +19,6 @@ pub struct CaoLangClosure {
 
 #[derive(Debug)]
 pub struct CaoLangUpvalue {
-    pub location: u32,
+    pub location: *mut Value,
     pub value: Value,
 }

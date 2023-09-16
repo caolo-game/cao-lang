@@ -21,6 +21,7 @@ pub enum GcMarker {
     Protected,
 }
 
+#[derive(Debug)]
 pub struct CaoLangObject {
     pub marker: GcMarker,
     pub body: CaoLangObjectBody,

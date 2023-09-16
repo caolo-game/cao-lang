@@ -49,6 +49,10 @@ pub enum ExecutionErrorPayload {
     Unhashable,
     #[error("Assertion failed: {0}")]
     AssertionError(String),
+    #[error("Closure requested a non-existent upvalue")]
+    InvalidUpvalue,
+    #[error("Expected to be in the context of a closure")]
+    NotClosure,
 }
 
 #[derive(Debug, Clone, Error)]
