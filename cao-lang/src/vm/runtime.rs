@@ -260,8 +260,6 @@ impl RuntimeData {
 
     pub fn gc(&mut self) {
         debug!("• GC");
-        // TODO: strings
-        //
         // mark all roots for collection
         let mut progress_tracker = Vec::with_capacity(self.value_stack.len());
         for val in self.value_stack.iter() {
