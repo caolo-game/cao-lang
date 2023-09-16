@@ -18,6 +18,7 @@ impl std::fmt::Debug for Value {
             Self::Nil => write!(f, "Nil"),
             Self::Object(arg0) => f
                 .debug_tuple("Object")
+                .field(&arg0)
                 .field(unsafe { arg0.as_ref() })
                 .finish(),
             Self::Integer(arg0) => f.debug_tuple("Integer").field(arg0).finish(),
