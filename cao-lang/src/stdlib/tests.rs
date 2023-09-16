@@ -390,7 +390,7 @@ fn sort_by_key_test() {
                 Function::default()
                     .with_arg("_key")
                     .with_arg("val")
-                    .with_cards(vec![Card::read_var("val")]),
+                    .with_card(Card::return_card(Card::read_var("val"))),
             ),
         ],
         ..Default::default()
@@ -417,4 +417,3 @@ fn sort_by_key_test() {
         );
     }
 }
-
