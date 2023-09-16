@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use crate::value::Value;
 
 use super::{
-    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction},
+    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction, CaoLangUpvalue},
     cao_lang_string::CaoLangString,
     cao_lang_table::CaoLangTable,
 };
@@ -34,6 +34,7 @@ pub enum CaoLangObjectBody {
     Function(CaoLangFunction),
     NativeFunction(CaoLangNativeFunction),
     Closure(CaoLangClosure),
+    Upvalue(CaoLangUpvalue),
 }
 
 /// RAII style guard that ensures that an object survives the GC
@@ -89,6 +90,7 @@ impl CaoLangObject {
             CaoLangObjectBody::Function(_) => "Function",
             CaoLangObjectBody::NativeFunction(_) => "NativeFunction",
             CaoLangObjectBody::Closure(_) => "Closure",
+            CaoLangObjectBody::Upvalue(_) => "Upvalue",
         }
     }
 
@@ -127,6 +129,20 @@ impl CaoLangObject {
         }
     }
 
+    pub fn as_upvalue(&self) -> Option<&CaoLangUpvalue> {
+        match &self.body {
+            CaoLangObjectBody::Upvalue(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_upvalue_mut(&mut self) -> Option<&mut CaoLangUpvalue> {
+        match &mut self.body {
+            CaoLangObjectBody::Upvalue(v) => Some(v),
+            _ => None,
+        }
+    }
+
     pub fn len(&self) -> usize {
         match &self.body {
             CaoLangObjectBody::Table(t) => t.len(),
@@ -134,6 +150,7 @@ impl CaoLangObject {
             CaoLangObjectBody::Function(_) => 0,
             CaoLangObjectBody::NativeFunction(_) => 0,
             CaoLangObjectBody::Closure(_) => 0,
+            CaoLangObjectBody::Upvalue(_) => 0,
         }
     }
 
@@ -142,6 +159,7 @@ impl CaoLangObject {
             CaoLangObjectBody::Table(_) | CaoLangObjectBody::String(_) => self.len() == 0,
             CaoLangObjectBody::Function(_)
             | CaoLangObjectBody::Closure(_)
+            | CaoLangObjectBody::Upvalue(_)
             | CaoLangObjectBody::NativeFunction(_) => false,
         }
     }
@@ -167,6 +185,9 @@ impl std::hash::Hash for CaoLangObject {
             CaoLangObjectBody::Closure(c) => {
                 c.function.handle.value().hash(state);
                 c.function.arity.hash(state);
+            }
+            CaoLangObjectBody::Upvalue(u) => {
+                u.location.hash(state);
             }
         }
     }

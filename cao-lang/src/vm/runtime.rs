@@ -15,7 +15,7 @@ use crate::{
 use tracing::debug;
 
 use self::{
-    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction},
+    cao_lang_function::{CaoLangClosure, CaoLangFunction, CaoLangNativeFunction, CaoLangUpvalue},
     cao_lang_object::{CaoLangObject, GcMarker, ObjectGcGuard},
     cao_lang_string::CaoLangString,
 };
@@ -175,6 +175,34 @@ impl RuntimeData {
         }
     }
 
+    pub fn init_upvalue(
+        &mut self,
+        location: *mut Value,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        unsafe {
+            let obj_ptr = self
+                .memory
+                .alloc(Layout::new::<CaoLangObject>())
+                .map_err(|err| {
+                    debug!("Failed to allocate table {:?}", err);
+                    ExecutionErrorPayload::OutOfMemory
+                })?;
+
+            let obj_ptr: NonNull<CaoLangObject> = obj_ptr.cast();
+            let obj = CaoLangObject {
+                marker: GcMarker::White,
+                body: CaoLangObjectBody::Upvalue(CaoLangUpvalue {
+                    location,
+                    value: Value::Nil,
+                }),
+            };
+            std::ptr::write(obj_ptr.as_ptr(), obj);
+            self.object_list.push(obj_ptr);
+
+            Ok(ObjectGcGuard::new(obj_ptr))
+        }
+    }
+
     pub fn init_string(&mut self, payload: &str) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         unsafe {
             let obj_ptr = self
@@ -297,7 +325,7 @@ impl RuntimeData {
         // mark referenced objects for collection
         while let Some(obj) = progress_tracker.pop() {
             obj.marker = GcMarker::Black;
-            match &obj.body {
+            match &mut obj.body {
                 CaoLangObjectBody::Table(obj) => {
                     for (key, value) in obj.iter() {
                         unsafe {
@@ -307,10 +335,13 @@ impl RuntimeData {
                     }
                 }
                 CaoLangObjectBody::Closure(c) => {
-                    for upvalue in &c.upvalues {
+                    for upvalue in &mut c.upvalues {
                         unsafe {
-                            let val = *upvalue.location;
-                            checked_enqueue_value!(val);
+                            let t = upvalue.as_mut();
+                            if matches!(t.marker, GcMarker::White) {
+                                t.marker = GcMarker::Gray;
+                                progress_tracker.push(t);
+                            }
                         }
                     }
                 }
@@ -323,6 +354,11 @@ impl RuntimeData {
                 CaoLangObjectBody::NativeFunction(_) => {
                     // native function objects don't have children
                 }
+                CaoLangObjectBody::Upvalue(u) => unsafe {
+                    if let Some(t) = u.location.as_mut() {
+                        checked_enqueue_value!(t);
+                    }
+                },
             }
         }
         // sweep

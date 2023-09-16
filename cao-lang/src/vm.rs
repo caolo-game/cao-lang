@@ -101,6 +101,14 @@ impl<'a, Aux> Vm<'a, Aux> {
                 let res = self.init_native_function(*hash)?;
                 Value::Object(res.0)
             }
+            OwnedValue::Upvalue(u) => {
+                let res = self.insert_value(u)?;
+                let mut up = self.init_upvalue(std::ptr::null_mut())?;
+                let u = up.as_upvalue_mut().unwrap();
+                u.value = res;
+                u.location = &mut u.value as *mut _;
+                Value::Object(up.0)
+            }
         };
         Ok(res)
     }
@@ -126,6 +134,13 @@ impl<'a, Aux> Vm<'a, Aux> {
         arity: u32,
     ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
         self.runtime_data.init_closure(handle, arity)
+    }
+
+    pub fn init_upvalue(
+        &mut self,
+        location: *mut Value,
+    ) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
+        self.runtime_data.init_upvalue(location)
     }
 
     pub fn clear(&mut self) {
