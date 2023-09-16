@@ -225,6 +225,7 @@ impl<'a> Compiler<'a> {
             self.scope_begin();
             self.process_lane(lane)?;
             self.scope_end();
+            self.push_instruction(Instruction::ScalarNil);
             self.push_instruction(Instruction::Return);
         }
 
@@ -758,6 +759,7 @@ impl<'a> Compiler<'a> {
                 }
                 self.compile_subexpr(&embedded_function.cards)?;
                 self.scope_end();
+                self.push_instruction(Instruction::ScalarNil);
                 self.push_instruction(Instruction::Return);
 
                 // finish the goto that jumps over the inner function
