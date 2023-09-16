@@ -15,8 +15,9 @@ use crate::{
 
 use super::{
     runtime::{
-        cao_lang_function::CaoLangUpvalue, cao_lang_object::CaoLangObjectBody, CallFrame,
-        RuntimeData,
+        cao_lang_function::{CaoLangClosure, CaoLangUpvalue},
+        cao_lang_object::CaoLangObjectBody,
+        CallFrame, RuntimeData,
     },
     Vm,
 };
@@ -112,6 +113,7 @@ pub fn push_call_frame(
     arity: usize,
     src_ptr: u32,
     instr_ptr: u32,
+    closure: *mut CaoLangClosure,
     runtime_data: &mut RuntimeData,
 ) -> ExecutionResult {
     // remember the location after this jump
@@ -132,6 +134,7 @@ pub fn push_call_frame(
                 .len()
                 .checked_sub(arity as usize)
                 .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
+            closure,
         })
         .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
     Ok(())
@@ -150,6 +153,7 @@ pub fn instr_call_function<T>(
     };
     let arity;
     let label;
+    let mut closure = std::ptr::null_mut();
     unsafe {
         match &o.as_ref().body {
             CaoLangObjectBody::Function(f) => {
@@ -159,6 +163,7 @@ pub fn instr_call_function<T>(
             CaoLangObjectBody::Closure(c) => {
                 arity = c.function.arity;
                 label = c.function.handle;
+                closure = (c as *const CaoLangClosure).cast_mut();
             }
             CaoLangObjectBody::NativeFunction(f) => {
                 return call_native(vm, f.handle);
@@ -176,6 +181,7 @@ pub fn instr_call_function<T>(
         arity as usize,
         src_ptr as u32,
         *instr_ptr as u32,
+        closure,
         &mut vm.runtime_data,
     )?;
 
@@ -376,26 +382,12 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     Ok(())
 }
 
-pub fn register_upvalues<T>(
-    vm: &mut Vm<T>,
-    bytecode: &[u8],
-    instr_ptr: &mut usize,
-) -> ExecutionResult {
-    let index: u8 = unsafe { decode_value(bytecode, instr_ptr) };
-    let is_local: u8 = unsafe { decode_value(bytecode, instr_ptr) };
-    let is_local = is_local != 0;
-    let closure = vm.stack_pop();
-
+fn resolve_closure<'a>(closure: Value) -> Result<&'a mut CaoLangClosure, ExecutionErrorPayload> {
     match closure {
         Value::Object(mut o) => unsafe {
             let o = o.as_mut();
             match &mut o.body {
-                CaoLangObjectBody::Closure(c) => {
-                    c.upvalues.push(CaoLangUpvalue {
-                        location: index as u32,
-                        value: Value::Nil,
-                    });
-                }
+                CaoLangObjectBody::Closure(c) => Ok(c),
                 _ => {
                     return Err(ExecutionErrorPayload::invalid_argument(
                         "Upvalues can only be registered for closures",
@@ -409,5 +401,77 @@ pub fn register_upvalues<T>(
             ))
         }
     }
+}
+
+pub fn register_upvalue<T>(
+    vm: &mut Vm<T>,
+    bytecode: &[u8],
+    instr_ptr: &mut usize,
+) -> ExecutionResult {
+    let index: u8 = unsafe { decode_value(bytecode, instr_ptr) };
+    let is_local: u8 = unsafe { decode_value(bytecode, instr_ptr) };
+    let is_local = is_local != 0;
+    let closure = vm.stack_pop();
+
+    let c = resolve_closure(closure)?;
+    if is_local {
+        let location = &vm.runtime_data.value_stack.as_slice()[index as usize];
+        c.upvalues.push(CaoLangUpvalue {
+            location: (location as *const Value).cast_mut(),
+            value: Value::Nil,
+        });
+    } else {
+        let closure = unsafe {
+            vm.runtime_data
+                .call_stack
+                .last()
+                .unwrap()
+                .closure
+                .as_ref()
+                .expect("closure not found for capture")
+        };
+        c.upvalues.push(CaoLangUpvalue {
+            location: closure.upvalues[index as usize].location,
+            value: Value::Nil,
+        })
+    }
+
     Ok(())
+}
+
+pub fn read_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    unsafe {
+        let index: u32 = decode_value(&bytecode, instr_ptr);
+        let c = vm.runtime_data.call_stack.last().unwrap();
+        let Some(c) = c.closure.as_ref() else {
+            return Err(ExecutionErrorPayload::NotClosure);
+        };
+        match c.upvalues.get(index as usize) {
+            Some(u) => {
+                debug_assert!(!u.location.is_null());
+                let value = *u.location;
+                vm.stack_push(value)
+            }
+            None => return Err(ExecutionErrorPayload::InvalidUpvalue),
+        }
+    }
+}
+
+pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
+    unsafe {
+        let index: u32 = decode_value(&bytecode, instr_ptr);
+        let value = vm.stack_pop();
+        let c = vm.runtime_data.call_stack.last().unwrap();
+        let Some(c) = c.closure.as_ref() else {
+            return Err(ExecutionErrorPayload::NotClosure);
+        };
+        match c.upvalues.get(index as usize) {
+            Some(u) => {
+                debug_assert!(!u.location.is_null());
+                std::ptr::write(u.location, value);
+                Ok(())
+            }
+            None => return Err(ExecutionErrorPayload::InvalidUpvalue),
+        }
+    }
 }

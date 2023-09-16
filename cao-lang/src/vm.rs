@@ -272,10 +272,15 @@ impl<'a, Aux> Vm<'a, Aux> {
         };
         let arity;
         let label;
+        let mut closure: *mut CaoLangClosure = std::ptr::null_mut();
         unsafe {
             match &obj.as_ref().body {
-                CaoLangObjectBody::Closure(CaoLangClosure { function: f, .. })
-                | CaoLangObjectBody::Function(f) => {
+                CaoLangObjectBody::Closure(c) => {
+                    arity = c.function.arity;
+                    label = c.function.handle;
+                    closure = (c as *const CaoLangClosure).cast_mut();
+                }
+                CaoLangObjectBody::Function(f) => {
                     arity = f.arity;
                     label = f.handle;
                 }
@@ -323,6 +328,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                         .checked_sub(arity)
                         .ok_or(ExecutionErrorPayload::MissingArgument)?
                         as u32,
+                    closure,
                 })
                 .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
         }
@@ -731,13 +737,20 @@ impl<'a, Aux> Vm<'a, Aux> {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
-                Instruction::SetUpvalue => todo!(),
-                Instruction::ReadUpvalue => todo!(),
+                Instruction::SetUpvalue => {
+                    instr_execution::write_upvalue(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
+                    )?;
+                }
+                Instruction::ReadUpvalue => {
+                    instr_execution::read_upvalue(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
+                    )?;
+                }
                 Instruction::RegisterUpvalue => {
-                    instr_execution::register_upvalues(self, &program.bytecode, instr_ptr)
-                        .map_err(|err| {
-                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
-                        })?;
+                    instr_execution::register_upvalue(self, &program.bytecode, instr_ptr).map_err(
+                        |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
+                    )?;
                 }
             }
             debug!("Stack: {}", self.runtime_data.value_stack);
@@ -760,6 +773,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                 src_instr_ptr: 0,
                 dst_instr_ptr: 0,
                 stack_offset: 0,
+                closure: std::ptr::null_mut(),
             })
             .map_err(|_| ExecutionErrorPayload::CallStackOverflow)
             .map_err(|pl| ExecutionError::new(pl, Default::default()))?;
