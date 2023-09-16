@@ -53,14 +53,11 @@ pub struct Compiler<'a> {
 
     current_namespace: Cow<'a, NameSpace>,
     current_imports: Cow<'a, ImportsIr>,
-    locals: Box<Locals<'a>>,
-    upvalues: Box<Upvalues>,
-    /// local index = local index - actual offset
-    local_offset: Vec<usize>,
-    /// upvalue index = upvalue index - actual offset
-    upvalue_offset: Vec<usize>,
+    locals: Vec<Locals<'a>>,
+    upvalues: Vec<Upvalues>,
     scope_depth: i32,
     current_index: CardIndex,
+    function_id: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -118,13 +115,12 @@ impl<'a> Compiler<'a> {
             next_var: VariableId(0),
             jump_table: Default::default(),
             current_namespace: Default::default(),
-            locals: Default::default(),
-            upvalues: Default::default(),
+            locals: vec![Default::default()],
+            upvalues: vec![Default::default()],
             scope_depth: 0,
             current_index: CardIndex::default(),
             current_imports: Default::default(),
-            local_offset: Default::default(),
-            upvalue_offset: Default::default(),
+            function_id: 0,
         }
     }
 
@@ -237,14 +233,16 @@ impl<'a> Compiler<'a> {
 
     /// begin nested compile sequence
     fn compile_begin(&mut self) {
-        self.local_offset.push(self.locals.len());
-        self.upvalue_offset.push(self.upvalues.len());
+        self.function_id += 1;
+        self.locals.push(Default::default());
+        self.upvalues.push(Default::default());
     }
 
     /// end nested compile sequence
     fn compile_end(&mut self) {
-        self.local_offset.pop();
-        self.upvalue_offset.pop();
+        self.function_id = self.function_id.saturating_sub(1);
+        self.locals.pop();
+        self.upvalues.pop();
     }
 
     fn scope_begin(&mut self) {
@@ -254,13 +252,13 @@ impl<'a> Compiler<'a> {
     fn scope_end(&mut self) {
         self.scope_depth -= 1;
         // while the last item's depth is greater than scope_depth
-        while self
-            .locals
+        let locals = &mut self.locals[self.function_id];
+        while locals
             .last()
             .map(|l| l.depth > self.scope_depth)
             .unwrap_or(false)
         {
-            self.locals.pop();
+            locals.pop();
         }
     }
 
@@ -272,15 +270,28 @@ impl<'a> Compiler<'a> {
         self.add_local_unchecked(name)
     }
 
-    fn add_upvalue(&mut self, index: u8, is_local: bool) -> CompilationResult<()> {
-        self.upvalues
-            .try_push(Upvalue { is_local, index })
-            .map_err(|_| self.error(CompilationErrorPayload::TooManyUpvalues))
+    fn add_upvalue(
+        &mut self,
+        index: u8,
+        is_local: bool,
+        function_id: usize,
+    ) -> CompilationResult<usize> {
+        let upvalues = &mut self.upvalues[function_id];
+        for (i, val) in upvalues.iter().enumerate() {
+            if val.index == index && val.is_local == is_local {
+                // do not add duplicates
+                return Ok(i);
+            }
+        }
+        let i = upvalues.len();
+        upvalues.push(Upvalue { is_local, index });
+        Ok(i)
     }
 
     fn add_local_unchecked(&mut self, name: &'a str) -> CompilationResult<u32> {
-        let result = self.locals.len();
-        self.locals
+        let locals = self.locals.last_mut().unwrap();
+        let result = locals.len();
+        locals
             .try_push(Local {
                 name,
                 depth: self.scope_depth,
@@ -428,21 +439,45 @@ impl<'a> Compiler<'a> {
         encode_str(data, &mut self.program.data);
     }
 
-    fn resolve_var(&mut self, name: &str) -> CompilationResult<Variable> {
-        let offset = self.local_offset.last().copied().unwrap_or(0);
-        self.validate_var_name(name)?;
-        for (i, local) in self.locals.iter_mut().enumerate().rev() {
+    /// function_id = index in the *offset array
+    fn resolve_upvalue(&mut self, name: &str, function_id: usize) -> CompilationResult<Variable> {
+        if function_id == 0 {
+            return Ok(Variable::Global);
+        }
+
+        let locals = &mut self.locals[function_id - 1];
+        // try to find in the locals of the parent function
+        for (i, local) in locals.iter_mut().enumerate() {
             if local.name == name {
-                if i < offset {
-                    // variable is in the outer scope
-                    local.captured = true;
-                    self.add_upvalue(i as u8, true)?;
-                    return Ok(Variable::Upvalue(i));
-                }
-                return Ok(Variable::Local(i - offset));
+                local.captured = true;
+                return self
+                    .add_upvalue(i as u8, true, function_id)
+                    .map(Variable::Upvalue);
             }
         }
-        Ok(Variable::Global)
+        if function_id == 0 {
+            Ok(Variable::Global)
+        } else {
+            let val = self.resolve_upvalue(name, function_id - 1)?;
+            if let Variable::Upvalue(i) = &val {
+                // if the variable is an upvalue in the enclosing function add a non-local upvalue to
+                // this function
+                let i = self.add_upvalue(*i as u8, false, function_id)?;
+                return Ok(Variable::Upvalue(i));
+            }
+            Ok(val)
+        }
+    }
+
+    fn resolve_var(&mut self, name: &str) -> CompilationResult<Variable> {
+        self.validate_var_name(name)?;
+
+        for (i, local) in self.locals[self.function_id].iter_mut().enumerate().rev() {
+            if local.name == name {
+                return Ok(Variable::Local(i));
+            }
+        }
+        self.resolve_upvalue(name, self.function_id)
     }
 
     fn process_card(&mut self, card: &'a Card) -> CompilationResult<()> {
@@ -591,8 +626,11 @@ impl<'a> Compiler<'a> {
                     None => {
                         let index = match self.resolve_var(var)? {
                             Variable::Local(i) => i as u32,
-                            Variable::Upvalue(i) => todo!(),
                             Variable::Global => self.add_local(&var)?,
+                            Variable::Upvalue(i) => {
+                                self.write_upvalue(i as u32);
+                                return Ok(());
+                            }
                         };
 
                         self.write_local_var(index);
@@ -871,9 +909,7 @@ impl<'a> Compiler<'a> {
                 self.read_local_var(index as u32);
             }
             Variable::Upvalue(index) => {
-                return Err(self.error(CompilationErrorPayload::Unimplemented(
-                    "Captures are not yet implemented for closures",
-                )));
+                self.read_upvalue(index as u32);
             }
             Variable::Global => {
                 let next_var = &mut self.next_var;
@@ -913,6 +949,16 @@ impl<'a> Compiler<'a> {
 
     fn write_local_var(&mut self, index: u32) {
         self.push_instruction(Instruction::SetLocalVar);
+        write_to_vec(index, &mut self.program.bytecode);
+    }
+
+    fn read_upvalue(&mut self, index: u32) {
+        self.push_instruction(Instruction::ReadUpvalue);
+        write_to_vec(index, &mut self.program.bytecode);
+    }
+
+    fn write_upvalue(&mut self, index: u32) {
+        self.push_instruction(Instruction::SetUpvalue);
         write_to_vec(index, &mut self.program.bytecode);
     }
 
