@@ -22,9 +22,9 @@ impl std::fmt::Display for ValueStack {
         if self.count == 0 {
             return write!(f, "[]");
         }
-        write!(f, "[ {:?}", self.data[0])?;
-        for i in 1..self.count {
-            write!(f, ", {:?}", &self.data[i])?;
+        writeln!(f, "[")?;
+        for i in (0..self.count).rev() {
+            writeln!(f, "\t{:?}", &self.data[i])?;
         }
         write!(f, " ]")
     }
