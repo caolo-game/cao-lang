@@ -101,6 +101,7 @@ pub(crate) enum Instruction {
     Closure,
     SetUpvalue,
     ReadUpvalue,
+    RegisterUpvalue,
 }
 
 impl Instruction {
@@ -153,6 +154,7 @@ impl Instruction {
             Instruction::ForEach => size_of::<u32>() * 5,
             Instruction::FunctionPointer => size_of::<Handle>() + size_of::<u32>(),
             Instruction::Closure => size_of::<Handle>() + size_of::<u32>(),
+            Instruction::RegisterUpvalue => size_of::<u8>() * 2,
         };
         1 + data_span
     }

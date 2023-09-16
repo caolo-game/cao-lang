@@ -240,7 +240,7 @@ impl<'a> Compiler<'a> {
 
     /// end nested compile sequence
     fn compile_end(&mut self) {
-        self.function_id = self.function_id.saturating_sub(1);
+        self.function_id -= 1;
         self.locals.pop();
         self.upvalues.pop();
     }
@@ -759,7 +759,6 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(&embedded_function.cards)?;
                 self.scope_end();
                 self.push_instruction(Instruction::Return);
-                self.compile_end();
 
                 // finish the goto that jumps over the inner function
                 unsafe {
@@ -772,6 +771,14 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::Closure);
                 write_to_vec(function_handle, &mut self.program.bytecode);
                 write_to_vec(arity, &mut self.program.bytecode);
+                let upvalues = std::mem::take(&mut self.upvalues[self.function_id]);
+                for upvalue in upvalues {
+                    self.push_instruction(Instruction::CopyLast);
+                    self.push_instruction(Instruction::RegisterUpvalue);
+                    write_to_vec(upvalue.index, &mut self.program.bytecode);
+                    write_to_vec(upvalue.is_local as u8, &mut self.program.bytecode);
+                }
+                self.compile_end();
             }
             Card::NativeFunction(fname) => {
                 self.push_instruction(Instruction::NativeFunctionPointer);

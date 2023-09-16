@@ -733,6 +733,12 @@ impl<'a, Aux> Vm<'a, Aux> {
                 }
                 Instruction::SetUpvalue => todo!(),
                 Instruction::ReadUpvalue => todo!(),
+                Instruction::RegisterUpvalue => {
+                    instr_execution::register_upvalues(self, &program.bytecode, instr_ptr)
+                        .map_err(|err| {
+                            payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
+                        })?;
+                }
             }
             debug!("Stack: {}", self.runtime_data.value_stack);
         }

@@ -14,7 +14,10 @@ use crate::{
 };
 
 use super::{
-    runtime::{cao_lang_object::CaoLangObjectBody, CallFrame, RuntimeData},
+    runtime::{
+        cao_lang_function::CaoLangUpvalue, cao_lang_object::CaoLangObjectBody, CallFrame,
+        RuntimeData,
+    },
     Vm,
 };
 
@@ -141,7 +144,9 @@ pub fn instr_call_function<T>(
     vm: &mut Vm<T>,
 ) -> ExecutionResult {
     let Value::Object(o) = vm.runtime_data.value_stack.pop() else {
-        return Err(ExecutionErrorPayload::invalid_argument("Call instruction expects a function object argument"));
+        return Err(ExecutionErrorPayload::invalid_argument(
+            "Call instruction expects a function object argument",
+        ));
     };
     let arity;
     let label;
@@ -368,5 +373,41 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     }
     vm.stack_push(should_continue)?;
 
+    Ok(())
+}
+
+pub fn register_upvalues<T>(
+    vm: &mut Vm<T>,
+    bytecode: &[u8],
+    instr_ptr: &mut usize,
+) -> ExecutionResult {
+    let index: u8 = unsafe { decode_value(bytecode, instr_ptr) };
+    let is_local: u8 = unsafe { decode_value(bytecode, instr_ptr) };
+    let is_local = is_local != 0;
+    let closure = vm.stack_pop();
+
+    match closure {
+        Value::Object(mut o) => unsafe {
+            let o = o.as_mut();
+            match &mut o.body {
+                CaoLangObjectBody::Closure(c) => {
+                    c.upvalues.push(CaoLangUpvalue {
+                        location: index as u32,
+                        value: Value::Nil,
+                    });
+                }
+                _ => {
+                    return Err(ExecutionErrorPayload::invalid_argument(
+                        "Upvalues can only be registered for closures",
+                    ))
+                }
+            }
+        },
+        _ => {
+            return Err(ExecutionErrorPayload::invalid_argument(
+                "Upvalues can only be registered for closures",
+            ))
+        }
+    }
     Ok(())
 }
