@@ -731,6 +731,8 @@ impl<'a, Aux> Vm<'a, Aux> {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                 }
+                Instruction::SetUpvalue => todo!(),
+                Instruction::ReadUpvalue => todo!(),
             }
             debug!("Stack: {}", self.runtime_data.value_stack);
         }

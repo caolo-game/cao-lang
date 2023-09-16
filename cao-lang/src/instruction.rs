@@ -99,6 +99,8 @@ pub(crate) enum Instruction {
     /// Pop the last row from the Table
     PopTable,
     Closure,
+    SetUpvalue,
+    ReadUpvalue,
 }
 
 impl Instruction {
@@ -140,8 +142,10 @@ impl Instruction {
             Instruction::NativeFunctionPointer => Instruction::StringLiteral.span(),
             Instruction::SetGlobalVar => size_of::<VariableId>(),
             Instruction::ReadGlobalVar => size_of::<VariableId>(),
-            Instruction::SetLocalVar => size_of::<u32>(),
-            Instruction::ReadLocalVar => size_of::<u32>(),
+            Instruction::SetLocalVar
+            | Instruction::SetUpvalue
+            | Instruction::ReadUpvalue
+            | Instruction::ReadLocalVar => size_of::<u32>(),
             Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => {
                 size_of::<i32>()
             }
