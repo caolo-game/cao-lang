@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{mem::transmute, str::FromStr};
 
 use crate::{
     collections::{
@@ -6,6 +6,7 @@ use crate::{
         hash_map::CaoHashMap,
     },
     compiler::{CardIndex, NameSpace},
+    instruction::Instruction,
     VarName,
 };
 use crate::{version, VariableId};
@@ -69,6 +70,73 @@ impl CaoCompiledProgram {
             .ids
             .get(Handle::from_str(name).unwrap())
             .copied()
+    }
+
+    pub fn print_disassembly(&self) {
+        let mut pl = String::new();
+        self.disassemble(&mut pl).unwrap();
+        // FIXME: I'd prefer writing straight to stdout...
+        println!("{pl}");
+    }
+
+    pub fn disassemble(&self, mut writer: impl std::fmt::Write) -> std::fmt::Result {
+        let mut i = 0;
+        while i < self.bytecode.len() {
+            let instr: u8 = self.bytecode[i];
+            let instr: Instruction = unsafe { transmute(instr) };
+            write!(writer, "{i}\t")?;
+            // TODO: also print the arguments of the instructions
+            match instr {
+                Instruction::Add => writeln!(writer, "Add")?,
+                Instruction::Sub => writeln!(writer, "Sub")?,
+                Instruction::Mul => writeln!(writer, "Mul")?,
+                Instruction::Div => writeln!(writer, "Div")?,
+                Instruction::CallNative => writeln!(writer, "CallNative")?,
+                Instruction::ScalarInt => writeln!(writer, "ScalarInt")?,
+                Instruction::ScalarFloat => writeln!(writer, "ScalarFloat")?,
+                Instruction::ScalarNil => writeln!(writer, "ScalarNil")?,
+                Instruction::StringLiteral => writeln!(writer, "StringLiteral")?,
+                Instruction::CopyLast => writeln!(writer, "CopyLast")?,
+                Instruction::Exit => writeln!(writer, "Exit")?,
+                Instruction::CallFunction => writeln!(writer, "CallFunction")?,
+                Instruction::Equals => writeln!(writer, "Equals")?,
+                Instruction::NotEquals => writeln!(writer, "NotEquals")?,
+                Instruction::Less => writeln!(writer, "Less")?,
+                Instruction::LessOrEq => writeln!(writer, "LessOrEq")?,
+                Instruction::Pop => writeln!(writer, "Pop")?,
+                Instruction::SetGlobalVar => writeln!(writer, "SetGlobalVar")?,
+                Instruction::ReadGlobalVar => writeln!(writer, "ReadGlobalVar")?,
+                Instruction::SetLocalVar => writeln!(writer, "SetLocalVar")?,
+                Instruction::ReadLocalVar => writeln!(writer, "ReadLocalVar")?,
+                Instruction::ClearStack => writeln!(writer, "ClearStack")?,
+                Instruction::Return => writeln!(writer, "Return")?,
+                Instruction::SwapLast => writeln!(writer, "SwapLast")?,
+                Instruction::And => writeln!(writer, "And")?,
+                Instruction::Or => writeln!(writer, "Or")?,
+                Instruction::Xor => writeln!(writer, "Xor")?,
+                Instruction::Not => writeln!(writer, "Not")?,
+                Instruction::Goto => writeln!(writer, "Goto")?,
+                Instruction::GotoIfTrue => writeln!(writer, "GotoIfTrue")?,
+                Instruction::GotoIfFalse => writeln!(writer, "GotoIfFalse")?,
+                Instruction::InitTable => writeln!(writer, "InitTable")?,
+                Instruction::GetProperty => writeln!(writer, "GetProperty")?,
+                Instruction::SetProperty => writeln!(writer, "SetProperty")?,
+                Instruction::Len => writeln!(writer, "Len")?,
+                Instruction::BeginForEach => writeln!(writer, "BeginForEach")?,
+                Instruction::ForEach => writeln!(writer, "ForEach")?,
+                Instruction::FunctionPointer => writeln!(writer, "FunctionPointer")?,
+                Instruction::NativeFunctionPointer => writeln!(writer, "NativeFunctionPointer")?,
+                Instruction::NthRow => writeln!(writer, "NthRow")?,
+                Instruction::AppendTable => writeln!(writer, "AppendTable")?,
+                Instruction::PopTable => writeln!(writer, "PopTable")?,
+                Instruction::Closure => writeln!(writer, "Closure")?,
+                Instruction::SetUpvalue => writeln!(writer, "SetUpvalue")?,
+                Instruction::ReadUpvalue => writeln!(writer, "ReadUpvalue")?,
+                Instruction::RegisterUpvalue => writeln!(writer, "RegisterUpvalue")?,
+            }
+            i += instr.span();
+        }
+        Ok(())
     }
 }
 
