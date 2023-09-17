@@ -1,4 +1,15 @@
 # Changelog
+## v0.1.110
+
+
+### Features
+
+- Add `to_array` to stdlib ([2702876](27028762881a7921891dcc7b7f07032540067e1d))
+
+### Refactor
+
+- [**breaking**] Rename Lanes to Functions ([ce13429](ce1342934af3ee318478e576bbd82eb9be22c868))
+- [**breaking**] Remove the Pass card ([65978e3](65978e32dd811401469ca585fd8954f175eaf31d))
 ## v0.1.109
 
 
