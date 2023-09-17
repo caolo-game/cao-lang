@@ -86,6 +86,40 @@ fn run_fib_iter(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(loop_benches, run_fib_iter, run_fib_recursive);
+fn run_empty_function_call(c: &mut Criterion) {
+    c.bench_function("empty function call", |b| {
+        let cu = CaoProgram {
+            imports: Default::default(),
+            submodules: Default::default(),
+            functions: [
+                (
+                    // create a closure that captures a local variable
+                    // and sets a global variable
+                    "foo".into(),
+                    Function::default(),
+                ),
+                (
+                    "main".into(),
+                    Function::default().with_card(Card::call_function("foo", vec![])),
+                ),
+            ]
+            .into(),
+        };
+        let program = compile(cu, CompileOptions::new()).unwrap();
 
-criterion_main!(loop_benches);
+        let mut vm = Vm::new(()).unwrap();
+        b.iter(|| {
+            vm.clear();
+            vm.run(&program).unwrap();
+        });
+    });
+}
+
+criterion_group!(
+    benches,
+    run_fib_iter,
+    run_fib_recursive,
+    run_empty_function_call
+);
+
+criterion_main!(benches);
