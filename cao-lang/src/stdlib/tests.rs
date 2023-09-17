@@ -347,6 +347,7 @@ fn min_by_key_test() {
         .read_var_by_name("g_result", &compiled.variables)
         .unwrap();
     unsafe {
+        dbg!(result);
         let t = result.as_table().expect("table");
         match t.get("value").unwrap() {
             Value::Integer(i) => {
