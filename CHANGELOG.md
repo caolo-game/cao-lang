@@ -1,4 +1,29 @@
 # Changelog
+## v0.1.109
+
+
+### Bug Fixes
+
+- Do not panic if cast_match fails ([e6164f8](e6164f8ace581d93a7b7cba9be945226c9eb6616))
+- Fix min/max. Fix for-each altering table orders ([83f5d9f](83f5d9f9a0f83f81d8cab3902b5657ad1d08bb63))
+- Fix non-identity key functions being ignored by min/max ([48a63e8](48a63e8a4cdada5782ded277fa624d18b6e55b38))
+- Fix an issue in the HashMap implementation that could lead to spurious lookup failures after removing items ([3e33f23](3e33f2375ac3d65387721d5a2aac9c781f9df354))
+
+### Features
+
+- [**breaking**] Native functions must return a Value on success instead of manipulating the stack for return values ([a38355f](a38355f04ee39a3a26429202736d66a599c81c03))
+- Add a method for native functions to call cao-lang ([aa97618](aa976188b958db393a1bcc52a7aed6bf7e8b5074))
+- Standard lib sort function ([5dbcf28](5dbcf28cf6cfd7111e4c5b3cbfa950e3aca00421))
+- Add anonymous functions ([2c480f6](2c480f6d97f58083ba27c61bcc3ae069615ec9ea))
+- Nested functions ([7451789](745178931a019eeb5ba87b7fd03f89595fe1fcb4))
+- Function can capture variables from enclosing scopes ([1e4598f](1e4598f55369c833a872cc92235a8525b0517307))
+
+### Refactor
+
+- [**breaking**] Return an object with `key` `value` keys when getting a row from a table ([71874c9](71874c9f65abc51863fc0de24a25c1e2cbd7a543))
+- Rename Lanes to Functions ([52f8b44](52f8b44ecf12edf27432975f98b85b36b1bbbb92))
+- [**breaking**] Rename `register_native_function` ([a72f480](a72f480bef8f170047f82c1a6714e912a2f1ad94))
+- [**breaking**] Remove function serialization ([1eae87d](1eae87dd531f4af33f0ab52343debfea1ea480e6))
 ## v0.1.108
 
 
