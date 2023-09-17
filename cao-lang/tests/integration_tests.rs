@@ -1027,7 +1027,7 @@ fn set_var_to_empty_test() {
         submodules: [].into(),
         functions: [(
             "main".to_string(),
-            Function::default().with_card(Card::set_var("i", Card::Pass)),
+            Function::default().with_card(Card::set_var("i", Card::ScalarNil)),
         )]
         .into(),
     };

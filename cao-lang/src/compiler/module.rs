@@ -286,7 +286,9 @@ impl Module {
             if function.cards.len() < idx.card_index.indices[0] as usize {
                 return Err(CardFetchError::CardNotFound { depth: 0 });
             }
-            function.cards.insert(idx.card_index.indices[0] as usize, child);
+            function
+                .cards
+                .insert(idx.card_index.indices[0] as usize, child);
             return Ok(());
         }
         let mut card = function
@@ -475,7 +477,11 @@ fn flatten_module<'a>(
             return Err(CompilationErrorPayload::BadFunctionName(name.to_string()));
         }
         namespace.push(name.as_ref());
-        out.push(function_to_function_ir(function, namespace, Rc::clone(&imports)));
+        out.push(function_to_function_ir(
+            function,
+            namespace,
+            Rc::clone(&imports),
+        ));
         namespace.pop();
     }
     for (name, submod) in module.submodules.iter() {
@@ -486,7 +492,11 @@ fn flatten_module<'a>(
     Ok(())
 }
 
-fn function_to_function_ir(function: &Function, namespace: &[&str], imports: Rc<ImportsIr>) -> FunctionIr {
+fn function_to_function_ir(
+    function: &Function,
+    namespace: &[&str],
+    imports: Rc<ImportsIr>,
+) -> FunctionIr {
     assert!(
         !namespace.is_empty(),
         "Assume that function name is the last entry in namespace"

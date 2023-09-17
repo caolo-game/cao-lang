@@ -4,7 +4,7 @@ use crate::VarName;
 
 impl Default for Card {
     fn default() -> Self {
-        Card::Pass
+        Card::ScalarNil
     }
 }
 
@@ -12,7 +12,6 @@ impl Default for Card {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Card {
-    Pass,
     Add(BinaryExpression),
     Sub(BinaryExpression),
     Mul(BinaryExpression),
@@ -133,7 +132,6 @@ impl Card {
     pub fn name(&self) -> &str {
         match self {
             Card::SetVar(_) => "SetLocalVar",
-            Card::Pass => "Pass",
             Card::Add(_) => "Add",
             Card::Sub(_) => "Sub",
             Card::CreateTable => "CreateTable",
@@ -319,7 +317,6 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
-            | Card::Pass
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -384,7 +381,9 @@ impl Card {
             Card::CallNative(j) => return j.args.0.get(i),
             Card::Call(j) => return j.args.0.get(i),
             Card::DynamicCall(j) => {
-                return (i == 0).then_some(&j.function).or_else(|| j.args.0.get(i - 1))
+                return (i == 0)
+                    .then_some(&j.function)
+                    .or_else(|| j.args.0.get(i - 1))
             }
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
@@ -394,7 +393,6 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
-            | Card::Pass
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -413,7 +411,7 @@ impl Card {
             }
             Card::Repeat(rep) => match i {
                 0 => res = std::mem::replace(&mut rep.n, Card::ScalarInt(0)),
-                1 => res = std::mem::replace(&mut rep.body, Card::Pass),
+                1 => res = std::mem::replace(&mut rep.body, Card::ScalarNil),
                 _ => return None,
             },
             Card::IfTrue(_) | Card::IfFalse(_) => match self.get_child_mut(i) {
@@ -433,8 +431,8 @@ impl Card {
                 } = fe.as_mut();
                 if i > 1 {}
                 match i {
-                    0 => res = std::mem::replace::<Card>(a.as_mut(), Card::Pass),
-                    1 => res = std::mem::replace::<Card>(b.as_mut(), Card::Pass),
+                    0 => res = std::mem::replace::<Card>(a.as_mut(), Card::ScalarNil),
+                    1 => res = std::mem::replace::<Card>(b.as_mut(), Card::ScalarNil),
                     _ => return None,
                 }
             }
@@ -489,7 +487,6 @@ impl Card {
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
             | Card::Closure(_)
-            | Card::Pass
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -589,7 +586,6 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
-            | Card::Pass
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return Err(card),

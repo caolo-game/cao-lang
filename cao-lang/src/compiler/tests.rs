@@ -31,9 +31,9 @@ fn can_binary_de_serialize_output() {
         functions: [(
             "main".into(),
             Function::default().with_cards(vec![
-                Card::set_global_var("asdsdad", Card::Pass),
-                Card::Pass,
-                Card::Pass,
+                Card::set_global_var("asdsdad", Card::ScalarNil),
+                Card::ScalarNil,
+                Card::ScalarNil,
             ]),
         )]
         .into(),
@@ -53,7 +53,7 @@ fn empty_varname_is_error() {
         submodules: Default::default(),
         functions: [(
             "main".into(),
-            Function::default().with_cards(vec![Card::set_global_var("", Card::Pass)]),
+            Function::default().with_cards(vec![Card::set_global_var("", Card::ScalarNil)]),
         )]
         .into(),
     };
@@ -73,7 +73,10 @@ fn can_call_nested_function_test() {
         Module {
             imports: Default::default(),
             submodules: Default::default(),
-            functions: vec![("pooh".into(), Function::default().with_card(Card::Pass))],
+            functions: vec![(
+                "pooh".into(),
+                Function::default().with_card(Card::ScalarNil),
+            )],
         },
     )];
     let prog = CaoProgram {

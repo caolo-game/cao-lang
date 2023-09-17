@@ -910,7 +910,6 @@ impl<'a> Compiler<'a> {
                 self.current_index.pop_subindex();
                 self.push_instruction(Instruction::CallFunction);
             }
-            Card::Pass => {}
             Card::ScalarNil => {
                 self.push_instruction(Instruction::ScalarNil);
             }
