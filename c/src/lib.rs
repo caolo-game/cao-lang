@@ -70,6 +70,8 @@ pub enum ExecutionResult {
     cao_ExecutionResult_BadReturn,
     cao_ExecutionResult_Unhashable,
     cao_ExecutionResult_AssertionError,
+    cao_ExecutionResult_NotClosure,
+    cao_ExecutionResult_InvalidUpvalue,
 }
 
 /// # Safety
@@ -296,6 +298,12 @@ pub unsafe extern "C" fn cao_run_program(
             }
             cao_lang::procedures::ExecutionErrorPayload::AssertionError(_) => {
                 return ExecutionResult::cao_ExecutionResult_AssertionError
+            }
+            cao_lang::procedures::ExecutionErrorPayload::InvalidUpvalue => {
+                return ExecutionResult::cao_ExecutionResult_InvalidUpvalue
+            }
+            cao_lang::procedures::ExecutionErrorPayload::NotClosure => {
+                return ExecutionResult::cao_ExecutionResult_NotClosure
             }
         },
     }
