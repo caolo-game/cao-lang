@@ -65,6 +65,7 @@ impl<'a, Aux> Vm<'a, Aux> {
         self._register_native_function("__min", into_f2(stdlib::native_minmax::<Aux, true>))?;
         self._register_native_function("__max", into_f2(stdlib::native_minmax::<Aux, false>))?;
         self._register_native_function("__sort", into_f2(stdlib::native_sorted::<Aux>))?;
+        self._register_native_function("__to_array", into_f1(stdlib::native_to_array::<Aux>))?;
         Ok(())
     }
 

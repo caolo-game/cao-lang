@@ -236,6 +236,29 @@ pub fn native_sorted<T>(
     }
 }
 
+pub fn native_to_array<T>(vm: &mut Vm<T>, iterable: Value) -> Result<Value, ExecutionErrorPayload> {
+    match iterable {
+        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Object(o) => unsafe {
+            match &o.as_ref().body {
+                CaoLangObjectBody::Table(t) => {
+                    let mut out = vm.init_table()?;
+                    let table = out.as_table_mut().unwrap();
+                    for (i, (_, val)) in t.iter().enumerate() {
+                        table.insert(i as i64, *val)?;
+                    }
+                    Ok(Value::Object(out.0))
+                }
+                CaoLangObjectBody::String(_)
+                | CaoLangObjectBody::Function(_)
+                | CaoLangObjectBody::Closure(_)
+                | CaoLangObjectBody::Upvalue(_)
+                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+            }
+        },
+    }
+}
+
 /// Return the smallest value in the table, or nil if the table is empty
 pub fn min_by_key() -> Function {
     Function::default()
@@ -275,15 +298,29 @@ pub fn value_key_fn() -> Function {
         .with_card(Card::return_card(Card::read_var("val")))
 }
 
+pub fn to_array() -> Function {
+    Function::default()
+        .with_arg("iterable")
+        .with_card(Card::return_card(Card::call_native(
+            "__to_array",
+            vec![Card::read_var("iterable")],
+        )))
+}
+
 pub fn standard_library() -> Module {
     let mut module = Module::default();
+    module.functions.push(("to_array".to_string(), to_array()));
     module.functions.push(("filter".to_string(), filter()));
     module.functions.push(("any".to_string(), any()));
     module.functions.push(("map".to_string(), map()));
     module.functions.push(("min".to_string(), min()));
     module.functions.push(("max".to_string(), max()));
-    module.functions.push(("min_by_key".to_string(), min_by_key()));
-    module.functions.push(("max_by_key".to_string(), max_by_key()));
+    module
+        .functions
+        .push(("min_by_key".to_string(), min_by_key()));
+    module
+        .functions
+        .push(("max_by_key".to_string(), max_by_key()));
     module
         .functions
         .push(("sorted_by_key".to_string(), sorted_by_key()));
