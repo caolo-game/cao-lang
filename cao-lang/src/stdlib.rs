@@ -173,7 +173,6 @@ pub fn native_minmax<T, const LESS: bool>(
                         vm.stack_push(*k)?;
                         let key = vm.run_function(key_fn)?;
                         if if LESS { key < max_key } else { key > max_key } {
-                            dbg!(key, max_key);
                             i = j;
                             max_key = key;
                         }
