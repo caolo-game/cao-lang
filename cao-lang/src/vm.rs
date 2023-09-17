@@ -746,6 +746,11 @@ impl<'a, Aux> Vm<'a, Aux> {
                         |err| payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack),
                     )?;
                 }
+                Instruction::CloseUpvalue => {
+                    instr_execution::close_upvalues(self).map_err(|err| {
+                        payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
+                    })?;
+                }
             }
             debug!("Stack: {}", self.runtime_data.value_stack);
         }

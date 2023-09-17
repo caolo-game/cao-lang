@@ -27,6 +27,7 @@ pub struct RuntimeData {
     pub(crate) memory: AllocProxy,
     pub(crate) object_list: Vec<NonNull<CaoLangObject>>,
     pub(crate) current_program: *const CaoCompiledProgram,
+    pub(crate) open_upvalues: *mut CaoLangObject,
 }
 
 impl Drop for RuntimeData {
@@ -61,6 +62,7 @@ impl RuntimeData {
             object_list: Vec::with_capacity(16),
             memory,
             current_program: std::ptr::null(),
+            open_upvalues: std::ptr::null_mut(),
         });
         unsafe {
             let reference: &mut Self = Pin::get_mut(res.as_mut());
@@ -194,6 +196,7 @@ impl RuntimeData {
                 body: CaoLangObjectBody::Upvalue(CaoLangUpvalue {
                     location,
                     value: Value::Nil,
+                    next: std::ptr::null_mut(),
                 }),
             };
             std::ptr::write(obj_ptr.as_ptr(), obj);
@@ -387,6 +390,8 @@ impl RuntimeData {
         }
         debug!("✓ GC");
     }
+
+    pub fn capture_upvalue() {}
 }
 
 #[cfg(test)]

@@ -172,6 +172,13 @@ impl ValueStack {
         let ptr = self.data.as_ptr();
         (0..self.count).map(move |i| unsafe { *ptr.add(i) })
     }
+
+    pub fn top_location(&self) -> *const Value {
+        if self.count == 0 {
+            return std::ptr::null();
+        }
+        unsafe { self.data.as_ptr().add(self.count - 1) }
+    }
 }
 
 #[cfg(test)]
