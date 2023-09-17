@@ -259,7 +259,12 @@ impl<'a> Compiler<'a> {
             .map(|l| l.depth > self.scope_depth)
             .unwrap_or(false)
         {
-            locals.pop();
+            let var = locals.pop().unwrap();
+            if var.captured {
+                self.program.bytecode.push(Instruction::CloseUpvalue as u8);
+            } else {
+                self.program.bytecode.push(Instruction::Pop as u8);
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ptr::NonNull};
 
 use bytemuck::Pod;
 use tracing::{debug, trace};
@@ -414,6 +414,7 @@ fn resolve_upvalue(o: &mut CaoLangObject) -> Result<&mut CaoLangUpvalue, Executi
     }
 }
 
+/// Registers an upvalue in the closure at the top of the stack
 pub fn register_upvalue<T>(
     vm: &mut Vm<T>,
     bytecode: &[u8],
@@ -425,10 +426,45 @@ pub fn register_upvalue<T>(
     let closure = vm.stack_pop();
 
     let c = resolve_closure(closure)?;
+
     if is_local {
         let location = &vm.runtime_data.value_stack.as_slice()[index as usize];
-        let upvalue = vm.init_upvalue((location as *const Value).cast_mut())?;
-        c.upvalues.push(upvalue.0);
+        let location = (location as *const Value).cast_mut();
+        unsafe {
+            // look for an existing upvalue to the same location
+            let mut prev_upvalue = std::ptr::null_mut();
+            let mut upvalue = vm.runtime_data.open_upvalues;
+            while let Some(u) = upvalue.as_ref().and_then(|o| o.as_upvalue()) {
+                if u.location <= location {
+                    break;
+                }
+                prev_upvalue = upvalue;
+                upvalue = u.next;
+            }
+            if upvalue
+                .as_ref()
+                .and_then(|u| u.as_upvalue())
+                .filter(|x| x.location == location)
+                .is_some()
+            {
+                // if there is an existing upvalue to this location reuse that
+                c.upvalues.push(NonNull::new_unchecked(upvalue));
+            } else {
+                let upvalue = vm.init_upvalue(location)?;
+
+                // keep the open upvalues sorted
+                match prev_upvalue.as_mut().and_then(|u| u.as_upvalue_mut()) {
+                    Some(prev_upvalue) => {
+                        prev_upvalue.next = upvalue.0.as_ptr();
+                    }
+                    None => {
+                        vm.runtime_data.open_upvalues = upvalue.0.as_ptr();
+                    }
+                }
+
+                c.upvalues.push(upvalue.0);
+            }
+        }
     } else {
         let closure = unsafe {
             vm.runtime_data
@@ -483,4 +519,32 @@ pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) 
             None => return Err(ExecutionErrorPayload::InvalidUpvalue),
         }
     }
+}
+
+pub fn close_upvalues<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let top = vm.runtime_data.value_stack.top_location();
+    if top.is_null() {
+        return Err(ExecutionErrorPayload::invalid_argument(
+            "Can't close upvalues on an empty stack",
+        ));
+    }
+
+    unsafe {
+        while let Some(upvalue) = vm
+            .runtime_data
+            .open_upvalues
+            .as_mut()
+            .map(|x| x.as_upvalue_mut().unwrap())
+        {
+            if upvalue.location < top.cast_mut() {
+                break;
+            }
+            upvalue.value = std::ptr::read(upvalue.location);
+            upvalue.location = (&mut upvalue.value) as *mut _;
+            vm.runtime_data.open_upvalues = upvalue.next;
+        }
+    }
+
+    vm.runtime_data.value_stack.pop();
+    Ok(())
 }

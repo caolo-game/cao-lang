@@ -1397,6 +1397,10 @@ fn closure_shared_capture_test() {
                         "g_write",
                         Card::Closure(Box::new(
                             Function::default()
+                                // write to the same upvalue twice
+                                // test if multiple captures of the same upvalue point to the same
+                                // actual value
+                                .with_card(Card::set_var("foo", Card::string_card("tiggers")))
                                 .with_card(Card::set_var("foo", Card::string_card("kanga"))),
                         )),
                     ))

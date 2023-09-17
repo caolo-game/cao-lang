@@ -25,4 +25,5 @@ pub struct CaoLangClosure {
 pub struct CaoLangUpvalue {
     pub location: *mut Value,
     pub value: Value,
+    pub next: *mut CaoLangObject,
 }

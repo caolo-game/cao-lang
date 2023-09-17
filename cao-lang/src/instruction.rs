@@ -102,6 +102,7 @@ pub(crate) enum Instruction {
     SetUpvalue,
     ReadUpvalue,
     RegisterUpvalue,
+    CloseUpvalue,
 }
 
 impl Instruction {
@@ -135,6 +136,7 @@ impl Instruction {
             | Instruction::NthRow
             | Instruction::AppendTable
             | Instruction::PopTable
+            | Instruction::CloseUpvalue
             | Instruction::Add => 0,
             Instruction::CallNative => size_of::<Handle>(),
             Instruction::ScalarInt => size_of::<i64>(),

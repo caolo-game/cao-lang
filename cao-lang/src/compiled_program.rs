@@ -133,6 +133,7 @@ impl CaoCompiledProgram {
                 Instruction::SetUpvalue => writeln!(writer, "SetUpvalue")?,
                 Instruction::ReadUpvalue => writeln!(writer, "ReadUpvalue")?,
                 Instruction::RegisterUpvalue => writeln!(writer, "RegisterUpvalue")?,
+                Instruction::CloseUpvalue => writeln!(writer, "CloseUpvalue")?,
             }
             i += instr.span();
         }
