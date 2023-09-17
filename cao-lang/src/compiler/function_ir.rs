@@ -3,15 +3,15 @@ use std::rc::Rc;
 use super::{Card, ImportsIr, NameSpace};
 use crate::VarName;
 
-/// Intermediate lane data
+/// Intermediate function data
 #[derive(Debug, Clone)]
 pub struct FunctionIr {
     pub name: Box<str>,
     pub arguments: Box<[VarName]>,
     pub cards: Box<[Card]>,
     pub namespace: NameSpace,
-    /// aliases this lane sees
+    /// aliases this function sees
     ///
-    /// TODO: we should compile modules instead of lanes, and pass import per module...
+    /// TODO: we should compile modules instead of functions, and pass import per module...
     pub imports: Rc<ImportsIr>,
 }

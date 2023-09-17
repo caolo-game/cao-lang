@@ -19,7 +19,7 @@ fn module_bincode_serde_test() {
 }
 
 fn prog() -> Module {
-    let lanes = vec![(
+    let functions = vec![(
         "main".into(),
         Function::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
@@ -35,7 +35,7 @@ fn prog() -> Module {
     let default_prog = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes,
+        functions,
     };
     default_prog
 }
@@ -56,9 +56,9 @@ fn can_parse_json_test() {
         {
             "submodules": [],
             "imports": [],
-            "lanes": [["main", {
+            "functions": [["main", {
                 "arguments": [],
-                "cards": [ {"Call": {"lane_name": "42", "args": []} } ]
+                "cards": [ {"Call": {"function_name": "42", "args": []} } ]
             }]]
         }
 "#;
@@ -80,7 +80,7 @@ fn module_card_fetch_test() {
 
     let nested_card = m
         .get_card(&CardIndex {
-            lane: 0,
+            function: 0,
             card_index: FunctionCardIndex {
                 indices: smallvec::smallvec![0, 1],
             },
@@ -92,7 +92,7 @@ fn module_card_fetch_test() {
 
 #[test]
 fn remove_card_from_compositve_test() {
-    let lanes = vec![(
+    let functions = vec![(
         "main".into(),
         Function::default().with_card(Card::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
@@ -108,12 +108,12 @@ fn remove_card_from_compositve_test() {
     let mut prog = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes,
+        functions,
     };
 
     let removed = prog
         .remove_card(&CardIndex {
-            lane: 0,
+            function: 0,
             card_index: FunctionCardIndex {
                 indices: smallvec::smallvec![0, 1],
             },
@@ -128,7 +128,7 @@ fn remove_card_from_compositve_test() {
 
 #[test]
 fn remove_card_from_ifelse_test() {
-    let lanes = vec![(
+    let functions = vec![(
         "main".into(),
         Function::default().with_card(Card::IfElse(Box::new([
             Card::ScalarNil,
@@ -139,12 +139,12 @@ fn remove_card_from_ifelse_test() {
     let mut prog = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes,
+        functions,
     };
 
     let removed = prog
         .remove_card(&CardIndex {
-            lane: 0,
+            function: 0,
             card_index: FunctionCardIndex {
                 indices: smallvec::smallvec![0, 2],
             },
@@ -170,7 +170,7 @@ fn remove_card_from_ifelse_test() {
 fn insert_card_test() {
     let mut program = CaoProgram::default();
     program
-        .lanes
+        .functions
         .push(("poggers".to_string(), Default::default()));
 
     program
@@ -190,7 +190,7 @@ fn insert_card_test() {
 
     const EXP: &str = r#"{
   "submodules": [],
-  "lanes": [
+  "functions": [
     [
       "poggers",
       {
@@ -224,7 +224,7 @@ fn lookup_jump_target_test() {
             submodules: vec![(
                 "bar".to_string(),
                 CaoProgram {
-                    lanes: vec![(
+                    functions: vec![(
                         "poggers".to_string(),
                         Function {
                             arguments: vec![
@@ -242,10 +242,10 @@ fn lookup_jump_target_test() {
         },
     ));
 
-    let lane = program.lookup_lane("foo.bar.poggers").unwrap();
+    let function = program.lookup_function("foo.bar.poggers").unwrap();
 
     assert_eq!(
-        lane.arguments,
+        function.arguments,
         &[
             VarName::from("winnie"),
             VarName::from("pooh"),
@@ -263,7 +263,7 @@ fn lookup_jump_target_invalid_submodule_is_none_test() {
             submodules: vec![(
                 "bar".to_string(),
                 CaoProgram {
-                    lanes: vec![(
+                    functions: vec![(
                         "poggers".to_string(),
                         Function {
                             arguments: vec![
@@ -281,12 +281,12 @@ fn lookup_jump_target_invalid_submodule_is_none_test() {
         },
     ));
 
-    let lane = program.lookup_lane("foo.baz.poggers");
-    assert!(lane.is_none());
+    let function = program.lookup_function("foo.baz.poggers");
+    assert!(function.is_none());
 }
 
 #[test]
-fn lookup_jump_target_invalid_lane_is_none_test() {
+fn lookup_jump_target_invalid_function_is_none_test() {
     let mut program = CaoProgram::default();
     program.submodules.push((
         "foo".to_string(),
@@ -294,7 +294,7 @@ fn lookup_jump_target_invalid_lane_is_none_test() {
             submodules: vec![(
                 "bar".to_string(),
                 CaoProgram {
-                    lanes: vec![(
+                    functions: vec![(
                         "poggers".to_string(),
                         Function {
                             arguments: vec![
@@ -312,6 +312,6 @@ fn lookup_jump_target_invalid_lane_is_none_test() {
         },
     ));
 
-    let lane = program.lookup_lane("foo.bar.poogers");
-    assert!(lane.is_none());
+    let function = program.lookup_function("foo.bar.poogers");
+    assert!(function.is_none());
 }

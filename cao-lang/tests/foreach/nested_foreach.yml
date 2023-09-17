@@ -1,6 +1,6 @@
 submodules: []
 imports: []
-lanes:
+functions:
   - - main
     - arguments: []
       cards:
@@ -40,7 +40,7 @@ lanes:
               - !ReadVar t
               - !ReadVar key
               - !Call 
-                  lane_name: outer_loop
+                  function_name: outer_loop
                   args: []
           iterable: !ReadVar t
 
@@ -57,7 +57,7 @@ lanes:
               - !ReadVar table
               - !ReadVar key
               - !Call 
-                  lane_name: inner_loop
+                  function_name: inner_loop
                   args: []
           iterable: !ReadVar table
 

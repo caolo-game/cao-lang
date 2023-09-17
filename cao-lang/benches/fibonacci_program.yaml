@@ -1,6 +1,6 @@
 submodules: []
 imports: []
-lanes:
+functions:
   # Assumes that N is pushed onto the stack before executing the program
   - - main
     - arguments:

@@ -10,7 +10,7 @@ fn composite_card_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
                 ty: "triplepog".to_string(),
@@ -39,7 +39,7 @@ fn test_trace_entry() {
     let ir = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default().with_card(Card::call_function("pooh", vec![])),
@@ -71,7 +71,7 @@ fn test_string_w_utf8() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::set_global_var(
                 "result",
@@ -118,7 +118,7 @@ fn test_string_param() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::StringLiteral(test_str.to_string()))
@@ -140,7 +140,7 @@ fn simple_if_statement() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default().with_card(Card::IfTrue(Box::new([
@@ -171,7 +171,7 @@ fn simple_if_statement_skips_if_false() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::IfTrue(Box::new([
@@ -205,7 +205,7 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default()
@@ -270,7 +270,7 @@ fn test_local_variable() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 // init the global variable
@@ -301,7 +301,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default()
@@ -334,7 +334,7 @@ fn simple_for_loop() {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default().with_cards(vec![
@@ -380,7 +380,7 @@ fn call_native_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_cards(vec![Card::call_native(name, vec![])]),
         )]
@@ -465,7 +465,7 @@ fn test_function_registry() {
     const PROG: &str = r#"
 submodules: []
 imports: []
-lanes:
+functions:
     - - main
       - arguments: []
         cards:
@@ -503,11 +503,11 @@ lanes:
 }
 
 #[test]
-fn jump_lane_w_params_test() {
+fn jump_function_w_params_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default()
@@ -554,7 +554,7 @@ fn len_test_empty() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::set_global_var(
                 "g_result",
@@ -583,7 +583,7 @@ fn len_test_happy() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::set_var(t, Card::CreateTable))
@@ -635,7 +635,7 @@ fn nested_module_can_call_self_test() {
             Module {
                 imports: Default::default(),
                 submodules: Default::default(),
-                lanes: [
+                functions: [
                     (
                         "win".into(),
                         Function::default().with_card(Card::call_function("nie", vec![])),
@@ -652,7 +652,7 @@ fn nested_module_can_call_self_test() {
             },
         )]
         .into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("winnie.win", vec![])),
         )]
@@ -678,7 +678,7 @@ fn invalid_import_is_error_test() {
     let cu = CaoProgram {
         submodules: [].into(),
         imports: ["winnie..pooh".into()].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("pooh", vec![])),
         )]
@@ -693,7 +693,7 @@ fn non_existent_import_is_error_test() {
     let cu = CaoProgram {
         submodules: [].into(),
         imports: ["winnie..pooh".into()].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("pooh", vec![])),
         )]
@@ -718,7 +718,7 @@ fn import_in_submodule_test() {
             Module {
                 imports: Default::default(),
                 submodules: Default::default(),
-                lanes: [(
+                functions: [(
                     "pooh".into(),
                     Function::default().with_card(Card::set_global_var(
                         "g_result",
@@ -730,7 +730,7 @@ fn import_in_submodule_test() {
         )]
         .into(),
         imports: ["winnie.pooh".into()].into(),
-        lanes: [(
+        functions: [(
             "run".into(),
             Function::default().with_card(Card::call_function("pooh", vec![])),
         )]
@@ -739,7 +739,7 @@ fn import_in_submodule_test() {
     let cu = Module {
         imports: ["foo.run".into()].into(),
         submodules: [("foo".into(), cu)].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("run", vec![])),
         )]
@@ -768,7 +768,7 @@ fn can_import_submodule_test() {
             Module {
                 imports: Default::default(),
                 submodules: Default::default(),
-                lanes: [(
+                functions: [(
                     "pooh".into(),
                     Function::default().with_card(Card::set_global_var(
                         "g_result",
@@ -780,7 +780,7 @@ fn can_import_submodule_test() {
         )]
         .into(),
         imports: ["winnie.pooh".into()].into(),
-        lanes: [(
+        functions: [(
             "run".into(),
             Function::default().with_card(Card::call_function("pooh", vec![])),
         )]
@@ -789,7 +789,7 @@ fn can_import_submodule_test() {
     let cu = Module {
         imports: ["foo.winnie".into()].into(),
         submodules: [("foo".into(), cu)].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("winnie.pooh", vec![])),
         )]
@@ -815,7 +815,7 @@ fn can_import_function_from_super_module_test() {
     let winnie = Module {
         imports: ["super.super.pog".into()].into(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "pooh".into(),
             Function::default().with_card(Card::call_function("pog", vec![])),
         )]
@@ -824,12 +824,12 @@ fn can_import_function_from_super_module_test() {
     let foo = Module {
         submodules: [("winnie".into(), winnie)].into(),
         imports: Default::default(),
-        lanes: [].into(),
+        functions: [].into(),
     };
     let bar = Module {
         imports: ["foo.winnie".into()].into(),
         submodules: [("foo".into(), foo)].into(),
-        lanes: [
+        functions: [
             (
                 "run".into(),
                 Function::default().with_card(Card::call_function("winnie.pooh", vec![])),
@@ -847,7 +847,7 @@ fn can_import_function_from_super_module_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [("bar".into(), bar)].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("bar.run", vec![])),
         )]
@@ -873,7 +873,7 @@ fn import_super_module_test() {
     let winnie = Module {
         imports: ["super.super.bar".into()].into(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "pooh".into(),
             Function::default().with_card(Card::call_function("bar.pog", vec![])),
         )]
@@ -882,12 +882,12 @@ fn import_super_module_test() {
     let foo = Module {
         submodules: [("winnie".into(), winnie)].into(),
         imports: Default::default(),
-        lanes: [].into(),
+        functions: [].into(),
     };
     let bar = Module {
         imports: ["foo.winnie".into()].into(),
         submodules: [("foo".into(), foo)].into(),
-        lanes: [
+        functions: [
             (
                 "run".into(),
                 Function::default().with_card(Card::call_function("winnie.pooh", vec![])),
@@ -905,7 +905,7 @@ fn import_super_module_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [("bar".into(), bar)].into(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::call_function("bar.run", vec![])),
         )]
@@ -933,7 +933,7 @@ fn local_variable_regression_test() {
         In composite card:
             set local var (1)
 
-    In other lane:
+    In other function:
         in composite card:
             set another local var (2) (name can be different)
         in another composite card:
@@ -945,7 +945,7 @@ fn local_variable_regression_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default().with_card(Card::call_function(
@@ -981,7 +981,7 @@ fn simple_while_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [(
+        functions: [(
             "main".to_string(),
             Function::default()
                 .with_card(Card::set_var("i", Card::ScalarInt(N)))
@@ -1025,7 +1025,7 @@ fn set_var_to_empty_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [(
+        functions: [(
             "main".to_string(),
             Function::default().with_card(Card::set_var("i", Card::Pass)),
         )]
@@ -1043,7 +1043,7 @@ fn callback_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [
+        functions: [
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
@@ -1088,7 +1088,7 @@ fn read_set_property_shorthand_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [(
+        functions: [(
             "main".to_string(),
             Function::default().with_cards(vec![
                 Card::set_global_var("winnie", Card::CreateTable),
@@ -1124,7 +1124,7 @@ fn read_property_shorthand_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [(
+        functions: [(
             "main".to_string(),
             Function::default().with_arg("table").with_cards(vec![
                 // table is pushed onto the stack
@@ -1162,7 +1162,7 @@ fn nested_read_set_property_shorthand_test() {
     let cu = Module {
         imports: [].into(),
         submodules: [].into(),
-        lanes: [(
+        functions: [(
             "main".to_string(),
             Function::default().with_cards(vec![
                 Card::set_global_var("winnie", Card::CreateTable),
@@ -1220,7 +1220,7 @@ fn native_function_object_call_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::StringLiteral(test_str.to_string()))
@@ -1246,7 +1246,7 @@ fn closure_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 // create a closure that captures a local variable
                 // and sets a global variable
@@ -1299,7 +1299,7 @@ fn nested_function_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "createClosure".into(),
                 Function::default().with_card(Card::return_card(Card::Closure(Box::new(
@@ -1357,7 +1357,7 @@ fn native_functions_can_call_cao_lang_function() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 "main".into(),
                 Function::default().with_card(Card::dynamic_call(
@@ -1389,7 +1389,7 @@ fn closure_shared_capture_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [
+        functions: [
             (
                 // create a closure that captures a local variable
                 // and sets a global variable

@@ -277,19 +277,19 @@ pub fn value_key_fn() -> Function {
 
 pub fn standard_library() -> Module {
     let mut module = Module::default();
-    module.lanes.push(("filter".to_string(), filter()));
-    module.lanes.push(("any".to_string(), any()));
-    module.lanes.push(("map".to_string(), map()));
-    module.lanes.push(("min".to_string(), min()));
-    module.lanes.push(("max".to_string(), max()));
-    module.lanes.push(("min_by_key".to_string(), min_by_key()));
-    module.lanes.push(("max_by_key".to_string(), max_by_key()));
+    module.functions.push(("filter".to_string(), filter()));
+    module.functions.push(("any".to_string(), any()));
+    module.functions.push(("map".to_string(), map()));
+    module.functions.push(("min".to_string(), min()));
+    module.functions.push(("max".to_string(), max()));
+    module.functions.push(("min_by_key".to_string(), min_by_key()));
+    module.functions.push(("max_by_key".to_string(), max_by_key()));
     module
-        .lanes
+        .functions
         .push(("sorted_by_key".to_string(), sorted_by_key()));
-    module.lanes.push(("sorted".to_string(), sorted()));
+    module.functions.push(("sorted".to_string(), sorted()));
     module
-        .lanes
+        .functions
         .push(("row_to_value".to_string(), value_key_fn()));
     module
 }

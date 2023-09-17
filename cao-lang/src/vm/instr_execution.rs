@@ -185,7 +185,7 @@ pub fn instr_call_function<T>(
         &mut vm.runtime_data,
     )?;
 
-    // set the instr_ptr to the new lane's beginning
+    // set the instr_ptr to the new function's beginning
     *instr_ptr = program
         .labels
         .0
@@ -351,7 +351,7 @@ pub fn begin_for_each<T>(
 
 /// Assumes that [begin_for_each](begin_for_each) was called once to set up the loop
 ///
-/// Pushes the next key and the object onto the stack. Assumes that the lane takes these as
+/// Pushes the next key and the object onto the stack. Assumes that the function takes these as
 /// parameters.
 ///
 /// Pushes should_continue on top of the stack

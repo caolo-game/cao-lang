@@ -1,6 +1,6 @@
 submodules: []
 imports: []
-lanes:
+functions:
   - - main
     - arguments: []
       cards:
@@ -32,7 +32,7 @@ lanes:
               - !ReadVar t
               - !ReadVar key
               - !Call
-                  lane_name: pog
+                  function_name: pog
                   args: []
           iterable: !ReadVar t
 

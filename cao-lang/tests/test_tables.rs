@@ -7,7 +7,7 @@ fn test_init_table() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_card(Card::set_global_var("g_foo", Card::CreateTable)),
         )]
@@ -31,7 +31,7 @@ fn test_get_set() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::set_var("foo", Card::CreateTable))
@@ -89,7 +89,7 @@ fn test_native_w_table_input() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default()
                 .with_card(Card::set_var("foo", Card::CreateTable))

@@ -40,7 +40,7 @@ pub enum CompilationErrorPayload {
     #[error("Program was empty")]
     EmptyProgram,
 
-    #[error("Functions {0} has too many cards. Number of cards in a lane may not be larger than 2^16 - 1 = 65535")]
+    #[error("Functions {0} has too many cards. Number of cards in a function may not be larger than 2^16 - 1 = 65535")]
     TooManyCards(usize),
 
     #[error("Function names must be unique. Found duplicated name: {0}")]

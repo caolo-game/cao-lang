@@ -3,10 +3,10 @@
 mod card;
 mod compilation_error;
 mod compile_options;
-mod lane;
+mod function;
 mod module;
 
-mod lane_ir;
+mod function_ir;
 #[cfg(test)]
 mod tests;
 
@@ -27,10 +27,10 @@ use std::{convert::TryInto, str::FromStr};
 pub use card::*;
 pub use compilation_error::*;
 pub use compile_options::*;
-pub use lane::*;
+pub use function::*;
 pub use module::*;
 
-use self::lane_ir::FunctionIr;
+use self::function_ir::FunctionIr;
 
 pub type CompilationResult<T> = Result<T, CompilationError>;
 
@@ -48,7 +48,7 @@ pub struct Compiler<'a> {
     program: CaoCompiledProgram,
     next_var: VariableId,
 
-    /// maps lanes to their metadata
+    /// maps functions to their metadata
     jump_table: CaoHashMap<String, FunctionMeta>,
 
     current_namespace: Cow<'a, NameSpace>,
@@ -158,11 +158,11 @@ impl<'a> Compiler<'a> {
         CompilationError::with_loc(pl, self.trace())
     }
 
-    /// build the jump table and consume the lane names
+    /// build the jump table and consume the function names
     fn compile_stage_1(&mut self, compilation_unit: FunctionSlice) -> CompilationResult<()> {
         let mut num_cards = 0usize;
         for (i, n) in compilation_unit.iter().enumerate() {
-            self.current_index.lane = i;
+            self.current_index.function = i;
             self.current_index.card_index.indices.clear();
             num_cards += n.cards.len();
 
@@ -188,31 +188,31 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    /// consume lane cards and build the bytecode
+    /// consume function cards and build the bytecode
     fn compile_stage_2(&mut self, compilation_unit: FunctionSlice<'a>) -> CompilationResult<()> {
-        let mut lanes = compilation_unit.iter().enumerate();
+        let mut functions = compilation_unit.iter().enumerate();
 
-        if let Some((il, main_lane)) = lanes.next() {
-            let len: u32 = match main_lane.cards.len().try_into() {
+        if let Some((il, main_function)) = functions.next() {
+            let len: u32 = match main_function.cards.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
             };
             self.current_index = CardIndex::new(il, 0);
             self.scope_begin();
-            self.process_lane(main_lane)?;
+            self.process_function(main_function)?;
             self.current_index = CardIndex {
-                lane: il,
+                function: il,
                 card_index: FunctionCardIndex {
                     indices: smallvec::smallvec![len],
                 },
             };
             self.scope_end();
-            // insert explicit exit after the first lane
+            // insert explicit exit after the first function
             self.process_card(&Card::Abort)?;
         }
 
-        for (il, lane) in lanes {
-            self.current_index = CardIndex::lane(il);
+        for (il, function) in functions {
+            self.current_index = CardIndex::function(il);
             let nodeid_handle = self.current_index.as_handle();
             let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
@@ -223,7 +223,7 @@ impl<'a> Compiler<'a> {
                 .unwrap();
 
             self.scope_begin();
-            self.process_lane(lane)?;
+            self.process_function(function)?;
             self.scope_end();
             self.push_instruction(Instruction::ScalarNil);
             self.emit_return()?;
@@ -318,7 +318,7 @@ impl<'a> Compiler<'a> {
         Ok(result as u32)
     }
 
-    fn process_lane(
+    fn process_function(
         &mut self,
         FunctionIr {
             arguments,
@@ -377,30 +377,30 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    fn encode_jump(&mut self, lane: &str) -> CompilationResult<()> {
-        let to = self.lookup_lane(&self.jump_table, lane)?;
+    fn encode_jump(&mut self, function: &str) -> CompilationResult<()> {
+        let to = self.lookup_function(&self.jump_table, function)?;
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
         Ok(())
     }
 
     // take jump_table by param because of lifetimes
-    fn lookup_lane<'b>(
+    fn lookup_function<'b>(
         &self,
         jump_table: &'b CaoHashMap<String, FunctionMeta>,
-        lane: &str,
+        function: &str,
     ) -> CompilationResult<&'b FunctionMeta> {
         // attempt to look up the function by name
-        let mut to = jump_table.get(lane);
+        let mut to = jump_table.get(function);
         if to.is_none() {
             // attempt to look up the function in the current namespace
 
-            // current_namespace.join('.').push('.').push_str(lane.0)
+            // current_namespace.join('.').push('.').push_str(function.0)
             let name = self
                 .current_namespace
                 .iter()
                 .flat_map(|x| [x.as_ref(), "."])
-                .chain(std::iter::once(lane))
+                .chain(std::iter::once(function))
                 .collect::<String>();
 
             to = jump_table.get(&name);
@@ -410,7 +410,7 @@ impl<'a> Compiler<'a> {
             if let Some((_, alias)) = self
                 .current_imports
                 .iter()
-                .find(|(import, _)| *import == lane)
+                .find(|(import, _)| *import == function)
             {
                 let (super_depth, suffix) = super_depth(alias);
                 let name = self
@@ -426,7 +426,7 @@ impl<'a> Compiler<'a> {
         }
         if to.is_none() {
             // attempt to look up by imported module
-            if let Some((prefix, suffix)) = lane.split_once('.') {
+            if let Some((prefix, suffix)) = function.split_once('.') {
                 if let Some((_, alias)) = self
                     .current_imports
                     .iter()
@@ -449,7 +449,7 @@ impl<'a> Compiler<'a> {
         }
         to.ok_or_else(|| {
             self.error(CompilationErrorPayload::InvalidJump {
-                dst: lane.to_string(),
+                dst: function.to_string(),
                 msg: None,
             })
         })
@@ -726,7 +726,7 @@ impl<'a> Compiler<'a> {
             Card::Call(jmp) => {
                 self.compile_subexpr(&jmp.args.0)?;
                 self.push_instruction(Instruction::FunctionPointer);
-                self.encode_jump(jmp.lane_name.as_str())?;
+                self.encode_jump(jmp.function_name.as_str())?;
                 self.push_instruction(Instruction::CallFunction);
             }
             Card::StringLiteral(c) => {
@@ -773,7 +773,7 @@ impl<'a> Compiler<'a> {
 
                 // process the embedded function inline
                 self.scope_begin();
-                // TODO: dedupe these loops w/ process_lane?
+                // TODO: dedupe these loops w/ process_function?
                 // at runtime: pop arguments reverse order as the variables were declared
                 for param in embedded_function.arguments.iter().rev() {
                     self.add_local(param.as_str())?;
@@ -906,7 +906,7 @@ impl<'a> Compiler<'a> {
             Card::DynamicCall(jump) => {
                 self.compile_subexpr(jump.args.0.as_slice())?;
                 self.current_index.push_subindex(jump.args.0.len() as u32);
-                self.process_card(&jump.lane)?;
+                self.process_card(&jump.function)?;
                 self.current_index.pop_subindex();
                 self.push_instruction(Instruction::CallFunction);
             }

@@ -1,6 +1,6 @@
 submodules: []
 imports: []
-lanes:
+functions:
   - - main
     - arguments:
         - N
@@ -9,7 +9,7 @@ lanes:
             name: result
             value: 
               !Call 
-                  lane_name: fib
+                  function_name: fib
                   args: [ !ReadVar N ]
 
   - - fib
@@ -24,7 +24,7 @@ lanes:
                   - !ScalarInt 2
                   - !ReadVar N
                 - !Call
-                    lane_name: fib_again
+                    function_name: fib_again
                     args: []
                 - !ScalarInt 1
 
@@ -41,7 +41,7 @@ lanes:
                       - !ReadVar N
                       - !ScalarInt 1
                     - !Call 
-                        lane_name: fib
+                        function_name: fib
                         args: []
                 - !CompositeCard
                   ty: ""
@@ -50,5 +50,5 @@ lanes:
                       - !ReadVar N
                       - !ScalarInt 2
                     - !Call
-                        lane_name: fib
+                        function_name: fib
                         args: []

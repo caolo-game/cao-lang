@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn composite_card_test() {
-    let lanes = vec![(
+    let functions = vec![(
         "main".into(),
         Function::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
             ty: "triplepog".to_string(),
@@ -16,7 +16,7 @@ fn composite_card_test() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes,
+        functions,
     };
 
     compile(cu, None).unwrap();
@@ -28,7 +28,7 @@ fn can_binary_de_serialize_output() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_cards(vec![
                 Card::set_global_var("asdsdad", Card::Pass),
@@ -51,7 +51,7 @@ fn empty_varname_is_error() {
     let cu = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
-        lanes: [(
+        functions: [(
             "main".into(),
             Function::default().with_cards(vec![Card::set_global_var("", Card::Pass)]),
         )]
@@ -73,13 +73,13 @@ fn can_call_nested_function_test() {
         Module {
             imports: Default::default(),
             submodules: Default::default(),
-            lanes: vec![("pooh".into(), Function::default().with_card(Card::Pass))],
+            functions: vec![("pooh".into(), Function::default().with_card(Card::Pass))],
         },
     )];
     let prog = CaoProgram {
         imports: Default::default(),
         submodules,
-        lanes: vec![(
+        functions: vec![(
             "main".into(),
             Function::default().with_cards(vec![Card::call_function("coggers.pooh", vec![])]),
         )],
@@ -96,7 +96,7 @@ fn duplicate_module_is_error_test() {
             ("main".into(), Default::default()),
         ]
         .into(),
-        lanes: [("main".into(), Function::default())].into(),
+        functions: [("main".into(), Function::default())].into(),
         ..Default::default()
     };
 
@@ -104,10 +104,10 @@ fn duplicate_module_is_error_test() {
 }
 
 #[test]
-fn duplicate_lane_is_error_test() {
+fn duplicate_function_is_error_test() {
     let m = Module {
         submodules: [].into(),
-        lanes: [
+        functions: [
             ("main".into(), Function::default()),
             ("main".into(), Function::default()),
         ]

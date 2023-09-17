@@ -13,7 +13,7 @@ use super::*;
 fn filter_test() {
     let program = Module {
         imports: vec!["std.filter".to_string()],
-        lanes: vec![
+        functions: vec![
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
@@ -73,7 +73,7 @@ fn filter_test() {
 fn can_import_stdlib_test() {
     let program = Module {
         imports: vec!["std.filter".to_string()],
-        lanes: vec![("main".to_string(), Default::default())],
+        functions: vec![("main".to_string(), Default::default())],
         ..Default::default()
     };
 
@@ -84,7 +84,7 @@ fn can_import_stdlib_test() {
 fn std_named_module_is_error_test() {
     let program = Module {
         imports: vec![],
-        lanes: vec![("main".to_string(), Default::default())],
+        functions: vec![("main".to_string(), Default::default())],
         submodules: vec![("std".to_string(), Default::default())],
     };
 
@@ -99,7 +99,7 @@ fn stdlib_can_be_imported_in_submodule_test() {
         ..Default::default()
     };
     let program = Module {
-        lanes: vec![("main".to_string(), Default::default())],
+        functions: vec![("main".to_string(), Default::default())],
         submodules: vec![("foo".to_string(), submodule)],
         ..Default::default()
     };
@@ -111,7 +111,7 @@ fn stdlib_can_be_imported_in_submodule_test() {
 fn map_test() {
     let program = Module {
         imports: vec!["std.map".to_string()],
-        lanes: vec![
+        functions: vec![
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
@@ -178,7 +178,7 @@ fn map_test() {
 fn min_test() {
     let program = Module {
         imports: vec!["std.min".to_string()],
-        lanes: vec![(
+        functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![
                 Card::set_global_var("t", Card::CreateTable),
@@ -230,7 +230,7 @@ fn min_test() {
 fn max_test() {
     let program = Module {
         imports: vec!["std.max".to_string()],
-        lanes: vec![(
+        functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![
                 Card::set_var("t", Card::CreateTable),
@@ -273,7 +273,7 @@ fn max_test() {
 fn max_empty_list_returns_nil_test() {
     let program = Module {
         imports: vec!["std.max".to_string()],
-        lanes: vec![(
+        functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![Card::set_global_var(
                 "g_result",
@@ -301,7 +301,7 @@ fn max_empty_list_returns_nil_test() {
 fn min_by_key_test() {
     let program = Module {
         imports: vec!["std.min_by_key".to_string()],
-        lanes: vec![(
+        functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![
                 Card::set_var(
@@ -364,7 +364,7 @@ fn min_by_key_test() {
 fn sort_by_key_test() {
     let program = Module {
         imports: vec!["std.sorted_by_key".to_string()],
-        lanes: vec![
+        functions: vec![
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![

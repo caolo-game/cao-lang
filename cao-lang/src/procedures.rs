@@ -43,7 +43,7 @@ pub enum ExecutionErrorPayload {
     },
     #[error("The program has overflowns its stack")]
     Stackoverflow,
-    #[error("Failed to return from a lane {reason}")]
+    #[error("Failed to return from a function {reason}")]
     BadReturn { reason: String },
     #[error("Trying to hash an unhashable object")]
     Unhashable,

@@ -10,7 +10,7 @@ def test_compile_and_run():
     """
 
     program_yaml = """
-lanes:
+functions:
     - - main
       - arguments: []
         cards:
@@ -18,14 +18,14 @@ lanes:
                 - !ScalarInt 5
                 - !ScalarInt 5
             - !Call
-                lane_name: "foo.bar"
+                function_name: "foo.bar"
                 args: []
 imports: []
 submodules:
     - - foo
       - imports: []
         submodules: []
-        lanes:
+        functions:
             - - bar
               - arguments: []
                 cards:
@@ -49,11 +49,11 @@ def test_get_version():
 def test_json():
     program_json = """
     {
-        "lanes": [
+        "functions": [
             ["main", {
                 "arguments": [],
                 "cards": [
-                    {  "Call": {"lane_name": "foo.bar", "args":[] } }
+                    {  "Call": {"function_name": "foo.bar", "args":[] } }
                 ]
             }]
         ],
@@ -62,7 +62,7 @@ def test_json():
             ["foo", {
                 "imports": [],
                 "submodules": [],
-                "lanes": [
+                "functions": [
                     ["bar", {
                         "arguments": [],
                         "cards": [
@@ -85,7 +85,7 @@ def test_json():
 def test_bad_json_is_value_error():
     program_json = """
     {
-        "lanes": [
+        "functions": [
             ["main", {
                 "cards": [ {} ]
             }]
@@ -100,12 +100,12 @@ def test_recursion_limit():
     program = {
         "imports": [],
         "submodules": [],
-        "lanes": [["main", {"arguments": [], "cards": []}]],
+        "functions": [["main", {"arguments": [], "cards": []}]],
     }
     _pr = program
     for _ in range(2):
         _pr["submodules"].append(
-            ["foo", {"imports": [], "submodules": [], "lanes": []}]
+            ["foo", {"imports": [], "submodules": [], "functions": []}]
         )
         _pr = _pr["submodules"][0][1]
 

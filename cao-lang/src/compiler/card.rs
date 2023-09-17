@@ -99,14 +99,14 @@ impl From<Vec<Card>> for Arguments {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DynamicJump {
     pub args: Arguments,
-    pub lane: Card,
+    pub function: Card,
 }
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StaticJump {
     pub args: Arguments,
-    pub lane_name: String,
+    pub function_name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -241,7 +241,7 @@ impl Card {
     pub fn call_function(s: impl Into<String>, args: impl Into<Arguments>) -> Self {
         Self::Call(Box::new(StaticJump {
             args: args.into(),
-            lane_name: s.into(),
+            function_name: s.into(),
         }))
     }
 
@@ -308,7 +308,7 @@ impl Card {
             Card::Call(j) => return j.args.0.get_mut(i),
             Card::DynamicCall(j) => {
                 return (i == 0)
-                    .then_some(&mut j.lane)
+                    .then_some(&mut j.function)
                     .or_else(|| j.args.0.get_mut(i - 1))
             }
             Card::Array(cards) => return cards.get_mut(i),
@@ -384,7 +384,7 @@ impl Card {
             Card::CallNative(j) => return j.args.0.get(i),
             Card::Call(j) => return j.args.0.get(i),
             Card::DynamicCall(j) => {
-                return (i == 0).then_some(&j.lane).or_else(|| j.args.0.get(i - 1))
+                return (i == 0).then_some(&j.function).or_else(|| j.args.0.get(i - 1))
             }
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
@@ -474,7 +474,7 @@ impl Card {
             Card::Call(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
             Card::DynamicCall(j) => {
                 if i == 0 {
-                    res = std::mem::replace(&mut j.lane, Card::ScalarNil);
+                    res = std::mem::replace(&mut j.function, Card::ScalarNil);
                 } else if i - 1 < j.args.0.len() {
                     res = j.args.0.remove(i - 1);
                 } else {
@@ -567,7 +567,7 @@ impl Card {
             }
             Card::DynamicCall(j) => {
                 if i == 0 {
-                    j.lane = card;
+                    j.function = card;
                 } else if i - 1 <= j.args.0.len() {
                     j.args.0.insert(i - 1, card);
                 } else {
@@ -617,10 +617,10 @@ impl Card {
         Card::GetProperty(Box::new([table, key]))
     }
 
-    pub fn dynamic_call(lane: Card, args: impl Into<Arguments>) -> Self {
+    pub fn dynamic_call(function: Card, args: impl Into<Arguments>) -> Self {
         Self::DynamicCall(Box::new(DynamicJump {
             args: args.into(),
-            lane,
+            function,
         }))
     }
 }

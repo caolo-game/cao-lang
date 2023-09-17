@@ -9,7 +9,7 @@ TEST(Runs, EmptyProgram) {
 {
   "submodules": [],
   "imports": [],
-  "lanes": [
+  "functions": [
     ["main", {
       "arguments": [],
       "cards": [

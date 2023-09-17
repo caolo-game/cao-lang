@@ -113,7 +113,7 @@ mod tests {
         let program = crate::compiler::compile(
             CaoProgram {
                 imports: Default::default(),
-                lanes: [(
+                functions: [(
                     "main".into(),
                     Function {
                         arguments: vec![],

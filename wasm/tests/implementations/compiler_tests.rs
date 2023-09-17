@@ -12,7 +12,7 @@ fn can_compile_simple_program() {
     let cu = json!({
         "submodules": [],
         "imports": [],
-        "lanes": [["main", {
+        "functions": [["main", {
             "name": "main",
             "arguments": [],
             "cards": [ {"ScalarInt": 69 } ]
@@ -30,10 +30,10 @@ fn compiler_returns_error_not_exception() {
     let cu = json!({
         "submodules": [],
         "imports": [],
-        "lanes": [["main", {
+        "functions": [["main", {
             "name": "main",
             "arguments": [],
-            "cards": [ {"Call": {"lane_name":"42", "args":[]} } ]
+            "cards": [ {"Call": {"function_name":"42", "args":[]} } ]
         }]]
     });
     let output =
@@ -52,7 +52,7 @@ fn can_run_simple_program() {
     let cu = json!({
         "submodules": [],
         "imports": [],
-        "lanes": [[ "main", {
+        "functions": [[ "main", {
             "name": "main",
             "arguments": [],
             "cards": [
