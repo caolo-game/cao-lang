@@ -241,30 +241,30 @@ pub fn min_by_key() -> Function {
     Function::default()
         .with_arg("iterable")
         .with_arg("key_function")
-        .with_cards(vec![Card::call_native(
+        .with_card(Card::return_card(Card::call_native(
             "__min",
             vec![Card::read_var("iterable"), Card::read_var("key_function")],
-        )])
+        )))
 }
 
 pub fn sorted_by_key() -> Function {
     Function::default()
         .with_arg("iterable")
         .with_arg("key_function")
-        .with_cards(vec![Card::call_native(
+        .with_card(Card::return_card(Card::call_native(
             "__sort",
             vec![Card::read_var("iterable"), Card::read_var("key_function")],
-        )])
+        )))
 }
 
 pub fn max_by_key() -> Function {
     Function::default()
         .with_arg("iterable")
         .with_arg("key_function")
-        .with_cards(vec![Card::call_native(
+        .with_card(Card::return_card(Card::call_native(
             "__max",
             vec![Card::read_var("iterable"), Card::read_var("key_function")],
-        )])
+        )))
 }
 
 /// A (key, value) function that returns the value given
@@ -272,7 +272,7 @@ pub fn value_key_fn() -> Function {
     Function::default()
         .with_arg("_key")
         .with_arg("val")
-        .with_cards(vec![Card::read_var("val")])
+        .with_card(Card::return_card(Card::read_var("val")))
 }
 
 pub fn standard_library() -> Module {

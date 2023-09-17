@@ -340,6 +340,7 @@ fn min_by_key_test() {
     };
 
     let compiled = compile(program, None).expect("Failed to compile");
+    compiled.print_disassembly();
     let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&compiled).expect("run");
 
