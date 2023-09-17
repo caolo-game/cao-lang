@@ -140,10 +140,10 @@ fn map_test() {
                 "cb".to_string(),
                 Function::default()
                     .with_arg("k")
-                    .with_cards(vec![Card::return_card(Card::Equals(Box::new([
+                    .with_card(Card::return_card(Card::Equals(Box::new([
                         Card::read_var("k"),
                         Card::string_card("winnie"),
-                    ])))]),
+                    ])))),
             ),
         ],
         ..Default::default()

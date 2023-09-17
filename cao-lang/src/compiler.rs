@@ -55,7 +55,7 @@ pub struct Compiler<'a> {
     current_imports: Cow<'a, ImportsIr>,
     locals: Vec<Locals<'a>>,
     upvalues: Vec<Upvalues>,
-    scope_depth: i32,
+    scope_depth: Vec<i32>,
     current_index: CardIndex,
     function_id: usize,
 }
@@ -117,7 +117,7 @@ impl<'a> Compiler<'a> {
             current_namespace: Default::default(),
             locals: vec![Default::default()],
             upvalues: vec![Default::default()],
-            scope_depth: 0,
+            scope_depth: vec![0],
             current_index: CardIndex::default(),
             current_imports: Default::default(),
             function_id: 0,
@@ -226,7 +226,7 @@ impl<'a> Compiler<'a> {
             self.process_lane(lane)?;
             self.scope_end();
             self.push_instruction(Instruction::ScalarNil);
-            self.push_instruction(Instruction::Return);
+            self.emit_return()?;
         }
 
         Ok(())
@@ -237,6 +237,7 @@ impl<'a> Compiler<'a> {
         self.function_id += 1;
         self.locals.push(Default::default());
         self.upvalues.push(Default::default());
+        self.scope_depth.push(0);
     }
 
     /// end nested compile sequence
@@ -244,19 +245,28 @@ impl<'a> Compiler<'a> {
         self.function_id -= 1;
         self.locals.pop();
         self.upvalues.pop();
+        self.scope_depth.pop();
     }
 
     fn scope_begin(&mut self) {
-        self.scope_depth += 1;
+        *self.scope_depth.last_mut().unwrap() += 1;
+    }
+
+    fn scope_depth(&self) -> i32 {
+        *self.scope_depth.last().unwrap()
+    }
+
+    fn scope_depth_mut(&mut self) -> &mut i32 {
+        self.scope_depth.last_mut().unwrap()
     }
 
     fn scope_end(&mut self) {
-        self.scope_depth -= 1;
-        // while the last item's depth is greater than scope_depth
+        *self.scope_depth_mut() -= 1;
+        let scope_depth = self.scope_depth();
         let locals = &mut self.locals[self.function_id];
         while locals
             .last()
-            .map(|l| l.depth > self.scope_depth)
+            .map(|l| l.depth > scope_depth)
             .unwrap_or(false)
         {
             let var = locals.pop().unwrap();
@@ -295,12 +305,13 @@ impl<'a> Compiler<'a> {
     }
 
     fn add_local_unchecked(&mut self, name: &'a str) -> CompilationResult<u32> {
+        let depth = self.scope_depth();
         let locals = self.locals.last_mut().unwrap();
         let result = locals.len();
         locals
             .try_push(Local {
                 name,
-                depth: self.scope_depth,
+                depth,
                 captured: false,
             })
             .map_err(|_| self.error(CompilationErrorPayload::TooManyLocals))?;
@@ -330,6 +341,11 @@ impl<'a> Compiler<'a> {
             self.current_index.push_subindex(ic as u32);
             self.process_card(card)?;
         }
+        Ok(())
+    }
+
+    fn emit_return(&mut self) -> CompilationResult<()> {
+        self.push_instruction(Instruction::Return);
         Ok(())
     }
 
@@ -765,7 +781,7 @@ impl<'a> Compiler<'a> {
                 self.compile_subexpr(&embedded_function.cards)?;
                 self.scope_end();
                 self.push_instruction(Instruction::ScalarNil);
-                self.push_instruction(Instruction::Return);
+                self.emit_return()?;
 
                 // finish the goto that jumps over the inner function
                 unsafe {
@@ -817,7 +833,7 @@ impl<'a> Compiler<'a> {
             }
             Card::Return(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
-                self.push_instruction(Instruction::Return);
+                self.emit_return()?;
             }
             Card::Not(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
