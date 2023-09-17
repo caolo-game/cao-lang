@@ -23,8 +23,11 @@ impl std::fmt::Display for ValueStack {
             return write!(f, "[]");
         }
         writeln!(f, "[")?;
-        for i in (0..self.count).rev() {
-            writeln!(f, "\t{:?}", &self.data[i])?;
+        unsafe {
+            let data = self.data.as_ptr();
+            for i in (0..self.count).rev() {
+                writeln!(f, "\t{:?}: {:?}", data.add(i), &self.data[i])?;
+            }
         }
         write!(f, " ]")
     }

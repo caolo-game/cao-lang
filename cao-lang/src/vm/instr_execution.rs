@@ -279,16 +279,27 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
     // pop the current stack frame
     let value = match vm.runtime_data.call_stack.pop() {
         // return value
-        Some(call_frame) => vm
-            .runtime_data
-            .value_stack
-            .clear_until(call_frame.stack_offset as usize),
+        Some(call_frame) => {
+            let stack_start_location = unsafe {
+                vm.runtime_data
+                    .value_stack
+                    .as_slice()
+                    .as_ptr()
+                    .add(call_frame.stack_offset as usize)
+            };
+            _close_upvalues(vm, stack_start_location)?;
+
+            vm.runtime_data
+                .value_stack
+                .clear_until(call_frame.stack_offset as usize)
+        }
         None => {
             return Err(ExecutionErrorPayload::BadReturn {
                 reason: "Call stack is empty".to_string(),
             })
         }
     };
+
     // read the previous frame
     match vm.runtime_data.call_stack.last_mut() {
         Some(CallFrame {
@@ -302,6 +313,7 @@ pub fn instr_return<T>(vm: &mut Vm<T>, instr_ptr: &mut usize) -> ExecutionResult
             });
         }
     }
+
     // push the return value
     trace!("Return {value:?}");
     vm.stack_push(value)?;
@@ -521,8 +533,7 @@ pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) 
     }
 }
 
-pub fn close_upvalues<T>(vm: &mut Vm<T>) -> ExecutionResult {
-    let top = vm.runtime_data.value_stack.top_location();
+fn _close_upvalues<T>(vm: &mut Vm<T>, top: *const Value) -> ExecutionResult {
     if top.is_null() {
         return Err(ExecutionErrorPayload::invalid_argument(
             "Can't close upvalues on an empty stack",
@@ -545,6 +556,10 @@ pub fn close_upvalues<T>(vm: &mut Vm<T>) -> ExecutionResult {
         }
     }
 
-    vm.runtime_data.value_stack.pop();
     Ok(())
+}
+
+pub fn close_upvalues<T>(vm: &mut Vm<T>) -> ExecutionResult {
+    let top = vm.runtime_data.value_stack.top_location();
+    _close_upvalues(vm, top)
 }

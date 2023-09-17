@@ -85,7 +85,7 @@ impl Eq for Value {}
 ///     .unwrap();
 /// let val = Value::Object(obj.into_inner());
 ///
-/// let owned = OwnedValue::from(val);
+/// let owned = OwnedValue::try_from(val).unwrap();
 ///
 /// // (de)serialize the owned object...
 ///

@@ -1275,6 +1275,7 @@ fn closure_test() {
     };
 
     let program = compile(cu, None).expect("compile");
+    program.print_disassembly();
 
     let mut vm = Vm::new(()).unwrap();
     vm.run(&program).expect("run");
@@ -1282,6 +1283,8 @@ fn closure_test() {
     let result = vm
         .read_var_by_name("g_result", &program.variables)
         .expect("Failed to read g_result variable");
+
+    dbg!(result);
 
     unsafe {
         let result = result.as_str().unwrap();
