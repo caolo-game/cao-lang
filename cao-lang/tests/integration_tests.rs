@@ -1444,3 +1444,43 @@ fn closure_shared_capture_test() {
         assert_eq!(result, "kanga");
     }
 }
+
+#[test]
+#[tracing_test::traced_test]
+fn closure_capture_in_same_scope_test() {
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        functions: [(
+            "main".into(),
+            Function::default()
+                .with_card(Card::set_var("foo", Card::string_card("winnie the pooh")))
+                .with_card(Card::set_var(
+                    "bar",
+                    Card::Closure(Box::new(
+                        Function::default()
+                            .with_card(Card::set_global_var("g_result", Card::read_var("foo")))
+                            .with_card(Card::set_var("foo", Card::string_card("kanga"))),
+                    )),
+                ))
+                .with_card(Card::dynamic_call(Card::read_var("bar"), vec![]))
+                .with_card(Card::set_global_var("g_result", Card::read_var("foo"))),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read g_result variable");
+
+    unsafe {
+        let result = result.as_str().unwrap();
+
+        assert_eq!(result, "kanga");
+    }
+}
