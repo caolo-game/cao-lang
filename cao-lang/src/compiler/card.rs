@@ -77,7 +77,7 @@ pub enum Card {
     Closure(Box<Function>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SetVar {
     pub name: VarName,
@@ -108,7 +108,7 @@ pub struct StaticJump {
     pub function_name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ForEach {
     /// Loop variable is written into this variable
@@ -621,7 +621,7 @@ impl Card {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CallNode {
     pub name: InputString,
