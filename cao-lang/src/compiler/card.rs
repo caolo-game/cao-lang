@@ -166,7 +166,7 @@ impl Card {
             Card::ForEach { .. } => "ForEach",
             Card::CompositeCard(c) => c.ty.as_str(),
             Card::Function(_) => "Function",
-            Card::DynamicCall(_) => "Dynamic Jump",
+            Card::DynamicCall(_) => "Dynamic Call",
             Card::Get(_) => "Get",
             Card::AppendTable(_) => "Append to Table",
             Card::PopTable(_) => "Pop from Table",
