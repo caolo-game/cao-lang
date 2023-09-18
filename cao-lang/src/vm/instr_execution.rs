@@ -541,18 +541,21 @@ fn _close_upvalues<T>(vm: &mut Vm<T>, top: *const Value) -> ExecutionResult {
     }
 
     unsafe {
-        while let Some(upvalue) = vm
-            .runtime_data
-            .open_upvalues
-            .as_mut()
-            .map(|x| x.as_upvalue_mut().unwrap())
-        {
-            if upvalue.location < top.cast_mut() {
-                break;
+        while let Some(upvalue) = vm.runtime_data.open_upvalues.as_mut() {
+            match upvalue.as_upvalue_mut() {
+                Some(upvalue) => {
+                    if upvalue.location < top.cast_mut() {
+                        break;
+                    }
+                    upvalue.value = std::ptr::read(upvalue.location);
+                    upvalue.location = (&mut upvalue.value) as *mut _;
+                    vm.runtime_data.open_upvalues = upvalue.next;
+                }
+                None => {
+                    vm.runtime_data.open_upvalues = std::ptr::null_mut();
+                    return Err(ExecutionErrorPayload::InvalidUpvalue);
+                }
             }
-            upvalue.value = std::ptr::read(upvalue.location);
-            upvalue.location = (&mut upvalue.value) as *mut _;
-            vm.runtime_data.open_upvalues = upvalue.next;
         }
     }
 

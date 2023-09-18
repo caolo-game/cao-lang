@@ -254,6 +254,7 @@ impl RuntimeData {
         self.value_stack.clear();
         self.global_vars.clear();
         self.call_stack.clear();
+        self.open_upvalues = std::ptr::null_mut();
     }
 
     fn clear_objects(&mut self) {
