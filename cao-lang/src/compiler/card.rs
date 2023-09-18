@@ -84,7 +84,7 @@ pub struct SetVar {
     pub value: Card,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Arguments(pub Vec<Card>);
 
@@ -94,14 +94,14 @@ impl From<Vec<Card>> for Arguments {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DynamicJump {
     pub args: Arguments,
     pub function: Card,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StaticJump {
     pub args: Arguments,
