@@ -588,19 +588,14 @@ impl<'a> Compiler<'a> {
                 self.current_index.pop_subindex();
             }
             Card::Repeat(rep) => {
+                self.current_index.push_subindex(0);
                 self.compile_subexpr(slice::from_ref(&rep.n))?;
+                self.current_index.pop_subindex();
                 let i = &rep.i;
                 let repeat = &rep.body;
                 self.scope_begin();
                 let loop_n_index = self.add_local_unchecked("")?;
                 let loop_counter_index = self.add_local_unchecked("")?;
-                let i_index = match i {
-                    Some(var) => {
-                        let index = self.add_local(&var)?;
-                        Some(index)
-                    }
-                    None => None,
-                };
                 self.write_local_var(loop_n_index);
                 // init counter to 0
                 self.process_card(&Card::ScalarInt(0))?;
@@ -613,13 +608,16 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::Less);
                 // loop body
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
-                    if let Some(i_index) = i_index {
+                    c.scope_begin();
+                    if let Some(var) = i {
+                        let i_index = c.add_local(&var)?;
                         c.read_local_var(loop_counter_index);
                         c.write_local_var(i_index);
                     }
-                    c.current_index.push_subindex(0);
+                    c.current_index.push_subindex(1);
                     c.process_card(repeat)?;
                     c.current_index.pop_subindex();
+                    c.scope_end();
                     // i = i + 1
                     c.process_card(&Card::ScalarInt(1))?;
                     c.read_local_var(loop_counter_index);
