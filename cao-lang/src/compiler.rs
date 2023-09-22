@@ -536,18 +536,9 @@ impl<'a> Compiler<'a> {
                 let loop_var = self.add_local_unchecked("")?;
                 let loop_item = self.add_local_unchecked("")?;
                 // ForEach instruction will push these values on the stack
-                let v = match v {
-                    Some(o) => self.add_local(&o)?,
-                    None => self.add_local_unchecked("")?,
-                };
-                let k = match k {
-                    Some(k) => self.add_local(&k)?,
-                    None => self.add_local_unchecked("")?,
-                };
-                let i = match i {
-                    Some(i) => self.add_local(&i)?,
-                    None => self.add_local_unchecked("")?,
-                };
+                let v_index = self.add_local_unchecked("")?;
+                let k_index = self.add_local_unchecked("")?;
+                let i_index = self.add_local_unchecked("")?;
                 self.push_instruction(Instruction::BeginForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
@@ -556,13 +547,30 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::ForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
-                write_to_vec(i, &mut self.program.bytecode);
-                write_to_vec(k, &mut self.program.bytecode);
-                write_to_vec(v, &mut self.program.bytecode);
+                write_to_vec(i_index, &mut self.program.bytecode);
+                write_to_vec(k_index, &mut self.program.bytecode);
+                write_to_vec(v_index, &mut self.program.bytecode);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
+                    c.scope_begin();
+                    if let Some(o) = v {
+                        let o = c.add_local(&o)?;
+                        c.read_local_var(v_index);
+                        c.write_local_var(o);
+                    }
+                    if let Some(k) = k {
+                        let k = c.add_local(&k)?;
+                        c.read_local_var(k_index);
+                        c.write_local_var(k);
+                    }
+                    if let Some(i) = i {
+                        let i = c.add_local(&i)?;
+                        c.read_local_var(i_index);
+                        c.write_local_var(i);
+                    }
                     c.current_index.push_subindex(1);
                     c.process_card(body)?;
                     c.current_index.pop_subindex();
+                    c.scope_end();
                     // return to the foreach instruction
                     c.push_instruction(Instruction::Goto);
                     write_to_vec(block_begin, &mut c.program.bytecode);
