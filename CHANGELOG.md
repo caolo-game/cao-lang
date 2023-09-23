@@ -1,4 +1,17 @@
 # Changelog
+## v0.2.0
+
+
+### Bug Fixes
+
+- Clear upvalues in `clear` ([c878e20](c878e20f9169ac3a9d51c0689bf4972f9a5506ef))
+- Fix DynamicCall label ([8ffbf48](8ffbf487baa4d00a535050d682ebb68251503e31))
+- Fix repeat local variable ([01fe0bb](01fe0bbd542d6b12d6ab6c04604e0204363aa66c))
+- Fix for-each local variables ([9334d00](9334d00250b60659f6e2af1d730f7caa68ef8995))
+
+### Features
+
+- Add comment card ([4cdee94](4cdee947232df593407e282c979e87abf3321a74))
 ## v0.1.110
 
 
