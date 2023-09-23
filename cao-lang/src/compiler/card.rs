@@ -75,6 +75,7 @@ pub enum Card {
     /// Create a Table from the results of the provided cards
     Array(Vec<Card>),
     Closure(Box<Function>),
+    Comment(String),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -173,6 +174,7 @@ impl Card {
             Card::Array(_) => "Array",
             Card::NativeFunction(_) => "Native Function",
             Card::Closure(_) => "Closure",
+            Card::Comment(_) => "Comment",
         }
     }
 
@@ -317,6 +319,7 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
+            | Card::Comment(_)
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -393,6 +396,7 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
+            | Card::Comment(_)
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -486,6 +490,7 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
+            | Card::Comment(_)
             | Card::Closure(_)
             | Card::ScalarNil
             | Card::CreateTable
@@ -586,6 +591,7 @@ impl Card {
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
+            | Card::Comment(_)
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return Err(card),

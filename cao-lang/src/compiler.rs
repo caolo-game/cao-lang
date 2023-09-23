@@ -925,6 +925,9 @@ impl<'a> Compiler<'a> {
             Card::CreateTable => {
                 self.push_instruction(Instruction::InitTable);
             }
+            Card::Comment(_) => {
+                // noop
+            }
         }
         Ok(())
     }
