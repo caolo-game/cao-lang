@@ -21,6 +21,7 @@ fn main() {
             )
             .arg(
                 Arg::new("tag")
+                    .num_args(0)
                     .short('t')
                     .required(false)
                     .help("Also create a git tag after bumping the versions")
