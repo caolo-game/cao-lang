@@ -8,6 +8,6 @@ license = "MIT"
 
 [dependencies]
 cao-lang = { path = "../cao-lang/" }
-serde_json = "1.0.81"
-clap = "3.2.6"
-anyhow = "1.0.58"
+serde_json = "1.0.107"
+clap = "4.4.4"
+anyhow = "1.0.75"

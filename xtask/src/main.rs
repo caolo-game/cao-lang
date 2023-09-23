@@ -4,7 +4,7 @@ mod cmd_version;
 
 use std::path::{Path, PathBuf};
 
-use clap::{Arg, Command};
+use clap::{builder::PossibleValuesParser, Arg, Command};
 
 type CmdResult<T> = Result<T, anyhow::Error>;
 
@@ -15,10 +15,9 @@ fn main() {
             .after_help("This command bumps the versions of all modules in the repository and generates a new changelog.")
             .arg(
                 Arg::new("TARGET")
-                    .takes_value(true)
+                    .num_args(1)
                     .required(true)
-                    .possible_values(&["major", "minor", "patch"])
-                    .multiple_occurrences(false),
+                    .value_parser(PossibleValuesParser::new( &["major", "minor", "patch"]))
             )
             .arg(
                 Arg::new("tag")
@@ -30,29 +29,27 @@ fn main() {
         .subcommand(
             Command::new("build").arg(
                 Arg::new("TARGET")
-                    .takes_value(true)
+                    .num_args(1)
                     .required(true)
-                    .possible_values(&["c"])
-                    .multiple_occurrences(false),
+                    .value_parser(PossibleValuesParser::new( &["c"]))
             )
             .arg(
             Arg::new("--")
             .help("Arguments to pass to cmake configure")
-            .takes_value(true).required(false).multiple_occurrences(true)
+                    .num_args(..).required(false)
             )
         )
         .subcommand(
             Command::new("test").arg(
                 Arg::new("TARGET")
-                    .takes_value(true)
+                    .num_args(1)
                     .required(true)
-                    .possible_values(&["c"])
-                    .multiple_occurrences(false),
+                    .value_parser(PossibleValuesParser::new( &["c"]))
             )
             .arg(
             Arg::new("--")
             .help("Arguments to pass to cmake configure")
-            .takes_value(true).required(false).multiple_occurrences(true)
+            .num_args(..).required(false)
             )
             ,
         );
@@ -60,9 +57,9 @@ fn main() {
     let mut code = 0;
 
     if let Some(subcmd) = args.subcommand_matches("version-bump") {
-        if let Some(target) = subcmd.value_of("TARGET") {
-            let res = if subcmd.is_present("tag") {
-                cmd_version::cmd_create_tag(target)
+        if let Some(target) = subcmd.get_one::<String>("TARGET") {
+            let res = if subcmd.get_flag("tag") {
+                cmd_version::cmd_create_tag(target.as_str())
             } else {
                 cmd_version::cmd_bump_version(target).map(|_| ())
             };
@@ -73,13 +70,14 @@ fn main() {
         }
     }
     if let Some(subcmd) = args.subcommand_matches("build") {
-        if let Some(target) = subcmd.value_of("TARGET") {
-            match target {
+        if let Some(target) = subcmd.get_one::<String>("TARGET") {
+            match target.as_str() {
                 "c" => {
                     let args = subcmd
-                        .values_of("--")
+                        .get_many::<String>("--")
                         .unwrap_or_default()
                         .into_iter()
+                        .map(|x| x.as_str())
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_build::cmd_build_c(args.as_slice()) {
                         eprintln!("Build command failed: {}", e);
@@ -91,13 +89,14 @@ fn main() {
         }
     }
     if let Some(subcmd) = args.subcommand_matches("test") {
-        if let Some(target) = subcmd.value_of("TARGET") {
-            match target {
+        if let Some(target) = subcmd.get_one::<String>("TARGET") {
+            match target.as_str() {
                 "c" => {
                     let args = subcmd
-                        .values_of("--")
+                        .get_many::<String>("--")
                         .unwrap_or_default()
                         .into_iter()
+                        .map(|x| x.as_str())
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_test::cmd_test_c(args.as_slice()) {
                         eprintln!("Test command failed: {}", e);

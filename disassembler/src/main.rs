@@ -9,7 +9,7 @@ fn main() {
     );
 
     let args = app.get_matches();
-    if args.is_present("json") {
+    if args.get_flag("json") {
         let reader = std::io::BufReader::new(std::io::stdin().lock());
         let pl: CaoProgram = serde_json::from_reader(reader).expect("Failed to deserialize");
         let compiled = compiler::compile(pl, None).expect("Failed to compile");
