@@ -1,0 +1,12 @@
+[package]
+name = "caolo-disassembler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cao-lang = { path = "../cao-lang/" }
+serde_json = "1.0.81"
+clap = "3.2.6"
+anyhow = "1.0.58"
