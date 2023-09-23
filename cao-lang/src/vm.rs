@@ -1,7 +1,7 @@
 //! Cao-Lang back-end
 //!
 //! Interprets the compiled output produced by the Cao-Lang compiler
-mod instr_execution;
+pub(crate) mod instr_execution;
 pub mod runtime;
 
 #[cfg(test)]

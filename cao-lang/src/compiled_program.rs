@@ -7,6 +7,7 @@ use crate::{
     },
     compiler::{CardIndex, NameSpace},
     instruction::Instruction,
+    vm::instr_execution::decode_value,
     VarName,
 };
 use crate::{version, VariableId};
@@ -113,9 +114,12 @@ impl CaoCompiledProgram {
                 Instruction::Or => writeln!(writer, "Or")?,
                 Instruction::Xor => writeln!(writer, "Xor")?,
                 Instruction::Not => writeln!(writer, "Not")?,
-                Instruction::Goto => writeln!(writer, "Goto")?,
-                Instruction::GotoIfTrue => writeln!(writer, "GotoIfTrue")?,
-                Instruction::GotoIfFalse => writeln!(writer, "GotoIfFalse")?,
+                Instruction::GotoIfTrue | Instruction::GotoIfFalse | Instruction::Goto => {
+                    i += 1;
+                    let pos: i32 = unsafe { decode_value(&self.bytecode, &mut i) };
+                    writeln!(writer, "{instr:?}\t{pos}")?;
+                    continue;
+                }
                 Instruction::InitTable => writeln!(writer, "InitTable")?,
                 Instruction::GetProperty => writeln!(writer, "GetProperty")?,
                 Instruction::SetProperty => writeln!(writer, "SetProperty")?,
