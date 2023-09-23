@@ -73,13 +73,11 @@ impl CaoCompiledProgram {
     }
 
     pub fn print_disassembly(&self) {
-        let mut pl = String::new();
-        self.disassemble(&mut pl).unwrap();
-        // FIXME: I'd prefer writing straight to stdout...
-        println!("{pl}");
+        let mut out = std::io::BufWriter::new(std::io::stdout());
+        self.disassemble(&mut out).unwrap();
     }
 
-    pub fn disassemble(&self, mut writer: impl std::fmt::Write) -> std::fmt::Result {
+    pub fn disassemble(&self, mut writer: impl std::io::Write) -> std::io::Result<()> {
         let mut i = 0;
         while i < self.bytecode.len() {
             let instr: u8 = self.bytecode[i];
