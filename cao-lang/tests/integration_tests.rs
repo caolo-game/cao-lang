@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 
 use cao_lang::{
-    compiler::{CompositeCard, Module, UnaryExpression},
+    compiler::{BinaryExpression, CompositeCard, ForEach, Module, UnaryExpression},
     prelude::*,
 };
 
@@ -1482,5 +1482,78 @@ fn closure_capture_in_same_scope_test() {
         let result = result.as_str().unwrap();
 
         assert_eq!(result, "kanga");
+    }
+}
+
+#[test]
+#[tracing_test::traced_test]
+fn closure_capture_in_loops_is_sane_test() {
+    // create a table with letters a,b,c
+    // create a new table with callbacks that return each letter
+    // map the callbacks table to a new table that is the result
+    let cu = CaoProgram {
+        imports: Default::default(),
+        submodules: Default::default(),
+        functions: [(
+            "main".into(),
+            Function::default()
+                .with_card(Card::set_var(
+                    "letters",
+                    Card::Array(vec![
+                        Card::string_card("a"),
+                        Card::string_card("b"),
+                        Card::string_card("c"),
+                    ]),
+                ))
+                .with_card(Card::set_var("callbacks", Card::Array(vec![])))
+                .with_card(Card::ForEach(Box::new(ForEach {
+                    i: None,
+                    k: None,
+                    v: Some("v".to_string()),
+                    iterable: Card::read_var("letters").into(),
+                    body: Box::new(Card::AppendTable(BinaryExpression::new([
+                        Card::Closure(Box::new(Function {
+                            arguments: vec![],
+                            cards: vec![Card::return_card(Card::read_var("v"))],
+                        })),
+                        Card::read_var("callbacks"),
+                    ]))),
+                })))
+                .with_card(Card::set_global_var(
+                    "g_result",
+                    Card::call_function(
+                        "std.map",
+                        vec![
+                            Card::Closure(Box::new(Function {
+                                arguments: vec!["_".to_string(), "cb".to_string()],
+                                cards: vec![Card::return_card(Card::dynamic_call(
+                                    Card::read_var("cb"),
+                                    vec![],
+                                ))],
+                            })),
+                            Card::read_var("callbacks"),
+                        ],
+                    ),
+                )),
+        )]
+        .into(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
+
+    let result = vm
+        .read_var_by_name("g_result", &program.variables)
+        .expect("Failed to read g_result variable");
+
+    unsafe {
+        let result = result.as_table().expect("expected table");
+
+        for ((_, a), b) in result.iter().zip(["a", "b", "c"].into_iter()) {
+            let a = a.as_str().expect("results should be strings");
+            assert_eq!(a, b);
+        }
     }
 }
