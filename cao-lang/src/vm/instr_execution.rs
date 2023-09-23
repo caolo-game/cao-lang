@@ -132,7 +132,7 @@ pub fn push_call_frame(
             stack_offset: runtime_data
                 .value_stack
                 .len()
-                .checked_sub(arity as usize)
+                .checked_sub(arity)
                 .ok_or(ExecutionErrorPayload::MissingArgument)? as u32,
             closure,
         })

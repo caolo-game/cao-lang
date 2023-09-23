@@ -156,7 +156,7 @@ pub fn native_minmax<T, const LESS: bool>(
     key_fn: Value,
 ) -> Result<Value, ExecutionErrorPayload> {
     match iterable {
-        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Nil | Value::Integer(_) | Value::Real(_) => Ok(iterable),
         Value::Object(o) => unsafe {
             match &o.as_ref().body {
                 CaoLangObjectBody::Table(t) => {
@@ -184,13 +184,13 @@ pub fn native_minmax<T, const LESS: bool>(
                     t.insert(vm.init_string("key")?, k)?;
                     t.insert(vm.init_string("value")?, v)?;
 
-                    return Ok(Value::Object(result.0));
+                    Ok(Value::Object(result.0))
                 }
                 CaoLangObjectBody::String(_)
                 | CaoLangObjectBody::Function(_)
                 | CaoLangObjectBody::Closure(_)
                 | CaoLangObjectBody::Upvalue(_)
-                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+                | CaoLangObjectBody::NativeFunction(_) => Ok(iterable),
             }
         },
     }
@@ -202,7 +202,7 @@ pub fn native_sorted<T>(
     key_fn: Value,
 ) -> Result<Value, ExecutionErrorPayload> {
     match iterable {
-        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Nil | Value::Integer(_) | Value::Real(_) => Ok(iterable),
         Value::Object(o) => unsafe {
             match &o.as_ref().body {
                 CaoLangObjectBody::Table(t) => {
@@ -230,7 +230,7 @@ pub fn native_sorted<T>(
                 | CaoLangObjectBody::Function(_)
                 | CaoLangObjectBody::Closure(_)
                 | CaoLangObjectBody::Upvalue(_)
-                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+                | CaoLangObjectBody::NativeFunction(_) => Ok(iterable),
             }
         },
     }
@@ -238,7 +238,7 @@ pub fn native_sorted<T>(
 
 pub fn native_to_array<T>(vm: &mut Vm<T>, iterable: Value) -> Result<Value, ExecutionErrorPayload> {
     match iterable {
-        Value::Nil | Value::Integer(_) | Value::Real(_) => return Ok(iterable),
+        Value::Nil | Value::Integer(_) | Value::Real(_) => Ok(iterable),
         Value::Object(o) => unsafe {
             match &o.as_ref().body {
                 CaoLangObjectBody::Table(t) => {
@@ -253,7 +253,7 @@ pub fn native_to_array<T>(vm: &mut Vm<T>, iterable: Value) -> Result<Value, Exec
                 | CaoLangObjectBody::Function(_)
                 | CaoLangObjectBody::Closure(_)
                 | CaoLangObjectBody::Upvalue(_)
-                | CaoLangObjectBody::NativeFunction(_) => return Ok(iterable),
+                | CaoLangObjectBody::NativeFunction(_) => Ok(iterable),
             }
         },
     }

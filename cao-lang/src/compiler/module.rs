@@ -329,8 +329,7 @@ impl Module {
             .find(|(_, (name, _))| name == "main")
             .ok_or(CompilationErrorPayload::NoMain)?;
 
-        let mut result = vec![];
-        result.reserve(self.functions.len() * self.submodules.len() * 2); // just some dumb heuristic
+        let mut result = Vec::with_capacity(self.functions.len() * self.submodules.len() * 2); // just some dumb heuristic
 
         let mut namespace = SmallVec::<[_; 16]>::new();
 
@@ -393,7 +392,7 @@ impl Module {
 
     pub fn lookup_submodule(&self, target: &str) -> Option<&Module> {
         let mut current = self;
-        for submodule_name in target.split(".") {
+        for submodule_name in target.split('.') {
             current = current
                 .submodules
                 .iter()
@@ -405,7 +404,7 @@ impl Module {
 
     pub fn lookup_submodule_mut(&mut self, target: &str) -> Option<&mut Module> {
         let mut current = self;
-        for submodule_name in target.split(".") {
+        for submodule_name in target.split('.') {
             current = current
                 .submodules
                 .iter_mut()
@@ -416,7 +415,7 @@ impl Module {
     }
 
     pub fn lookup_function(&self, target: &str) -> Option<&Function> {
-        let Some((submodule, function)) = target.rsplit_once(".") else {
+        let Some((submodule, function)) = target.rsplit_once('.') else {
             return self
                 .functions
                 .iter()
@@ -428,7 +427,7 @@ impl Module {
     }
 
     pub fn lookup_function_mut(&mut self, target: &str) -> Option<&mut Function> {
-        let Some((submodule, function)) = target.rsplit_once(".") else {
+        let Some((submodule, function)) = target.rsplit_once('.') else {
             return self
                 .functions
                 .iter_mut()

@@ -4,8 +4,9 @@ use std::convert::{From, TryFrom};
 use std::ops::{Add, Div, Mul, Sub};
 use std::ptr::NonNull;
 
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub enum Value {
+    #[default]
     Nil,
     Object(NonNull<CaoLangObject>),
     Integer(i64),
@@ -104,9 +105,10 @@ impl Eq for Value {}
 /// #     assert_eq!(v, 42);
 /// # }
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum OwnedValue {
+    #[default]
     Nil,
     String(String),
     Table(Vec<OwnedEntry>),
@@ -119,12 +121,6 @@ pub enum OwnedValue {
 pub struct OwnedEntry {
     pub key: OwnedValue,
     pub value: OwnedValue,
-}
-
-impl Default for OwnedValue {
-    fn default() -> Self {
-        OwnedValue::Nil
-    }
 }
 
 impl TryFrom<Value> for OwnedValue {
@@ -158,12 +154,6 @@ impl TryFrom<Value> for OwnedValue {
             Value::Real(x) => Self::Real(x),
         };
         Ok(res)
-    }
-}
-
-impl Default for Value {
-    fn default() -> Self {
-        Value::Nil
     }
 }
 

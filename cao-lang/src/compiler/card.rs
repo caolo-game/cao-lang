@@ -2,14 +2,8 @@ use super::*;
 use crate::InputString;
 use crate::VarName;
 
-impl Default for Card {
-    fn default() -> Self {
-        Card::ScalarNil
-    }
-}
-
 /// Cao-Lang AST
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Card {
     Add(BinaryExpression),
@@ -25,6 +19,7 @@ pub enum Card {
     Xor(BinaryExpression),
     Not(UnaryExpression),
     Return(UnaryExpression),
+    #[default]
     ScalarNil,
     CreateTable,
     Abort,
@@ -267,7 +262,6 @@ impl Card {
                     iterable: a,
                     body: b,
                 } = fe.as_mut();
-                if i > 1 {}
                 match i {
                     0 => res = a.as_mut(),
                     1 => res = b.as_mut(),
@@ -345,7 +339,6 @@ impl Card {
                     iterable: a,
                     body: b,
                 } = fe.as_ref();
-                if i > 1 {}
                 match i {
                     0 => res = a.as_ref(),
                     1 => res = b.as_ref(),
@@ -433,7 +426,6 @@ impl Card {
                     iterable: a,
                     body: b,
                 } = fe.as_mut();
-                if i > 1 {}
                 match i {
                     0 => res = std::mem::replace::<Card>(a.as_mut(), Card::ScalarNil),
                     1 => res = std::mem::replace::<Card>(b.as_mut(), Card::ScalarNil),
@@ -520,7 +512,6 @@ impl Card {
                     iterable: a,
                     body: b,
                 } = fe.as_mut();
-                if i > 1 {}
                 match i {
                     0 => *a.as_mut() = card,
                     1 => *b.as_mut() = card,

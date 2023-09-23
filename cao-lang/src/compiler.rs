@@ -126,7 +126,7 @@ impl<'a> Compiler<'a> {
 
     fn trace(&self) -> Trace {
         Trace {
-            namespace: self.current_namespace.to_owned().into_owned(),
+            namespace: self.current_namespace.clone().into_owned(),
             index: self.current_index.clone(),
         }
     }
@@ -618,7 +618,7 @@ impl<'a> Compiler<'a> {
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.scope_begin();
                     if let Some(var) = i {
-                        let i_index = c.add_local(&var)?;
+                        let i_index = c.add_local(var)?;
                         c.read_local_var(loop_counter_index);
                         c.write_local_var(i_index);
                     }
@@ -654,7 +654,7 @@ impl<'a> Compiler<'a> {
                     None => {
                         let index = match self.resolve_var(var)? {
                             Variable::Local(i) => i as u32,
-                            Variable::Global => self.add_local(&var)?,
+                            Variable::Global => self.add_local(var)?,
                             Variable::Upvalue(i) => {
                                 self.write_upvalue(i as u32);
                                 return Ok(());
@@ -972,7 +972,7 @@ impl<'a> Compiler<'a> {
             }
         }
         // handle props
-        for prop in props.split(".").filter(|p| !p.is_empty()) {
+        for prop in props.split('.').filter(|p| !p.is_empty()) {
             self.push_instruction(Instruction::StringLiteral);
             self.push_str(prop);
             self.push_instruction(Instruction::GetProperty);

@@ -35,7 +35,7 @@ impl<'de, K: Deserialize<'de> + Eq + Hash, V: Deserialize<'de>> Visitor<'de>
         if !cap.is_power_of_two() {
             cap = cap.next_power_of_two();
         }
-        let mut res = CaoHashMap::with_capacity_in(cap, SysAllocator::default()).expect("oom");
+        let mut res = CaoHashMap::with_capacity_in(cap, SysAllocator).expect("oom");
         while let Some((k, v)) = map.next_entry()? {
             res.insert(k, v).expect("oom");
         }
