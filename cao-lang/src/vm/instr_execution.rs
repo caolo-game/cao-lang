@@ -400,29 +400,23 @@ fn resolve_closure<'a>(closure: Value) -> Result<&'a mut CaoLangClosure, Executi
             let o = o.as_mut();
             match &mut o.body {
                 CaoLangObjectBody::Closure(c) => Ok(c),
-                _ => {
-                    return Err(ExecutionErrorPayload::invalid_argument(
-                        "Upvalues can only be registered for closures",
-                    ))
-                }
+                _ => Err(ExecutionErrorPayload::invalid_argument(
+                    "Upvalues can only be registered for closures",
+                )),
             }
         },
-        _ => {
-            return Err(ExecutionErrorPayload::invalid_argument(
-                "Upvalues can only be registered for closures",
-            ))
-        }
+        _ => Err(ExecutionErrorPayload::invalid_argument(
+            "Upvalues can only be registered for closures",
+        )),
     }
 }
 
 fn resolve_upvalue(o: &mut CaoLangObject) -> Result<&mut CaoLangUpvalue, ExecutionErrorPayload> {
     match &mut o.body {
         CaoLangObjectBody::Upvalue(u) => Ok(u),
-        _ => {
-            return Err(ExecutionErrorPayload::invalid_argument(
-                "Expected Upvalue object",
-            ))
-        }
+        _ => Err(ExecutionErrorPayload::invalid_argument(
+            "Expected Upvalue object",
+        )),
     }
 }
 
@@ -496,7 +490,7 @@ pub fn register_upvalue<T>(
 
 pub fn read_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     unsafe {
-        let index: u32 = decode_value(&bytecode, instr_ptr);
+        let index: u32 = decode_value(bytecode, instr_ptr);
         let c = vm.runtime_data.call_stack.last().unwrap();
         let Some(c) = c.closure.as_mut() else {
             return Err(ExecutionErrorPayload::NotClosure);
@@ -508,14 +502,14 @@ pub fn read_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -
                 let value = *u.location;
                 vm.stack_push(value)
             }
-            None => return Err(ExecutionErrorPayload::InvalidUpvalue),
+            None => Err(ExecutionErrorPayload::InvalidUpvalue),
         }
     }
 }
 
 pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> ExecutionResult {
     unsafe {
-        let index: u32 = decode_value(&bytecode, instr_ptr);
+        let index: u32 = decode_value(bytecode, instr_ptr);
         let value = vm.stack_pop();
         let c = vm.runtime_data.call_stack.last().unwrap();
         let Some(c) = c.closure.as_mut() else {
@@ -528,7 +522,7 @@ pub fn write_upvalue<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) 
                 std::ptr::write(u.location, value);
                 Ok(())
             }
-            None => return Err(ExecutionErrorPayload::InvalidUpvalue),
+            None => Err(ExecutionErrorPayload::InvalidUpvalue),
         }
     }
 }

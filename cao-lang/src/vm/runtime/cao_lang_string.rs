@@ -18,7 +18,7 @@ impl Debug for CaoLangString {
 
 impl Drop for CaoLangString {
     fn drop(&mut self) {
-        unsafe { self.alloc.dealloc(self.ptr.into(), Self::layout(self.len)) }
+        unsafe { self.alloc.dealloc(self.ptr, Self::layout(self.len)) }
     }
 }
 
@@ -27,7 +27,7 @@ impl CaoLangString {
         unsafe {
             let ptr = self.ptr;
             let len = self.len;
-            std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr.as_ptr(), len as usize))
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr.as_ptr(), len))
         }
     }
 

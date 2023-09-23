@@ -76,9 +76,9 @@ impl ObjectGcGuard {
     }
 }
 
-impl Into<Value> for ObjectGcGuard {
-    fn into(self) -> Value {
-        Value::Object(self.0)
+impl From<ObjectGcGuard> for Value {
+    fn from(value: ObjectGcGuard) -> Self {
+        Value::Object(value.0)
     }
 }
 

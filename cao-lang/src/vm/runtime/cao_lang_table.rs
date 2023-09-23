@@ -111,7 +111,7 @@ impl CaoLangTable {
                 self.remove(key)?;
                 Ok(res)
             }
-            None => return Ok(Value::Nil),
+            None => Ok(Value::Nil),
         }
     }
 

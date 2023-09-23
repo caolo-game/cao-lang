@@ -321,8 +321,7 @@ impl<'a, Aux> Vm<'a, Aux> {
                     dst_instr_ptr: end as u32,
                     stack_offset: len
                         .checked_sub(arity)
-                        .ok_or(ExecutionErrorPayload::MissingArgument)?
-                        as u32,
+                        .ok_or(ExecutionErrorPayload::MissingArgument)?,
                     closure,
                 })
                 .map_err(|_| ExecutionErrorPayload::CallStackOverflow)?;
