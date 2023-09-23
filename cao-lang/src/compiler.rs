@@ -553,17 +553,17 @@ impl<'a> Compiler<'a> {
                 self.encode_if_then(Instruction::GotoIfFalse, |c| {
                     c.scope_begin();
                     if let Some(v) = v {
-                        let v = c.add_local(&v)?;
+                        let v = c.add_local(v)?;
                         c.read_local_var(v_index);
                         c.write_local_var(v);
                     }
                     if let Some(k) = k {
-                        let k = c.add_local(&k)?;
+                        let k = c.add_local(k)?;
                         c.read_local_var(k_index);
                         c.write_local_var(k);
                     }
                     if let Some(i) = i {
-                        let i = c.add_local(&i)?;
+                        let i = c.add_local(i)?;
                         c.read_local_var(i_index);
                         c.write_local_var(i);
                     }
