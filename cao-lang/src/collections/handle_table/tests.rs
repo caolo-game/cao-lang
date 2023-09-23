@@ -18,7 +18,7 @@ fn can_insert() {
 
 #[test]
 fn can_grow() {
-    let mut map = HandleTable::<i32>::with_capacity(1, SysAllocator::default()).unwrap();
+    let mut map = HandleTable::<i32>::with_capacity(1, SysAllocator).unwrap();
 
     assert_eq!(map.len(), 0);
 
@@ -37,7 +37,7 @@ fn can_grow() {
 
 #[test]
 fn can_mutate_value() {
-    let mut map = HandleTable::<i32>::with_capacity(1, SysAllocator::default()).unwrap();
+    let mut map = HandleTable::<i32>::with_capacity(1, SysAllocator).unwrap();
 
     assert_eq!(map.len(), 0);
 
@@ -72,7 +72,7 @@ fn drops_values() {
     }
 
     {
-        let mut map = HandleTable::with_capacity(1, SysAllocator::default()).unwrap();
+        let mut map = HandleTable::with_capacity(1, SysAllocator).unwrap();
         map.insert(Handle(5), Foo(drops.as_mut().get_mut()))
             .expect("insert 0");
         map.insert(Handle(2), Foo(drops.as_mut().get_mut()))

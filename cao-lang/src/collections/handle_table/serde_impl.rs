@@ -33,7 +33,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for HandleTableVisitor<T> {
         if !cap.is_power_of_two() {
             cap = cap.next_power_of_two();
         }
-        let mut res = HandleTable::with_capacity(cap, SysAllocator::default()).expect("oom");
+        let mut res = HandleTable::with_capacity(cap, SysAllocator).expect("oom");
         while let Some((k, v)) = map.next_entry()? {
             res.insert(k, v).expect("oom");
         }

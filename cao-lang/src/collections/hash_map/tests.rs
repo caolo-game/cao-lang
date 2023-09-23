@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn occupied_entry_test() {
-    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator).unwrap();
 
     map.insert(42, 69).unwrap();
 
@@ -15,7 +15,7 @@ fn occupied_entry_test() {
 
 #[test]
 fn vacant_entry_inserts_test() {
-    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator).unwrap();
 
     let cap = map.capacity();
     assert_eq!(
@@ -38,7 +38,7 @@ fn vacant_entry_inserts_test() {
 
 #[test]
 fn can_grow() {
-    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator).unwrap();
 
     assert_eq!(map.len(), 0);
 
@@ -57,7 +57,7 @@ fn can_grow() {
 
 #[test]
 fn can_mutate_value() {
-    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator::default()).unwrap();
+    let mut map = CaoHashMap::<i32, i32>::with_capacity_in(1, SysAllocator).unwrap();
 
     assert_eq!(map.len(), 0);
 
@@ -91,7 +91,7 @@ fn drops_values() {
     }
 
     {
-        let mut map = CaoHashMap::with_capacity_in(1, SysAllocator::default()).unwrap();
+        let mut map = CaoHashMap::with_capacity_in(1, SysAllocator).unwrap();
         map.insert(5, Foo(drops.as_mut().get_mut()))
             .expect("insert 0");
         map.insert(2, Foo(drops.as_mut().get_mut()))
