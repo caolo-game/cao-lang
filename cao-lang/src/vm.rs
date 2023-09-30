@@ -187,12 +187,11 @@ impl<'a, Aux> Vm<'a, Aux> {
         C: VmFunction<Aux> + 'static,
     {
         let key = Handle::from_str(name.as_ref()).unwrap();
-        let name = self.init_string(name.as_ref())?;
         self.callables
             .insert(
                 key,
                 Procedure {
-                    name: name.0,
+                    name: name.as_ref().to_owned(),
                     fun: std::rc::Rc::new(f),
                 },
             )

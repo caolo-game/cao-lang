@@ -1,12 +1,10 @@
 //! Helper module for dealing with function extensions.
 //!
 use std::fmt::Display;
-use std::ptr::NonNull;
 
 use crate::collections::handle_table::Handle;
 use crate::prelude::Trace;
 use crate::traits::VmFunction;
-use crate::vm::runtime::cao_lang_object::CaoLangObject;
 use thiserror::Error;
 
 pub type ExecutionResult<T = ()> = Result<T, ExecutionError>;
@@ -86,32 +84,26 @@ impl ExecutionErrorPayload {
 
 pub(crate) struct Procedure<Aux> {
     pub fun: std::rc::Rc<dyn VmFunction<Aux>>,
-    pub name: NonNull<CaoLangObject>,
+    pub name: String,
 }
 
 impl<Aux> Clone for Procedure<Aux> {
     fn clone(&self) -> Self {
         Self {
             fun: self.fun.clone(),
-            name: self.name,
+            name: self.name.clone(),
         }
     }
 }
 
 impl<Aux> Procedure<Aux> {
     pub fn name(&self) -> &str {
-        unsafe { self.name.as_ref().as_str().unwrap() }
+        self.name.as_str()
     }
 }
 
 impl<Aux> std::fmt::Debug for Procedure<Aux> {
     fn fmt(&self, writer: &mut std::fmt::Formatter) -> std::fmt::Result {
-        unsafe {
-            writeln!(
-                writer,
-                "Procedure '{}'",
-                self.name.as_ref().as_str().unwrap()
-            )
-        }
+        writeln!(writer, "Procedure '{}'", self.name)
     }
 }
