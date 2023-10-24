@@ -107,7 +107,7 @@ impl CardIndex {
 
     /// Return wether this index points to a 'top level' card in the function.
     /// Instead of a nested card.
-    pub fn is_function_card(&self) -> bool {
+    pub fn is_top_level_card(&self) -> bool {
         self.card_index.indices.len() == 1
     }
 }
