@@ -199,15 +199,6 @@ fn min_test() {
     let mut vm = Vm::new(()).unwrap().with_max_iter(1000);
     vm.run(&compiled).expect("run");
 
-    unsafe {
-        let t = vm
-            .read_var_by_name("t", &compiled.variables)
-            .unwrap()
-            .as_table()
-            .expect("table");
-
-    }
-
     let result = vm
         .read_var_by_name("g_result", &compiled.variables)
         .unwrap();
