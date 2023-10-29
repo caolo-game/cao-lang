@@ -21,3 +21,4 @@ build:
 	just wasm/build
 	python -m build --wheel
 
+alias t := test

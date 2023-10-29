@@ -161,38 +161,33 @@ impl<'a> Compiler<'a> {
     /// build the jump table and consume the function names
     fn compile_stage_1(&mut self, compilation_unit: FunctionSlice) -> CompilationResult<()> {
         let mut num_cards = 0usize;
-        for (i, n) in compilation_unit.iter().enumerate() {
-            self.current_index.function = i;
-            self.current_index.card_index.indices.clear();
+        for n in compilation_unit.iter() {
             num_cards += n.cards.len();
-
-            let handle = self.current_index.as_handle();
-            self.add_function(handle, n)?;
+            self.add_function(n)?;
         }
 
         self.program.labels.0.reserve(num_cards).expect("reserve");
         Ok(())
     }
 
-    fn add_function(&mut self, handle: Handle, n: &FunctionIr) -> CompilationResult<()> {
+    fn add_function(&mut self, n: &FunctionIr) -> CompilationResult<()> {
         let metadata = FunctionMeta {
-            hash_key: handle,
+            hash_key: n.handle,
             arity: n.arguments.len() as u32,
         };
         if self.jump_table.contains(n.name.as_ref()) {
             return Err(self.error(CompilationErrorPayload::DuplicateName(n.name.to_string())));
         }
-        self.jump_table
-            .insert(n.name.to_string(), metadata)
-            .unwrap();
+        self.jump_table.insert(n.full_name(), metadata).unwrap();
         Ok(())
     }
 
     /// consume function cards and build the bytecode
     fn compile_stage_2(&mut self, compilation_unit: FunctionSlice<'a>) -> CompilationResult<()> {
-        let mut functions = compilation_unit.iter().enumerate();
+        let mut functions = compilation_unit.iter();
 
-        if let Some((il, main_function)) = functions.next() {
+        if let Some(main_function) = functions.next() {
+            let il = main_function.function_index;
             let len: u32 = match main_function.cards.len().try_into() {
                 Ok(i) => i,
                 Err(_) => return Err(self.error(CompilationErrorPayload::TooManyCards(il))),
@@ -211,9 +206,10 @@ impl<'a> Compiler<'a> {
             self.process_card(&Card::Abort)?;
         }
 
-        for (il, function) in functions {
+        for function in functions {
+            let il = function.function_index;
             self.current_index = CardIndex::function(il);
-            let nodeid_handle = self.current_index.as_handle();
+            let nodeid_handle = function.handle;
             let handle = u32::try_from(self.program.bytecode.len())
                 .expect("bytecode length to fit into 32 bits");
             self.program
@@ -378,14 +374,14 @@ impl<'a> Compiler<'a> {
     }
 
     fn encode_jump(&mut self, function: &str) -> CompilationResult<()> {
-        let to = self.lookup_function(&self.jump_table, function)?;
+        let to = self.resolve_function(&self.jump_table, function)?;
         write_to_vec(to.hash_key, &mut self.program.bytecode);
         write_to_vec(to.arity, &mut self.program.bytecode);
         Ok(())
     }
 
     // take jump_table by param because of lifetimes
-    fn lookup_function<'b>(
+    fn resolve_function<'b>(
         &self,
         jump_table: &'b CaoHashMap<String, FunctionMeta>,
         function: &str,
@@ -767,7 +763,9 @@ impl<'a> Compiler<'a> {
                 write_to_vec(0xEEFi32, &mut self.program.bytecode);
 
                 self.compile_begin();
-                let function_handle = self.current_index.as_handle();
+                const CLOSURE_MASK: u64 = 0xEFEFEFEF;
+                let function_handle =
+                    self.current_index.as_handle() + Handle::from_u64(CLOSURE_MASK);
                 let arity = embedded_function.arguments.len() as u32;
                 let handle = u32::try_from(self.program.bytecode.len())
                     .expect("bytecode length to fit into 32 bits");
