@@ -537,7 +537,6 @@ fn jump_function_w_params_test() {
     let bar = vm
         .read_var_by_name("g_bar", &program.variables)
         .expect("Failed to read bar variable");
-    dbg!(foo, bar);
     assert!(matches!(foo, Value::Integer(42)));
     match bar {
         Value::Object(s) => unsafe {
@@ -703,7 +702,6 @@ fn non_existent_import_is_error_test() {
     let err = compile(cu, CompileOptions::new()).expect_err("compile");
 
     // TODO: the error itself should be more meaningful
-    dbg!(&err);
     assert!(matches!(
         err.payload,
         CompilationErrorPayload::InvalidJump { .. }
@@ -1284,7 +1282,6 @@ fn closure_test() {
         .read_var_by_name("g_result", &program.variables)
         .expect("Failed to read g_result variable");
 
-    dbg!(result);
 
     unsafe {
         let result = result.as_str().unwrap();
@@ -1345,7 +1342,6 @@ fn native_functions_can_call_cao_lang_function() {
     }
 
     let fun = move |vm: &mut Vm<State>, arg: Value| {
-        dbg!(vm.get_aux().res);
         let res = vm.run_function(arg)?;
         vm.get_aux_mut().res = res.as_int().unwrap();
         Ok(Value::Nil)

@@ -206,8 +206,6 @@ fn min_test() {
             .as_table()
             .expect("table");
 
-        dbg!(t);
-        dbg!(t.get(&t.nth_key(0)));
     }
 
     let result = vm
@@ -215,7 +213,6 @@ fn min_test() {
         .unwrap();
     unsafe {
         let t = result.as_table().expect("table");
-        dbg!(t);
         match t.get("value").expect("value") {
             Value::Integer(i) => {
                 assert_eq!(*i, 10);
@@ -348,7 +345,6 @@ fn min_by_key_test() {
         .read_var_by_name("g_result", &compiled.variables)
         .unwrap();
     unsafe {
-        dbg!(result);
         let t = result.as_table().expect("table");
         match t.get("value").unwrap() {
             Value::Integer(i) => {

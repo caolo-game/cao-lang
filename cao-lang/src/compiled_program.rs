@@ -75,10 +75,16 @@ impl CaoCompiledProgram {
 
     pub fn print_disassembly(&self) {
         let mut out = std::io::BufWriter::new(std::io::stdout());
-        self.disassemble(&mut out).unwrap();
+        self.disassemble_writer(&mut out).unwrap();
     }
 
-    pub fn disassemble(&self, mut writer: impl std::io::Write) -> std::io::Result<()> {
+    pub fn disassemble_string(&self) -> String {
+        let mut out = Vec::new();
+        self.disassemble_writer(&mut out).unwrap();
+        String::from_utf8(out).unwrap()
+    }
+
+    pub fn disassemble_writer(&self, mut writer: impl std::io::Write) -> std::io::Result<()> {
         let mut i = 0;
         while i < self.bytecode.len() {
             let instr: u8 = self.bytecode[i];

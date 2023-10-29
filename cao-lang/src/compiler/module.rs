@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::compiler::Function;
-use crate::prelude::CompilationErrorPayload;
+use crate::prelude::{CompilationErrorPayload, Handle};
 use smallvec::SmallVec;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
@@ -333,7 +333,6 @@ impl Module {
 
         let mut namespace = SmallVec::<[_; 16]>::new();
 
-        // flatten modules' functions
         flatten_module(&self, recursion_limit, &mut namespace, &mut result)?;
 
         // move the main function to the front
@@ -471,12 +470,14 @@ fn flatten_module<'a>(
         out.reserve(module.functions.len() - (out.capacity() - out.len()));
     }
     let imports = Rc::new(module.execute_imports()?);
-    for (name, function) in module.functions.iter() {
+    for (function_id, (name, function)) in module.functions.iter().enumerate() {
         if !is_name_valid(name.as_ref()) {
             return Err(CompilationErrorPayload::BadFunctionName(name.to_string()));
         }
         namespace.push(name.as_ref());
         out.push(function_to_function_ir(
+            out.len(),
+            function_id,
             function,
             namespace,
             Rc::clone(&imports),
@@ -492,6 +493,8 @@ fn flatten_module<'a>(
 }
 
 fn function_to_function_ir(
+    i: usize,
+    function_id: usize,
     function: &Function,
     namespace: &[&str],
     imports: Rc<ImportsIr>,
@@ -502,11 +505,13 @@ fn function_to_function_ir(
     );
 
     let mut cl = FunctionIr {
-        name: flatten_name(namespace).into_boxed_str(),
+        function_index: function_id,
+        name: namespace.last().unwrap().to_string().into_boxed_str(),
         arguments: function.arguments.clone().into_boxed_slice(),
         cards: function.cards.clone().into_boxed_slice(),
         imports,
         namespace: Default::default(),
+        handle: Handle::from_u64(i as u64),
     };
     cl.namespace.extend(
         namespace
@@ -521,8 +526,4 @@ fn is_name_valid(name: &str) -> bool {
     !name.contains(|c: char| !c.is_alphanumeric() && c != '_')
         && !name.is_empty()
         && name != "super" // `super` is a reserved identifier
-}
-
-fn flatten_name(namespace: &[&str]) -> String {
-    namespace.join(".")
 }
