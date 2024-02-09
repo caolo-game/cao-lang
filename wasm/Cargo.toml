@@ -37,7 +37,7 @@ edition = "2021"
 license = "MIT"
 name = "cao-lang-wasm"
 repository = "https://github.com/caolo-game/cao-lang"
-version = "0.2.0"
+version = "0.2.1"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz", "--enable-mutable-globals"]

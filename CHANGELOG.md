@@ -1,4 +1,15 @@
 # Changelog
+## v0.2.1
+
+
+### Bug Fixes
+
+- Fix a crash happening when printing native functions ([2149293](21492936b8da1a0076c62572fdf5000e3a3b699f))
+- Stable function traces ([a393994](a3939945026d4d51e1cd60a3e6c1dc1af59cde9c))
+
+### Refactor
+
+- Rename is_top_level_card ([877e130](877e1302ecae1787030b0afdfe8308f9cecd851d))
 ## v0.2.0
 
 
