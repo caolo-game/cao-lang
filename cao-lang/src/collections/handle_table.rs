@@ -19,9 +19,6 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::alloc::{Allocator, SysAllocator};
 
-#[cfg(feature = "serde")]
-pub use self::serde_impl::*;
-
 use std::{
     alloc::Layout,
     mem::{align_of, size_of, swap, MaybeUninit},
