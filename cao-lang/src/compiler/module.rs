@@ -185,15 +185,17 @@ impl Module {
             .functions
             .get_mut(idx.function)
             .ok_or(CardFetchError::FunctionNotFound)?;
+        let mut depth = 0;
         let mut card = function
             .cards
             .get_mut(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            .ok_or(CardFetchError::CardNotFound { depth })?;
 
         for i in &idx.card_index.indices[1..] {
+            depth += 1;
             card = card
                 .get_child_mut(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
+                .ok_or(CardFetchError::CardNotFound { depth })?;
         }
 
         Ok(card)
@@ -204,15 +206,18 @@ impl Module {
             .functions
             .get(idx.function)
             .ok_or(CardFetchError::FunctionNotFound)?;
+
+        let mut depth = 0;
         let mut card = function
             .cards
             .get(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            .ok_or(CardFetchError::CardNotFound { depth })?;
 
         for i in &idx.card_index.indices[1..] {
+            depth += 1;
             card = card
                 .get_child(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
+                .ok_or(CardFetchError::CardNotFound { depth })?;
         }
 
         Ok(card)
@@ -229,17 +234,19 @@ impl Module {
             }
             return Ok(function.cards.remove(idx.card_index.indices[0] as usize));
         }
+        let mut depth = 0;
         let mut card = function
             .cards
             .get_mut(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            .ok_or(CardFetchError::CardNotFound { depth })?;
 
         // len is at least 1
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            depth += 1;
             card = card
                 .get_child_mut(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
+                .ok_or(CardFetchError::CardNotFound { depth })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
         card.remove_child(i)
@@ -260,17 +267,19 @@ impl Module {
             let res = std::mem::replace(c, child);
             return Ok(res);
         }
+        let mut depth = 0;
         let mut card = function
             .cards
             .get_mut(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            .ok_or(CardFetchError::CardNotFound { depth })?;
 
         // len is at least 1
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            depth += 1;
             card = card
                 .get_child_mut(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
+                .ok_or(CardFetchError::CardNotFound { depth })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
         card.replace_child(i, child)
@@ -291,17 +300,19 @@ impl Module {
                 .insert(idx.card_index.indices[0] as usize, child);
             return Ok(());
         }
+        let mut depth = 0;
         let mut card = function
             .cards
             .get_mut(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
+            .ok_or(CardFetchError::CardNotFound { depth })?;
 
         // len is at least 1
         let len = idx.card_index.indices.len();
         for i in &idx.card_index.indices[1..(len - 1).max(1)] {
+            depth += 1;
             card = card
                 .get_child_mut(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: *i as usize })?;
+                .ok_or(CardFetchError::CardNotFound { depth })?;
         }
         let i = *idx.card_index.indices.last().unwrap() as usize;
         card.insert_child(i, child)
