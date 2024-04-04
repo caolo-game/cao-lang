@@ -1,4 +1,10 @@
 # Changelog
+## v0.2.3
+
+
+### Bug Fixes
+
+- Fix closure child indexing ([61f344e](61f344e21d948ea0fab4763789df65d224cb4e35))
 ## v0.2.1
 
 
