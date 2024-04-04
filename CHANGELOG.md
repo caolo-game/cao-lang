@@ -10,6 +10,10 @@
 ### Refactor
 
 - Rename is_top_level_card ([877e130](877e1302ecae1787030b0afdfe8308f9cecd851d))
+
+### Chore
+
+- Prepare for v0.2.1 ([aa8a91e](aa8a91e8db03fba3551669c1b7d165ea788c162e))
 ## v0.2.0
 
 
