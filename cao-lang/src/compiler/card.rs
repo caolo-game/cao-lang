@@ -248,6 +248,7 @@ impl Card {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get_mut(i)?,
+            Card::Closure(c) => res = c.cards.get_mut(i)?,
             Card::Repeat(rep) => match i {
                 0 => res = &mut rep.n,
                 1 => res = &mut rep.body,
@@ -308,7 +309,6 @@ impl Card {
             Card::Array(cards) => return cards.get_mut(i),
             Card::Function(_)
             | Card::NativeFunction(_)
-            | Card::Closure(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -325,6 +325,7 @@ impl Card {
         let res;
         match self {
             Card::CompositeCard(c) => res = c.cards.get(i)?,
+            Card::Closure(c) => res = c.cards.get(i)?,
             Card::Repeat(rep) => match i {
                 0 => res = &rep.n,
                 1 => res = &rep.body,
@@ -384,7 +385,6 @@ impl Card {
             Card::Array(cards) => return cards.get(i),
             Card::Function(_)
             | Card::NativeFunction(_)
-            | Card::Closure(_)
             | Card::ReadVar(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
@@ -401,6 +401,12 @@ impl Card {
         let res;
         match self {
             Card::CompositeCard(c) => {
+                if c.cards.len() <= i {
+                    return None;
+                }
+                res = c.cards.remove(i);
+            }
+            Card::Closure(c) => {
                 if c.cards.len() <= i {
                     return None;
                 }
@@ -483,7 +489,6 @@ impl Card {
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
             | Card::Comment(_)
-            | Card::Closure(_)
             | Card::ScalarNil
             | Card::CreateTable
             | Card::Abort => return None,
@@ -498,6 +503,12 @@ impl Card {
     pub fn insert_child(&mut self, i: usize, card: Self) -> Result<(), Self> {
         match self {
             Card::CompositeCard(c) => {
+                if c.cards.len() < i {
+                    return Err(card);
+                }
+                c.cards.insert(i, card);
+            }
+            Card::Closure(c) => {
                 if c.cards.len() < i {
                     return Err(card);
                 }
@@ -578,7 +589,6 @@ impl Card {
             Card::Function(_)
             | Card::NativeFunction(_)
             | Card::ReadVar(_)
-            | Card::Closure(_)
             | Card::ScalarInt(_)
             | Card::ScalarFloat(_)
             | Card::StringLiteral(_)
