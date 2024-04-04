@@ -36,7 +36,7 @@ pub struct Module {
     pub functions: Functions,
     /// _functions_ to import from submodules
     ///
-    /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [[Card]]
+    /// e.g. importing `foo.bar` allows you to use a `Jump("bar")` [Card]
     pub imports: Imports,
 }
 
