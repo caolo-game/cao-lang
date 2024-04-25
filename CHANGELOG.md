@@ -1,4 +1,10 @@
 # Changelog
+## v0.2.4
+
+
+### Bug Fixes
+
+- Fix for-each popping off invalid values if the for-each input list is empty ([3787f6c](3787f6c63cdb58e3c72973262667f43a052d278b))
 ## v0.2.3
 
 
