@@ -538,6 +538,9 @@ impl<'a> Compiler<'a> {
                 self.push_instruction(Instruction::BeginForEach);
                 write_to_vec(loop_var, &mut self.program.bytecode);
                 write_to_vec(loop_item, &mut self.program.bytecode);
+                write_to_vec(i_index, &mut self.program.bytecode);
+                write_to_vec(k_index, &mut self.program.bytecode);
+                write_to_vec(v_index, &mut self.program.bytecode);
 
                 let block_begin = self.program.bytecode.len() as i32;
                 self.push_instruction(Instruction::ForEach);

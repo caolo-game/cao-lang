@@ -346,6 +346,17 @@ pub fn begin_for_each<T>(
     write_local_var(vm, i_handle, Value::Integer(0), offset)?;
     write_local_var(vm, t_handle, item_val, offset)?;
 
+    // initialize local variables
+    //
+    // must be initialized at this point, otherwise the scope end cleans up non-existent locals
+    // if for-each is called with an empty list
+    let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let k_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    let v_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
+    write_local_var(vm, v_handle, Value::Nil, offset)?;
+    write_local_var(vm, k_handle, Value::Nil, offset)?;
+    write_local_var(vm, i_handle, Value::Nil, offset)?;
+
     Ok(())
 }
 

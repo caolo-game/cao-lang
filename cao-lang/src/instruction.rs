@@ -152,7 +152,7 @@ impl Instruction {
             Instruction::Goto | Instruction::GotoIfTrue | Instruction::GotoIfFalse => {
                 size_of::<i32>()
             }
-            Instruction::BeginForEach => size_of::<u32>() * 2,
+            Instruction::BeginForEach => size_of::<u32>() * 5,
             Instruction::ForEach => size_of::<u32>() * 5,
             Instruction::FunctionPointer => size_of::<Handle>() + size_of::<u32>(),
             Instruction::Closure => size_of::<Handle>() + size_of::<u32>(),
