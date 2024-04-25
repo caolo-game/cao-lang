@@ -1282,7 +1282,6 @@ fn closure_test() {
         .read_var_by_name("g_result", &program.variables)
         .expect("Failed to read g_result variable");
 
-
     unsafe {
         let result = result.as_str().unwrap();
 
@@ -1552,4 +1551,36 @@ fn closure_capture_in_loops_is_sane_test() {
             assert_eq!(a, b);
         }
     }
+}
+
+#[test]
+fn test_empty_list_foreach() {
+    // regression test
+    // for-each with an empty array cleans up non-existent locals
+    //
+    let cu = Module {
+        submodules: Default::default(),
+        functions: vec![(
+            "main".to_string(),
+            Function {
+                arguments: Default::default(),
+                cards: vec![
+                    Card::ForEach(Box::new(ForEach {
+                        i: None,
+                        k: None,
+                        v: Some("v".to_string()),
+                        iterable: Box::new(Card::Array(vec![])),
+                        body: Default::default(),
+                    })),
+                    Card::set_var("asd", Card::Array(vec![])),
+                ],
+            },
+        )],
+        imports: Default::default(),
+    };
+
+    let program = compile(cu, None).expect("compile");
+
+    let mut vm = Vm::new(()).unwrap();
+    vm.run(&program).expect("run");
 }
