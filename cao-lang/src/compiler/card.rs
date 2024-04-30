@@ -127,7 +127,7 @@ impl From<ForEach> for Card {
 impl Card {
     pub fn name(&self) -> &str {
         match self {
-            Card::SetVar(_) => "SetLocalVar",
+            Card::SetVar(_) => "SetVar",
             Card::Add(_) => "Add",
             Card::Sub(_) => "Sub",
             Card::CreateTable => "CreateTable",
