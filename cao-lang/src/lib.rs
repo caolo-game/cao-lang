@@ -20,7 +20,7 @@ pub mod vm;
 mod bytecode;
 
 pub mod version {
-    include!(concat!(env!("OUT_DIR"), "/cao_lang_version.rs"));
+    pub const VERSION_STR: &str = env!("CARGO_PKG_VERSION");
 }
 
 use std::{mem::size_of, str::FromStr};

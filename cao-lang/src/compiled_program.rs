@@ -61,7 +61,7 @@ pub struct CaoCompiledProgram {
     pub data: Vec<u8>,
     pub labels: Labels,
     pub variables: Variables,
-    pub cao_lang_version: (u8, u8, u16),
+    pub cao_lang_version: String,
     pub trace: CaoHashMap<u32, Trace>,
 }
 
@@ -156,7 +156,7 @@ impl Default for CaoCompiledProgram {
             data: Default::default(),
             labels: Default::default(),
             variables: Default::default(),
-            cao_lang_version: (version::MAJOR, version::MINOR, version::PATCH),
+            cao_lang_version: version::VERSION_STR.to_string(),
             trace: Default::default(),
         }
     }
