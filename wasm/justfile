@@ -15,3 +15,5 @@ pack: release
 publish: release
 	cd out/pkg && npm publish --access=public
 
+link: pack
+    cd out/pkg && npm link
