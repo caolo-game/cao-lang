@@ -244,6 +244,52 @@ impl Card {
         Self::Function(s.into())
     }
 
+    pub fn num_children(&self) -> u32 {
+        match self {
+            Card::Add(_b)
+            | Card::Sub(_b)
+            | Card::Mul(_b)
+            | Card::Div(_b)
+            | Card::Less(_b)
+            | Card::LessOrEq(_b)
+            | Card::Equals(_b)
+            | Card::NotEquals(_b)
+            | Card::And(_b)
+            | Card::Or(_b)
+            | Card::GetProperty(_b)
+            | Card::IfTrue(_b)
+            | Card::IfFalse(_b)
+            | Card::While(_b)
+            | Card::Get(_b)
+            | Card::AppendTable(_b)
+            | Card::Xor(_b) => 2,
+            Card::PopTable(UnaryExpression { .. })
+            | Card::Len(UnaryExpression { .. })
+            | Card::Not(UnaryExpression { .. })
+            | Card::Return(UnaryExpression { .. }) => 1,
+            Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::Comment(_)
+            | Card::Function(_)
+            | Card::CreateTable
+            | Card::ReadVar(_)
+            | Card::NativeFunction(_)
+            | Card::Abort
+            | Card::ScalarNil => 0,
+            Card::IfElse(_t) | Card::SetProperty(_t) => 3,
+            Card::CallNative(c) => c.args.0.len() as u32,
+            Card::Call(c) => c.args.0.len() as u32,
+            Card::SetGlobalVar(_s) | Card::SetVar(_s) => 1,
+            Card::Repeat(_r) => 2,
+            Card::ForEach(_f) => 2,
+            Card::CompositeCard(c) => c.cards.len() as u32,
+            Card::DynamicCall(c) => 1 + c.args.0.len() as u32,
+            Card::Array(a) => a.len() as u32,
+            Card::Closure(c) => c.cards.len() as u32,
+        }
+    }
+
     pub fn iter_children_mut<'a>(&'a mut self) -> Box<dyn Iterator<Item = &'a mut Card> + 'a> {
         match self {
             Card::Add(b)
@@ -283,7 +329,9 @@ impl Card {
             Card::Repeat(r) => Box::new([&mut r.n, &mut r.body].into_iter()),
             Card::ForEach(f) => Box::new([f.iterable.as_mut(), f.body.as_mut()].into_iter()),
             Card::CompositeCard(c) => Box::new(c.cards.iter_mut()),
-            Card::DynamicCall(c) => Box::new(std::iter::once(&mut c.function).chain(c.args.0.iter_mut())),
+            Card::DynamicCall(c) => {
+                Box::new(std::iter::once(&mut c.function).chain(c.args.0.iter_mut()))
+            }
             Card::Array(a) => Box::new(a.iter_mut()),
             Card::Closure(c) => Box::new(c.cards.iter_mut()),
         }
