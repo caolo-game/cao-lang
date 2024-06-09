@@ -244,6 +244,96 @@ impl Card {
         Self::Function(s.into())
     }
 
+    pub fn iter_children_mut<'a>(&'a mut self) -> Box<dyn Iterator<Item = &'a mut Card> + 'a> {
+        match self {
+            Card::Add(b)
+            | Card::Sub(b)
+            | Card::Mul(b)
+            | Card::Div(b)
+            | Card::Less(b)
+            | Card::LessOrEq(b)
+            | Card::Equals(b)
+            | Card::NotEquals(b)
+            | Card::And(b)
+            | Card::Or(b)
+            | Card::GetProperty(b)
+            | Card::IfTrue(b)
+            | Card::IfFalse(b)
+            | Card::While(b)
+            | Card::Get(b)
+            | Card::AppendTable(b)
+            | Card::Xor(b) => Box::new(b.iter_mut()),
+            Card::PopTable(u) | Card::Len(u) | Card::Not(u) | Card::Return(u) => {
+                Box::new(std::iter::once(u.card.as_mut()))
+            }
+            Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::Comment(_)
+            | Card::Function(_)
+            | Card::CreateTable
+            | Card::ReadVar(_)
+            | Card::NativeFunction(_)
+            | Card::Abort
+            | Card::ScalarNil => Box::new(std::iter::empty()),
+            Card::IfElse(t) | Card::SetProperty(t) => Box::new(t.iter_mut()),
+            Card::CallNative(c) => Box::new(c.args.0.iter_mut()),
+            Card::Call(c) => Box::new(c.args.0.iter_mut()),
+            Card::SetGlobalVar(s) | Card::SetVar(s) => Box::new(std::iter::once(&mut s.value)),
+            Card::Repeat(r) => Box::new([&mut r.n, &mut r.body].into_iter()),
+            Card::ForEach(f) => Box::new([f.iterable.as_mut(), f.body.as_mut()].into_iter()),
+            Card::CompositeCard(c) => Box::new(c.cards.iter_mut()),
+            Card::DynamicCall(c) => Box::new(std::iter::once(&mut c.function).chain(c.args.0.iter_mut())),
+            Card::Array(a) => Box::new(a.iter_mut()),
+            Card::Closure(c) => Box::new(c.cards.iter_mut()),
+        }
+    }
+
+    pub fn iter_children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Card> + 'a> {
+        match self {
+            Card::Add(b)
+            | Card::Sub(b)
+            | Card::Mul(b)
+            | Card::Div(b)
+            | Card::Less(b)
+            | Card::LessOrEq(b)
+            | Card::Equals(b)
+            | Card::NotEquals(b)
+            | Card::And(b)
+            | Card::Or(b)
+            | Card::GetProperty(b)
+            | Card::IfTrue(b)
+            | Card::IfFalse(b)
+            | Card::While(b)
+            | Card::Get(b)
+            | Card::AppendTable(b)
+            | Card::Xor(b) => Box::new(b.iter()),
+            Card::PopTable(u) | Card::Len(u) | Card::Not(u) | Card::Return(u) => {
+                Box::new(std::iter::once(u.card.as_ref()))
+            }
+            Card::ScalarInt(_)
+            | Card::ScalarFloat(_)
+            | Card::StringLiteral(_)
+            | Card::Comment(_)
+            | Card::Function(_)
+            | Card::CreateTable
+            | Card::ReadVar(_)
+            | Card::NativeFunction(_)
+            | Card::Abort
+            | Card::ScalarNil => Box::new(std::iter::empty()),
+            Card::IfElse(t) | Card::SetProperty(t) => Box::new(t.iter()),
+            Card::CallNative(c) => Box::new(c.args.0.iter()),
+            Card::Call(c) => Box::new(c.args.0.iter()),
+            Card::SetGlobalVar(s) | Card::SetVar(s) => Box::new(std::iter::once(&s.value)),
+            Card::Repeat(r) => Box::new([&r.n, &r.body].into_iter()),
+            Card::ForEach(f) => Box::new([f.iterable.as_ref(), f.body.as_ref()].into_iter()),
+            Card::CompositeCard(c) => Box::new(c.cards.iter()),
+            Card::DynamicCall(c) => Box::new(std::iter::once(&c.function).chain(c.args.0.iter())),
+            Card::Array(a) => Box::new(a.iter()),
+            Card::Closure(c) => Box::new(c.cards.iter()),
+        }
+    }
+
     pub fn get_child_mut(&mut self, i: usize) -> Option<&mut Card> {
         let res;
         match self {
@@ -673,4 +763,25 @@ pub struct Repeat {
     pub i: Option<VarName>,
     pub n: Card,
     pub body: Card,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_iter_indexing_consistent() {
+        let card = Card::ForEach(Box::new(ForEach {
+            i: None,
+            k: None,
+            v: None,
+            iterable: Box::new(Card::ScalarInt(42)),
+            body: Box::new(Card::string_card("winnie")),
+        }));
+
+        for (i, a) in card.iter_children().enumerate() {
+            let _b = card.get_child(i);
+            assert!(matches!(Some(a), _b));
+        }
+    }
 }
