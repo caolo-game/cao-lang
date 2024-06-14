@@ -38,9 +38,17 @@ pub struct CaoLangProgram {
 
 #[wasm_bindgen]
 impl CaoLangProgram {
+    /// Construct a CaoLangProgram from an ECMAScript object
     #[wasm_bindgen]
     pub fn from_js(compilation_unit: JsValue) -> Result<CaoLangProgram, JsValue> {
         let inner = serde_wasm_bindgen::from_value(compilation_unit).map_err(err_to_js)?;
+        Ok(Self { inner })
+    }
+
+    /// Construct a CaoLangProgram from a JSON string
+    #[wasm_bindgen]
+    pub fn from_json(compilation_unit: String) -> Result<CaoLangProgram, JsValue> {
+        let inner = serde_json::from_str(&compilation_unit).map_err(err_to_js)?;
         Ok(Self { inner })
     }
 
