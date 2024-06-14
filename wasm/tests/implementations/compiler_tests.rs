@@ -5,7 +5,7 @@
 use serde_json::json;
 use wasm_bindgen_test::*;
 
-use cao_lang_wasm::{compile, run_program, CompileResult};
+use cao_lang_wasm::{compile, run_program, CompileResult, CaoLangProgram};
 
 #[wasm_bindgen_test]
 fn can_compile_simple_program() {
@@ -18,7 +18,8 @@ fn can_compile_simple_program() {
             "cards": [ {"ScalarInt": 69 } ]
         }]]
     });
-    let result = compile(serde_json::to_string(&cu).unwrap(), None);
+    let cu = CaoLangProgram::from_json(serde_json::to_string(&cu).unwrap()).unwrap();
+    let result = compile(&cu, None);
 
     assert!(result.is_ok(), "Failed to compile {:?}", result);
 }
@@ -36,8 +37,8 @@ fn compiler_returns_error_not_exception() {
             "cards": [ {"Call": {"function_name":"42", "args":[]} } ]
         }]]
     });
-    let output =
-        compile(serde_json::to_string(&cu).unwrap(), None).expect("Compile returned error");
+    let cu = CaoLangProgram::from_json(serde_json::to_string(&cu).unwrap()).unwrap();
+    let output = compile(&cu, None).unwrap();
     let output: CompileResult =
         serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");
 
@@ -65,7 +66,8 @@ fn can_run_simple_program() {
             ]
         }]]
     });
-    let output = compile(serde_json::to_string(&cu).unwrap(), None).expect("failed to run compile");
+    let cu = CaoLangProgram::from_json(serde_json::to_string(&cu).unwrap()).unwrap();
+    let output = compile(&cu, None).unwrap();
 
     let output: CompileResult =
         serde_wasm_bindgen::from_value(output).expect("Failed to deserialize compiler output");

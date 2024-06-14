@@ -1,4 +1,8 @@
-use cao_lang::{compiler as caoc, prelude::*, vm::Vm};
+use cao_lang::{
+    compiler::{self as caoc, FunctionCardIndex},
+    prelude::*,
+    vm::Vm,
+};
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -25,6 +29,68 @@ impl VersionInfo {
     }
 }
 
+#[wasm_bindgen]
+pub struct CaoLangProgram {
+    inner: caoc::CaoProgram,
+}
+
+#[wasm_bindgen]
+impl CaoLangProgram {
+    #[wasm_bindgen]
+    pub fn from_js(compilation_unit: JsValue) -> Result<CaoLangProgram, JsValue> {
+        let inner = serde_wasm_bindgen::from_value(compilation_unit).map_err(err_to_js)?;
+        Ok(Self { inner })
+    }
+
+    #[wasm_bindgen]
+    pub fn get_card(&self, function: u32, card: &[u32]) -> JsValue {
+        let mut card_index = FunctionCardIndex::default();
+        for i in card {
+            card_index.indices.push(*i);
+        }
+        let idx = CardIndex {
+            function: function as usize,
+            card_index,
+        };
+
+        let card = self.inner.get_card(&idx).ok();
+
+        serde_wasm_bindgen::to_value(&card).unwrap()
+    }
+
+    #[wasm_bindgen]
+    pub fn set_card(&mut self, function: u32, card: &[u32], value: JsValue) -> Result<(), JsValue> {
+        let mut card_index = FunctionCardIndex::default();
+        for i in card {
+            card_index.indices.push(*i);
+        }
+        let idx = CardIndex {
+            function: function as usize,
+            card_index,
+        };
+
+        let result = self.inner.get_card_mut(&idx).map_err(err_to_js)?;
+
+        *result = serde_wasm_bindgen::from_value(value).map_err(err_to_js)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn num_functions(&self) -> u32 {
+        self.inner.functions.len() as u32
+    }
+
+    /// Return the number of cards in a given function or null if the function does not exist
+    #[wasm_bindgen]
+    pub fn num_cards(&self, function: u32) -> Option<u32> {
+        self.inner
+            .functions
+            .get(function as usize)
+            .map(|(_, f)| f.cards.len() as u32)
+    }
+}
+
 /// ## Compilation errors:
 ///
 /// The `compile` function will return an object with a `compilationError` if the compilation fails, rather
@@ -33,10 +99,10 @@ impl VersionInfo {
 ///
 #[wasm_bindgen]
 pub fn compile(
-    compilation_unit: String,
+    compilation_unit: &CaoLangProgram,
     compile_options: Option<CompileOptions>,
 ) -> Result<JsValue, JsValue> {
-    let cu: caoc::CaoProgram = serde_json::from_str(&compilation_unit).map_err(err_to_js)?;
+    let cu = compilation_unit.inner.clone();
     let ops: Option<caoc::CompileOptions> = compile_options.map(|ops| ops.into());
 
     let res = match caoc::compile(cu, ops) {
