@@ -555,12 +555,10 @@ impl Card {
                 1 => res = std::mem::replace(&mut rep.body, Card::ScalarNil),
                 _ => return None,
             },
-            Card::IfTrue(_) | Card::IfFalse(_) => match self.get_child_mut(i) {
-                Some(c) => {
-                    res = std::mem::replace::<Card>(c, Card::ScalarNil);
-                }
-                None => return None,
-            },
+            Card::IfTrue(_) | Card::IfFalse(_) => {
+                let c = self.get_child_mut(i)?;
+                res = std::mem::replace::<Card>(c, Card::ScalarNil);
+            }
 
             Card::ForEach(fe) => {
                 let ForEach {
@@ -577,9 +575,7 @@ impl Card {
                 }
             }
             Card::IfElse(children) => {
-                let Some(c) = children.get_mut(i) else {
-                    return None;
-                };
+                let c = children.get_mut(i)?;
                 res = std::mem::replace(c, Card::ScalarNil);
             }
             Card::While(_)
@@ -603,10 +599,10 @@ impl Card {
             | Card::Len(_)
             | Card::SetGlobalVar(_)
             | Card::SetVar(_)
-            | Card::GetProperty(_) => match self.get_child_mut(i) {
-                Some(c) => res = std::mem::replace(c, Card::ScalarNil),
-                None => return None,
-            },
+            | Card::GetProperty(_) => {
+                let c = self.get_child_mut(i)?;
+                res = std::mem::replace(c, Card::ScalarNil);
+            }
 
             Card::CallNative(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
             Card::Call(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
