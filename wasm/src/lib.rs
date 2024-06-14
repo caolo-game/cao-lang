@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use cao_lang::{
     compiler::{self as caoc, FunctionCardIndex},
     prelude::*,
@@ -132,22 +134,43 @@ impl From<CompileOptions> for caoc::CompileOptions {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+struct Context {
+    logs: String,
+}
+
 #[wasm_bindgen]
 #[derive(Debug)]
-pub struct RunResult {}
+pub struct RunResult {
+    logs: String,
+    result: Result<(), JsValue>,
+}
 
 #[wasm_bindgen]
-impl RunResult {}
+impl RunResult {
+    #[wasm_bindgen(getter)]
+    pub fn logs(&self) -> String {
+        self.logs.clone()
+    }
 
-fn cao_lang_log(_vm: &mut Vm<()>, val: Value) -> Result<Value, ExecutionErrorPayload> {
+    #[wasm_bindgen(getter)]
+    pub fn error(&self) -> JsValue {
+        match self.result.as_ref() {
+            Ok(_) => JsValue::NULL,
+            Err(err) => err.clone(),
+        }
+    }
+}
+
+fn cao_lang_log(vm: &mut Vm<Context>, val: Value) -> Result<Value, ExecutionErrorPayload> {
     match val {
-        Value::Nil => log::info!("Console log: nil"),
+        Value::Nil => writeln!(&mut vm.get_aux_mut().logs, "nil").unwrap(),
         Value::Object(o) => unsafe {
             let o = o.as_ref();
             match &o.body {
                 cao_lang::vm::runtime::cao_lang_object::CaoLangObjectBody::String(s) => {
                     let pl = s.as_str();
-                    log::info!("Console log: {pl}");
+                    writeln!(&mut vm.get_aux_mut().logs, "{pl}").unwrap();
                 }
                 // TODO: log recursively
                 cao_lang::vm::runtime::cao_lang_object::CaoLangObjectBody::Table(_) => todo!(),
@@ -160,8 +183,8 @@ fn cao_lang_log(_vm: &mut Vm<()>, val: Value) -> Result<Value, ExecutionErrorPay
                 cao_lang::vm::runtime::cao_lang_object::CaoLangObjectBody::Upvalue(_) => todo!(),
             }
         },
-        Value::Integer(pl) => log::info!("Console log: {pl}"),
-        Value::Real(pl) => log::info!("Console log: {pl}"),
+        Value::Integer(pl) => writeln!(&mut vm.get_aux_mut().logs, "{pl}").unwrap(),
+        Value::Real(pl) => writeln!(&mut vm.get_aux_mut().logs, "{pl}").unwrap(),
     }
     Ok(Value::Nil)
 }
@@ -171,12 +194,17 @@ fn cao_lang_log(_vm: &mut Vm<()>, val: Value) -> Result<Value, ExecutionErrorPay
 /// Will run in a 'plain' Vm, no custom methods will be available!
 #[wasm_bindgen(js_name = "runProgram")]
 pub fn run_program(program: JsValue) -> Result<RunResult, JsValue> {
-    let mut vm = Vm::new(()).expect("Failed to initialize VM");
+    let mut vm = Vm::new(Context::default()).expect("Failed to initialize VM");
     vm.register_native_stdlib().expect("Failed to init stdlib");
     vm.register_native_function("log", into_f1(cao_lang_log))
         .expect("Failed to register log function");
     let program: CaoCompiledProgram = serde_wasm_bindgen::from_value(program).map_err(err_to_js)?;
-    vm.run(&program).map_err(err_to_js).map(|_| RunResult {})
+    let result = vm.run(&program).map_err(err_to_js).map(drop);
+
+    Ok(RunResult {
+        logs: vm.unwrap_aux().logs,
+        result,
+    })
 }
 
 fn err_to_js(e: impl std::error::Error) -> JsValue {
