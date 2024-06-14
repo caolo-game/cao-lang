@@ -60,6 +60,23 @@ impl CaoLangProgram {
         serde_wasm_bindgen::to_value(&card).unwrap()
     }
 
+    /// Return the card if it was removed or null if not found
+    #[wasm_bindgen]
+    pub fn remove_card(&mut self, function: u32, card: &[u32]) -> JsValue {
+        let mut card_index = FunctionCardIndex::default();
+        for i in card {
+            card_index.indices.push(*i);
+        }
+        let idx = CardIndex {
+            function: function as usize,
+            card_index,
+        };
+
+        let card = self.inner.remove_card(&idx).ok();
+
+        serde_wasm_bindgen::to_value(&card).unwrap()
+    }
+
     #[wasm_bindgen]
     pub fn set_card(&mut self, function: u32, card: &[u32], value: JsValue) -> Result<(), JsValue> {
         let mut card_index = FunctionCardIndex::default();
