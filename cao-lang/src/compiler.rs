@@ -38,7 +38,7 @@ pub type CompilationResult<T> = Result<T, CompilationError>;
 ///
 /// Execution will begin with the first Function
 pub(crate) type FunctionSlice<'a> = &'a [FunctionIr];
-pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 8]>;
+pub(crate) type NameSpace = smallvec::SmallVec<[Box<str>; 1]>;
 pub(crate) type ImportsIr = std::collections::HashMap<String, String>;
 pub(crate) type Locals<'a> = arrayvec::ArrayVec<Local<'a>, 255>;
 type Upvalues = arrayvec::ArrayVec<Upvalue, 255>;
