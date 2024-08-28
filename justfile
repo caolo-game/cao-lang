@@ -22,3 +22,6 @@ build:
 	python -m build --wheel
 
 alias t := test
+
+bump version:
+    cargo xtask bump-version {{version}} -t
