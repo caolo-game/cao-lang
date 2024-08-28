@@ -21,3 +21,5 @@ docs/_build
 /Cargo.lock
 /wasm/Cargo.lock
 /venv/
+.envrc
+.direnv
