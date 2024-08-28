@@ -1,4 +1,19 @@
 # Changelog
+## v0.2.5
+
+
+### Features
+
+- Add child iterators to Card ([32b7635](32b76354360a357a0405b5ec9095d634f53fe16d))
+- Add Card::num_children ([7d78033](7d7803317c17c146e684f56aeff3f4e0a6138ff9))
+- Add console log native function to wasm ([99a56aa](99a56aa58a2565796a32d2ece94f837f9f4e936b))
+- Add CaoLangProgram type to the wasm interface ([52f20ca](52f20cad1019d855776d1f4b8f809dad234f36d1))
+- Return logs on a successful run ([44e450b](44e450b21f0521332ff60483bd1aae7f71542e60))
+
+### Refactor
+
+- Rename SetVar ([5ce3939](5ce3939ffac48965cf6e9a00525ae8c11b2b849a))
+- [**breaking**] Use strings for version identifiers ([544fca3](544fca3e8cf96020300faa0228abed2bb2503e2b))
 ## v0.2.4
 
 
