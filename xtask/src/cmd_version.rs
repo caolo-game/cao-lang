@@ -25,7 +25,7 @@ pub fn cmd_bump_version(target: &str) -> CmdResult<String> {
 pub fn cmd_create_tag(version_target: &str) -> CmdResult<()> {
     let new_version = cmd_bump_version(version_target)?;
 
-    commit_bump()?;
+    commit_bump(&new_version)?;
     git_tag(&new_version)?;
 
     println!("Version bump successful. Push the new version: `git push --tags`");
@@ -47,9 +47,10 @@ fn assert_git_not_dirty() -> CmdResult<()> {
     Ok(())
 }
 
-fn commit_bump() -> CmdResult<()> {
+fn commit_bump(version: &str) -> CmdResult<()> {
+    let msg = format!("Bump version to - {version}");
     let task = Command::new("git")
-        .args(&["commit", "-am", "Bump version"])
+        .args(&["commit", "-am", msg.as_str()])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git")?;
