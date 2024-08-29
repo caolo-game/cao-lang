@@ -24,4 +24,4 @@ build:
 alias t := test
 
 bump version:
-    cargo xtask bump-version {{version}} -t
+    cargo xtask version-bump {{version}} -t
