@@ -15,27 +15,6 @@
           inherit system overlays;
         };
 
-        # python = pkgs.python3;
-        # pythonldlibpath = pkgs.lib.makeLibraryPath (with pkgs; [
-        #   pkgs.stdenv.cc.cc
-        # ]);
-        #
-        # patchedpython = (python.overrideAttrs (
-        #   previousAttrs: {
-        #     # Add the nix-ld libraries to the LD_LIBRARY_PATH.
-        #     # creating a new library path from all desired libraries
-        #     postInstall = previousAttrs.postInstall + ''
-        #       mv  "$out/bin/python3.12" "$out/bin/unpatched_python3.12"
-        #       cat << EOF >> "$out/bin/python3.12"
-        #       #!/run/current-system/sw/bin/bash
-        #       export LD_LIBRARY_PATH="${pythonldlibpath}"
-        #       exec "$out/bin/unpatched_python3.12" "\$@"
-        #       EOF
-        #       chmod +x "$out/bin/python3.12"
-        #     '';
-        #   }
-        # ));
-
       in
       with pkgs;
       {
@@ -43,6 +22,7 @@
           buildInputs = [
             python3
             python3Packages.tox
+            python3Packages.setuptools-rust
             just
             nodejs
             (rust-bin.nightly.latest.default.override {
