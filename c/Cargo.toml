@@ -15,7 +15,7 @@ crate-type = ["cdylib", "staticlib"]
 cao-lang = { path = "../cao-lang", default-features = false, features = [
     "serde",
 ] }
-serde_json = "1.0.115"
+serde_json = "1.0.138"
 
 [build-dependencies]
-cbindgen = "0.26.0"
+cbindgen = "0.28.0"

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use pyo3::{
     exceptions::{PyRuntimeError, PyValueError},
     prelude::*,
@@ -9,8 +7,7 @@ use pyo3::{
 #[pyclass]
 #[derive(Clone)]
 pub struct CompilationUnit {
-    // wrap in an Arc, because clone might cause lifetime issues
-    inner: Arc<cao_lang::prelude::CaoProgram>,
+    inner: cao_lang::prelude::CaoProgram,
 }
 
 #[pyclass]
@@ -25,18 +22,14 @@ impl CompilationUnit {
     fn from_json(payload: &str) -> PyResult<Self> {
         let inner =
             serde_json::from_str(payload).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        Ok(Self {
-            inner: Arc::new(inner),
-        })
+        Ok(Self { inner })
     }
 
     #[staticmethod]
     fn from_yaml(payload: &str) -> PyResult<Self> {
         let inner =
             serde_yaml::from_str(payload).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        Ok(Self {
-            inner: Arc::new(inner),
-        })
+        Ok(Self { inner })
     }
 }
 
@@ -62,27 +55,26 @@ impl CompilationOptions {
 #[pyclass]
 #[derive(Clone)]
 pub struct CaoCompiledProgram {
-    inner: Arc<cao_lang::prelude::CaoCompiledProgram>,
+    inner: cao_lang::prelude::CaoCompiledProgram,
 }
 
 #[pyfunction]
+#[pyo3(signature=(cu, options=None))]
 fn compile(
-    cu: CompilationUnit,
+    cu: &CompilationUnit,
     options: Option<CompilationOptions>,
 ) -> PyResult<CaoCompiledProgram> {
-    cao_lang::prelude::compile(cu.inner.as_ref().clone(), options.map(|o| o.inner))
+    cao_lang::prelude::compile(cu.inner.clone(), options.map(|o| o.inner))
         .map_err(|err| PyValueError::new_err(err.to_string()))
-        .map(|inner| CaoCompiledProgram {
-            inner: Arc::new(inner),
-        })
+        .map(|inner| CaoCompiledProgram { inner })
 }
 
 #[pyfunction]
 fn run(prog: CaoCompiledProgram) -> PyResult<()> {
-    let mut vm = cao_lang::prelude::Vm::new(()).expect("Failed to init vm");
+    let mut vm = cao_lang::vm::Vm::new(()).expect("Failed to init vm");
     vm.run(&prog.inner)
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))
-        .map(|_| ())
+        .map(drop)
 }
 
 /// Return the version of the native Cao-Lang used
