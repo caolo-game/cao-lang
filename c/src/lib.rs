@@ -77,7 +77,7 @@ pub enum ExecutionResult {
 /// # Safety
 ///
 /// The produced program must be freed by calling
-/// [cao_free_compiled_program](cao_free_compiled_program)
+/// [cao_free_compiled_program]
 #[no_mangle]
 pub unsafe extern "C" fn cao_new_compiled_program() -> CaoCompiledProgram {
     CaoCompiledProgram {
@@ -90,7 +90,7 @@ pub unsafe extern "C" fn cao_new_compiled_program() -> CaoCompiledProgram {
 /// This function will panic if initial memory allocation fails
 ///
 /// The produced VM must be freed by calling
-/// [cao_free_vm](cao_free_vm)
+/// [cao_free_vm]
 #[no_mangle]
 pub unsafe extern "C" fn cao_new_vm() -> CaoVm {
     let vm = Box::new(
