@@ -92,7 +92,7 @@ fn native_version() -> PyResult<String> {
 }
 
 #[pymodule]
-fn cao_lang_py(_py: Python, m: &PyModule) -> PyResult<()> {
+fn cao_lang_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_function(wrap_pyfunction!(native_version, m)?)?;
