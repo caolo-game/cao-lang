@@ -1,4 +1,4 @@
-//! The compiler module that transforms [CaoIr](CaoIr) into bytecode.
+//! The compiler module that transforms [CaoProgram] into bytecode.
 //!
 mod card;
 mod compilation_error;

@@ -550,7 +550,7 @@ impl Module {
     /// #          ],
     /// #      },
     /// #  },
-    ///].into();
+    /// # ].into();
     /// # assert_eq!(visited, expected);
     /// ```
     pub fn walk_cards_mut(&mut self, mut op: impl FnMut(&CardIndex, &mut Card)) {

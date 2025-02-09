@@ -427,7 +427,7 @@ impl std::borrow::Borrow<i64> for Value {
     }
 }
 
-/// We can't implement TryFrom<Value> for Option<T>'s, you can use this wrapper in functions to
+/// We can't implement `TryFrom<Value>` for `Option<T>`'s, you can use this wrapper in functions to
 /// take an optional value
 pub struct Nilable<T>(pub Option<T>);
 
