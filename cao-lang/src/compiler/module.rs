@@ -100,7 +100,7 @@ impl CardIndex {
         self
     }
 
-    pub fn set_current_index(mut self, card_index: usize) {
+    pub fn set_current_index(&mut self, card_index: usize) {
         self.card_index.set_current_index(card_index);
     }
 
