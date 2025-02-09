@@ -86,7 +86,7 @@ impl CardIndex {
     /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
-        self.card_index = self.card_index.with_sub_index(card_index);
+        self.push_subindex(card_index as u32);
         self
     }
 
@@ -96,8 +96,12 @@ impl CardIndex {
 
     /// Replaces the card index of the leaf node
     pub fn with_current_index(mut self, card_index: usize) -> Self {
-        self.card_index = self.card_index.with_current_index(card_index);
+        self.card_index.set_current_index(card_index);
         self
+    }
+
+    pub fn set_current_index(mut self, card_index: usize) {
+        self.card_index.set_current_index(card_index);
     }
 
     /// first card's index in the function
@@ -143,8 +147,12 @@ impl FunctionCardIndex {
     /// pushes a new sub-index to the bottom layer
     #[must_use]
     pub fn with_sub_index(mut self, card_index: usize) -> Self {
-        self.indices.push(card_index as u32);
+        self.push_sub_index(card_index);
         self
+    }
+
+    pub fn push_sub_index(&mut self, card_index: usize) {
+        self.indices.push(card_index as u32);
     }
 
     #[must_use]
@@ -155,10 +163,14 @@ impl FunctionCardIndex {
     /// Replaces the card index of the leaf node
     #[must_use]
     pub fn with_current_index(mut self, card_index: usize) -> Self {
+        self.set_current_index(card_index);
+        self
+    }
+
+    pub fn set_current_index(&mut self, card_index: usize) {
         if let Some(x) = self.indices.last_mut() {
             *x = card_index as u32;
         }
-        self
     }
 
     pub fn begin(&self) -> Result<usize, CardFetchError> {
