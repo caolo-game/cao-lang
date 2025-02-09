@@ -472,6 +472,138 @@ impl Module {
         let module = self.lookup_submodule_mut(submodule)?;
         module.lookup_function_mut(function)
     }
+
+    /// Visits all cards in the module recursively
+    ///
+    /// ```
+    /// use cao_lang::prelude::*;
+    /// # use std::collections::HashSet;
+    /// # use cao_lang::compiler::FunctionCardIndex;
+    /// # use smallvec::smallvec;
+    ///
+    /// let mut program = CaoProgram {
+    ///     imports: Default::default(),
+    ///     submodules: Default::default(),
+    ///     functions: [
+    ///         (
+    ///             "main".into(),
+    ///             Function::default().with_card(Card::IfTrue(Box::new([
+    ///                 Card::ScalarInt(42),
+    ///                 Card::call_function("pooh", vec![]),
+    ///             ]))),
+    ///         ),
+    ///         (
+    ///             "pooh".into(),
+    ///             Function::default().with_card(Card::set_global_var("result", Card::ScalarInt(69))),
+    ///         ),
+    ///     ]
+    ///     .into(),
+    /// };
+    ///
+    /// # let mut visited = HashSet::new();
+    /// program.walk_cards_mut(|id, card| {
+    ///     // use id, card
+    /// #   visited.insert(id.clone());
+    /// });
+    ///
+    /// # assert_eq!(visited.len(), 5);
+    /// # let expected: HashSet<_> = [ CardIndex {
+    /// #      function: 0,
+    /// #      card_index: FunctionCardIndex {
+    /// #          indices: smallvec![
+    /// #              0,
+    /// #              0,
+    /// #          ],
+    /// #      },
+    /// #  },
+    /// #  CardIndex {
+    /// #      function: 0,
+    /// #      card_index: FunctionCardIndex {
+    /// #          indices: smallvec![
+    /// #              0,
+    /// #              1,
+    /// #          ],
+    /// #      },
+    /// #  },
+    /// #  CardIndex {
+    /// #      function: 1,
+    /// #      card_index: FunctionCardIndex {
+    /// #          indices: smallvec![
+    /// #              0,
+    /// #          ],
+    /// #      },
+    /// #  },
+    /// #  CardIndex {
+    /// #      function: 1,
+    /// #      card_index: FunctionCardIndex {
+    /// #          indices: smallvec![
+    /// #              0,
+    /// #              0,
+    /// #          ],
+    /// #      },
+    /// #  },
+    /// #  CardIndex {
+    /// #      function: 0,
+    /// #      card_index: FunctionCardIndex {
+    /// #          indices: smallvec![
+    /// #              0,
+    /// #          ],
+    /// #      },
+    /// #  },
+    ///].into();
+    /// # assert_eq!(visited, expected);
+    /// ```
+    pub fn walk_cards_mut(&mut self, mut op: impl FnMut(&CardIndex, &mut Card)) {
+        let mut id = CardIndex::function(0);
+
+        for (i, (_, f)) in self.functions.iter_mut().enumerate() {
+            id.function = i;
+            for (j, c) in f.cards.iter_mut().enumerate() {
+                id.push_subindex(j as u32);
+                op(&id, c);
+                visit_children_mut(c, &mut id, &mut op);
+                id.pop_subindex();
+            }
+        }
+    }
+
+    pub fn walk_cards(&mut self, mut op: impl FnMut(&CardIndex, &Card)) {
+        let mut id = CardIndex::function(0);
+
+        for (i, (_, f)) in self.functions.iter_mut().enumerate() {
+            id.function = i;
+            for (j, c) in f.cards.iter_mut().enumerate() {
+                id.push_subindex(j as u32);
+                op(&id, c);
+                visit_children(c, &mut id, &mut op);
+                id.pop_subindex();
+            }
+        }
+    }
+}
+
+fn visit_children_mut(
+    card: &mut Card,
+    id: &mut CardIndex,
+    op: &mut impl FnMut(&CardIndex, &mut Card),
+) {
+    id.push_subindex(0);
+    for (k, child) in card.iter_children_mut().enumerate() {
+        id.set_current_index(k);
+        op(&id, child);
+        visit_children_mut(child, id, op);
+    }
+    id.pop_subindex();
+}
+
+fn visit_children(card: &Card, id: &mut CardIndex, op: &mut impl FnMut(&CardIndex, &Card)) {
+    id.push_subindex(0);
+    for (k, child) in card.iter_children().enumerate() {
+        id.set_current_index(k);
+        op(&id, child);
+        visit_children(child, id, op);
+    }
+    id.pop_subindex();
 }
 
 fn hash_module(hasher: &mut impl Hasher, module: &Module) {
