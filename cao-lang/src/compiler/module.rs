@@ -221,6 +221,19 @@ impl Module {
         Ok(card)
     }
 
+    pub fn swap_cards(&mut self, lhs: &CardIndex, rhs: &CardIndex) -> Result<(), CardFetchError> {
+        // check if lhs is reachable
+        let _ = self.get_card(lhs)?;
+
+        let rhs_card = self.replace_card(rhs, Card::ScalarNil)?;
+
+        // we know that lhs is reachable so this mustn't err
+        let lhs_card = self.replace_card(lhs, rhs_card).unwrap();
+
+        // we know that rhs is reachable so this mustn't err
+        self.replace_card(rhs, lhs_card).map(drop)
+    }
+
     pub fn remove_card(&mut self, idx: &CardIndex) -> Result<Card, CardFetchError> {
         let (_, function) = self
             .functions
