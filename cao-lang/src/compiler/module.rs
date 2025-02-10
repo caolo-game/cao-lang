@@ -48,6 +48,36 @@ pub struct CardIndex {
     pub card_index: FunctionCardIndex,
 }
 
+impl PartialOrd for CardIndex {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CardIndex {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.function.cmp(&other.function) {
+            std::cmp::Ordering::Equal => {}
+            c @ std::cmp::Ordering::Less | c @ std::cmp::Ordering::Greater => return c,
+        }
+        for (lhs, rhs) in self
+            .card_index
+            .indices
+            .iter()
+            .zip(other.card_index.indices.iter())
+        {
+            match lhs.cmp(&rhs) {
+                std::cmp::Ordering::Equal => {}
+                c @ std::cmp::Ordering::Less | c @ std::cmp::Ordering::Greater => return c,
+            }
+        }
+        self.card_index
+            .indices
+            .len()
+            .cmp(&other.card_index.indices.len())
+    }
+}
+
 impl CardIndex {
     pub fn function(function: usize) -> Self {
         Self {
@@ -191,6 +221,14 @@ pub enum CardFetchError {
     InvalidIndex,
 }
 
+#[derive(Debug, Clone, Error)]
+pub enum SwapError {
+    #[error("Failed to find card {0}: {1}")]
+    FetchError(CardIndex, CardFetchError),
+    #[error("These cards can not be swapped")]
+    InvalidSwap,
+}
+
 impl Module {
     pub fn get_card_mut<'a>(&'a mut self, idx: &CardIndex) -> Result<&'a mut Card, CardFetchError> {
         let (_, function) = self
@@ -233,17 +271,33 @@ impl Module {
         Ok(card)
     }
 
-    pub fn swap_cards(&mut self, lhs: &CardIndex, rhs: &CardIndex) -> Result<(), CardFetchError> {
-        // check if lhs is reachable
-        let _ = self.get_card(lhs)?;
+    /// swapping a parent and child is an error
+    pub fn swap_cards<'a>(
+        &mut self,
+        mut lhs: &'a CardIndex,
+        mut rhs: &'a CardIndex,
+    ) -> Result<(), SwapError> {
+        if lhs < rhs {
+            std::mem::swap(&mut lhs, &mut rhs);
+        }
 
-        let rhs_card = self.replace_card(rhs, Card::ScalarNil)?;
+        let rhs_card = self
+            .replace_card(rhs, Card::ScalarNil)
+            .map_err(|err| SwapError::FetchError(rhs.clone(), err))?;
+
+        // check if lhs is reachable
+        // run the check after taking rhs_card, as this can fail if lhs is a child of rhs
+        if let Err(_) = self.get_card(lhs) {
+            self.replace_card(rhs, rhs_card).unwrap();
+            return Err(SwapError::InvalidSwap);
+        }
 
         // we know that lhs is reachable so this mustn't err
         let lhs_card = self.replace_card(lhs, rhs_card).unwrap();
 
         // we know that rhs is reachable so this mustn't err
-        self.replace_card(rhs, lhs_card).map(drop)
+        self.replace_card(rhs, lhs_card).unwrap();
+        Ok(())
     }
 
     pub fn remove_card(&mut self, idx: &CardIndex) -> Result<Card, CardFetchError> {

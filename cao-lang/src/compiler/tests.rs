@@ -120,3 +120,108 @@ fn duplicate_function_is_error_test() {
 
     let _ = compile(m, None).unwrap_err();
 }
+
+#[test]
+fn test_swap_lhs_childof_rhs_fails() {
+    let mut m = Module {
+        submodules: [].into(),
+        functions: [(
+            "main".into(),
+            Function::default().with_card(Card::Not(UnaryExpression {
+                card: Box::new(Card::scalar_int(42)),
+            })),
+        )]
+        .into(),
+        ..Default::default()
+    };
+
+    let err = m
+        .swap_cards(
+            &CardIndex::function(0).with_sub_index(0).with_sub_index(0),
+            &CardIndex::function(0).with_sub_index(0),
+        )
+        .unwrap_err();
+
+    assert!(matches!(err, SwapError::InvalidSwap));
+}
+
+#[test]
+fn test_swap_rhs_childof_lhs_fails() {
+    let mut m = Module {
+        submodules: [].into(),
+        functions: [(
+            "main".into(),
+            Function::default().with_card(Card::Not(UnaryExpression {
+                card: Box::new(Card::scalar_int(42)),
+            })),
+        )]
+        .into(),
+        ..Default::default()
+    };
+
+    let err = m
+        .swap_cards(
+            &CardIndex::function(0).with_sub_index(0),
+            &CardIndex::function(0).with_sub_index(0).with_sub_index(0),
+        )
+        .unwrap_err();
+
+    assert!(matches!(err, SwapError::InvalidSwap));
+}
+
+#[test]
+fn test_swap() {
+    let mut m = Module {
+        submodules: [].into(),
+        functions: [
+            (
+                "main".into(),
+                Function::default()
+                    .with_card(Card::scalar_int(42))
+                    .with_card(Card::scalar_int(5)),
+            ),
+            (
+                "other".into(),
+                Function::default()
+                    .with_card(Card::scalar_int(5))
+                    .with_card(Card::scalar_int(42)),
+            ),
+        ]
+        .into(),
+        ..Default::default()
+    };
+
+    m.swap_cards(
+        &CardIndex::function(0).with_sub_index(0),
+        &CardIndex::function(1).with_sub_index(0),
+    )
+    .unwrap();
+
+    let f = m
+        .get_card(&CardIndex::function(0).with_sub_index(0))
+        .unwrap();
+
+    assert!(matches!(f, &Card::ScalarInt(5)));
+
+    let f = m
+        .get_card(&CardIndex::function(0).with_sub_index(1))
+        .unwrap();
+
+    assert!(matches!(f, &Card::ScalarInt(5)));
+
+    let f = m
+        .get_card(&CardIndex::function(1).with_sub_index(0))
+        .unwrap();
+
+    assert!(matches!(f, &Card::ScalarInt(42)));
+
+    let f = m
+        .get_card(&CardIndex::function(1).with_sub_index(1))
+        .unwrap();
+
+    assert!(matches!(f, &Card::ScalarInt(42)));
+
+    assert_eq!(m.functions.len(), 2);
+    assert_eq!(m.functions[0].1.cards.len(), 2);
+    assert_eq!(m.functions[1].1.cards.len(), 2);
+}
