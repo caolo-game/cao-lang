@@ -1,10 +1,6 @@
 use std::fmt::Write as _;
 
-use cao_lang::{
-    compiler::{self as caoc, FunctionCardIndex},
-    prelude::*,
-    vm::Vm,
-};
+use cao_lang::{compiler as caoc, prelude::*, vm::Vm};
 use wasm_bindgen::prelude::*;
 
 /// Init the error handling of the library
@@ -54,14 +50,7 @@ impl CaoLangProgram {
 
     #[wasm_bindgen]
     pub fn get_card(&self, function: u32, card: &[u32]) -> JsValue {
-        let mut card_index = FunctionCardIndex::default();
-        for i in card {
-            card_index.indices.push(*i);
-        }
-        let idx = CardIndex {
-            function: function as usize,
-            card_index,
-        };
+        let idx = CardIndex::from_slice(function as usize, card);
 
         let card = self.inner.get_card(&idx).ok();
 
@@ -71,14 +60,7 @@ impl CaoLangProgram {
     /// Return the card if it was removed or null if not found
     #[wasm_bindgen]
     pub fn remove_card(&mut self, function: u32, card: &[u32]) -> JsValue {
-        let mut card_index = FunctionCardIndex::default();
-        for i in card {
-            card_index.indices.push(*i);
-        }
-        let idx = CardIndex {
-            function: function as usize,
-            card_index,
-        };
+        let idx = CardIndex::from_slice(function as usize, card);
 
         let card = self.inner.remove_card(&idx).ok();
 
@@ -87,18 +69,27 @@ impl CaoLangProgram {
 
     #[wasm_bindgen]
     pub fn set_card(&mut self, function: u32, card: &[u32], value: JsValue) -> Result<(), JsValue> {
-        let mut card_index = FunctionCardIndex::default();
-        for i in card {
-            card_index.indices.push(*i);
-        }
-        let idx = CardIndex {
-            function: function as usize,
-            card_index,
-        };
+        let idx = CardIndex::from_slice(function as usize, card);
 
         let result = self.inner.get_card_mut(&idx).map_err(err_to_js)?;
 
         *result = serde_wasm_bindgen::from_value(value).map_err(err_to_js)?;
+
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn swap_cards(
+        &mut self,
+        lhs_function: u32,
+        lhs_card: &[u32],
+        rhs_function: u32,
+        rhs_card: &[u32],
+    ) -> Result<(), JsValue> {
+        let lhs = CardIndex::from_slice(lhs_function as usize, lhs_card);
+        let rhs = CardIndex::from_slice(rhs_function as usize, rhs_card);
+
+        self.inner.swap_cards(&lhs, &rhs).map_err(err_to_js)?;
 
         Ok(())
     }

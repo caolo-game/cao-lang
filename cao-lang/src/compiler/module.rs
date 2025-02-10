@@ -93,6 +93,17 @@ impl CardIndex {
         }
     }
 
+    pub fn from_slice(function: usize, indices: &[u32]) -> Self {
+        let mut card_index = FunctionCardIndex {
+            indices: SmallVec::with_capacity(indices.len()),
+        };
+        card_index.indices.extend_from_slice(indices);
+        Self {
+            function,
+            card_index,
+        }
+    }
+
     pub fn push_subindex(&mut self, i: u32) {
         self.card_index.indices.push(i);
     }
