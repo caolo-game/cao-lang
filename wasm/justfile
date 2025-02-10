@@ -1,8 +1,8 @@
 build:
-	wasm-pack build --scope caolo-game --dev -d out/pkg
+	wasm-pack build --target web --scope caolo-game --dev -d out/pkg
 
 release:
-	wasm-pack build --scope caolo-game --release -d out/pkg -- --no-default-features
+	wasm-pack build --target web --scope caolo-game --release -d out/pkg -- --no-default-features
 
 test:
 	cargo check
