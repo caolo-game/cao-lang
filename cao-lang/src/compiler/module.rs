@@ -279,35 +279,7 @@ impl Module {
 
     /// Return the old card
     pub fn replace_card(&mut self, idx: &CardIndex, child: Card) -> Result<Card, CardFetchError> {
-        let (_, function) = self
-            .functions
-            .get_mut(idx.function)
-            .ok_or(CardFetchError::FunctionNotFound)?;
-        if idx.card_index.indices.len() == 1 {
-            let c = function
-                .cards
-                .get_mut(idx.card_index.indices[0] as usize)
-                .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
-            let res = std::mem::replace(c, child);
-            return Ok(res);
-        }
-        let mut depth = 0;
-        let mut card = function
-            .cards
-            .get_mut(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth })?;
-
-        // len is at least 1
-        let len = idx.card_index.indices.len();
-        for i in &idx.card_index.indices[1..(len - 1).max(1)] {
-            depth += 1;
-            card = card
-                .get_child_mut(*i as usize)
-                .ok_or(CardFetchError::CardNotFound { depth })?;
-        }
-        let i = *idx.card_index.indices.last().unwrap() as usize;
-        card.replace_child(i, child)
-            .map_err(|_| CardFetchError::CardNotFound { depth: len - 1 })
+        self.get_card_mut(idx).map(|c| std::mem::replace(c, child))
     }
 
     pub fn insert_card(&mut self, idx: &CardIndex, child: Card) -> Result<(), CardFetchError> {
