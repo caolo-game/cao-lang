@@ -7,8 +7,15 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { nixpkgs, rust-overlay, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      nixpkgs,
+      rust-overlay,
+      flake-utils,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
@@ -26,7 +33,10 @@
             just
             nodejs
             (rust-bin.nightly.latest.default.override {
-              extensions = [ "rust-src" "rust-analyzer" ];
+              extensions = [
+                "rust-src"
+                "rust-analyzer"
+              ];
               targets = [ "wasm32-unknown-unknown" ];
             })
             cargo-edit
@@ -36,9 +46,9 @@
             stdenv.cc
             ninja
             cmake
+            cargo-deny
           ];
         };
       }
     );
 }
-
