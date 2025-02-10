@@ -2,7 +2,8 @@ name: Cao-Lang publish
 
 on:
   push:
-    tags: "*"
+    tags:
+      - "*"
 
 jobs:
   publish-cratesio:
@@ -34,7 +35,7 @@ jobs:
       - name: "Setup CPython"
         uses: actions/setup-python@v2.2.1
         with:
-          python-version: 3.9
+          python-version: 3.12
 
       - name: "Install deps"
         run: |
@@ -57,7 +58,7 @@ jobs:
   publish-pypi:
     strategy:
       matrix:
-        python: ["3.9", "pypy-3.7", "pypy-3.8"]
+        python: ["3.12", "pypy-3.10"]
         os: ["windows-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -102,11 +103,11 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.3.0
         with:
           # Optional version of wasm-pack to install(eg. 'v0.9.1', 'latest')
-          version: 'latest'
+          version: "latest"
 
       - name: Package
         working-directory: wasm
-        run: | 
+        run: |
           wasm-pack build --target=web --scope caolo-game --release -d out/pkg -- --no-default-features
           wasm-pack pack out/pkg
 
