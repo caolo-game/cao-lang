@@ -1,4 +1,16 @@
 # Changelog
+## v0.2.6
+
+
+### Features
+
+- Module::swap_cards utiltiy function ([da5ed6a](da5ed6ae4c79476c06e3b56e8d9e3db1f77e78d7))
+- Non-move subindex manipulation ([a338873](a3388732872ced8a8a67e8719490e2a74eed5c9a))
+- Add walk methods to Module to visit all cards in the module ([5a00421](5a004210a3e798998c984d98d7b2c8010a186d95))
+
+### Chore
+
+- Update dependencies ([662bcb6](662bcb6fb8db3b8963b048f00bbb1e84af85705f))
 ## v0.2.5
 
 
