@@ -289,10 +289,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         Ok(())
     }
 
-    pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
+    pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let hash = hash(key);
         unsafe { self.remove_with_hint(hash, key) }
@@ -301,10 +301,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn remove_with_hint<Q: ?Sized>(&mut self, hash: u64, key: &Q) -> Option<V>
+    pub unsafe fn remove_with_hint<Q>(&mut self, hash: u64, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
-        Q: Eq,
+        Q: Eq + ?Sized,
     {
         let i = self.find_ind(hash, key);
         if self.hashes()[i] != 0 {
@@ -337,10 +337,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         None
     }
 
-    pub fn contains<Q: ?Sized>(&self, key: &Q) -> bool
+    pub fn contains<Q>(&self, key: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let hash = hash(key);
         unsafe { self.contains_with_hint(hash, key) }
@@ -349,19 +349,19 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn contains_with_hint<Q: ?Sized>(&self, h: u64, k: &Q) -> bool
+    pub unsafe fn contains_with_hint<Q>(&self, h: u64, k: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let i = self.find_ind(h, k);
         self.hashes()[i] != 0
     }
 
-    pub fn get<Q: ?Sized>(&self, key: &Q) -> Option<&V>
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let hash = hash(key);
         unsafe { self.get_with_hint(hash, key) }
@@ -370,10 +370,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn get_with_hint<Q: ?Sized>(&self, h: u64, k: &Q) -> Option<&V>
+    pub unsafe fn get_with_hint<Q>(&self, h: u64, k: &Q) -> Option<&V>
     where
         K: Borrow<Q>,
-        Q: Eq,
+        Q: Eq + ?Sized,
     {
         let i = self.find_ind(h, k);
         if self.hashes()[i] != 0 {
@@ -383,10 +383,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         }
     }
 
-    pub fn get_mut<Q: ?Sized>(&mut self, key: &Q) -> Option<&mut V>
+    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let hash = hash(key);
         unsafe { self.get_with_hint_mut(hash, key) }
@@ -395,10 +395,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
     /// # Safety
     ///
     /// Hash must be produced from the key
-    pub unsafe fn get_with_hint_mut<Q: ?Sized>(&mut self, h: u64, k: &Q) -> Option<&mut V>
+    pub unsafe fn get_with_hint_mut<Q>(&mut self, h: u64, k: &Q) -> Option<&mut V>
     where
         K: Borrow<Q>,
-        Q: Eq + Hash,
+        Q: Eq + Hash + ?Sized,
     {
         let i = self.find_ind(h, k);
         if self.hashes()[i] != 0 {
@@ -408,10 +408,10 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
         }
     }
 
-    fn find_ind<Q: ?Sized>(&self, needle: u64, k: &Q) -> usize
+    fn find_ind<Q>(&self, needle: u64, k: &Q) -> usize
     where
         K: Borrow<Q>,
-        Q: Eq,
+        Q: Eq + ?Sized,
     {
         let len = self.capacity;
 

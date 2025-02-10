@@ -190,7 +190,7 @@ pub fn instr_call_function<T>(
         .labels
         .0
         .get(label)
-        .ok_or_else(|| ExecutionErrorPayload::ProcedureNotFound(label))?
+        .ok_or(ExecutionErrorPayload::ProcedureNotFound(label))?
         .pos as usize;
     Ok(())
 }

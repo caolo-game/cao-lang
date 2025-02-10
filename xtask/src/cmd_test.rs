@@ -21,7 +21,7 @@ pub fn cmd_test_c(args: &[&str]) -> CmdResult<()> {
     // run the tests
     //
     let task = Command::new("ctest")
-        .args(&["--output-on-failure"])
+        .args(["--output-on-failure"])
         .current_dir(project_root().join("build"))
         .spawn()
         .with_context(|| "Spawning the ctest task failed")?;

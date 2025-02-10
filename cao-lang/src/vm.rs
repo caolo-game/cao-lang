@@ -41,7 +41,7 @@ where
     _m: std::marker::PhantomData<&'a ()>,
 }
 
-impl<'a, Aux> Vm<'a, Aux> {
+impl<Aux> Vm<'_, Aux> {
     pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload>
     where
         Aux: 'static,
@@ -301,7 +301,7 @@ impl<'a, Aux> Vm<'a, Aux> {
             .labels
             .0
             .get(label)
-            .ok_or_else(|| ExecutionErrorPayload::ProcedureNotFound(label))?;
+            .ok_or(ExecutionErrorPayload::ProcedureNotFound(label))?;
 
         let src = func.pos;
         let end = program.bytecode.len() - 1;

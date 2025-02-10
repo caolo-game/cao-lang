@@ -17,7 +17,7 @@ fn main() {
                 Arg::new("TARGET")
                     .num_args(1)
                     .required(true)
-                    .value_parser(PossibleValuesParser::new( &["major", "minor", "patch"]))
+                    .value_parser(PossibleValuesParser::new( ["major", "minor", "patch"]))
             )
             .arg(
                 Arg::new("tag")
@@ -32,7 +32,7 @@ fn main() {
                 Arg::new("TARGET")
                     .num_args(1)
                     .required(true)
-                    .value_parser(PossibleValuesParser::new( &["c"]))
+                    .value_parser(PossibleValuesParser::new( ["c"]))
             )
             .arg(
             Arg::new("--")
@@ -45,7 +45,7 @@ fn main() {
                 Arg::new("TARGET")
                     .num_args(1)
                     .required(true)
-                    .value_parser(PossibleValuesParser::new( &["c"]))
+                    .value_parser(PossibleValuesParser::new( ["c"]))
             )
             .arg(
             Arg::new("--")
@@ -77,7 +77,6 @@ fn main() {
                     let args = subcmd
                         .get_many::<String>("--")
                         .unwrap_or_default()
-                        .into_iter()
                         .map(|x| x.as_str())
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_build::cmd_build_c(args.as_slice()) {
@@ -96,7 +95,6 @@ fn main() {
                     let args = subcmd
                         .get_many::<String>("--")
                         .unwrap_or_default()
-                        .into_iter()
                         .map(|x| x.as_str())
                         .collect::<Vec<_>>();
                     if let Err(e) = cmd_test::cmd_test_c(args.as_slice()) {

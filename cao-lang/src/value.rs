@@ -100,7 +100,6 @@ impl Eq for Value {}
 /// # for (k, v) in loaded_table.iter() {
 /// #     let k = unsafe { k.as_str().unwrap() };
 /// #     let v = v.as_int().unwrap();
-
 /// #     assert_eq!(k, "pog");
 /// #     assert_eq!(v, 42);
 /// # }

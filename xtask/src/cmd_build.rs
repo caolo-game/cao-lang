@@ -45,7 +45,7 @@ where
 
 pub fn build_c_interface() -> CmdResult<()> {
     let task = Command::new("cmake")
-        .args(&["--build", ".", "--clean-first"])
+        .args(["--build", ".", "--clean-first"])
         .current_dir(project_root().join("build"))
         .spawn()
         .with_context(|| "Spawning the cmake build task failed")?;

@@ -66,7 +66,7 @@ impl Ord for CardIndex {
             .iter()
             .zip(other.card_index.indices.iter())
         {
-            match lhs.cmp(&rhs) {
+            match lhs.cmp(rhs) {
                 std::cmp::Ordering::Equal => {}
                 c @ std::cmp::Ordering::Less | c @ std::cmp::Ordering::Greater => return c,
             }
@@ -266,14 +266,12 @@ impl Module {
             .get(idx.function)
             .ok_or(CardFetchError::FunctionNotFound)?;
 
-        let mut depth = 0;
         let mut card = function
             .cards
             .get(idx.begin()?)
-            .ok_or(CardFetchError::CardNotFound { depth })?;
+            .ok_or(CardFetchError::CardNotFound { depth: 0 })?;
 
-        for i in &idx.card_index.indices[1..] {
-            depth += 1;
+        for (depth, i) in idx.card_index.indices[1..].iter().enumerate() {
             card = card
                 .get_child(*i as usize)
                 .ok_or(CardFetchError::CardNotFound { depth })?;
@@ -298,7 +296,7 @@ impl Module {
 
         // check if lhs is reachable
         // run the check after taking rhs_card, as this can fail if lhs is a child of rhs
-        if let Err(_) = self.get_card(lhs) {
+        if self.get_card(lhs).is_err() {
             self.replace_card(rhs, rhs_card).unwrap();
             return Err(SwapError::InvalidSwap);
         }
@@ -627,7 +625,7 @@ fn visit_children_mut(
     id.push_subindex(0);
     for (k, child) in card.iter_children_mut().enumerate() {
         id.set_current_index(k);
-        op(&id, child);
+        op(id, child);
         visit_children_mut(child, id, op);
     }
     id.pop_subindex();
@@ -637,7 +635,7 @@ fn visit_children(card: &Card, id: &mut CardIndex, op: &mut impl FnMut(&CardInde
     id.push_subindex(0);
     for (k, child) in card.iter_children().enumerate() {
         id.set_current_index(k);
-        op(&id, child);
+        op(id, child);
         visit_children(child, id, op);
     }
     id.pop_subindex();

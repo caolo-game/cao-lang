@@ -35,7 +35,7 @@ pub fn cmd_create_tag(version_target: &str) -> CmdResult<()> {
 
 fn assert_git_not_dirty() -> CmdResult<()> {
     let task = Command::new("git")
-        .args(&["diff", "--stat"])
+        .args(["diff", "--stat"])
         .current_dir(project_root())
         .output()
         .with_context(|| "Failed to spawn git")?;
@@ -50,7 +50,7 @@ fn assert_git_not_dirty() -> CmdResult<()> {
 fn commit_bump(version: &str) -> CmdResult<()> {
     let msg = format!("Bump version to - {version}");
     let task = Command::new("git")
-        .args(&["commit", "-am", msg.as_str()])
+        .args(["commit", "-am", msg.as_str()])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git")?;
@@ -68,7 +68,7 @@ fn commit_bump(version: &str) -> CmdResult<()> {
 
 fn git_tag(tag: &str) -> CmdResult<()> {
     let task = Command::new("git")
-        .args(&["tag", tag])
+        .args(["tag", tag])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git")?;
@@ -86,7 +86,7 @@ fn git_tag(tag: &str) -> CmdResult<()> {
 
 fn make_changelog(tag: &str) -> CmdResult<()> {
     let task = Command::new("git-cliff")
-        .args(&["-o", "CHANGELOG.md", "--tag", tag])
+        .args(["-o", "CHANGELOG.md", "--tag", tag])
         .current_dir(project_root())
         .spawn()
         .with_context(|| "Failed to spawn git cliff")?;

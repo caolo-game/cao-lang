@@ -88,7 +88,7 @@ pub fn compile(
     compiler.compile(&compilation_unit, options)
 }
 
-impl<'a> Default for Compiler<'a> {
+impl Default for Compiler<'_> {
     fn default() -> Self {
         Self::new()
     }
