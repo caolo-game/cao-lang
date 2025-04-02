@@ -9,7 +9,7 @@ path = "../cao-lang"
 
 [dependencies.pyo3]
 features = ["extension-module", "abi3"]
-version = "0.23.4"
+version = "0.24.1"
 
 [lib]
 crate-type = ["cdylib"]
