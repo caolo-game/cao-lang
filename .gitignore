@@ -18,8 +18,6 @@ docs/_build
 /cao-lang-*/
 /c/cao_lang_c.dll
 /out.txt
-/Cargo.lock
-/wasm/Cargo.lock
 /venv/
 .envrc
 .direnv
