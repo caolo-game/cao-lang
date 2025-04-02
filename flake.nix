@@ -47,6 +47,7 @@
             ninja
             cmake
             cargo-deny
+            firefox
           ];
         };
       }
