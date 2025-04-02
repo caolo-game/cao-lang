@@ -5,17 +5,11 @@ use super::*;
 #[test]
 #[cfg(feature = "serde")]
 fn module_bincode_serde_test() {
-    use bincode::DefaultOptions;
-    use serde::{Deserialize, Serialize};
-
     let default_prog = prog();
-    let mut pl = vec![];
-    let mut s = bincode::Serializer::new(&mut pl, DefaultOptions::new());
-    default_prog.serialize(&mut s).unwrap();
+    let pl = bincode::serde::encode_to_vec(&default_prog, bincode::config::standard()).unwrap();
 
-    let mut reader = bincode::de::Deserializer::from_slice(pl.as_slice(), DefaultOptions::new());
-
-    let _prog = Module::deserialize(&mut reader).unwrap();
+    let (_prog, _): (Module, usize) =
+        bincode::serde::decode_from_slice(pl.as_slice(), bincode::config::standard()).unwrap();
 }
 
 fn prog() -> Module {

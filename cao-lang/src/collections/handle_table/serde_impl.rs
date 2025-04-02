@@ -80,9 +80,12 @@ mod tests {
         map.insert(Handle(123), "poggers".to_string()).unwrap();
         map.insert(Handle(42), "coggers".to_string()).unwrap();
 
-        let payload = bincode::serialize(&map).unwrap();
+        let payload = bincode::serde::encode_to_vec(&map, bincode::config::standard()).unwrap();
 
-        let map2: HandleTable<String> = bincode::deserialize(&payload).unwrap();
+        let map2: HandleTable<String> =
+            bincode::serde::decode_from_slice(&payload, bincode::config::standard())
+                .unwrap()
+                .0;
 
         let res = map2.get(Handle(123)).unwrap();
         assert_eq!(*res, "poggers");

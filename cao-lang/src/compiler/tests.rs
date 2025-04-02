@@ -41,9 +41,10 @@ fn can_binary_de_serialize_output() {
 
     let prog = compile(cu, CompileOptions::new()).unwrap();
 
-    let pl = bincode::serialize(&prog).unwrap();
+    let pl = bincode::serde::encode_to_vec(&prog, bincode::config::standard()).unwrap();
 
-    let _prog: CaoCompiledProgram = bincode::deserialize(&pl[..]).unwrap();
+    let (_prog, _): (CaoCompiledProgram, usize) =
+        bincode::serde::decode_from_slice(&pl[..], bincode::config::standard()).unwrap();
 }
 
 #[test]

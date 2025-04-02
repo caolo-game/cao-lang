@@ -84,9 +84,12 @@ mod tests {
         map.insert(123, "poggers".to_string()).unwrap();
         map.insert(42, "coggers".to_string()).unwrap();
 
-        let payload = bincode::serialize(&map).unwrap();
+        let payload = bincode::serde::encode_to_vec(&map, bincode::config::standard()).unwrap();
 
-        let map2: CaoHashMap<i32, String> = bincode::deserialize(&payload).unwrap();
+        let map2: CaoHashMap<i32, String> =
+            bincode::serde::decode_from_slice(&payload, bincode::config::standard())
+                .unwrap()
+                .0;
 
         let res = map2.get(&123).unwrap();
         assert_eq!(*res, "poggers");

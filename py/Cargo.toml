@@ -1,5 +1,5 @@
 [dependencies]
-serde_json = "1.0.138"
+serde_json = "1.0.140"
 serde_yaml = "0.9.34"
 
 [dependencies.cao-lang]
@@ -9,7 +9,7 @@ path = "../cao-lang"
 
 [dependencies.pyo3]
 features = ["extension-module", "abi3"]
-version = "0.23.4"
+version = "0.24.1"
 
 [lib]
 crate-type = ["cdylib"]

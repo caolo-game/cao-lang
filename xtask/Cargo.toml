@@ -7,8 +7,8 @@ license="MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "4.5.28"
-anyhow = "1.0.95"
-semver = "1.0.25"
+clap = "4.5.35"
+anyhow = "1.0.97"
+semver = "1.0.26"
 toml = "0.8.20"
-smallvec = "1.13.2"
+smallvec = "1.14.0"
