@@ -328,7 +328,7 @@ impl RuntimeData {
 
         // mark referenced objects for collection
         while let Some(obj) = progress_tracker.pop() {
-            obj.marker = GcMarker::Black;
+            debug_assert!(!matches!(obj.marker, GcMarker::Black));
             match &mut obj.body {
                 CaoLangObjectBody::Table(obj) => {
                     for (key, value) in obj.iter() {

@@ -71,3 +71,32 @@ fn test_can_save_and_restore_values() {
         assert_eq!(v, 42);
     }
 }
+
+#[test]
+fn test_cycle_gc() {
+    let mut vm = Vm::new(()).unwrap();
+
+    let mut a = vm.init_table().unwrap();
+    let mut b = vm.init_table().unwrap();
+
+    a.as_table_mut()
+        .unwrap()
+        .append(Value::Object(b.0))
+        .unwrap();
+
+    // push itself
+    let ao = Value::Object(a.0);
+    a.as_table_mut().unwrap().append(ao).unwrap();
+
+    b.as_table_mut()
+        .unwrap()
+        .append(Value::Object(a.0))
+        .unwrap();
+
+    drop(a);
+    drop(b);
+
+    vm.runtime_data.gc();
+
+    assert!(vm.runtime_data.object_list.is_empty());
+}
