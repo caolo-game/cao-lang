@@ -294,7 +294,7 @@ where
         Ok(())
     }
 
-    pub fn entry(&mut self, key: Handle) -> Entry<T> {
+    pub fn entry(&'_ mut self, key: Handle) -> Entry<'_, T> {
         let ind = self.find_ind(key);
 
         let pl = unsafe {

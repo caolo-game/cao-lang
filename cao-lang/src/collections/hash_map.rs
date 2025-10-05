@@ -449,7 +449,7 @@ impl<K, V, A: Allocator> CaoHashMap<K, V, A> {
 
     /// This method eagerly allocated new buffers, if inserting via the entry
     /// would grow the buffer beyong its max load
-    pub fn entry(&mut self, key: K) -> Result<Entry<K, V>, MapError>
+    pub fn entry(&'_ mut self, key: K) -> Result<Entry<'_, K, V>, MapError>
     where
         K: Eq + Hash,
     {
