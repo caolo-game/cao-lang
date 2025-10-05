@@ -1,3 +1,4 @@
+use crate::vm::{get_table, get_table_mut};
 use std::{convert::TryFrom, ptr::NonNull};
 
 use bytemuck::Pod;
@@ -338,9 +339,9 @@ pub fn begin_for_each<T>(
 ) -> ExecutionResult {
     let i_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
     let t_handle: u32 = unsafe { decode_value(bytecode, instr_ptr) };
-    let item_val = vm.runtime_data.value_stack.last();
+    let mut item_val = vm.runtime_data.value_stack.last();
     // test if the input is a table
-    let item = vm.get_table_mut(item_val)?;
+    let item = get_table_mut(&mut item_val)?;
     debug!("Starting for-each on table {:?}", item);
     let offset = stack_offset(vm);
     write_local_var(vm, i_handle, Value::Integer(0), offset)?;
@@ -381,7 +382,7 @@ pub fn for_each<T>(vm: &mut Vm<T>, bytecode: &[u8], instr_ptr: &mut usize) -> Ex
     let i = i64::try_from(i).map_err(|_| {
         ExecutionErrorPayload::AssertionError("ForEach i must be an integer. This error can be caused by stack corruption. Check your function calls!".to_string())
     })?;
-    let obj = vm.get_table(obj_val).map_err(|_| {
+    let obj = get_table(&obj_val).map_err(|_| {
         ExecutionErrorPayload::AssertionError("ForEach value is not an object. This error can be caused by stack corruption. Check your function calls!".to_string())
     })?;
 

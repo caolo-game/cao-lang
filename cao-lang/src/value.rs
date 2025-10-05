@@ -95,7 +95,7 @@ impl Eq for Value {}
 /// let loaded = vm.insert_value(&owned).unwrap();
 ///
 /// # // check the contents
-/// # let loaded_table = vm.get_table(loaded).unwrap();
+/// # let loaded_table = unsafe { loaded.as_table().unwrap() };
 /// # assert_eq!(loaded_table.len(), 1);
 /// # for (k, v) in loaded_table.iter() {
 /// #     let k = unsafe { k.as_str().unwrap() };

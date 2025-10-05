@@ -61,7 +61,7 @@ fn test_can_save_and_restore_values() {
     let loaded = vm.insert_value(&loaded).unwrap();
 
     // check the contents
-    let loaded_table = vm.get_table(loaded).unwrap();
+    let loaded_table = get_table(&loaded).unwrap();
     assert_eq!(loaded_table.len(), 1);
     for (k, v) in loaded_table.iter() {
         let k = unsafe { k.as_str().unwrap() };

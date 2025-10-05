@@ -41,6 +41,36 @@ where
     _m: std::marker::PhantomData<&'a ()>,
 }
 
+pub fn get_table(value: &Value) -> Result<&CaoLangTable, ExecutionErrorPayload> {
+    let res = match value {
+        Value::Object(o) => unsafe {
+            o.as_ref()
+                .as_table()
+                .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
+        },
+        _ => {
+            debug!("Got {:?} instead of object", value);
+            return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
+        }
+    };
+    Ok(res)
+}
+
+pub fn get_table_mut(value: &mut Value) -> Result<&mut CaoLangTable, ExecutionErrorPayload> {
+    let res = match value {
+        Value::Object(mut o) => unsafe {
+            o.as_mut()
+                .as_table_mut()
+                .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
+        },
+        _ => {
+            debug!("Got {:?} instead of object", value);
+            return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
+        }
+    };
+    Ok(res)
+}
+
 impl<Aux> Vm<'_, Aux> {
     pub fn new(auxiliary_data: Aux) -> Result<Self, ExecutionErrorPayload>
     where
@@ -216,36 +246,6 @@ impl<Aux> Vm<'_, Aux> {
         self.runtime_data.value_stack.pop()
     }
 
-    pub fn get_table(&self, value: Value) -> Result<&CaoLangTable, ExecutionErrorPayload> {
-        let res = match value {
-            Value::Object(o) => unsafe {
-                o.as_ref()
-                    .as_table()
-                    .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
-            },
-            _ => {
-                debug!("Got {:?} instead of object", value);
-                return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
-            }
-        };
-        Ok(res)
-    }
-
-    pub fn get_table_mut(&self, value: Value) -> Result<&mut CaoLangTable, ExecutionErrorPayload> {
-        let res = match value {
-            Value::Object(mut o) => unsafe {
-                o.as_mut()
-                    .as_table_mut()
-                    .ok_or_else(|| ExecutionErrorPayload::invalid_argument("Expected Table"))?
-            },
-            _ => {
-                debug!("Got {:?} instead of object", value);
-                return Err(ExecutionErrorPayload::invalid_argument("Expected Table"));
-            }
-        };
-        Ok(res)
-    }
-
     /// Initializes a new FieldTable in this VM instance
     #[inline]
     pub fn init_table(&mut self) -> Result<ObjectGcGuard, ExecutionErrorPayload> {
@@ -385,7 +385,7 @@ impl<Aux> Vm<'_, Aux> {
                 Instruction::GetProperty => {
                     let key = self.stack_pop();
                     let instance = self.stack_pop();
-                    let table = self.get_table(instance).map_err(|err| {
+                    let table = get_table(&instance).map_err(|err| {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let result = table.get(&key).copied().unwrap_or(Value::Nil);
@@ -394,8 +394,8 @@ impl<Aux> Vm<'_, Aux> {
                     })?;
                 }
                 Instruction::SetProperty => {
-                    let [key, instance, value] = self.runtime_data.value_stack.pop_n::<3>();
-                    let table = self.get_table_mut(instance).map_err(|err| {
+                    let [key, mut instance, value] = self.runtime_data.value_stack.pop_n::<3>();
+                    let table = get_table_mut(&mut instance).map_err(|err| {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     table
@@ -660,8 +660,8 @@ impl<Aux> Vm<'_, Aux> {
                     payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                 })?,
                 Instruction::NthRow => {
-                    let [i, instance] = self.runtime_data.value_stack.pop_n::<2>();
-                    let table = self.get_table_mut(instance).map_err(|err| {
+                    let [i, mut instance] = self.runtime_data.value_stack.pop_n::<2>();
+                    let table = get_table_mut(&mut instance).map_err(|err| {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let i = i.as_int().ok_or_else(|| {
@@ -708,9 +708,9 @@ impl<Aux> Vm<'_, Aux> {
                     })?;
                 }
                 Instruction::AppendTable => {
-                    let instance = self.stack_pop();
+                    let mut instance = self.stack_pop();
                     let value = self.stack_pop();
-                    let table = self.get_table_mut(instance).map_err(|err| {
+                    let table = get_table_mut(&mut instance).map_err(|err| {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     table.append(value).map_err(|err| {
@@ -719,8 +719,8 @@ impl<Aux> Vm<'_, Aux> {
                 }
 
                 Instruction::PopTable => {
-                    let instance = self.stack_pop();
-                    let table = self.get_table_mut(instance).map_err(|err| {
+                    let mut instance = self.stack_pop();
+                    let table = get_table_mut(&mut instance).map_err(|err| {
                         payload_to_error(err, *instr_ptr, &self.runtime_data.call_stack)
                     })?;
                     let value = table.pop().map_err(|err| {
