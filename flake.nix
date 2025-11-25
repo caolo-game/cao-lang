@@ -48,6 +48,7 @@
             cmake
             cargo-deny
             firefox
+            git-cliff
           ];
         };
       }
