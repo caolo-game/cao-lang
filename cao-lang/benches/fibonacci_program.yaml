@@ -6,27 +6,33 @@ functions:
     - arguments:
         - N
       cards:
-        - !SetGlobalVar
-            value: !ScalarInt 0
+        - SetGlobalVar:
+            value:
+              ScalarInt: 0
             name: a
-        - !SetGlobalVar 
+        - SetGlobalVar:
             name: b
-            value: !ScalarInt 1
-        - !Repeat
-          n: !ReadVar N
-          i: null
-          body: !CompositeCard
-            ty: ""
-            cards:
-              - !SetVar
-                name: tmp
-                value: !ReadVar b
-              - !SetGlobalVar
-                  name: b
-                  value:
-                    !Add
-                      - !ReadVar b
-                      - !ReadVar a
-              - !SetGlobalVar
-                  name: a
-                  value: !ReadVar tmp
+            value:
+              ScalarInt: 1
+        - Repeat:
+            n:
+              ReadVar: N
+            i: null
+            body:
+              CompositeCard:
+                ty: ""
+                cards:
+                  - SetVar:
+                      name: tmp
+                      value:
+                        ReadVar: b
+                  - SetGlobalVar:
+                      name: b
+                      value:
+                        Add:
+                          - ReadVar: b
+                          - ReadVar: a
+                  - SetGlobalVar:
+                      name: a
+                      value:
+                        ReadVar: tmp

@@ -1,6 +1,6 @@
 pub use crate::compiled_program::*;
 pub use crate::compiler::{
-    compile, CaoProgram, Card, CardIndex, CompilationError, CompilationErrorPayload,
+    compile, CaoProgram, Card, CardBody, CardIndex, CompilationError, CompilationErrorPayload,
     CompileOptions, Function,
 };
 pub use crate::procedures::*;

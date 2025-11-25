@@ -1,7 +1,7 @@
 use tracing_test::traced_test;
 
 use crate::{
-    compiler::{compile, BinaryExpression},
+    compiler::{compile, BinaryExpression, Card},
     value::Value,
     vm::Vm,
 };
@@ -17,7 +17,7 @@ fn filter_test() {
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
-                    Card::set_var("t", Card::CreateTable),
+                    Card::set_var("t", CardBody::CreateTable),
                     Card::set_property(
                         Card::scalar_int(1),
                         Card::read_var("t"),
@@ -33,7 +33,10 @@ fn filter_test() {
                         "g_result",
                         Card::call_function(
                             "filter",
-                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                            vec![
+                                CardBody::Function("cb".to_string()).into(),
+                                Card::read_var("t"),
+                            ],
                         ),
                     ),
                 ]),
@@ -42,7 +45,7 @@ fn filter_test() {
                 "cb".to_string(),
                 Function::default()
                     .with_arg("k")
-                    .with_cards(vec![Card::return_card(Card::Equals(Box::new([
+                    .with_cards(vec![Card::return_card(CardBody::Equals(Box::new([
                         Card::read_var("k"),
                         Card::string_card("winnie"),
                     ])))]),
@@ -115,7 +118,7 @@ fn map_test() {
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
-                    Card::set_var("t", Card::CreateTable),
+                    Card::set_var("t", CardBody::CreateTable),
                     Card::set_property(
                         Card::scalar_int(1),
                         Card::read_var("t"),
@@ -131,7 +134,10 @@ fn map_test() {
                         "g_result",
                         Card::call_function(
                             "map",
-                            vec![Card::Function("cb".to_string()), Card::read_var("t")],
+                            vec![
+                                CardBody::Function("cb".to_string()).into(),
+                                Card::read_var("t"),
+                            ],
                         ),
                     ),
                 ]),
@@ -140,7 +146,7 @@ fn map_test() {
                 "cb".to_string(),
                 Function::default()
                     .with_arg("k")
-                    .with_card(Card::return_card(Card::Equals(Box::new([
+                    .with_card(Card::return_card(CardBody::Equals(Box::new([
                         Card::read_var("k"),
                         Card::string_card("winnie"),
                     ])))),
@@ -181,7 +187,7 @@ fn min_test() {
         functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![
-                Card::set_global_var("t", Card::CreateTable),
+                Card::set_global_var("t", CardBody::CreateTable),
                 Card::set_var("t.winnie", Card::scalar_int(10)),
                 Card::set_var("t.pooh", Card::scalar_int(20)),
                 Card::set_var("t.tiggers", Card::scalar_int(30)),
@@ -221,15 +227,17 @@ fn max_test() {
         functions: vec![(
             "main".to_string(),
             Function::default().with_cards(vec![
-                Card::set_var("t", Card::CreateTable),
-                Card::AppendTable(BinaryExpression::new([
+                Card::set_var("t", CardBody::CreateTable),
+                CardBody::AppendTable(BinaryExpression::new([
                     Card::scalar_int(1),
                     Card::read_var("t"),
-                ])),
-                Card::AppendTable(BinaryExpression::new([
-                    Card::ScalarFloat(3.42),
+                ]))
+                .into(),
+                CardBody::AppendTable(BinaryExpression::new([
+                    CardBody::ScalarFloat(3.42).into(),
                     Card::read_var("t"),
-                ])),
+                ]))
+                .into(),
                 // call max
                 Card::set_global_var(
                     "g_result",
@@ -265,7 +273,7 @@ fn max_empty_list_returns_nil_test() {
             "main".to_string(),
             Function::default().with_cards(vec![Card::set_global_var(
                 "g_result",
-                Card::call_function("max", vec![Card::CreateTable]),
+                Card::call_function("max", vec![CardBody::CreateTable.into()]),
             )]),
         )],
         ..Default::default()
@@ -294,11 +302,11 @@ fn min_by_key_test() {
             Function::default().with_cards(vec![
                 Card::set_var(
                     "t",
-                    Card::Array(vec![
-                        Card::ScalarInt(2),
-                        Card::ScalarInt(3),
-                        Card::ScalarInt(1),
-                        Card::ScalarInt(4),
+                    CardBody::Array(vec![
+                        Card::scalar_int(2),
+                        Card::scalar_int(3),
+                        Card::scalar_int(1),
+                        Card::scalar_int(4),
                     ]),
                 ),
                 // call min
@@ -307,17 +315,20 @@ fn min_by_key_test() {
                     Card::call_function(
                         "min_by_key",
                         vec![
-                            Card::Closure(Box::new(
+                            CardBody::Closure(Box::new(
                                 Function::default()
                                     .with_arg("key")
                                     .with_arg("val")
-                                    .with_card(Card::return_card(Card::Div(
+                                    .with_card(Card::return_card(CardBody::Div(
                                         BinaryExpression::new([
                                             Card::scalar_int(10),
                                             Card::read_var("val"),
-                                        ]),
-                                    ))),
-                            )),
+                                        ])
+                                        .into(),
+                                    )))
+                                    .into(),
+                            ))
+                            .into(),
                             Card::read_var("t"),
                         ],
                     ),
@@ -357,11 +368,11 @@ fn sort_by_key_test() {
                 Function::default().with_cards(vec![
                     Card::set_var(
                         "t",
-                        Card::Array(vec![
-                            Card::ScalarInt(2),
-                            Card::ScalarInt(3),
-                            Card::ScalarInt(1),
-                            Card::ScalarInt(4),
+                        CardBody::Array(vec![
+                            CardBody::ScalarInt(2).into(),
+                            CardBody::ScalarInt(3).into(),
+                            CardBody::ScalarInt(1).into(),
+                            CardBody::ScalarInt(4).into(),
                         ]),
                     ),
                     // call min
@@ -369,7 +380,10 @@ fn sort_by_key_test() {
                         "g_result",
                         Card::call_function(
                             "sorted_by_key",
-                            vec![Card::Function("keyfn".to_string()), Card::read_var("t")],
+                            vec![
+                                CardBody::Function("keyfn".to_string()).into(),
+                                Card::read_var("t"),
+                            ],
                         ),
                     ),
                 ]),

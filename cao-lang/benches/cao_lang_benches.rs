@@ -1,4 +1,7 @@
-use cao_lang::{compiler::CompileOptions, prelude::*};
+use cao_lang::{
+    compiler::{Card, CompileOptions},
+    prelude::*,
+};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 const FIB_PROG: &str = include_str!("fibonacci_program.yaml");

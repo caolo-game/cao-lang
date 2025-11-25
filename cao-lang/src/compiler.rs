@@ -203,7 +203,10 @@ impl<'a> Compiler<'a> {
             };
             self.scope_end();
             // insert explicit exit after the first function
-            self.process_card(&Card::Abort)?;
+            self.process_card(&Card {
+                id: CardId(0),
+                body: CardBody::Abort,
+            })?;
         }
 
         for function in functions {
@@ -508,15 +511,15 @@ impl<'a> Compiler<'a> {
             .insert(nodeid_hash, Label::new(card_byte_index))
             .unwrap();
 
-        match card {
-            Card::CompositeCard(comp) => {
+        match &card.body {
+            CardBody::CompositeCard(comp) => {
                 for (i, card) in comp.cards.iter().enumerate() {
                     self.current_index.push_subindex(i as u32);
                     self.process_card(card)?;
                     self.current_index.pop_subindex()
                 }
             }
-            Card::ForEach(fe) => {
+            CardBody::ForEach(fe) => {
                 let ForEach {
                     i,
                     k,
@@ -577,7 +580,7 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.scope_end();
             }
-            Card::While(children) => {
+            CardBody::While(children) => {
                 let [condition, body] = &**children;
                 let block_begin = self.program.bytecode.len() as i32;
                 self.current_index.push_subindex(0);
@@ -594,7 +597,7 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.current_index.pop_subindex();
             }
-            Card::Repeat(rep) => {
+            CardBody::Repeat(rep) => {
                 self.current_index.push_subindex(0);
                 self.compile_subexpr(slice::from_ref(&rep.n))?;
                 self.current_index.pop_subindex();
@@ -605,7 +608,10 @@ impl<'a> Compiler<'a> {
                 let loop_counter_index = self.add_local_unchecked("")?;
                 self.write_local_var(loop_n_index);
                 // init counter to 0
-                self.process_card(&Card::ScalarInt(0))?;
+                self.process_card(&Card {
+                    id: CardId(0),
+                    body: CardBody::ScalarInt(0),
+                })?;
                 self.write_local_var(loop_counter_index);
 
                 let block_begin = self.program.bytecode.len() as i32;
@@ -626,7 +632,10 @@ impl<'a> Compiler<'a> {
                     c.current_index.pop_subindex();
                     c.scope_end();
                     // i = i + 1
-                    c.process_card(&Card::ScalarInt(1))?;
+                    c.process_card(&Card {
+                        id: CardId(0),
+                        body: CardBody::ScalarInt(1),
+                    })?;
                     c.read_local_var(loop_counter_index);
                     c.push_instruction(Instruction::Add);
                     c.write_local_var(loop_counter_index);
@@ -637,10 +646,10 @@ impl<'a> Compiler<'a> {
                 })?;
                 self.scope_end();
             }
-            Card::ReadVar(variable) => {
+            CardBody::ReadVar(variable) => {
                 self.read_var_card(variable)?;
             }
-            Card::SetVar(var) => {
+            CardBody::SetVar(var) => {
                 self.compile_subexpr(slice::from_ref(&var.value))?;
                 let var = var.name.as_str();
                 match var.rsplit_once('.') {
@@ -664,7 +673,7 @@ impl<'a> Compiler<'a> {
                     }
                 }
             }
-            Card::SetGlobalVar(var) => {
+            CardBody::SetGlobalVar(var) => {
                 self.compile_subexpr(slice::from_ref(&var.value))?;
                 self.push_instruction(Instruction::SetGlobalVar);
                 let variable = var.name.as_str();
@@ -691,7 +700,7 @@ impl<'a> Compiler<'a> {
                     .or_insert_with(move || variable.to_string());
                 write_to_vec(*id, &mut self.program.bytecode);
             }
-            Card::IfElse(children) => {
+            CardBody::IfElse(children) => {
                 let [condition, then_card, else_card] = &**children;
                 self.compile_subexpr(slice::from_ref(condition))?;
 
@@ -714,50 +723,50 @@ impl<'a> Compiler<'a> {
                     std::ptr::write_unaligned(ptr, self.program.bytecode.len() as i32);
                 }
             }
-            Card::IfFalse(jmp) => {
+            CardBody::IfFalse(jmp) => {
                 let [cond, body] = &**jmp;
                 self.compile_subexpr(slice::from_ref(cond))?;
                 self.current_index.push_subindex(1);
                 self.encode_if_then(Instruction::GotoIfTrue, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
-            Card::IfTrue(jmp) => {
+            CardBody::IfTrue(jmp) => {
                 let [cond, body] = &**jmp;
                 self.compile_subexpr(slice::from_ref(cond))?;
                 self.current_index.push_subindex(1);
                 self.encode_if_then(Instruction::GotoIfFalse, |c| c.process_card(body))?;
                 self.current_index.pop_subindex();
             }
-            Card::Call(jmp) => {
+            CardBody::Call(jmp) => {
                 self.compile_subexpr(&jmp.args.0)?;
                 self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(jmp.function_name.as_str())?;
                 self.push_instruction(Instruction::CallFunction);
             }
-            Card::StringLiteral(c) => {
+            CardBody::StringLiteral(c) => {
                 self.push_instruction(Instruction::StringLiteral);
                 self.push_str(c.as_str())
             }
-            Card::CallNative(c) => {
+            CardBody::CallNative(c) => {
                 self.compile_subexpr(&c.args.0)?;
                 let name = &c.name;
                 let key = Handle::from_str(name.as_str()).unwrap();
                 self.push_instruction(Instruction::CallNative);
                 write_to_vec(key, &mut self.program.bytecode);
             }
-            Card::ScalarInt(s) => {
+            CardBody::ScalarInt(s) => {
                 self.push_instruction(Instruction::ScalarInt);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
-            Card::ScalarFloat(s) => {
+            CardBody::ScalarFloat(s) => {
                 self.push_instruction(Instruction::ScalarFloat);
                 write_to_vec(*s, &mut self.program.bytecode);
             }
-            Card::Function(fname) => {
+            CardBody::Function(fname) => {
                 self.push_instruction(Instruction::FunctionPointer);
                 self.encode_jump(fname)?;
             }
-            Card::Closure(embedded_function) => {
+            CardBody::Closure(embedded_function) => {
                 // jump over the inner function
                 // yes, this is cursed
                 // no, I don't care anymore
@@ -810,11 +819,11 @@ impl<'a> Compiler<'a> {
                 }
                 self.compile_end();
             }
-            Card::NativeFunction(fname) => {
+            CardBody::NativeFunction(fname) => {
                 self.push_instruction(Instruction::NativeFunctionPointer);
                 self.push_str(fname.as_str());
             }
-            Card::Array(expressions) => {
+            CardBody::Array(expressions) => {
                 // create a table, then for each sub-card: insert the subcard and append it to the
                 // result
                 // finally: ensure the result is on the stack
@@ -834,99 +843,99 @@ impl<'a> Compiler<'a> {
                 // push the table to the stack
                 self.read_local_var(table_var);
             }
-            Card::Len(expr) => {
+            CardBody::Len(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.push_instruction(Instruction::Len);
             }
-            Card::Return(expr) => {
+            CardBody::Return(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.emit_return()?;
             }
-            Card::Not(expr) => {
+            CardBody::Not(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.push_instruction(Instruction::Not);
             }
-            Card::Get(expr) => {
+            CardBody::Get(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::NthRow);
             }
-            Card::And(expr) => {
+            CardBody::And(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::And);
             }
-            Card::Or(expr) => {
+            CardBody::Or(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Or);
             }
-            Card::Xor(expr) => {
+            CardBody::Xor(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Xor);
             }
-            Card::Equals(expr) => {
+            CardBody::Equals(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Equals);
             }
-            Card::Less(expr) => {
+            CardBody::Less(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Less);
             }
-            Card::LessOrEq(expr) => {
+            CardBody::LessOrEq(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::LessOrEq);
             }
-            Card::NotEquals(expr) => {
+            CardBody::NotEquals(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::NotEquals);
             }
-            Card::Add(expr) => {
+            CardBody::Add(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Add);
             }
-            Card::Sub(expr) => {
+            CardBody::Sub(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Sub);
             }
-            Card::Mul(expr) => {
+            CardBody::Mul(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Mul);
             }
-            Card::Div(expr) => {
+            CardBody::Div(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::Div);
             }
-            Card::GetProperty(expr) => {
+            CardBody::GetProperty(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::GetProperty);
             }
-            Card::SetProperty(expr) => {
+            CardBody::SetProperty(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::SetProperty);
             }
-            Card::AppendTable(expr) => {
+            CardBody::AppendTable(expr) => {
                 self.compile_subexpr(expr.as_ref())?;
                 self.push_instruction(Instruction::AppendTable);
             }
-            Card::PopTable(expr) => {
+            CardBody::PopTable(expr) => {
                 self.compile_subexpr(slice::from_ref(expr.card.as_ref()))?;
                 self.push_instruction(Instruction::PopTable);
             }
-            Card::DynamicCall(jump) => {
+            CardBody::DynamicCall(jump) => {
                 self.compile_subexpr(jump.args.0.as_slice())?;
                 self.current_index.push_subindex(jump.args.0.len() as u32);
                 self.process_card(&jump.function)?;
                 self.current_index.pop_subindex();
                 self.push_instruction(Instruction::CallFunction);
             }
-            Card::ScalarNil => {
+            CardBody::ScalarNil => {
                 self.push_instruction(Instruction::ScalarNil);
             }
-            Card::Abort => {
+            CardBody::Abort => {
                 self.push_instruction(Instruction::Exit);
             }
-            Card::CreateTable => {
+            CardBody::CreateTable => {
                 self.push_instruction(Instruction::InitTable);
             }
-            Card::Comment(_) => {
+            CardBody::Comment(_) => {
                 // noop
             }
         }

@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::compiler::Function;
-use crate::prelude::{CompilationErrorPayload, Handle};
+use crate::prelude::{CardBody, CompilationErrorPayload, Handle};
 use smallvec::SmallVec;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
@@ -291,7 +291,7 @@ impl Module {
         }
 
         let rhs_card = self
-            .replace_card(rhs, Card::ScalarNil)
+            .replace_card(rhs, CardBody::ScalarNil.into())
             .map_err(|err| SwapError::FetchError(rhs.clone(), err))?;
 
         // check if lhs is reachable
@@ -522,14 +522,14 @@ impl Module {
     ///     functions: [
     ///         (
     ///             "main".into(),
-    ///             Function::default().with_card(Card::IfTrue(Box::new([
-    ///                 Card::ScalarInt(42),
+    ///             Function::default().with_card(CardBody::IfTrue(Box::new([
+    ///                 Card::scalar_int(42),
     ///                 Card::call_function("pooh", vec![]),
-    ///             ]))),
+    ///             ]))).into(),
     ///         ),
     ///         (
     ///             "pooh".into(),
-    ///             Function::default().with_card(Card::set_global_var("result", Card::ScalarInt(69))),
+    ///             Function::default().with_card(Card::set_global_var("result", Card::scalar_int(69))),
     ///         ),
     ///     ]
     ///     .into(),
@@ -542,7 +542,7 @@ impl Module {
     /// });
     ///
     /// # assert_eq!(visited.len(), 5);
-    /// # let expected: HashSet<_> = [ CardIndex {
+    /// # let expected: HashSet<_> = [CardIndex {
     /// #      function: 0,
     /// #      card_index: FunctionCardIndex {
     /// #          indices: smallvec![

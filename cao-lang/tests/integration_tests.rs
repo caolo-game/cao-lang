@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 
 use cao_lang::{
-    compiler::{BinaryExpression, CompositeCard, ForEach, Module, UnaryExpression},
+    compiler::{BinaryExpression, Card, CompositeCard, ForEach, Module, UnaryExpression},
     prelude::*,
 };
 
@@ -12,11 +12,11 @@ fn composite_card_test() {
         submodules: Default::default(),
         functions: [(
             "main".into(),
-            Function::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
+            Function::default().with_card(CardBody::CompositeCard(Box::new(CompositeCard {
                 ty: "triplepog".to_string(),
                 cards: vec![Card::set_global_var(
                     "result",
-                    Card::StringLiteral("poggers".to_owned()),
+                    CardBody::StringLiteral("poggers".to_owned()),
                 )],
             }))),
         )]
@@ -62,7 +62,7 @@ fn test_trace_entry() {
         .get_card(&trace[0].index)
         .expect("Expected to find the errored card");
 
-    assert!(matches!(error_card, Card::CallNative(_)));
+    assert!(matches!(error_card.body, CardBody::CallNative(_)));
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn test_string_w_utf8() {
             "main".into(),
             Function::default().with_card(Card::set_global_var(
                 "result",
-                Card::StringLiteral(test_str.to_string()),
+                CardBody::StringLiteral(test_str.to_string()),
             )),
         )]
         .into(),
@@ -121,7 +121,7 @@ fn test_string_param() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::StringLiteral(test_str.to_string()))
+                .with_card(CardBody::StringLiteral(test_str.to_string()))
                 .with_card(Card::call_native(name, vec![])),
         )]
         .into(),
@@ -143,14 +143,15 @@ fn simple_if_statement() {
         functions: [
             (
                 "main".into(),
-                Function::default().with_card(Card::IfTrue(Box::new([
-                    Card::ScalarInt(42),
+                Function::default().with_card(CardBody::IfTrue(Box::new([
+                    CardBody::ScalarInt(42).into(),
                     Card::call_function("pooh", vec![]),
                 ]))),
             ),
             (
                 "pooh".into(),
-                Function::default().with_card(Card::set_global_var("result", Card::ScalarInt(69))),
+                Function::default()
+                    .with_card(Card::set_global_var("result", CardBody::ScalarInt(69))),
             ),
         ]
         .into(),
@@ -174,13 +175,13 @@ fn simple_if_statement_skips_if_false() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::IfTrue(Box::new([
-                    Card::ScalarInt(0),
-                    Card::set_global_var("result", Card::ScalarInt(69)),
+                .with_card(CardBody::IfTrue(Box::new([
+                    CardBody::ScalarInt(0).into(),
+                    Card::set_global_var("result", CardBody::ScalarInt(69)),
                 ])))
-                .with_card(Card::IfFalse(Box::new([
-                    Card::ScalarInt(1),
-                    Card::set_global_var("result", Card::ScalarInt(42)),
+                .with_card(CardBody::IfFalse(Box::new([
+                    CardBody::ScalarInt(1).into(),
+                    Card::set_global_var("result", CardBody::ScalarInt(42)),
                 ]))),
         )]
         .into(),
@@ -201,7 +202,12 @@ fn simple_if_statement_skips_if_false() {
     );
 }
 
-fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_result: Value) {
+fn if_else_test(
+    condition: CardBody,
+    true_res: CardBody,
+    false_res: CardBody,
+    expected_result: Value,
+) {
     let program = CaoProgram {
         imports: Default::default(),
         submodules: Default::default(),
@@ -209,12 +215,12 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
             (
                 "main".into(),
                 Function::default()
-                    .with_card(Card::IfElse(Box::new([
-                        condition,
+                    .with_card(CardBody::IfElse(Box::new([
+                        condition.into(),
                         Card::call_function("pooh", vec![]),
                         Card::call_function("tiggers", vec![]),
                     ])))
-                    .with_card(Card::set_global_var("result2", Card::ScalarInt(0xbeef))),
+                    .with_card(Card::set_global_var("result2", CardBody::ScalarInt(0xbeef))),
             ),
             (
                 "pooh".into(),
@@ -248,9 +254,9 @@ fn if_else_test(condition: Card, true_res: Card, false_res: Card, expected_resul
 #[test]
 fn simple_if_else_statement_test_then() {
     if_else_test(
-        Card::ScalarInt(1),
-        Card::ScalarInt(42),
-        Card::ScalarInt(69),
+        CardBody::ScalarInt(1),
+        CardBody::ScalarInt(42),
+        CardBody::ScalarInt(69),
         Value::Integer(42),
     );
 }
@@ -258,9 +264,9 @@ fn simple_if_else_statement_test_then() {
 #[test]
 fn simple_if_else_statement_test_else() {
     if_else_test(
-        Card::ScalarInt(0),
-        Card::ScalarInt(42),
-        Card::ScalarInt(69),
+        CardBody::ScalarInt(0),
+        CardBody::ScalarInt(42),
+        CardBody::ScalarInt(69),
         Value::Integer(69),
     );
 }
@@ -274,9 +280,9 @@ fn test_local_variable() {
             "main".into(),
             Function::default()
                 // init the global variable
-                .with_card(Card::set_global_var("bar", Card::ScalarInt(420)))
+                .with_card(Card::set_global_var("bar", CardBody::ScalarInt(420)))
                 // set another value in local var
-                .with_card(Card::set_var("foo", Card::ScalarInt(123)))
+                .with_card(Card::set_var("foo", CardBody::ScalarInt(123)))
                 // read the var and set the global variable
                 .with_card(Card::set_global_var("bar", Card::read_var("foo"))),
         )]
@@ -305,7 +311,7 @@ fn local_variable_doesnt_leak_out_of_scope() {
             (
                 "main".into(),
                 Function::default()
-                    .with_card(Card::set_var("foo", Card::ScalarInt(123)))
+                    .with_card(Card::set_var("foo", CardBody::ScalarInt(123)))
                     .with_card(Card::call_function("bar", vec![])),
             ),
             (
@@ -339,10 +345,10 @@ fn simple_for_loop() {
                 "main".into(),
                 Function::default().with_cards(vec![
                     // init the result variable
-                    Card::set_global_var("result", Card::ScalarInt(0)),
+                    Card::set_global_var("result", CardBody::ScalarInt(0)),
                     // loop
                     Card::repeat(
-                        Card::ScalarInt(5),
+                        CardBody::ScalarInt(5),
                         Some("i".to_string()),
                         Card::call_function("Loop", vec![Card::read_var("i")]),
                     ),
@@ -354,7 +360,7 @@ fn simple_for_loop() {
                     // Add i to the global 'result' variable in each iteration
                     Card::set_global_var(
                         "result",
-                        Card::Add(Box::new([Card::read_var("i"), Card::read_var("result")])),
+                        CardBody::Add(Box::new([Card::read_var("i"), Card::read_var("result")])),
                     ),
                 ]),
             ),
@@ -469,25 +475,25 @@ functions:
     - - main
       - arguments: []
         cards:
-            - !CallNative
+            - CallNative:
                 name: "func0"
                 args: []
-            - !CallNative 
+            - CallNative:
                 name: "func1"
                 args:
-                    - !ScalarInt 42
-            - !CallNative
+                    - ScalarInt: 42
+            - CallNative:
                 name: "func2"
                 args:
-                    - !ScalarInt 12
-                    - !ScalarFloat 4.2
+                    - ScalarInt: 12
+                    - ScalarFloat: 4.2
 
-            - !CallNative
+            - CallNative:
                 name: "func3"
                 args:
-                    - !ScalarInt 33
-                    - !ScalarFloat 2.88
-                    - !ScalarInt 0
+                    - ScalarInt: 33
+                    - ScalarFloat: 2.88
+                    - ScalarInt: 0
 
 "#;
     let cu = serde_yaml::from_str(PROG).unwrap();
@@ -511,8 +517,8 @@ fn jump_function_w_params_test() {
             (
                 "main".into(),
                 Function::default()
-                    .with_card(Card::StringLiteral("winnie the pooh".to_owned()))
-                    .with_card(Card::ScalarInt(42))
+                    .with_card(CardBody::StringLiteral("winnie the pooh".to_owned()))
+                    .with_card(CardBody::ScalarInt(42))
                     .with_card(Card::call_function("pooh", vec![])),
             ),
             (
@@ -557,7 +563,7 @@ fn len_test_empty() {
             "main".into(),
             Function::default().with_card(Card::set_global_var(
                 "g_result",
-                Card::Len(UnaryExpression::new(Card::CreateTable)),
+                CardBody::Len(UnaryExpression::new(CardBody::CreateTable)),
             )),
         )]
         .into(),
@@ -585,29 +591,29 @@ fn len_test_happy() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::set_var(t, Card::CreateTable))
+                .with_card(Card::set_var(t, CardBody::CreateTable))
                 // first property
                 .with_card(Card::set_property(
-                    Card::ScalarInt(42),
+                    CardBody::ScalarInt(42),
                     Card::read_var(t),
-                    Card::StringLiteral("asd".to_string()),
+                    CardBody::StringLiteral("asd".to_string()),
                 ))
                 // same property as above
                 .with_card(Card::set_property(
-                    Card::ScalarInt(69),
+                    CardBody::ScalarInt(69),
                     Card::read_var(t),
-                    Card::StringLiteral("asd".to_string()),
+                    CardBody::StringLiteral("asd".to_string()),
                 ))
                 // new property
                 .with_card(Card::set_property(
-                    Card::ScalarInt(89),
+                    CardBody::ScalarInt(89),
                     Card::read_var(t),
-                    Card::StringLiteral("basdasd".to_string()),
+                    CardBody::StringLiteral("basdasd".to_string()),
                 ))
                 // len
                 .with_card(Card::set_global_var(
                     "g_result",
-                    Card::Len(UnaryExpression::new(Card::read_var(t))),
+                    CardBody::Len(UnaryExpression::new(Card::read_var(t))),
                 )),
         )]
         .into(),
@@ -643,7 +649,7 @@ fn nested_module_can_call_self_test() {
                         "nie".into(),
                         Function::default().with_card(Card::set_global_var(
                             "g_result",
-                            Card::StringLiteral("poggers".to_owned()),
+                            CardBody::StringLiteral("poggers".to_owned()),
                         )),
                     ),
                 ]
@@ -720,7 +726,7 @@ fn import_in_submodule_test() {
                     "pooh".into(),
                     Function::default().with_card(Card::set_global_var(
                         "g_result",
-                        Card::StringLiteral("poggers".to_owned()),
+                        CardBody::StringLiteral("poggers".to_owned()),
                     )),
                 )]
                 .into(),
@@ -770,7 +776,7 @@ fn can_import_submodule_test() {
                     "pooh".into(),
                     Function::default().with_card(Card::set_global_var(
                         "g_result",
-                        Card::StringLiteral("poggers".to_owned()),
+                        CardBody::StringLiteral("poggers".to_owned()),
                     )),
                 )]
                 .into(),
@@ -836,7 +842,7 @@ fn can_import_function_from_super_module_test() {
                 "pog".into(),
                 Function::default().with_card(Card::set_global_var(
                     "g_result",
-                    Card::StringLiteral("poggers".to_owned()),
+                    CardBody::StringLiteral("poggers".to_owned()),
                 )),
             ),
         ]
@@ -894,7 +900,7 @@ fn import_super_module_test() {
                 "pog".into(),
                 Function::default().with_card(Card::set_global_var(
                     "g_result",
-                    Card::StringLiteral("poggers".to_owned()),
+                    CardBody::StringLiteral("poggers".to_owned()),
                 )),
             ),
         ]
@@ -982,9 +988,9 @@ fn simple_while_test() {
         functions: [(
             "main".to_string(),
             Function::default()
-                .with_card(Card::set_var("i", Card::ScalarInt(N)))
-                .with_card(Card::set_global_var("pooh", Card::ScalarInt(0)))
-                .with_card(Card::While(Box::new([
+                .with_card(Card::set_var("i", CardBody::ScalarInt(N)))
+                .with_card(Card::set_global_var("pooh", CardBody::ScalarInt(0)))
+                .with_card(CardBody::While(Box::new([
                     Card::read_var("i"),
                     Card::composite_card(
                         "body",
@@ -992,12 +998,18 @@ fn simple_while_test() {
                             // Increment pooh
                             Card::set_global_var(
                                 "pooh",
-                                Card::Add(Box::new([Card::ScalarInt(1), Card::read_var("pooh")])),
+                                CardBody::Add(Box::new([
+                                    CardBody::ScalarInt(1).into(),
+                                    Card::read_var("pooh"),
+                                ])),
                             ),
                             // decrement loop counter
                             Card::set_var(
                                 "i",
-                                Card::Sub(Box::new([Card::read_var("i"), Card::ScalarInt(1)])),
+                                CardBody::Sub(Box::new([
+                                    Card::read_var("i"),
+                                    CardBody::ScalarInt(1).into(),
+                                ])),
                             ),
                         ],
                     ),
@@ -1025,7 +1037,7 @@ fn set_var_to_empty_test() {
         submodules: [].into(),
         functions: [(
             "main".to_string(),
-            Function::default().with_card(Card::set_var("i", Card::ScalarNil)),
+            Function::default().with_card(Card::set_var("i", CardBody::ScalarNil)),
         )]
         .into(),
     };
@@ -1045,7 +1057,7 @@ fn callback_test() {
             (
                 "main".to_string(),
                 Function::default().with_cards(vec![
-                    Card::set_global_var("i", Card::ScalarInt(0)),
+                    Card::set_global_var("i", CardBody::ScalarInt(0)),
                     Card::call_function("call_callback", vec![Card::function_value("callback")]),
                     Card::call_function("call_callback", vec![Card::function_value("callback")]),
                     Card::call_function("call_callback", vec![Card::function_value("callback")]),
@@ -1062,7 +1074,10 @@ fn callback_test() {
                 "callback".to_string(),
                 Function::default().with_cards(vec![Card::set_global_var(
                     "i",
-                    Card::Add(Box::new([Card::read_var("i"), Card::ScalarInt(1)])),
+                    CardBody::Add(Box::new([
+                        Card::read_var("i"),
+                        CardBody::ScalarInt(1).into(),
+                    ])),
                 )]),
             ),
         ]
@@ -1089,13 +1104,16 @@ fn read_set_property_shorthand_test() {
         functions: [(
             "main".to_string(),
             Function::default().with_cards(vec![
-                Card::set_global_var("winnie", Card::CreateTable),
+                Card::set_global_var("winnie", CardBody::CreateTable),
                 //
-                Card::set_var("winnie.foo", Card::ScalarInt(1)),
+                Card::set_var("winnie.foo", CardBody::ScalarInt(1)),
                 //
                 Card::set_var(
                     "winnie.foo",
-                    Card::Add(Box::new([Card::ScalarInt(1), Card::read_var("winnie.foo")])),
+                    CardBody::Add(Box::new([
+                        CardBody::ScalarInt(1).into(),
+                        Card::read_var("winnie.foo"),
+                    ])),
                 ),
             ]),
         )]
@@ -1163,13 +1181,13 @@ fn nested_read_set_property_shorthand_test() {
         functions: [(
             "main".to_string(),
             Function::default().with_cards(vec![
-                Card::set_global_var("winnie", Card::CreateTable),
+                Card::set_global_var("winnie", CardBody::CreateTable),
                 //
-                Card::set_var("winnie.foo", Card::CreateTable),
-                Card::set_var("winnie.foo.bar", Card::CreateTable),
-                Card::set_var("winnie.foo.bar.baz", Card::CreateTable),
+                Card::set_var("winnie.foo", CardBody::CreateTable),
+                Card::set_var("winnie.foo.bar", CardBody::CreateTable),
+                Card::set_var("winnie.foo.bar.baz", CardBody::CreateTable),
                 //
-                Card::set_var("winnie.foo.bar.baz.pooh", Card::ScalarInt(42)),
+                Card::set_var("winnie.foo.bar.baz.pooh", CardBody::ScalarInt(42)),
             ]),
         )]
         .into(),
@@ -1221,9 +1239,9 @@ fn native_function_object_call_test() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::StringLiteral(test_str.to_string()))
+                .with_card(CardBody::StringLiteral(test_str.to_string()))
                 .with_card(Card::dynamic_call(
-                    Card::NativeFunction(name.to_string()),
+                    CardBody::NativeFunction(name.to_string()),
                     vec![],
                 )),
         )]
@@ -1254,7 +1272,7 @@ fn closure_test() {
                         "result",
                         Card::string_card("winnie the pooh"),
                     ))
-                    .with_card(Card::return_card(Card::Closure(Box::new(
+                    .with_card(Card::return_card(CardBody::Closure(Box::new(
                         Function::default()
                             .with_card(Card::set_global_var("g_result", Card::read_var("result"))),
                     )))),
@@ -1298,7 +1316,7 @@ fn nested_function_test() {
         functions: [
             (
                 "createClosure".into(),
-                Function::default().with_card(Card::return_card(Card::Closure(Box::new(
+                Function::default().with_card(Card::return_card(CardBody::Closure(Box::new(
                     Function::default().with_card(Card::set_global_var(
                         "g_result",
                         Card::string_card("winnie the pooh"),
@@ -1356,14 +1374,14 @@ fn native_functions_can_call_cao_lang_function() {
             (
                 "main".into(),
                 Function::default().with_card(Card::dynamic_call(
-                    Card::NativeFunction("foo".to_string()),
-                    vec![Card::Function("bar".to_string())],
+                    CardBody::NativeFunction("foo".to_string()),
+                    vec![CardBody::Function("bar".to_string()).into()],
                 )),
             ),
             (
                 "bar".into(),
-                Function::default().with_card(Card::Return(UnaryExpression {
-                    card: Box::new(Card::ScalarInt(42)),
+                Function::default().with_card(CardBody::Return(UnaryExpression {
+                    card: Box::new(CardBody::ScalarInt(42).into()),
                 })),
             ),
         ]
@@ -1393,7 +1411,7 @@ fn closure_shared_capture_test() {
                     .with_card(Card::set_var("foo", Card::string_card("winnie the pooh")))
                     .with_card(Card::set_global_var(
                         "g_write",
-                        Card::Closure(Box::new(
+                        CardBody::Closure(Box::new(
                             Function::default()
                                 // write to the same upvalue twice
                                 // test if multiple captures of the same upvalue point to the same
@@ -1404,7 +1422,7 @@ fn closure_shared_capture_test() {
                     ))
                     .with_card(Card::set_global_var(
                         "g_read",
-                        Card::Closure(Box::new(
+                        CardBody::Closure(Box::new(
                             Function::default()
                                 .with_card(Card::set_global_var("g_result", Card::read_var("foo"))),
                         )),
@@ -1452,7 +1470,7 @@ fn closure_capture_in_same_scope_test() {
                 .with_card(Card::set_var("foo", Card::string_card("winnie the pooh")))
                 .with_card(Card::set_var(
                     "bar",
-                    Card::Closure(Box::new(
+                    CardBody::Closure(Box::new(
                         Function::default()
                             .with_card(Card::set_global_var("g_result", Card::read_var("foo")))
                             .with_card(Card::set_var("foo", Card::string_card("kanga"))),
@@ -1494,38 +1512,43 @@ fn closure_capture_in_loops_is_sane_test() {
             Function::default()
                 .with_card(Card::set_var(
                     "letters",
-                    Card::Array(vec![
+                    CardBody::Array(vec![
                         Card::string_card("a"),
                         Card::string_card("b"),
                         Card::string_card("c"),
                     ]),
                 ))
-                .with_card(Card::set_var("callbacks", Card::Array(vec![])))
-                .with_card(Card::ForEach(Box::new(ForEach {
+                .with_card(Card::set_var("callbacks", CardBody::Array(vec![])))
+                .with_card(CardBody::ForEach(Box::new(ForEach {
                     i: None,
                     k: None,
                     v: Some("v".to_string()),
                     iterable: Card::read_var("letters").into(),
-                    body: Box::new(Card::AppendTable(BinaryExpression::new([
-                        Card::Closure(Box::new(Function {
-                            arguments: vec![],
-                            cards: vec![Card::return_card(Card::read_var("v"))],
-                        })),
-                        Card::read_var("callbacks"),
-                    ]))),
+                    body: Box::new(
+                        CardBody::AppendTable(BinaryExpression::new([
+                            CardBody::Closure(Box::new(Function {
+                                arguments: vec![],
+                                cards: vec![Card::return_card(Card::read_var("v"))],
+                            }))
+                            .into(),
+                            Card::read_var("callbacks"),
+                        ]))
+                        .into(),
+                    ),
                 })))
                 .with_card(Card::set_global_var(
                     "g_result",
                     Card::call_function(
                         "std.map",
                         vec![
-                            Card::Closure(Box::new(Function {
+                            CardBody::Closure(Box::new(Function {
                                 arguments: vec!["_".to_string(), "cb".to_string()],
                                 cards: vec![Card::return_card(Card::dynamic_call(
                                     Card::read_var("cb"),
                                     vec![],
                                 ))],
-                            })),
+                            }))
+                            .into(),
                             Card::read_var("callbacks"),
                         ],
                     ),
@@ -1565,14 +1588,15 @@ fn test_empty_list_foreach() {
             Function {
                 arguments: Default::default(),
                 cards: vec![
-                    Card::ForEach(Box::new(ForEach {
+                    CardBody::ForEach(Box::new(ForEach {
                         i: None,
                         k: None,
                         v: Some("v".to_string()),
-                        iterable: Box::new(Card::Array(vec![])),
+                        iterable: Box::new(CardBody::Array(vec![]).into()),
                         body: Default::default(),
-                    })),
-                    Card::set_var("asd", Card::Array(vec![])),
+                    }))
+                    .into(),
+                    Card::set_var("asd", CardBody::Array(vec![])),
                 ],
             },
         )],

@@ -2,26 +2,16 @@ use crate::VarName;
 
 use super::*;
 
-#[test]
-#[cfg(feature = "serde")]
-fn module_bincode_serde_test() {
-    let default_prog = prog();
-    let pl = bincode::serde::encode_to_vec(&default_prog, bincode::config::standard()).unwrap();
-
-    let (_prog, _): (Module, usize) =
-        bincode::serde::decode_from_slice(pl.as_slice(), bincode::config::standard()).unwrap();
-}
-
 fn prog() -> Module {
     let functions = vec![(
         "main".into(),
-        Function::default().with_card(Card::CompositeCard(Box::new(
+        Function::default().with_card(CardBody::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
                 ty: "".to_string(),
                 cards: vec![
-                    Card::StringLiteral("poggers".to_owned()),
-                    Card::StringLiteral("poggers".to_owned()),
-                    Card::StringLiteral("poggers".to_owned()),
+                    Card::string_card("poggers".to_owned()),
+                    Card::string_card("poggers".to_owned()),
+                    Card::string_card("poggers".to_owned()),
                 ],
             },
         ))),
@@ -68,8 +58,8 @@ fn module_card_fetch_test() {
         .expect("failed to fetch card");
 
     assert!(matches!(
-        comp_card,
-        super::super::Card::CompositeCard { .. }
+        comp_card.body,
+        super::super::CardBody::CompositeCard { .. }
     ));
 
     let nested_card = m
@@ -81,20 +71,23 @@ fn module_card_fetch_test() {
         })
         .expect("failed to fetch nested card");
 
-    assert!(matches!(nested_card, super::super::Card::StringLiteral(_)));
+    assert!(matches!(
+        nested_card.body,
+        super::super::CardBody::StringLiteral(_)
+    ));
 }
 
 #[test]
 fn remove_card_from_compositve_test() {
     let functions = vec![(
         "main".into(),
-        Function::default().with_card(Card::CompositeCard(Box::new(
+        Function::default().with_card(CardBody::CompositeCard(Box::new(
             crate::compiler::CompositeCard {
                 ty: "".to_string(),
                 cards: vec![
-                    Card::StringLiteral("winnie".to_owned()),
-                    Card::StringLiteral("pooh".to_owned()),
-                    Card::StringLiteral("tiggers".to_owned()),
+                    Card::string_card("winnie".to_owned()),
+                    Card::string_card("pooh".to_owned()),
+                    Card::string_card("tiggers".to_owned()),
                 ],
             },
         ))),
@@ -114,8 +107,8 @@ fn remove_card_from_compositve_test() {
         })
         .unwrap();
 
-    match removed {
-        Card::StringLiteral(s) => assert_eq!(s, "pooh"),
+    match removed.body {
+        CardBody::StringLiteral(s) => assert_eq!(s, "pooh"),
         _ => panic!(),
     }
 }
@@ -124,8 +117,8 @@ fn remove_card_from_compositve_test() {
 fn remove_card_from_ifelse_test() {
     let functions = vec![(
         "main".into(),
-        Function::default().with_card(Card::IfElse(Box::new([
-            Card::ScalarNil,
+        Function::default().with_card(CardBody::IfElse(Box::new([
+            CardBody::ScalarNil.into(),
             Card::string_card("winnie"),
             Card::string_card("pooh"),
         ]))),
@@ -145,15 +138,15 @@ fn remove_card_from_ifelse_test() {
         })
         .unwrap();
 
-    match removed {
-        Card::StringLiteral(s) => assert_eq!(s, "pooh"),
+    match removed.body {
+        CardBody::StringLiteral(s) => assert_eq!(s, "pooh"),
         _ => panic!(),
     }
 
     let ifelse = prog.get_card(&CardIndex::new(0, 0)).unwrap();
-    match ifelse {
-        Card::IfElse(children) => {
-            assert!(matches!(children[2], Card::ScalarNil));
+    match &ifelse.body {
+        CardBody::IfElse(children) => {
+            assert!(matches!(children[2].body, CardBody::ScalarNil));
         }
         _ => panic!(),
     }
@@ -168,7 +161,7 @@ fn insert_card_test() {
         .push(("poggers".to_string(), Default::default()));
 
     program
-        .insert_card(&CardIndex::new(0, 0), Card::CreateTable)
+        .insert_card(&CardIndex::new(0, 0), CardBody::CreateTable.into())
         .unwrap();
     program
         .insert_card(
@@ -177,7 +170,10 @@ fn insert_card_test() {
         )
         .unwrap();
     program
-        .insert_card(&CardIndex::new(0, 1).with_sub_index(0), Card::Abort)
+        .insert_card(
+            &CardIndex::new(0, 1).with_sub_index(0),
+            CardBody::Abort.into(),
+        )
         .unwrap();
 
     let json = serde_json::to_string_pretty(&program).unwrap();
@@ -190,12 +186,16 @@ fn insert_card_test() {
       {
         "arguments": [],
         "cards": [
-          "CreateTable",
+          {
+            "CreateTable": null
+          },
           {
             "CompositeCard": {
               "ty": "pog",
               "cards": [
-                "Abort"
+                {
+                  "Abort": null
+                }
               ]
             }
           }

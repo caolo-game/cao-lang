@@ -19,8 +19,8 @@ impl Function {
     }
 
     #[must_use]
-    pub fn with_card(mut self, card: Card) -> Self {
-        self.cards.push(card);
+    pub fn with_card(mut self, card: impl Into<Card>) -> Self {
+        self.cards.push(card.into());
         self
     }
 

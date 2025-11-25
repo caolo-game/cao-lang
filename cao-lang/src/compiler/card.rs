@@ -2,10 +2,35 @@ use super::*;
 use crate::InputString;
 use crate::VarName;
 
-/// Cao-Lang AST
 #[derive(Default, Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Card {
+pub struct CardId(pub u64);
+
+#[derive(Default, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Card {
+    #[cfg_attr(feature = "serde", serde(skip, default = "random_id"))]
+    pub id: CardId,
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub body: CardBody,
+}
+
+fn random_id() -> CardId {
+    CardId(fastrand::u64(0..std::u64::MAX))
+}
+
+impl From<CardBody> for Card {
+    fn from(value: CardBody) -> Self {
+        Self {
+            id: random_id(),
+            body: value,
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum CardBody {
     Add(BinaryExpression),
     Sub(BinaryExpression),
     Mul(BinaryExpression),
@@ -120,61 +145,61 @@ pub struct ForEach {
 
 impl From<ForEach> for Card {
     fn from(value: ForEach) -> Self {
-        Card::ForEach(Box::new(value))
+        CardBody::ForEach(Box::new(value)).into()
     }
 }
 
 impl Card {
     pub fn name(&self) -> &str {
-        match self {
-            Card::SetVar(_) => "SetVar",
-            Card::Add(_) => "Add",
-            Card::Sub(_) => "Sub",
-            Card::CreateTable => "CreateTable",
-            Card::Mul(_) => "Mul",
-            Card::Div(_) => "Div",
-            Card::Not(_) => "Not",
-            Card::Less(_) => "Less",
-            Card::LessOrEq(_) => "LessOrEq",
-            Card::Equals(_) => "Equals",
-            Card::NotEquals(_) => "NotEquals",
-            Card::And(_) => "And",
-            Card::Or(_) => "Either",
-            Card::Xor(_) => "Exclusive Or",
-            Card::Abort => "Abort",
-            Card::Len(_) => "Len",
-            Card::ScalarInt(_) => "ScalarInt",
-            Card::ScalarFloat(_) => "ScalarFloat",
-            Card::StringLiteral(_) => "StringLiteral",
-            Card::CallNative(_) => "Call Native Function",
-            Card::IfTrue(_) => "IfTrue",
-            Card::IfFalse(_) => "IfFalse",
-            Card::Call(_) => "Call Function",
-            Card::SetGlobalVar(_) => "SetGlobalVar",
-            Card::ReadVar(_) => "ReadVar",
-            Card::ScalarNil => "ScalarNil",
-            Card::Return(_) => "Return",
-            Card::Repeat { .. } => "Repeat",
-            Card::While { .. } => "While",
-            Card::IfElse { .. } => "IfElse",
-            Card::GetProperty(_) => "GetProperty",
-            Card::SetProperty(_) => "SetProperty",
-            Card::ForEach { .. } => "ForEach",
-            Card::CompositeCard(c) => c.ty.as_str(),
-            Card::Function(_) => "Function",
-            Card::DynamicCall(_) => "Call",
-            Card::Get(_) => "Get",
-            Card::AppendTable(_) => "Append to Table",
-            Card::PopTable(_) => "Pop from Table",
-            Card::Array(_) => "Array",
-            Card::NativeFunction(_) => "Native Function",
-            Card::Closure(_) => "Closure",
-            Card::Comment(_) => "Comment",
+        match &self.body {
+            CardBody::SetVar(_) => "SetVar",
+            CardBody::Add(_) => "Add",
+            CardBody::Sub(_) => "Sub",
+            CardBody::CreateTable => "CreateTable",
+            CardBody::Mul(_) => "Mul",
+            CardBody::Div(_) => "Div",
+            CardBody::Not(_) => "Not",
+            CardBody::Less(_) => "Less",
+            CardBody::LessOrEq(_) => "LessOrEq",
+            CardBody::Equals(_) => "Equals",
+            CardBody::NotEquals(_) => "NotEquals",
+            CardBody::And(_) => "And",
+            CardBody::Or(_) => "Either",
+            CardBody::Xor(_) => "Exclusive Or",
+            CardBody::Abort => "Abort",
+            CardBody::Len(_) => "Len",
+            CardBody::ScalarInt(_) => "ScalarInt",
+            CardBody::ScalarFloat(_) => "ScalarFloat",
+            CardBody::StringLiteral(_) => "StringLiteral",
+            CardBody::CallNative(_) => "Call Native Function",
+            CardBody::IfTrue(_) => "IfTrue",
+            CardBody::IfFalse(_) => "IfFalse",
+            CardBody::Call(_) => "Call Function",
+            CardBody::SetGlobalVar(_) => "SetGlobalVar",
+            CardBody::ReadVar(_) => "ReadVar",
+            CardBody::ScalarNil => "ScalarNil",
+            CardBody::Return(_) => "Return",
+            CardBody::Repeat { .. } => "Repeat",
+            CardBody::While { .. } => "While",
+            CardBody::IfElse { .. } => "IfElse",
+            CardBody::GetProperty(_) => "GetProperty",
+            CardBody::SetProperty(_) => "SetProperty",
+            CardBody::ForEach { .. } => "ForEach",
+            CardBody::CompositeCard(c) => c.ty.as_str(),
+            CardBody::Function(_) => "Function",
+            CardBody::DynamicCall(_) => "Call",
+            CardBody::Get(_) => "Get",
+            CardBody::AppendTable(_) => "Append to Table",
+            CardBody::PopTable(_) => "Pop from Table",
+            CardBody::Array(_) => "Array",
+            CardBody::NativeFunction(_) => "Native Function",
+            CardBody::Closure(_) => "Closure",
+            CardBody::Comment(_) => "Comment",
         }
     }
 
     pub fn as_composite_card(&self) -> Option<&CompositeCard> {
-        if let Self::CompositeCard(v) = self {
+        if let CardBody::CompositeCard(v) = &self.body {
             Some(v)
         } else {
             None
@@ -182,7 +207,7 @@ impl Card {
     }
 
     pub fn as_composite_card_mut(&mut self) -> Option<&mut CompositeCard> {
-        if let Self::CompositeCard(v) = self {
+        if let CardBody::CompositeCard(v) = &mut self.body {
             Some(v)
         } else {
             None
@@ -190,210 +215,224 @@ impl Card {
     }
 
     pub fn composite_card(ty: impl Into<String>, cards: Vec<Card>) -> Self {
-        Self::CompositeCard(Box::new(CompositeCard {
+        CardBody::CompositeCard(Box::new(CompositeCard {
             ty: ty.into(),
             cards,
         }))
+        .into()
     }
 
-    pub fn repeat(n: Card, i: Option<String>, body: Card) -> Self {
-        Self::Repeat(Box::new(Repeat { i, n, body }))
-    }
-
-    pub fn set_var(s: impl Into<String>, value: Card) -> Self {
-        Self::SetVar(Box::new(SetVar {
-            name: s.into(),
-            value,
+    pub fn repeat(n: impl Into<Card>, i: Option<String>, body: impl Into<Card>) -> Self {
+        CardBody::Repeat(Box::new(Repeat {
+            i,
+            n: n.into(),
+            body: body.into(),
         }))
+        .into()
+    }
+
+    pub fn set_var(s: impl Into<String>, value: impl Into<Card>) -> Self {
+        CardBody::SetVar(Box::new(SetVar {
+            name: s.into(),
+            value: value.into(),
+        }))
+        .into()
     }
 
     pub fn call_native(s: impl Into<InputString>, args: impl Into<Arguments>) -> Self {
-        Self::CallNative(Box::new(CallNode {
+        CardBody::CallNative(Box::new(CallNode {
             name: s.into(),
             args: args.into(),
         }))
+        .into()
     }
 
     pub fn read_var(s: impl Into<String>) -> Self {
-        Self::ReadVar(s.into())
+        CardBody::ReadVar(s.into()).into()
     }
 
-    pub fn set_global_var(s: impl Into<String>, value: Card) -> Self {
-        Self::SetGlobalVar(Box::new(SetVar {
+    pub fn set_global_var(s: impl Into<String>, value: impl Into<Card>) -> Self {
+        CardBody::SetGlobalVar(Box::new(SetVar {
             name: s.into(),
-            value,
+            value: value.into(),
         }))
+        .into()
     }
 
     pub fn scalar_int(i: i64) -> Self {
-        Card::ScalarInt(i)
+        CardBody::ScalarInt(i).into()
     }
 
     pub fn string_card(s: impl Into<String>) -> Self {
-        Self::StringLiteral(s.into())
+        CardBody::StringLiteral(s.into()).into()
     }
 
     pub fn call_function(s: impl Into<String>, args: impl Into<Arguments>) -> Self {
-        Self::Call(Box::new(StaticJump {
+        CardBody::Call(Box::new(StaticJump {
             args: args.into(),
             function_name: s.into(),
         }))
+        .into()
     }
 
     pub fn function_value(s: impl Into<String>) -> Self {
-        Self::Function(s.into())
+        CardBody::Function(s.into()).into()
     }
 
     pub fn num_children(&self) -> u32 {
-        match self {
-            Card::Add(_b)
-            | Card::Sub(_b)
-            | Card::Mul(_b)
-            | Card::Div(_b)
-            | Card::Less(_b)
-            | Card::LessOrEq(_b)
-            | Card::Equals(_b)
-            | Card::NotEquals(_b)
-            | Card::And(_b)
-            | Card::Or(_b)
-            | Card::GetProperty(_b)
-            | Card::IfTrue(_b)
-            | Card::IfFalse(_b)
-            | Card::While(_b)
-            | Card::Get(_b)
-            | Card::AppendTable(_b)
-            | Card::Xor(_b) => 2,
-            Card::PopTable(UnaryExpression { .. })
-            | Card::Len(UnaryExpression { .. })
-            | Card::Not(UnaryExpression { .. })
-            | Card::Return(UnaryExpression { .. }) => 1,
-            Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::Function(_)
-            | Card::CreateTable
-            | Card::ReadVar(_)
-            | Card::NativeFunction(_)
-            | Card::Abort
-            | Card::ScalarNil => 0,
-            Card::IfElse(_t) | Card::SetProperty(_t) => 3,
-            Card::CallNative(c) => c.args.0.len() as u32,
-            Card::Call(c) => c.args.0.len() as u32,
-            Card::SetGlobalVar(_s) | Card::SetVar(_s) => 1,
-            Card::Repeat(_r) => 2,
-            Card::ForEach(_f) => 2,
-            Card::CompositeCard(c) => c.cards.len() as u32,
-            Card::DynamicCall(c) => 1 + c.args.0.len() as u32,
-            Card::Array(a) => a.len() as u32,
-            Card::Closure(c) => c.cards.len() as u32,
+        match &self.body {
+            CardBody::Add(_b)
+            | CardBody::Sub(_b)
+            | CardBody::Mul(_b)
+            | CardBody::Div(_b)
+            | CardBody::Less(_b)
+            | CardBody::LessOrEq(_b)
+            | CardBody::Equals(_b)
+            | CardBody::NotEquals(_b)
+            | CardBody::And(_b)
+            | CardBody::Or(_b)
+            | CardBody::GetProperty(_b)
+            | CardBody::IfTrue(_b)
+            | CardBody::IfFalse(_b)
+            | CardBody::While(_b)
+            | CardBody::Get(_b)
+            | CardBody::AppendTable(_b)
+            | CardBody::Xor(_b) => 2,
+            CardBody::PopTable(UnaryExpression { .. })
+            | CardBody::Len(UnaryExpression { .. })
+            | CardBody::Not(UnaryExpression { .. })
+            | CardBody::Return(UnaryExpression { .. }) => 1,
+            CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::Function(_)
+            | CardBody::CreateTable
+            | CardBody::ReadVar(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::Abort
+            | CardBody::ScalarNil => 0,
+            CardBody::IfElse(_t) | CardBody::SetProperty(_t) => 3,
+            CardBody::CallNative(c) => c.args.0.len() as u32,
+            CardBody::Call(c) => c.args.0.len() as u32,
+            CardBody::SetGlobalVar(_s) | CardBody::SetVar(_s) => 1,
+            CardBody::Repeat(_r) => 2,
+            CardBody::ForEach(_f) => 2,
+            CardBody::CompositeCard(c) => c.cards.len() as u32,
+            CardBody::DynamicCall(c) => 1 + c.args.0.len() as u32,
+            CardBody::Array(a) => a.len() as u32,
+            CardBody::Closure(c) => c.cards.len() as u32,
         }
     }
 
     pub fn iter_children_mut<'a>(&'a mut self) -> Box<dyn Iterator<Item = &'a mut Card> + 'a> {
-        match self {
-            Card::Add(b)
-            | Card::Sub(b)
-            | Card::Mul(b)
-            | Card::Div(b)
-            | Card::Less(b)
-            | Card::LessOrEq(b)
-            | Card::Equals(b)
-            | Card::NotEquals(b)
-            | Card::And(b)
-            | Card::Or(b)
-            | Card::GetProperty(b)
-            | Card::IfTrue(b)
-            | Card::IfFalse(b)
-            | Card::While(b)
-            | Card::Get(b)
-            | Card::AppendTable(b)
-            | Card::Xor(b) => Box::new(b.iter_mut()),
-            Card::PopTable(u) | Card::Len(u) | Card::Not(u) | Card::Return(u) => {
+        match &mut self.body {
+            CardBody::Add(b)
+            | CardBody::Sub(b)
+            | CardBody::Mul(b)
+            | CardBody::Div(b)
+            | CardBody::Less(b)
+            | CardBody::LessOrEq(b)
+            | CardBody::Equals(b)
+            | CardBody::NotEquals(b)
+            | CardBody::And(b)
+            | CardBody::Or(b)
+            | CardBody::GetProperty(b)
+            | CardBody::IfTrue(b)
+            | CardBody::IfFalse(b)
+            | CardBody::While(b)
+            | CardBody::Get(b)
+            | CardBody::AppendTable(b)
+            | CardBody::Xor(b) => Box::new(b.iter_mut()),
+            CardBody::PopTable(u) | CardBody::Len(u) | CardBody::Not(u) | CardBody::Return(u) => {
                 Box::new(std::iter::once(u.card.as_mut()))
             }
-            Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::Function(_)
-            | Card::CreateTable
-            | Card::ReadVar(_)
-            | Card::NativeFunction(_)
-            | Card::Abort
-            | Card::ScalarNil => Box::new(std::iter::empty()),
-            Card::IfElse(t) | Card::SetProperty(t) => Box::new(t.iter_mut()),
-            Card::CallNative(c) => Box::new(c.args.0.iter_mut()),
-            Card::Call(c) => Box::new(c.args.0.iter_mut()),
-            Card::SetGlobalVar(s) | Card::SetVar(s) => Box::new(std::iter::once(&mut s.value)),
-            Card::Repeat(r) => Box::new([&mut r.n, &mut r.body].into_iter()),
-            Card::ForEach(f) => Box::new([f.iterable.as_mut(), f.body.as_mut()].into_iter()),
-            Card::CompositeCard(c) => Box::new(c.cards.iter_mut()),
-            Card::DynamicCall(c) => {
+            CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::Function(_)
+            | CardBody::CreateTable
+            | CardBody::ReadVar(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::Abort
+            | CardBody::ScalarNil => Box::new(std::iter::empty()),
+            CardBody::IfElse(t) | CardBody::SetProperty(t) => Box::new(t.iter_mut()),
+            CardBody::CallNative(c) => Box::new(c.args.0.iter_mut()),
+            CardBody::Call(c) => Box::new(c.args.0.iter_mut()),
+            CardBody::SetGlobalVar(s) | CardBody::SetVar(s) => {
+                Box::new(std::iter::once(&mut s.value))
+            }
+            CardBody::Repeat(r) => Box::new([&mut r.n, &mut r.body].into_iter()),
+            CardBody::ForEach(f) => Box::new([f.iterable.as_mut(), f.body.as_mut()].into_iter()),
+            CardBody::CompositeCard(c) => Box::new(c.cards.iter_mut()),
+            CardBody::DynamicCall(c) => {
                 Box::new(std::iter::once(&mut c.function).chain(c.args.0.iter_mut()))
             }
-            Card::Array(a) => Box::new(a.iter_mut()),
-            Card::Closure(c) => Box::new(c.cards.iter_mut()),
+            CardBody::Array(a) => Box::new(a.iter_mut()),
+            CardBody::Closure(c) => Box::new(c.cards.iter_mut()),
         }
     }
 
     pub fn iter_children<'a>(&'a self) -> Box<dyn Iterator<Item = &'a Card> + 'a> {
-        match self {
-            Card::Add(b)
-            | Card::Sub(b)
-            | Card::Mul(b)
-            | Card::Div(b)
-            | Card::Less(b)
-            | Card::LessOrEq(b)
-            | Card::Equals(b)
-            | Card::NotEquals(b)
-            | Card::And(b)
-            | Card::Or(b)
-            | Card::GetProperty(b)
-            | Card::IfTrue(b)
-            | Card::IfFalse(b)
-            | Card::While(b)
-            | Card::Get(b)
-            | Card::AppendTable(b)
-            | Card::Xor(b) => Box::new(b.iter()),
-            Card::PopTable(u) | Card::Len(u) | Card::Not(u) | Card::Return(u) => {
+        match &self.body {
+            CardBody::Add(b)
+            | CardBody::Sub(b)
+            | CardBody::Mul(b)
+            | CardBody::Div(b)
+            | CardBody::Less(b)
+            | CardBody::LessOrEq(b)
+            | CardBody::Equals(b)
+            | CardBody::NotEquals(b)
+            | CardBody::And(b)
+            | CardBody::Or(b)
+            | CardBody::GetProperty(b)
+            | CardBody::IfTrue(b)
+            | CardBody::IfFalse(b)
+            | CardBody::While(b)
+            | CardBody::Get(b)
+            | CardBody::AppendTable(b)
+            | CardBody::Xor(b) => Box::new(b.iter()),
+            CardBody::PopTable(u) | CardBody::Len(u) | CardBody::Not(u) | CardBody::Return(u) => {
                 Box::new(std::iter::once(u.card.as_ref()))
             }
-            Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::Function(_)
-            | Card::CreateTable
-            | Card::ReadVar(_)
-            | Card::NativeFunction(_)
-            | Card::Abort
-            | Card::ScalarNil => Box::new(std::iter::empty()),
-            Card::IfElse(t) | Card::SetProperty(t) => Box::new(t.iter()),
-            Card::CallNative(c) => Box::new(c.args.0.iter()),
-            Card::Call(c) => Box::new(c.args.0.iter()),
-            Card::SetGlobalVar(s) | Card::SetVar(s) => Box::new(std::iter::once(&s.value)),
-            Card::Repeat(r) => Box::new([&r.n, &r.body].into_iter()),
-            Card::ForEach(f) => Box::new([f.iterable.as_ref(), f.body.as_ref()].into_iter()),
-            Card::CompositeCard(c) => Box::new(c.cards.iter()),
-            Card::DynamicCall(c) => Box::new(std::iter::once(&c.function).chain(c.args.0.iter())),
-            Card::Array(a) => Box::new(a.iter()),
-            Card::Closure(c) => Box::new(c.cards.iter()),
+            CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::Function(_)
+            | CardBody::CreateTable
+            | CardBody::ReadVar(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::Abort
+            | CardBody::ScalarNil => Box::new(std::iter::empty()),
+            CardBody::IfElse(t) | CardBody::SetProperty(t) => Box::new(t.iter()),
+            CardBody::CallNative(c) => Box::new(c.args.0.iter()),
+            CardBody::Call(c) => Box::new(c.args.0.iter()),
+            CardBody::SetGlobalVar(s) | CardBody::SetVar(s) => Box::new(std::iter::once(&s.value)),
+            CardBody::Repeat(r) => Box::new([&r.n, &r.body].into_iter()),
+            CardBody::ForEach(f) => Box::new([f.iterable.as_ref(), f.body.as_ref()].into_iter()),
+            CardBody::CompositeCard(c) => Box::new(c.cards.iter()),
+            CardBody::DynamicCall(c) => {
+                Box::new(std::iter::once(&c.function).chain(c.args.0.iter()))
+            }
+            CardBody::Array(a) => Box::new(a.iter()),
+            CardBody::Closure(c) => Box::new(c.cards.iter()),
         }
     }
 
     pub fn get_child_mut(&mut self, i: usize) -> Option<&mut Card> {
         let res;
-        match self {
-            Card::CompositeCard(c) => res = c.cards.get_mut(i)?,
-            Card::Closure(c) => res = c.cards.get_mut(i)?,
-            Card::Repeat(rep) => match i {
+        match &mut self.body {
+            CardBody::CompositeCard(c) => res = c.cards.get_mut(i)?,
+            CardBody::Closure(c) => res = c.cards.get_mut(i)?,
+            CardBody::Repeat(rep) => match i {
                 0 => res = &mut rep.n,
                 1 => res = &mut rep.body,
                 _ => return None,
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => return c.get_mut(i),
-            Card::ForEach(fe) => {
+            CardBody::IfTrue(c) | CardBody::IfFalse(c) => return c.get_mut(i),
+            CardBody::ForEach(fe) => {
                 let ForEach {
                     i: _,
                     k: _,
@@ -407,70 +446,71 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => return children.get_mut(i),
+            CardBody::IfElse(children) => return children.get_mut(i),
 
-            Card::Add(expr)
-            | Card::While(expr)
-            | Card::Sub(expr)
-            | Card::Mul(expr)
-            | Card::Div(expr)
-            | Card::Less(expr)
-            | Card::LessOrEq(expr)
-            | Card::Equals(expr)
-            | Card::NotEquals(expr)
-            | Card::And(expr)
-            | Card::Or(expr)
-            | Card::Xor(expr)
-            | Card::AppendTable(expr)
-            | Card::Get(expr)
-            | Card::GetProperty(expr) => return expr.get_mut(i),
-            Card::SetProperty(expr) => return expr.get_mut(i),
+            CardBody::Add(expr)
+            | CardBody::While(expr)
+            | CardBody::Sub(expr)
+            | CardBody::Mul(expr)
+            | CardBody::Div(expr)
+            | CardBody::Less(expr)
+            | CardBody::LessOrEq(expr)
+            | CardBody::Equals(expr)
+            | CardBody::NotEquals(expr)
+            | CardBody::And(expr)
+            | CardBody::Or(expr)
+            | CardBody::Xor(expr)
+            | CardBody::AppendTable(expr)
+            | CardBody::Get(expr)
+            | CardBody::GetProperty(expr) => return expr.get_mut(i),
+            CardBody::SetProperty(expr) => return expr.get_mut(i),
 
-            Card::PopTable(expr) | Card::Not(expr) | Card::Return(expr) | Card::Len(expr) => {
-                match i {
-                    0 => res = &mut expr.card,
-                    _ => return None,
-                }
-            }
+            CardBody::PopTable(expr)
+            | CardBody::Not(expr)
+            | CardBody::Return(expr)
+            | CardBody::Len(expr) => match i {
+                0 => res = &mut expr.card,
+                _ => return None,
+            },
 
-            Card::SetGlobalVar(s) | Card::SetVar(s) => match i {
+            CardBody::SetGlobalVar(s) | CardBody::SetVar(s) => match i {
                 0 => res = &mut s.value,
                 _ => return None,
             },
-            Card::CallNative(j) => return j.args.0.get_mut(i),
-            Card::Call(j) => return j.args.0.get_mut(i),
-            Card::DynamicCall(j) => {
+            CardBody::CallNative(j) => return j.args.0.get_mut(i),
+            CardBody::Call(j) => return j.args.0.get_mut(i),
+            CardBody::DynamicCall(j) => {
                 return (i == 0)
                     .then_some(&mut j.function)
                     .or_else(|| j.args.0.get_mut(i - 1))
             }
-            Card::Array(cards) => return cards.get_mut(i),
-            Card::Function(_)
-            | Card::NativeFunction(_)
-            | Card::ReadVar(_)
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort => return None,
+            CardBody::Array(cards) => return cards.get_mut(i),
+            CardBody::Function(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::ReadVar(_)
+            | CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::ScalarNil
+            | CardBody::CreateTable
+            | CardBody::Abort => return None,
         }
         Some(res)
     }
 
     pub fn get_child(&self, i: usize) -> Option<&Card> {
         let res;
-        match self {
-            Card::CompositeCard(c) => res = c.cards.get(i)?,
-            Card::Closure(c) => res = c.cards.get(i)?,
-            Card::Repeat(rep) => match i {
+        match &self.body {
+            CardBody::CompositeCard(c) => res = c.cards.get(i)?,
+            CardBody::Closure(c) => res = c.cards.get(i)?,
+            CardBody::Repeat(rep) => match i {
                 0 => res = &rep.n,
                 1 => res = &rep.body,
                 _ => return None,
             },
-            Card::IfTrue(c) | Card::IfFalse(c) => return c.get(i),
-            Card::ForEach(fe) => {
+            CardBody::IfTrue(c) | CardBody::IfFalse(c) => return c.get(i),
+            CardBody::ForEach(fe) => {
                 let ForEach {
                     i: _,
                     k: _,
@@ -484,83 +524,84 @@ impl Card {
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => return children.get(i),
-            Card::While(expr)
-            | Card::Add(expr)
-            | Card::Sub(expr)
-            | Card::Mul(expr)
-            | Card::Div(expr)
-            | Card::Less(expr)
-            | Card::LessOrEq(expr)
-            | Card::Equals(expr)
-            | Card::NotEquals(expr)
-            | Card::And(expr)
-            | Card::Or(expr)
-            | Card::Xor(expr)
-            | Card::AppendTable(expr)
-            | Card::Get(expr)
-            | Card::GetProperty(expr) => return expr.get(i),
-            Card::SetProperty(expr) => return expr.get(i),
+            CardBody::IfElse(children) => return children.get(i),
+            CardBody::While(expr)
+            | CardBody::Add(expr)
+            | CardBody::Sub(expr)
+            | CardBody::Mul(expr)
+            | CardBody::Div(expr)
+            | CardBody::Less(expr)
+            | CardBody::LessOrEq(expr)
+            | CardBody::Equals(expr)
+            | CardBody::NotEquals(expr)
+            | CardBody::And(expr)
+            | CardBody::Or(expr)
+            | CardBody::Xor(expr)
+            | CardBody::AppendTable(expr)
+            | CardBody::Get(expr)
+            | CardBody::GetProperty(expr) => return expr.get(i),
+            CardBody::SetProperty(expr) => return expr.get(i),
 
-            Card::PopTable(expr) | Card::Not(expr) | Card::Return(expr) | Card::Len(expr) => {
-                match i {
-                    0 => res = &expr.card,
-                    _ => return None,
-                }
-            }
+            CardBody::PopTable(expr)
+            | CardBody::Not(expr)
+            | CardBody::Return(expr)
+            | CardBody::Len(expr) => match i {
+                0 => res = &expr.card,
+                _ => return None,
+            },
 
-            Card::SetGlobalVar(s) | Card::SetVar(s) => match i {
+            CardBody::SetGlobalVar(s) | CardBody::SetVar(s) => match i {
                 0 => res = &s.value,
                 _ => return None,
             },
-            Card::CallNative(j) => return j.args.0.get(i),
-            Card::Call(j) => return j.args.0.get(i),
-            Card::DynamicCall(j) => {
+            CardBody::CallNative(j) => return j.args.0.get(i),
+            CardBody::Call(j) => return j.args.0.get(i),
+            CardBody::DynamicCall(j) => {
                 return (i == 0)
                     .then_some(&j.function)
                     .or_else(|| j.args.0.get(i - 1))
             }
-            Card::Array(cards) => return cards.get(i),
-            Card::Function(_)
-            | Card::NativeFunction(_)
-            | Card::ReadVar(_)
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort => return None,
+            CardBody::Array(cards) => return cards.get(i),
+            CardBody::Function(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::ReadVar(_)
+            | CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::ScalarNil
+            | CardBody::CreateTable
+            | CardBody::Abort => return None,
         }
         Some(res)
     }
 
     pub fn remove_child(&mut self, i: usize) -> Option<Card> {
         let res;
-        match self {
-            Card::CompositeCard(c) => {
+        match &mut self.body {
+            CardBody::CompositeCard(c) => {
                 if c.cards.len() <= i {
                     return None;
                 }
                 res = c.cards.remove(i);
             }
-            Card::Closure(c) => {
+            CardBody::Closure(c) => {
                 if c.cards.len() <= i {
                     return None;
                 }
                 res = c.cards.remove(i);
             }
-            Card::Repeat(rep) => match i {
-                0 => res = std::mem::replace(&mut rep.n, Card::ScalarInt(0)),
-                1 => res = std::mem::replace(&mut rep.body, Card::ScalarNil),
+            CardBody::Repeat(rep) => match i {
+                0 => res = std::mem::replace(&mut rep.n, CardBody::ScalarInt(0).into()),
+                1 => res = std::mem::replace(&mut rep.body, CardBody::ScalarNil.into()),
                 _ => return None,
             },
-            Card::IfTrue(_) | Card::IfFalse(_) => {
+            CardBody::IfTrue(_) | CardBody::IfFalse(_) => {
                 let c = self.get_child_mut(i)?;
-                res = std::mem::replace::<Card>(c, Card::ScalarNil);
+                res = std::mem::replace::<Card>(c, CardBody::ScalarNil.into());
             }
 
-            Card::ForEach(fe) => {
+            CardBody::ForEach(fe) => {
                 let ForEach {
                     i: _,
                     k: _,
@@ -569,63 +610,63 @@ impl Card {
                     body: b,
                 } = fe.as_mut();
                 match i {
-                    0 => res = std::mem::replace::<Card>(a.as_mut(), Card::ScalarNil),
-                    1 => res = std::mem::replace::<Card>(b.as_mut(), Card::ScalarNil),
+                    0 => res = std::mem::replace::<Card>(a.as_mut(), CardBody::ScalarNil.into()),
+                    1 => res = std::mem::replace::<Card>(b.as_mut(), CardBody::ScalarNil.into()),
                     _ => return None,
                 }
             }
-            Card::IfElse(children) => {
+            CardBody::IfElse(children) => {
                 let c = children.get_mut(i)?;
-                res = std::mem::replace(c, Card::ScalarNil);
+                res = std::mem::replace(c, CardBody::ScalarNil.into());
             }
-            Card::While(_)
-            | Card::Add(_)
-            | Card::Sub(_)
-            | Card::Mul(_)
-            | Card::Div(_)
-            | Card::Less(_)
-            | Card::LessOrEq(_)
-            | Card::Equals(_)
-            | Card::NotEquals(_)
-            | Card::And(_)
-            | Card::Or(_)
-            | Card::Xor(_)
-            | Card::AppendTable(_)
-            | Card::Get(_)
-            | Card::SetProperty(_)
-            | Card::PopTable(_)
-            | Card::Not(_)
-            | Card::Return(_)
-            | Card::Len(_)
-            | Card::SetGlobalVar(_)
-            | Card::SetVar(_)
-            | Card::GetProperty(_) => {
+            CardBody::While(_)
+            | CardBody::Add(_)
+            | CardBody::Sub(_)
+            | CardBody::Mul(_)
+            | CardBody::Div(_)
+            | CardBody::Less(_)
+            | CardBody::LessOrEq(_)
+            | CardBody::Equals(_)
+            | CardBody::NotEquals(_)
+            | CardBody::And(_)
+            | CardBody::Or(_)
+            | CardBody::Xor(_)
+            | CardBody::AppendTable(_)
+            | CardBody::Get(_)
+            | CardBody::SetProperty(_)
+            | CardBody::PopTable(_)
+            | CardBody::Not(_)
+            | CardBody::Return(_)
+            | CardBody::Len(_)
+            | CardBody::SetGlobalVar(_)
+            | CardBody::SetVar(_)
+            | CardBody::GetProperty(_) => {
                 let c = self.get_child_mut(i)?;
-                res = std::mem::replace(c, Card::ScalarNil);
+                res = std::mem::replace(c, CardBody::ScalarNil.into());
             }
 
-            Card::CallNative(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
-            Card::Call(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
-            Card::DynamicCall(j) => {
+            CardBody::CallNative(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
+            CardBody::Call(j) => return (i < j.args.0.len()).then(|| j.args.0.remove(i)),
+            CardBody::DynamicCall(j) => {
                 if i == 0 {
-                    res = std::mem::replace(&mut j.function, Card::ScalarNil);
+                    res = std::mem::replace(&mut j.function, CardBody::ScalarNil.into());
                 } else if i - 1 < j.args.0.len() {
                     res = j.args.0.remove(i - 1);
                 } else {
                     return None;
                 }
             }
-            Card::Array(cards) => return (i < cards.len()).then(|| cards.remove(i)),
-            Card::Function(_)
-            | Card::NativeFunction(_)
-            | Card::ReadVar(_)
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort => return None,
+            CardBody::Array(cards) => return (i < cards.len()).then(|| cards.remove(i)),
+            CardBody::Function(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::ReadVar(_)
+            | CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::ScalarNil
+            | CardBody::CreateTable
+            | CardBody::Abort => return None,
         }
         Some(res)
     }
@@ -634,22 +675,23 @@ impl Card {
     /// index if not
     ///
     /// returns the inserted card on failure
-    pub fn insert_child(&mut self, i: usize, card: Self) -> Result<(), Self> {
-        match self {
-            Card::CompositeCard(c) => {
+    pub fn insert_child(&mut self, i: usize, card: impl Into<Self>) -> Result<(), Self> {
+        let card = card.into();
+        match &mut self.body {
+            CardBody::CompositeCard(c) => {
                 if c.cards.len() < i {
                     return Err(card);
                 }
                 c.cards.insert(i, card);
             }
-            Card::Closure(c) => {
+            CardBody::Closure(c) => {
                 if c.cards.len() < i {
                     return Err(card);
                 }
                 c.cards.insert(i, card);
             }
 
-            Card::ForEach(fe) => {
+            CardBody::ForEach(fe) => {
                 let ForEach {
                     i: _,
                     k: _,
@@ -663,47 +705,47 @@ impl Card {
                     _ => return Err(card),
                 };
             }
-            Card::IfElse(children) => match children.get_mut(i) {
+            CardBody::IfElse(children) => match children.get_mut(i) {
                 Some(c) => {
                     *c = card;
                 }
                 None => return Err(card),
             },
-            Card::While(_)
-            | Card::IfTrue(_)
-            | Card::IfFalse(_)
-            | Card::Add(_)
-            | Card::Sub(_)
-            | Card::Mul(_)
-            | Card::Div(_)
-            | Card::Less(_)
-            | Card::LessOrEq(_)
-            | Card::Equals(_)
-            | Card::NotEquals(_)
-            | Card::And(_)
-            | Card::Or(_)
-            | Card::Xor(_)
-            | Card::AppendTable(_)
-            | Card::Get(_)
-            | Card::SetProperty(_)
-            | Card::PopTable(_)
-            | Card::Not(_)
-            | Card::Return(_)
-            | Card::Len(_)
-            | Card::SetGlobalVar(_)
-            | Card::SetVar(_)
-            | Card::Repeat(_)
-            | Card::GetProperty(_) => match self.get_child_mut(i) {
+            CardBody::While(_)
+            | CardBody::IfTrue(_)
+            | CardBody::IfFalse(_)
+            | CardBody::Add(_)
+            | CardBody::Sub(_)
+            | CardBody::Mul(_)
+            | CardBody::Div(_)
+            | CardBody::Less(_)
+            | CardBody::LessOrEq(_)
+            | CardBody::Equals(_)
+            | CardBody::NotEquals(_)
+            | CardBody::And(_)
+            | CardBody::Or(_)
+            | CardBody::Xor(_)
+            | CardBody::AppendTable(_)
+            | CardBody::Get(_)
+            | CardBody::SetProperty(_)
+            | CardBody::PopTable(_)
+            | CardBody::Not(_)
+            | CardBody::Return(_)
+            | CardBody::Len(_)
+            | CardBody::SetGlobalVar(_)
+            | CardBody::SetVar(_)
+            | CardBody::Repeat(_)
+            | CardBody::GetProperty(_) => match self.get_child_mut(i) {
                 Some(c) => *c = card,
                 None => return Err(card),
             },
-            Card::CallNative(j) => {
+            CardBody::CallNative(j) => {
                 (i <= j.args.0.len()).then(|| j.args.0.insert(i, card));
             }
-            Card::Call(j) => {
+            CardBody::Call(j) => {
                 (i <= j.args.0.len()).then(|| j.args.0.insert(i, card));
             }
-            Card::DynamicCall(j) => {
+            CardBody::DynamicCall(j) => {
                 if i == 0 {
                     j.function = card;
                 } else if i - 1 <= j.args.0.len() {
@@ -713,52 +755,61 @@ impl Card {
                 }
             }
 
-            Card::Array(children) => {
+            CardBody::Array(children) => {
                 if i <= children.len() {
                     children.insert(i, card);
                 } else {
                     return Err(card);
                 }
             }
-            Card::Function(_)
-            | Card::NativeFunction(_)
-            | Card::ReadVar(_)
-            | Card::ScalarInt(_)
-            | Card::ScalarFloat(_)
-            | Card::StringLiteral(_)
-            | Card::Comment(_)
-            | Card::ScalarNil
-            | Card::CreateTable
-            | Card::Abort => return Err(card),
+            CardBody::Function(_)
+            | CardBody::NativeFunction(_)
+            | CardBody::ReadVar(_)
+            | CardBody::ScalarInt(_)
+            | CardBody::ScalarFloat(_)
+            | CardBody::StringLiteral(_)
+            | CardBody::Comment(_)
+            | CardBody::ScalarNil
+            | CardBody::CreateTable
+            | CardBody::Abort => return Err(card),
         }
         Ok(())
     }
 
     /// Return Ok(old card) on success, return the input card in fail
-    pub fn replace_child(&mut self, i: usize, card: Self) -> Result<Self, Self> {
+    pub fn replace_child(&mut self, i: usize, card: impl Into<Self>) -> Result<Self, Self> {
+        let card = card.into();
         match self.get_child_mut(i) {
             Some(c) => Ok(std::mem::replace(c, card)),
             None => Err(card),
         }
     }
 
-    pub fn return_card(c: Self) -> Self {
-        Card::Return(UnaryExpression { card: Box::new(c) })
+    pub fn return_card(c: impl Into<Self>) -> Self {
+        CardBody::Return(UnaryExpression {
+            card: Box::new(c.into()),
+        })
+        .into()
     }
 
-    pub fn set_property(value: Self, table: Self, key: Self) -> Self {
-        Card::SetProperty(Box::new([value, table, key]))
+    pub fn set_property(
+        value: impl Into<Self>,
+        table: impl Into<Self>,
+        key: impl Into<Self>,
+    ) -> Self {
+        CardBody::SetProperty(Box::new([value.into(), table.into(), key.into()])).into()
     }
 
-    pub fn get_property(table: Self, key: Self) -> Self {
-        Card::GetProperty(Box::new([table, key]))
+    pub fn get_property(table: impl Into<Self>, key: impl Into<Self>) -> Self {
+        CardBody::GetProperty(Box::new([table.into(), key.into()])).into()
     }
 
-    pub fn dynamic_call(function: Card, args: impl Into<Arguments>) -> Self {
-        Self::DynamicCall(Box::new(DynamicJump {
+    pub fn dynamic_call(function: impl Into<Card>, args: impl Into<Arguments>) -> Self {
+        CardBody::DynamicCall(Box::new(DynamicJump {
             args: args.into(),
-            function,
+            function: function.into(),
         }))
+        .into()
     }
 }
 
@@ -779,7 +830,7 @@ pub struct CompositeCard {
 
 impl From<CompositeCard> for Card {
     fn from(value: CompositeCard) -> Self {
-        Card::CompositeCard(Box::new(value))
+        CardBody::CompositeCard(Box::new(value)).into()
     }
 }
 
@@ -794,8 +845,10 @@ pub struct UnaryExpression {
 }
 
 impl UnaryExpression {
-    pub fn new(c: impl Into<Box<Card>>) -> Self {
-        Self { card: c.into() }
+    pub fn new(c: impl Into<Card>) -> Self {
+        Self {
+            card: Box::new(c.into()),
+        }
     }
 }
 
@@ -815,13 +868,14 @@ mod tests {
 
     #[test]
     fn test_iter_indexing_consistent() {
-        let card = Card::ForEach(Box::new(ForEach {
+        let card: Card = CardBody::ForEach(Box::new(ForEach {
             i: None,
             k: None,
             v: None,
-            iterable: Box::new(Card::ScalarInt(42)),
+            iterable: Box::new(CardBody::ScalarInt(42).into()),
             body: Box::new(Card::string_card("winnie")),
-        }));
+        }))
+        .into();
 
         for (i, a) in card.iter_children().enumerate() {
             let _b = card.get_child(i);

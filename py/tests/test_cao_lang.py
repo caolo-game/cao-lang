@@ -14,10 +14,10 @@ functions:
     - - main
       - arguments: []
         cards:
-            - !Add
-                - !ScalarInt 5
-                - !ScalarInt 5
-            - !Call
+            - Add:
+                - ScalarInt: 5
+                - ScalarInt: 5
+            - Call:
                 function_name: "foo.bar"
                 args: []
 imports: []
@@ -29,7 +29,7 @@ submodules:
             - - bar
               - arguments: []
                 cards:
-                    - !ScalarInt 42
+                    - ScalarInt: 42
 
 """
 

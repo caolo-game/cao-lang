@@ -5,50 +5,54 @@ functions:
     - arguments: []
       cards:
         # --- init the example table ---
-        - !SetVar
+        - SetVar:
             name: t
-            value: !CreateTable
-        - !SetProperty
-          - !ScalarInt 3
-          - !ReadVar t
-          - !StringLiteral f1
-        - !SetProperty
-          - !ScalarInt 5
-          - !ReadVar t
-          - !StringLiteral f2
-        - !SetProperty
-          - !ScalarInt 7
-          - !ReadVar t
-          - !StringLiteral f3
-        - !SetGlobalVar 
+            value:
+              CreateTable: null
+        - SetProperty:
+            - ScalarInt: 3
+            - ReadVar: t
+            - StringLiteral: f1
+        - SetProperty:
+            - ScalarInt: 5
+            - ReadVar: t
+            - StringLiteral: f2
+        - SetProperty:
+            - ScalarInt: 7
+            - ReadVar: t
+            - StringLiteral: f3
+        - SetGlobalVar:
             name: g_result
-            value: !ScalarInt 0
+            value:
+              ScalarInt: 0
         # --- init done ---
-        - !ForEach
-          k: key
-          body: !CompositeCard
-            ty: ""
-            cards:
-              - !ReadVar t
-              - !ReadVar key
-              - !Call
-                  function_name: pog
-                  args: []
-          iterable: !ReadVar t
+        - ForEach:
+            k: key
+            body:
+              CompositeCard:
+                ty: ""
+                cards:
+                  - ReadVar: t
+                  - ReadVar: key
+                  - Call:
+                      function_name: pog
+                      args: []
+            iterable:
+              ReadVar: t
 
   - - pog
     - arguments:
         - "key"
         - "table"
       cards:
-        - !SetGlobalVar
+        - SetGlobalVar:
             name: g_result
-            value: 
-              !Add
-                - !CompositeCard
-                  ty: ""
-                  cards:
-                    - !GetProperty
-                      - !ReadVar table
-                      - !ReadVar key
-                - !ReadVar g_result
+            value:
+              Add:
+                - CompositeCard:
+                    ty: ""
+                    cards:
+                      - GetProperty:
+                          - ReadVar: table
+                          - ReadVar: key
+                - ReadVar: g_result

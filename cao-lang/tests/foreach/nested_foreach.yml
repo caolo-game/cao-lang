@@ -10,78 +10,87 @@ functions:
         #  f2: 5,
         #  f3: 7,
         # }
-        - !SetVar
+        - SetVar:
             name: t
-            value: !CreateTable
-        - !SetVar
+            value:
+              CreateTable: null
+        - SetVar:
             name: t.f1
-            value: !ScalarInt 3
-        - !SetVar
+            value:
+              ScalarInt: 3
+        - SetVar:
             name: t.f2
             value:
-              !ScalarInt 5
-              
-        - !SetVar 
-            name: t.f3 # set result and g_iters to zero
-            value: !ScalarInt 7
+              ScalarInt: 5
 
-        - !SetGlobalVar 
+        - SetVar:
+            name: t.f3 # set result and g_iters to zero
+            value:
+              ScalarInt: 7
+
+        - SetGlobalVar:
             name: g_result
-            value: !ScalarInt 0
-        - !SetGlobalVar
+            value:
+              ScalarInt: 0
+        - SetGlobalVar:
             name: g_iters
-            value: !ScalarInt 0
+            value:
+              ScalarInt: 0
         # --- init done ---
-        - !ForEach
-          k: key
-          body: !CompositeCard
-            ty: ""
-            cards:
-              - !ReadVar t
-              - !ReadVar key
-              - !Call 
-                  function_name: outer_loop
-                  args: []
-          iterable: !ReadVar t
+        - ForEach:
+            k: key
+            body:
+              CompositeCard:
+                ty: ""
+                cards:
+                  - ReadVar: t
+                  - ReadVar: key
+                  - Call:
+                      function_name: outer_loop
+                      args: []
+            iterable:
+              ReadVar: t
 
   - - outer_loop
     - arguments:
         - "key"
         - "table"
       cards:
-        - !ForEach
-          k: key
-          body: !CompositeCard
-            ty: ""
-            cards:
-              - !ReadVar table
-              - !ReadVar key
-              - !Call 
-                  function_name: inner_loop
-                  args: []
-          iterable: !ReadVar table
+        - ForEach:
+            k: key
+            body:
+              CompositeCard:
+                ty: ""
+                cards:
+                  - ReadVar: table
+                  - ReadVar: key
+                  - Call:
+                      function_name: inner_loop
+                      args: []
+            iterable:
+              ReadVar: table
 
   - - inner_loop
     - arguments:
         - "key"
         - "table"
       cards:
-        - !SetGlobalVar
+        - SetGlobalVar:
             name: g_result
             value:
-              !Add
-                - !CompositeCard
-                  ty: ""
-                  cards:
-                    - !GetProperty
-                      - !ReadVar table
-                      - !ReadVar key
-                - !ReadVar g_result
+              Add:
+                - CompositeCard:
+                    ty: ""
+                    cards:
+                      - GetProperty:
+                          - ReadVar: table
+                          - ReadVar: key
+                - ReadVar: g_result
 
           # add 1 to g_iters
-        - !SetGlobalVar 
+        - SetGlobalVar:
             name: g_iters
-            value: 
-              !Add
-                - !ScalarInt 1
-                - !ReadVar g_iters
+            value:
+              Add:
+                - ScalarInt: 1
+                - ReadVar: g_iters

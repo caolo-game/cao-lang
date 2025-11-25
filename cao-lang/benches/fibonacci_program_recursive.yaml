@@ -5,50 +5,52 @@ functions:
     - arguments:
         - N
       cards:
-        - !SetGlobalVar
+        - SetGlobalVar:
             name: result
-            value: 
-              !Call 
-                  function_name: fib
-                  args: [ !ReadVar N ]
+            value:
+              Call:
+                function_name: fib
+                args:
+                  - ReadVar: N
 
   - - fib
     - arguments:
         - N
       cards:
-        - !ReadVar N
-        - !Return
+        - ReadVar: N
+        - Return:
             card:
-              !IfElse
-                - !LessOrEq
-                  - !ScalarInt 2
-                  - !ReadVar N
-                - !Call
+              IfElse:
+                - LessOrEq:
+                    - ScalarInt: 2
+                    - ReadVar: N
+                - Call:
                     function_name: fib_again
                     args: []
-                - !ScalarInt 1
+                - ScalarInt: 1
 
   - - fib_again
     - arguments:
         - N
       cards:
-        - !Return
-          card: !Add
-                - !CompositeCard
-                  ty: ""
-                  cards:
-                    - !Sub
-                      - !ReadVar N
-                      - !ScalarInt 1
-                    - !Call 
-                        function_name: fib
-                        args: []
-                - !CompositeCard
-                  ty: ""
-                  cards:
-                    - !Sub
-                      - !ReadVar N
-                      - !ScalarInt 2
-                    - !Call
-                        function_name: fib
-                        args: []
+        - Return:
+            card:
+              Add:
+                - CompositeCard:
+                    ty: ""
+                    cards:
+                      - Sub:
+                          - ReadVar: N
+                          - ScalarInt: 1
+                      - Call:
+                          function_name: fib
+                          args: []
+                - CompositeCard:
+                    ty: ""
+                    cards:
+                      - Sub:
+                          - ReadVar: N
+                          - ScalarInt: 2
+                      - Call:
+                          function_name: fib
+                          args: []

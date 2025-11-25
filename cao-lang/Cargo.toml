@@ -11,6 +11,7 @@ features = ["derive"]
 version = "^1.0"
 
 [dependencies]
+fastrand = "2.3.0"
 num_enum = "^0.7"
 thiserror = "^2.0"
 

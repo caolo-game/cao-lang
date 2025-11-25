@@ -150,6 +150,7 @@ dependencies = [
  "ciborium",
  "criterion",
  "env_logger",
+ "fastrand",
  "num_enum",
  "semver",
  "serde",

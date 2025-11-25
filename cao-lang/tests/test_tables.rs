@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use cao_lang::prelude::*;
+use cao_lang::{compiler::Card, prelude::*};
 
 #[test]
 fn test_init_table() {
@@ -9,7 +9,7 @@ fn test_init_table() {
         submodules: Default::default(),
         functions: [(
             "main".into(),
-            Function::default().with_card(Card::set_global_var("g_foo", Card::CreateTable)),
+            Function::default().with_card(Card::set_global_var("g_foo", CardBody::CreateTable)),
         )]
         .into(),
     };
@@ -34,17 +34,17 @@ fn test_get_set() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::set_var("foo", Card::CreateTable))
+                .with_card(Card::set_var("foo", CardBody::CreateTable))
                 .with_card(Card::set_property(
-                    Card::ScalarInt(42),
+                    CardBody::ScalarInt(42),
                     Card::read_var("foo"),
-                    Card::StringLiteral("bar".to_string()),
+                    CardBody::StringLiteral("bar".to_string()),
                 )) // foo.bar
                 .with_card(Card::set_global_var(
                     "scoobie",
                     Card::get_property(
                         Card::read_var("foo"),
-                        Card::StringLiteral("bar".to_string()),
+                        CardBody::StringLiteral("bar".to_string()),
                     ),
                 )),
         )]
@@ -92,11 +92,11 @@ fn test_native_w_table_input() {
         functions: [(
             "main".into(),
             Function::default()
-                .with_card(Card::set_var("foo", Card::CreateTable))
+                .with_card(Card::set_var("foo", CardBody::CreateTable))
                 .with_card(Card::set_property(
-                    Card::ScalarInt(42),
+                    CardBody::ScalarInt(42),
                     Card::read_var("foo"),
-                    Card::StringLiteral("boi".to_string()),
+                    CardBody::StringLiteral("boi".to_string()),
                 )) // foo.bar
                 .with_card(Card::call_native("boii", vec![Card::read_var("foo")])),
         )]

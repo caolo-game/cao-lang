@@ -4,12 +4,12 @@ use super::*;
 fn composite_card_test() {
     let functions = vec![(
         "main".into(),
-        Function::default().with_card(Card::CompositeCard(Box::new(CompositeCard {
+        Function::default().with_card(CardBody::CompositeCard(Box::new(CompositeCard {
             ty: "triplepog".to_string(),
             cards: vec![
-                Card::StringLiteral("poggers".to_owned()),
-                Card::StringLiteral("poggers".to_owned()),
-                Card::StringLiteral("poggers".to_owned()),
+                CardBody::StringLiteral("poggers".to_owned()).into(),
+                CardBody::StringLiteral("poggers".to_owned()).into(),
+                CardBody::StringLiteral("poggers".to_owned()).into(),
             ],
         }))),
     )];
@@ -31,9 +31,9 @@ fn can_binary_de_serialize_output() {
         functions: [(
             "main".into(),
             Function::default().with_cards(vec![
-                Card::set_global_var("asdsdad", Card::ScalarNil),
-                Card::ScalarNil,
-                Card::ScalarNil,
+                Card::set_global_var("asdsdad", CardBody::ScalarNil),
+                CardBody::ScalarNil.into(),
+                CardBody::ScalarNil.into(),
             ]),
         )]
         .into(),
@@ -54,7 +54,7 @@ fn empty_varname_is_error() {
         submodules: Default::default(),
         functions: [(
             "main".into(),
-            Function::default().with_cards(vec![Card::set_global_var("", Card::ScalarNil)]),
+            Function::default().with_cards(vec![Card::set_global_var("", CardBody::ScalarNil)]),
         )]
         .into(),
     };
@@ -76,7 +76,7 @@ fn can_call_nested_function_test() {
             submodules: Default::default(),
             functions: vec![(
                 "pooh".into(),
-                Function::default().with_card(Card::ScalarNil),
+                Function::default().with_card(CardBody::ScalarNil),
             )],
         },
     )];
@@ -128,7 +128,7 @@ fn test_swap_lhs_childof_rhs_fails() {
         submodules: [].into(),
         functions: [(
             "main".into(),
-            Function::default().with_card(Card::Not(UnaryExpression {
+            Function::default().with_card(CardBody::Not(UnaryExpression {
                 card: Box::new(Card::scalar_int(42)),
             })),
         )]
@@ -152,7 +152,7 @@ fn test_swap_rhs_childof_lhs_fails() {
         submodules: [].into(),
         functions: [(
             "main".into(),
-            Function::default().with_card(Card::Not(UnaryExpression {
+            Function::default().with_card(CardBody::Not(UnaryExpression {
                 card: Box::new(Card::scalar_int(42)),
             })),
         )]
@@ -202,25 +202,25 @@ fn test_swap() {
         .get_card(&CardIndex::function(0).with_sub_index(0))
         .unwrap();
 
-    assert!(matches!(f, &Card::ScalarInt(5)));
+    assert!(matches!(&f.body, &CardBody::ScalarInt(5)));
 
     let f = m
         .get_card(&CardIndex::function(0).with_sub_index(1))
         .unwrap();
 
-    assert!(matches!(f, &Card::ScalarInt(5)));
+    assert!(matches!(&f.body, &CardBody::ScalarInt(5)));
 
     let f = m
         .get_card(&CardIndex::function(1).with_sub_index(0))
         .unwrap();
 
-    assert!(matches!(f, &Card::ScalarInt(42)));
+    assert!(matches!(&f.body, &CardBody::ScalarInt(42)));
 
     let f = m
         .get_card(&CardIndex::function(1).with_sub_index(1))
         .unwrap();
 
-    assert!(matches!(f, &Card::ScalarInt(42)));
+    assert!(matches!(&f.body, &CardBody::ScalarInt(42)));
 
     assert_eq!(m.functions.len(), 2);
     assert_eq!(m.functions[0].1.cards.len(), 2);
