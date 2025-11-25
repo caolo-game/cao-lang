@@ -38,11 +38,14 @@ features = ["release_max_level_info"]
 version = "^0.1"
 
 [dev-dependencies]
-bincode = { version = "2", features = ["serde"] }
 ciborium = "0.2"
 env_logger = "^0.11"
 serde_json = "^1.0"
 serde_yaml = "^0.9"
+
+[dev-dependencies.bincode]
+features = ["serde"]
+version = "2"
 
 [dev-dependencies.criterion]
 features = ["html_reports"]
@@ -68,4 +71,4 @@ license = "MIT"
 name = "cao-lang"
 readme = "../README.md"
 repository = "https://github.com/caolo-game/cao-lang.git"
-version = "0.2.6"
+version = "0.3.0"
