@@ -142,7 +142,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "arrayvec",
  "bincode",
@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "cao-lang-py"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "cao-lang",
  "pyo3",
