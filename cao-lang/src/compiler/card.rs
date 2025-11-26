@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicU64;
+
 use super::*;
 use crate::InputString;
 use crate::VarName;
@@ -15,8 +17,10 @@ pub struct Card {
     pub body: CardBody,
 }
 
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+
 fn random_id() -> CardId {
-    CardId(fastrand::u64(0..std::u64::MAX))
+    CardId(NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }
 
 impl From<CardBody> for Card {
