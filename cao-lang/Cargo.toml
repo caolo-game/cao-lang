@@ -4,7 +4,7 @@ name = "cao_lang_benches"
 
 [build-dependencies]
 semver = "^1.0"
-toml = "^0.8"
+toml = "^0.9"
 
 [build-dependencies.serde]
 features = ["derive"]
@@ -48,7 +48,7 @@ version = "2"
 
 [dev-dependencies.criterion]
 features = ["html_reports"]
-version = "^0.5"
+version = "^0.7"
 
 [dev-dependencies.tracing-subscriber]
 default-features = false
