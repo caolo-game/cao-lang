@@ -4,7 +4,7 @@ use super::*;
 use crate::InputString;
 use crate::VarName;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CardId(pub u64);
 
